@@ -1,11 +1,47 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+
+const LOGO_CACHE_KEY = 'cached_center_logo';
+const NAME_CACHE_KEY = 'cached_center_name';
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const location = useLocation();
+
+    // ✨ [Instant Logo] localStorage에서 캐시된 값을 바로 사용 (플리커 방지)
+    const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem(LOGO_CACHE_KEY) || '');
+    const [centerName, setCenterName] = useState(() => localStorage.getItem(NAME_CACHE_KEY) || '행복아동발달센터');
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    useEffect(() => {
+        const fetchBranding = async () => {
+            try {
+                const { data } = await (supabase.from('admin_settings') as any)
+                    .select('key, value')
+                    .in('key', ['center_logo', 'center_name']);
+
+                if (data) {
+                    const settings: Record<string, string> = {};
+                    data.forEach((item: any) => { settings[item.key] = item.value; });
+
+                    if (settings.center_logo) {
+                        setLogoUrl(settings.center_logo);
+                        localStorage.setItem(LOGO_CACHE_KEY, settings.center_logo);
+                    }
+                    if (settings.center_name) {
+                        setCenterName(settings.center_name);
+                        localStorage.setItem(NAME_CACHE_KEY, settings.center_name);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch branding:', error);
+            }
+        };
+        fetchBranding();
+    }, []);
 
     const navigation = [
         { name: '홈', href: '/' },
@@ -22,8 +58,30 @@ export function Header() {
                 <div className="flex h-16 items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary">
-                            <span className="text-2xl">🧸</span>
-                            <span>행복아동발달센터</span>
+                            {/* ✨ [Zero Flicker] 로고 URL이 캐시에 있으면 무조건 이미지 영역 표시 */}
+                            {logoUrl ? (
+                                <div className={`h-8 min-w-[100px] flex items-center ${!imageLoaded ? 'logo-skeleton' : ''}`}>
+                                    <img
+                                        src={logoUrl}
+                                        alt={centerName}
+                                        className={`h-8 w-auto object-contain transition-opacity duration-150 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                                        loading="eager"
+                                        fetchPriority="high"
+                                        decoding="sync"
+                                        onLoad={() => setImageLoaded(true)}
+                                        onError={() => {
+                                            localStorage.removeItem(LOGO_CACHE_KEY);
+                                            setLogoUrl('');
+                                        }}
+                                    />
+                                </div>
+                            ) : (
+                                /* 로고가 없을 때만 텍스트 표시 (캐시에 URL 없음 = 로고 미설정) */
+                                <>
+                                    <span className="text-2xl">🧸</span>
+                                    <span>{centerName}</span>
+                                </>
+                            )}
                         </Link>
                     </div>
 

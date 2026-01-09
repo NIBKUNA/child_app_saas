@@ -1,16 +1,19 @@
 // @ts-nocheck
 /* eslint-disable */
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
 // ✨ retired 타입 추가
 export type UserRole = 'admin' | 'staff' | 'therapist' | 'parent' | 'retired' | null;
 
+const ROLE_CACHE_KEY = 'cached_user_role';
+
 type AuthContextType = {
     session: Session | null;
     user: User | null;
     role: UserRole;
+    profile: any;
     loading: boolean;
     signOut: () => Promise<void>;
 };
@@ -19,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
     session: null,
     user: null,
     role: null,
+    profile: null,
     loading: true,
     signOut: async () => { },
 });
@@ -26,8 +30,16 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
-    const [role, setRole] = useState<UserRole>(null);
+    // ✨ [Instant Role] localStorage에서 캐시된 역할을 바로 사용
+    const [role, setRole] = useState<UserRole>(() => {
+        const cached = localStorage.getItem(ROLE_CACHE_KEY);
+        return cached ? (cached as UserRole) : null;
+    });
+    const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+
+    // ✨ [No Re-block] 초기 로딩 후에는 전체 화면 로딩을 다시 보여주지 않음
+    const initialLoadComplete = useRef(false);
 
     useEffect(() => {
         let mounted = true;
@@ -39,10 +51,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setSession(session);
                     setUser(session?.user ?? null);
                     // 세션이 없으면 로딩 종료
-                    if (!session) setLoading(false);
+                    if (!session) {
+                        setLoading(false);
+                        initialLoadComplete.current = true;
+                    }
                 }
             } catch (error) {
-                if (mounted) setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                    initialLoadComplete.current = true;
+                }
             }
         };
 
@@ -54,7 +72,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(session?.user ?? null);
                 if (!session) {
                     setRole(null);
+                    localStorage.removeItem(ROLE_CACHE_KEY);
                     setLoading(false);
+                    initialLoadComplete.current = true;
                 }
             }
         });
@@ -71,7 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const fetchRole = async () => {
             if (!user) return;
 
-            setLoading(true); // 권한 조회 시작 시 로딩 상태 유지
+            // ✨ [Optimization] 이미 역할이 있으면 loading을 true로 다시 설정하지 않음
+            // 초기 로딩 때만 전체 화면 로딩 표시
+            if (!initialLoadComplete.current) {
+                setLoading(true);
+            }
+
             try {
                 const { data, error } = await supabase
                     .from('user_profiles')
@@ -80,13 +105,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     .maybeSingle();
 
                 if (mounted) {
-                    // ✨ 기본값을 'therapist'로 주지 않고 데이터 그대로 반영 (없으면 parent)
-                    setRole((data?.role as UserRole) || 'parent');
+                    const fetchedRole = (data?.role as UserRole) || 'parent';
+                    setRole(fetchedRole);
+                    setProfile(data);
+                    // ✨ localStorage에 캐시
+                    localStorage.setItem(ROLE_CACHE_KEY, fetchedRole);
                 }
             } catch (error) {
                 if (mounted) setRole('parent');
             } finally {
-                if (mounted) setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                    initialLoadComplete.current = true;
+                }
             }
         };
 
@@ -94,14 +125,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [user]);
 
     const signOut = async () => {
+        localStorage.removeItem(ROLE_CACHE_KEY);
         await supabase.auth.signOut();
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, role, loading, signOut }}>
+        <AuthContext.Provider value={{ session, user, role, profile, loading, signOut }}>
             {children}
-            {/* 전역 로딩: 권한 확인 전까지 화면을 가립니다. */}
-            {loading && (
+            {/* ✨ 초기 로딩 때만 전체 화면 로딩 표시 (한 번 완료되면 다시 표시 안 함) */}
+            {loading && !initialLoadComplete.current && (
                 <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/95 backdrop-blur-md">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mb-4"></div>
                     <p className="text-slate-500 font-bold">권한을 확인 중입니다...</p>

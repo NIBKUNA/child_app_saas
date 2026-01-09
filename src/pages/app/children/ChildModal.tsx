@@ -105,12 +105,60 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     };
 
     const handleDelete = async () => {
-        if (!confirm('삭제하시겠습니까? 관련 일정도 모두 삭제될 수 있습니다.')) return;
-        const { error } = await supabase.from('children').delete().eq('id', childId);
-        if (error) {
-            alert('삭제 실패: ' + error.message);
-        } else {
+        if (!confirm('🚨 정말 삭제하시겠습니까?\n\n이 아동과 관련된 모든 데이터(수업 일정, 수납 내역, 상담 일지, 알림장)가 영구적으로 삭제됩니다.\n\n삭제된 데이터는 복구할 수 없습니다.')) return;
+
+        setLoading(true);
+        try {
+            // 1. 수납 상세 내역 삭제 (payment_items) - schedule_id 또는 payment_id 연결
+            // 여기서는 child_id를 직접 참조하지 않으므로, payments 테이블을 거쳐야 함
+            // 하지만 복잡하므로, payments 삭제 시 ON DELETE CASCADE가 아닌 수동 처리가 필요할 수 있음.
+            // 일단 payments를 지우기 전에 payments_items를 지워야 함.
+
+            // child_id로 연결된 payments 찾기
+            const { data: userPayments } = await supabase.from('payments').select('id').eq('child_id', childId);
+            const paymentIds = userPayments?.map(p => p.id) || [];
+
+            if (paymentIds.length > 0) {
+                await supabase.from('payment_items').delete().in('payment_id', paymentIds);
+                await supabase.from('payments').delete().in('id', paymentIds);
+            }
+
+            // 2. 일정 관련 데이터 삭제 (schedules -> counseling_logs, daily_notes)
+            const { data: userSchedules } = await supabase.from('schedules').select('id').eq('child_id', childId);
+            const scheduleIds = userSchedules?.map(s => s.id) || [];
+
+            if (scheduleIds.length > 0) {
+                // 일정에 연결된 하위 데이터 삭제
+                await supabase.from('counseling_logs').delete().in('schedule_id', scheduleIds);
+                await supabase.from('daily_notes').delete().in('schedule_id', scheduleIds);
+                await supabase.from('payment_items').delete().in('schedule_id', scheduleIds); // 일정 ID로 연결된 수납 상세도 삭제
+                await supabase.from('consultations').delete().in('schedule_id', scheduleIds);
+
+                // 일정 삭제
+                await supabase.from('schedules').delete().in('id', scheduleIds);
+            }
+
+            // 3. 아동 직접 연결 데이터 삭제
+            await supabase.from('counseling_logs').delete().eq('child_id', childId);
+            await supabase.from('daily_notes').delete().eq('child_id', childId);
+            await supabase.from('consultations').delete().eq('child_id', childId);
+            await supabase.from('child_therapist').delete().eq('child_id', childId);
+            await supabase.from('vouchers').delete().eq('child_id', childId);
+
+            // 4. 리드(상담문의) 연결 해제 (삭제하지 않고 연결 끊기)
+            await supabase.from('leads').update({ converted_child_id: null }).eq('converted_child_id', childId);
+
+            // 5. 최종 아동 삭제
+            const { error } = await supabase.from('children').delete().eq('id', childId);
+            if (error) throw error;
+
+            alert('아동 및 관련 데이터가 모두 삭제되었습니다.');
             onSuccess();
+        } catch (error) {
+            console.error('삭제 실패:', error);
+            alert('삭제 중 오류가 발생했습니다: ' + error.message);
+        } finally {
+            setLoading(false);
         }
     };
 

@@ -8,7 +8,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import koLocale from '@fullcalendar/core/locales/ko';
-import { Plus, Loader2, Calendar, Clock, User, FileText } from 'lucide-react'; // FileText 아이콘 추가
+import { Plus, Loader2, Calendar, Clock, User, FileText } from 'lucide-react';
 import { ScheduleModal } from '@/components/app/schedule/ScheduleModal';
 
 export function Schedule() {
@@ -26,11 +26,11 @@ export function Schedule() {
 
     const fetchSchedules = async () => {
         try {
-            // session_note(상담일지) 컬럼 추가로 가져옴
             const { data, error } = await supabase
                 .from('schedules')
                 .select(`
                     id, date, start_time, end_time, status, session_note,
+                    child_id, program_id, therapist_id,
                     children (name),
                     programs (name),
                     therapists (name, color)
@@ -41,35 +41,44 @@ export function Schedule() {
             if (data) {
                 const formattedEvents = data.map(schedule => {
                     const childName = schedule.children?.name || '미등록';
-                    const programName = schedule.programs?.name || '프로그램 미정';
                     const therapistName = schedule.therapists?.name || '미정';
-                    const eventColor = schedule.therapists?.color || '#94a3b8';
+                    const originalColor = schedule.therapists?.color || '#94a3b8';
 
-                    // [버그 수정] 날짜 밀림 방지: start_time(ISO) 대신 date(YYYY-MM-DD)와 시간 조합 사용 권장
-                    // 하지만 FullCalendar는 ISO 문자열을 잘 처리하므로, 저장 시 Timezone 문제일 가능성이 큼.
-                    // 보여줄 때는 그대로 보여줌.
+                    // ✨ [취소 상태 체크 및 시각화 로직 강화]
+                    // Billing 페이지와 싱크를 맞추기 위해 'canceled'와 'cancelled' 모두 대응
+                    const isCancelled = schedule.status === 'canceled' || schedule.status === 'cancelled';
 
-                    const isCancelled = schedule.status === 'cancelled';
+                    // 1. 취소된 경우 색상을 회색(#cbd5e1)으로 변경, 아니면 선생님 고유색 사용
+                    const eventColor = isCancelled ? '#cbd5e1' : originalColor;
+
+                    // 2. 클래스명 설정 (취소선, 흐리게 처리)
                     const eventClasses = isCancelled
-                        ? ['line-through', 'opacity-60', 'italic', 'grayscale']
+                        ? ['line-through', 'opacity-50', 'grayscale', 'cancelled-event']
                         : [];
 
                     return {
                         id: schedule.id,
-                        title: `${childName}`,
+                        // 3. 제목에 [취소] 표시 추가하여 직관성 높임
+                        title: isCancelled ? `[취소] ${childName}` : childName,
                         start: schedule.start_time,
                         end: schedule.end_time,
-                        backgroundColor: eventColor + '20',
+                        backgroundColor: eventColor + (isCancelled ? '40' : '20'), // 취소 시 배경 좀 더 진하게
                         borderColor: eventColor,
-                        textColor: '#1e293b',
+                        textColor: isCancelled ? '#94a3b8' : '#1e293b',
                         classNames: eventClasses,
                         extendedProps: {
                             status: schedule.status,
+                            child_id: schedule.child_id,
+                            program_id: schedule.program_id,
+                            therapist_id: schedule.therapist_id,
+                            date: schedule.date,
+                            start_time: schedule.start_time,
+                            end_time: schedule.end_time,
                             childName: childName,
-                            programName: programName,
+                            programName: schedule.programs?.name || '프로그램 미정',
                             therapistName: therapistName,
                             color: eventColor,
-                            hasNote: !!schedule.session_note // 상담일지 존재 여부 체크
+                            hasNote: !!schedule.session_note
                         }
                     };
                 });
@@ -82,10 +91,9 @@ export function Schedule() {
         }
     };
 
-    // ... (이벤트 핸들러들은 기존과 동일, 생략) ...
     const handleEventClick = (info) => {
         setSelectedScheduleId(info.event.id);
-        setClickedDate(null);
+        setClickedDate(info.event.extendedProps);
         setIsModalOpen(true);
         setTooltipInfo(null);
     };
@@ -127,6 +135,7 @@ export function Schedule() {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'completed': return { text: '출석 완료', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
+            case 'canceled':
             case 'cancelled': return { text: '수업 취소', class: 'bg-rose-50 text-rose-600 border-rose-200' };
             case 'carried_over': return { text: '이월됨', class: 'bg-purple-50 text-purple-600 border-purple-200' };
             default: return { text: '수업 예정', class: 'bg-blue-50 text-blue-600 border-blue-200' };
@@ -143,6 +152,8 @@ export function Schedule() {
                 .fc-daygrid-day:hover { background-color: #f8fafc !important; cursor: pointer; }
                 .fc-timegrid-now-indicator-line { border-color: #ef4444; border-width: 2px; }
                 .fc-timegrid-now-indicator-arrow { border-color: #ef4444; border-width: 6px; }
+                /* 취소선 스타일 강제 적용 */
+                .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
             `}</style>
 
             <div className="space-y-6 h-full flex flex-col pb-6 relative">
@@ -179,12 +190,12 @@ export function Schedule() {
                     />
                 </div>
 
-                {/* 툴팁 (상담일지 아이콘 추가) */}
+                {/* 툴팁 영역 */}
                 <div className={`fixed z-50 bg-slate-900/95 text-white p-4 rounded-xl shadow-2xl pointer-events-none transition-opacity duration-300 ease-in-out text-sm min-w-[220px] backdrop-blur-sm ${tooltipInfo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ top: tooltipInfo ? tooltipInfo.y : 0, left: tooltipInfo ? tooltipInfo.x : 0, transform: 'translate(-50%, -100%) translateY(-10px)' }}>
                     {tooltipInfo && (
                         <>
                             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/10">
-                                <div className="w-3 h-3 rounded-full shadow-[0_0_8px]" style={{ backgroundColor: tooltipInfo.event.extendedProps.color, color: tooltipInfo.event.extendedProps.color }}></div>
+                                <div className="w-3 h-3 rounded-full shadow-[0_0_8px]" style={{ backgroundColor: tooltipInfo.event.extendedProps.color }}></div>
                                 <span className="font-black text-lg tracking-tight">{tooltipInfo.event.title}</span>
                             </div>
                             <div className="space-y-2">
@@ -206,7 +217,6 @@ export function Schedule() {
                                     <span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${getStatusBadge(tooltipInfo.event.extendedProps.status).class}`}>
                                         {getStatusBadge(tooltipInfo.event.extendedProps.status).text}
                                     </span>
-                                    {/* 상담일지 존재 여부 표시 아이콘 */}
                                     {tooltipInfo.event.extendedProps.hasNote && (
                                         <div className="flex items-center gap-1 text-xs text-yellow-400 font-bold bg-yellow-400/10 px-2 py-1 rounded-md border border-yellow-400/20">
                                             <FileText className="w-3 h-3" /> 일지 작성됨

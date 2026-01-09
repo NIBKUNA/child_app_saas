@@ -126,6 +126,7 @@ CREATE TABLE children (
   notes TEXT,
   photo_url TEXT,
   inflow_source VARCHAR(100),          -- 유입 경로 (추가됨)
+  credit INTEGER DEFAULT 0,            -- 적립금 (선수납 잔액)
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -135,7 +136,7 @@ CREATE TABLE children (
 CREATE TABLE consultations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   center_id UUID REFERENCES centers(id),
-  child_id UUID REFERENCES children(id) ON DELETE SET NULL, -- 기존 아동인 경우 연결
+  child_id UUID REFERENCES children(id) ON DELETE CASCADE, -- 기존 아동인 경우 연결 (삭제 시 같이 삭제)
   
   -- 아동 정보 (비회원/신규 포함)
   child_name VARCHAR(100) NOT NULL,
@@ -304,7 +305,7 @@ CREATE TABLE counseling_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   child_id UUID REFERENCES children(id) ON DELETE CASCADE,
   therapist_id UUID REFERENCES therapists(id),
-  schedule_id UUID REFERENCES schedules(id),
+  schedule_id UUID REFERENCES schedules(id) ON DELETE CASCADE,
   session_date DATE NOT NULL,
   
   session_number INTEGER,              -- 회차
@@ -378,7 +379,7 @@ CREATE TABLE payments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   center_id UUID REFERENCES centers(id),
   parent_id UUID REFERENCES parents(id),
-  child_id UUID REFERENCES children(id),
+  child_id UUID REFERENCES children(id) ON DELETE CASCADE,
   voucher_id UUID REFERENCES vouchers(id),
   
   payment_type payment_type NOT NULL,
@@ -410,7 +411,7 @@ CREATE TABLE payments (
 CREATE TABLE payment_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
-  schedule_id UUID REFERENCES schedules(id),
+  schedule_id UUID REFERENCES schedules(id) ON DELETE CASCADE,
   
   service_type VARCHAR(50),
   service_date DATE,
@@ -490,7 +491,7 @@ CREATE TABLE daily_notes (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   child_id UUID REFERENCES children(id) ON DELETE CASCADE,
   therapist_id UUID REFERENCES therapists(id),
-  schedule_id UUID REFERENCES schedules(id),
+  schedule_id UUID REFERENCES schedules(id) ON DELETE CASCADE,
   
   note_date DATE NOT NULL,
   

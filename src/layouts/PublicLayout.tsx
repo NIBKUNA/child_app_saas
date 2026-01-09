@@ -1,16 +1,47 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
+import { useTrafficSource } from '@/hooks/useTrafficSource';
 
 export function PublicLayout() {
     const { user, role, signOut } = useAuth();
-    const { getSetting } = useAdminSettings();
+    const { getSetting, loading: settingsLoading } = useAdminSettings();
     const navigate = useNavigate();
     const logoUrl = getSetting('center_logo');
+    const centerName = getSetting('center_name');
+
+    // ✨ 방문자 트래픽 소스 추적 (세션당 한 번만 DB에 저장)
+    useTrafficSource();
 
     const handleLogout = async () => {
         await signOut();
         navigate('/');
+    };
+
+    // ✨ [Flash Prevention] 로고가 로딩 중일 때는 빈 공간 표시 (캐시가 없는 첫 방문만)
+    const renderLogo = () => {
+        if (logoUrl) {
+            // 로고 URL이 있으면 이미지 표시
+            return <img src={logoUrl} alt="센터 로고" className="h-10 w-auto object-contain" />;
+        }
+
+        if (centerName) {
+            // 로고는 없지만 센터명이 있으면 텍스트만 표시
+            return <span className="text-xl font-bold text-slate-800 tracking-tight">{centerName}</span>;
+        }
+
+        if (settingsLoading) {
+            // 로딩 중이고 캐시도 없으면 빈 공간 (최소 높이 유지)
+            return <div className="h-10 w-32 bg-slate-100 rounded animate-pulse" />;
+        }
+
+        // 로딩 완료 후에도 아무것도 없으면 기본 표시
+        return (
+            <>
+                <span className="text-2xl">🧸</span>
+                <span className="text-xl font-bold text-slate-800 tracking-tight">행복아동발달센터</span>
+            </>
+        );
     };
 
     return (
@@ -18,14 +49,7 @@ export function PublicLayout() {
             <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-2">
-                        {logoUrl ? (
-                            <img src={logoUrl} alt="센터 로고" className="h-10 w-auto object-contain" />
-                        ) : (
-                            <>
-                                <span className="text-2xl">🧸</span>
-                                <span className="text-xl font-bold text-slate-800 tracking-tight">행복아동발달센터</span>
-                            </>
-                        )}
+                        {renderLogo()}
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-8">

@@ -51,9 +51,9 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             setTherapistsList(therRes.data || []);
 
             if (scheduleId) {
-                const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
-                if (data) {
-                    // 불러올 때: DB에 저장된 "2026-01-07T10:00:00"에서 시간만 쏙 발라냄
+                // ✨ [성능 개선] 부모로부터 데이터가 넘어왔다면 DB 조회 스킵
+                if (initialDate && typeof initialDate === 'object' && initialDate.child_id) {
+                    const data = initialDate;
                     let sTime = data.start_time;
                     if (sTime && sTime.includes('T')) sTime = sTime.split('T')[1].slice(0, 5);
 
@@ -69,18 +69,41 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         end_time: eTime || '10:40',
                         status: data.status
                     });
+                } else {
+                    const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
+                    if (data) {
+                        let sTime = data.start_time;
+                        if (sTime && sTime.includes('T')) sTime = sTime.split('T')[1].slice(0, 5);
+
+                        let eTime = data.end_time;
+                        if (eTime && eTime.includes('T')) eTime = eTime.split('T')[1].slice(0, 5);
+
+                        setFormData({
+                            child_id: data.child_id,
+                            program_id: data.program_id,
+                            therapist_id: data.therapist_id,
+                            date: data.date || (data.start_time ? data.start_time.split('T')[0] : ''),
+                            start_time: sTime || '10:00',
+                            end_time: eTime || '10:40',
+                            status: data.status
+                        });
+                    }
                 }
             } else {
-                // 신규 등록: 클릭한 시간 반영
-                let initDate = initialDate ? new Date(initialDate) : new Date();
+                // 신규 등록
+                const initDateParam = (initialDate && !(initialDate instanceof Date) && typeof initialDate === 'object' && initialDate.date)
+                    ? initialDate.date
+                    : initialDate;
+
+                let initDate = initDateParam ? new Date(initDateParam) : new Date();
+                if (isNaN(initDate.getTime())) initDate = new Date();
+
                 const year = initDate.getFullYear();
                 const month = String(initDate.getMonth() + 1).padStart(2, '0');
                 const day = String(initDate.getDate()).padStart(2, '0');
-
-                // 클릭한 슬롯의 시간 추출
                 const h = String(initDate.getHours()).padStart(2, '0');
                 const m = String(initDate.getMinutes()).padStart(2, '0');
-                const timeStr = `${h}:${m}`; // "14:30" or "00:00"
+                const timeStr = `${h}:${m}`;
 
                 setFormData({
                     child_id: '',
@@ -156,10 +179,56 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     };
 
     // UI 및 기능 유지
+    // UI 및 기능 유지
     const handleDelete = async () => {
-        if (confirm('정말 삭제하시겠습니까?')) {
-            await supabase.from('schedules').delete().eq('id', scheduleId);
+        setLoading(true);
+        try {
+            // 0. 결제 여부 확인 (Ghost Credit 방지)
+            const { data: payItems } = await supabase.from('payment_items').select('id, payment_id').eq('schedule_id', scheduleId);
+
+            if (payItems && payItems.length > 0) {
+                // 이미 결제된 건이 존재하는 경우 경고
+                if (!confirm(
+                    '⚠️ 경고: 이 일정은 이미 수납(결제) 처리가 되었습니다.\n\n' +
+                    '일정을 삭제하면 결제 내역은 남지만, 연결된 수업이 사라져 "잔액(Credit)"으로 잡히게 됩니다.\n' +
+                    '(-110,000원과 같은 과납 상태가 될 수 있습니다.)\n\n' +
+                    '정말 삭제하시겠습니까? (삭제 후 수납 관리에서 별도 정산이 필요합니다.)'
+                )) {
+                    setLoading(false);
+                    return;
+                }
+            } else {
+                // 결제 내역이 없더라도 일반 삭제 확인
+                if (!confirm('정말 삭제하시겠습니까? \n(관련된 상담일지, 알림장이 함께 삭제됩니다.)')) {
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 1. 참조 데이터 수동 삭제 (Foreign Key 제약 조건 해결)
+            // 에러: violates foreign key constraint 'consultations_schedule_id_fkey'
+            const { error: consultError } = await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
+            if (consultError) console.error('상담 신청서(consultations) 삭제 실패:', consultError);
+
+            const { error: pError } = await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
+            if (pError) console.error('수납 상세 삭제 실패:', pError);
+
+            const { error: cError } = await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
+            if (cError) console.error('상담일지 삭제 실패:', cError);
+
+            const { error: dError } = await supabase.from('daily_notes').delete().eq('schedule_id', scheduleId);
+            if (dError) console.error('알림장 삭제 실패:', dError);
+
+            // 2. 본 일정 삭제
+            const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
+            if (error) throw error;
+
             onSuccess();
+        } catch (error) {
+            console.error('삭제 실패:', error);
+            alert('일정 삭제 중 오류가 발생했습니다.\n' + error.message);
+        } finally {
+            setLoading(false);
         }
     };
     const handleProgramChange = (pid) => {
@@ -182,51 +251,58 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     <h2 className="text-lg font-black text-slate-800">{scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-5 h-5 text-slate-500" /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                    <div>
-                        <label className="text-xs font-bold text-slate-500">아동 선택</label>
-                        <select required className="w-full p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.child_id} onChange={e => setFormData({ ...formData, child_id: e.target.value })}>
-                            <option value="">아동을 선택하세요</option>
-                            {childrenList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                {fetching ? (
+                    <div className="p-10 flex flex-col items-center justify-center min-h-[300px]">
+                        <Loader2 className="w-8 h-8 text-slate-400 animate-spin mb-2" />
+                        <p className="text-xs text-slate-400 font-bold">데이터 불러오는 중...</p>
                     </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500">담당 선생님</label>
-                        <select required className="w-full p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.therapist_id} onChange={e => setFormData({ ...formData, therapist_id: e.target.value })}>
-                            <option value="">선생님을 선택하세요</option>
-                            {therapistsList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500">프로그램</label>
-                        <select required className="w-full p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
-                            <option value="">프로그램을 선택하세요</option>
-                            {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500">일시</label>
-                        <input type="date" required className="w-full p-3 border rounded-xl font-bold mb-2 bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                        <div className="flex gap-2">
-                            <input type="time" required className="flex-1 p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.start_time} onChange={e => setFormData({ ...formData, start_time: e.target.value })} />
-                            <span className="self-center text-slate-400">~</span>
-                            <input type="time" required className="flex-1 p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
+                ) : (
+                    <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">아동 선택</label>
+                            <select required className="w-full p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.child_id} onChange={e => setFormData({ ...formData, child_id: e.target.value })}>
+                                <option value="">아동을 선택하세요</option>
+                                {childrenList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                        {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
-                            <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
-                                {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">담당 선생님</label>
+                            <select required className="w-full p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.therapist_id} onChange={e => setFormData({ ...formData, therapist_id: e.target.value })}>
+                                <option value="">선생님을 선택하세요</option>
+                                {therapistsList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">프로그램</label>
+                            <select required className="w-full p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
+                                <option value="">프로그램을 선택하세요</option>
+                                {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">일시</label>
+                            <input type="date" required className="w-full p-3 border rounded-xl font-bold mb-2 bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                            <div className="flex gap-2">
+                                <input type="time" required className="flex-1 p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.start_time} onChange={e => setFormData({ ...formData, start_time: e.target.value })} />
+                                <span className="self-center text-slate-400">~</span>
+                                <input type="time" required className="flex-1 p-3 border rounded-xl font-bold bg-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
+                                <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
+                                    {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                            {scheduleId && <button type="button" onClick={handleDelete} className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 border border-rose-100"><Trash2 className="w-5" /></button>}
+                            <button type="submit" disabled={loading} className="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 shadow-md">
+                                {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
                             </button>
-                        ))}
-                    </div>
-                    <div className="flex gap-2 pt-4">
-                        {scheduleId && <button type="button" onClick={handleDelete} className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 border border-rose-100"><Trash2 className="w-5" /></button>}
-                        <button type="submit" disabled={loading} className="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 shadow-md">
-                            {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
-                        </button>
-                    </div>
-                </form>
+                        </div>
+                    </form>
+                )}
             </div>
         </div>
     );

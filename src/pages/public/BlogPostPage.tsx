@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Calendar, Share2, MessageSquare, Quote, Edit } from 'lucide-react';
+import { ArrowLeft, Share2, MessageSquare, Quote, Edit } from 'lucide-react';
 import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyModal';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,12 +32,23 @@ export function BlogPostPage() {
     const [loading, setLoading] = useState(true);
     const [isConsultModalOpen, setIsConsultModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [centerInfo, setCenterInfo] = useState<any>(null);
 
     useEffect(() => {
         if (slug) {
             fetchPost();
         }
+        fetchCenterInfo();
     }, [slug]);
+
+    const fetchCenterInfo = async () => {
+        const { data } = await (supabase as any)
+            .from('centers')
+            .select('name, address, phone, naver_map_url')
+            .limit(1)
+            .single();
+        if (data) setCenterInfo(data);
+    };
 
     const fetchPost = async () => {
         setLoading(true);
@@ -71,16 +82,85 @@ export function BlogPostPage() {
     const metaTitle = post.seo_title || post.title;
     const metaDesc = post.seo_description || post.excerpt;
     const currentUrl = window.location.href;
+    const centerName = centerInfo?.name || getSetting('center_name') || '아동발달센터';
+    const centerAddress = centerInfo?.address || getSetting('center_address') || '';
+    const centerPhone = centerInfo?.phone || getSetting('center_phone') || '';
+
+    // ✨ Schema.org JSON-LD for Local Business + BlogPosting (SEO Geo-Tagging)
+    const schemaJsonLd = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "BlogPosting",
+                "headline": post.title,
+                "description": metaDesc,
+                "image": post.cover_image_url || undefined,
+                "datePublished": post.published_at,
+                "author": {
+                    "@type": "Organization",
+                    "name": centerName
+                },
+                "publisher": {
+                    "@type": "Organization",
+                    "name": centerName,
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": getSetting('center_logo') || ''
+                    }
+                },
+                "mainEntityOfPage": currentUrl,
+                "keywords": keywordsArray.join(', ')
+            },
+            {
+                "@type": "LocalBusiness",
+                "name": centerName,
+                "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": centerAddress,
+                    "addressCountry": "KR"
+                },
+                "telephone": centerPhone,
+                "url": window.location.origin,
+                "priceRange": "$$"
+            }
+        ]
+    };
 
     return (
         <div className="min-h-screen bg-white pb-24 font-sans text-slate-900 leading-relaxed selection:bg-indigo-100 selection:text-indigo-900">
             <Helmet>
-                <title>{metaTitle} | {getSetting('center_name')}</title>
+                {/* Basic Meta Tags */}
+                <title>{metaTitle} | {centerName}</title>
                 <meta name="description" content={metaDesc} />
+                <meta name="keywords" content={keywordsArray.join(', ')} />
+
+                {/* Open Graph (Facebook, KakaoTalk) */}
+                <meta property="og:type" content="article" />
                 <meta property="og:title" content={metaTitle} />
                 <meta property="og:description" content={metaDesc} />
-                {post.cover_image_url && <meta property="og:image" content={post.cover_image_url} />}
                 <meta property="og:url" content={currentUrl} />
+                <meta property="og:site_name" content={centerName} />
+                <meta property="og:locale" content="ko_KR" />
+                {post.cover_image_url && <meta property="og:image" content={post.cover_image_url} />}
+                {post.cover_image_url && <meta property="og:image:width" content="1200" />}
+                {post.cover_image_url && <meta property="og:image:height" content="630" />}
+
+                {/* Twitter Card */}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={metaTitle} />
+                <meta name="twitter:description" content={metaDesc} />
+                {post.cover_image_url && <meta name="twitter:image" content={post.cover_image_url} />}
+
+                {/* Naver Verification & SEO */}
+                <meta name="naver-site-verification" content="" />
+
+                {/* Canonical URL */}
+                <link rel="canonical" href={currentUrl} />
+
+                {/* Schema.org JSON-LD */}
+                <script type="application/ld+json">
+                    {JSON.stringify(schemaJsonLd)}
+                </script>
             </Helmet>
 
             <ConsultationSurveyModal
@@ -115,32 +195,29 @@ export function BlogPostPage() {
                 </div>
             </nav>
 
-            <main className="max-w-4xl mx-auto px-6 py-12 md:py-20">
+            <main className="max-w-[800px] mx-auto px-6 py-12 md:py-20" style={{ fontFamily: '"Pretendard", "Pretendard JP", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif' }}>
                 <article>
                     {/* Hero Section */}
-                    <header className="mb-12 text-center space-y-6">
+                    <header className="mb-12 text-center space-y-8">
                         {/* Category/Keywords */}
                         <div className="flex flex-wrap justify-center gap-2">
                             {keywordsArray.map((k: string, i: number) => (
-                                <span key={i} className="text-indigo-600 font-bold tracking-wider text-xs uppercase bg-indigo-50 px-3 py-1 rounded-full">
+                                <span key={i} className="text-slate-500 font-bold tracking-widest text-xs uppercase border border-slate-200 px-3 py-1 rounded-full">
                                     {k.trim()}
                                 </span>
                             ))}
                         </div>
 
-                        {/* Title */}
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] break-keep">
+                        {/* Title - Magazine Style (Serif-like elegance with Sans) */}
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.2] break-keep">
                             {post.title}
                         </h1>
 
-                        {/* Metadata */}
-                        <div className="flex items-center justify-center gap-4 text-sm font-medium text-slate-400 pt-2">
-                            <span className="flex items-center gap-1.5">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(post.published_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        {/* Metadata - Minimalist */}
+                        <div className="flex items-center justify-center gap-4 text-sm font-medium text-slate-400 pt-2 border-t border-slate-100 mt-8 w-24 mx-auto pt-8">
+                            <span className="flex items-center gap-1.5 uppercase tracking-widest text-xs">
+                                {new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-300" />
-                            <span>Written by 전문 치료사</span>
                         </div>
 
                         {/* Admin Edit Button */}
@@ -150,34 +227,41 @@ export function BlogPostPage() {
                                     onClick={() => setIsEditModalOpen(true)}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-full shadow-md hover:bg-slate-800 transition-all hover:-translate-y-0.5"
                                 >
-                                    <Edit className="w-3 h-3" /> 원장님 수정하기
+                                    <Edit className="w-3 h-3" /> 센터장님 수정하기
                                 </button>
                             </div>
                         )}
                     </header>
 
-                    {/* Featured Image */}
+                    {/* Featured Image - Full Width within container */}
                     {post.cover_image_url && (
-                        <div className="rounded-[32px] overflow-hidden aspect-[16/9] mb-16 shadow-2xl shadow-slate-200/50">
-                            <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover" />
+                        <div className="rounded-xl overflow-hidden aspect-[16/9] mb-16 shadow-sm">
+                            <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover transition-transform hover:scale-105 duration-700" />
                         </div>
                     )}
 
-                    {/* Intro Box (Summary) */}
+                    {/* Intro Box (Summary) - Magazine Quote Style */}
                     {post.excerpt && (
-                        <div className="relative mb-16 p-8 md:p-10 bg-amber-50 rounded-3xl border border-amber-100/50">
-                            <div className="flex items-center gap-2 mb-4 text-amber-600 font-bold text-sm tracking-wide uppercase">
-                                <Quote className="w-4 h-4" />
-                                <span>오늘의 핵심 요약</span>
-                            </div>
-                            <p className="relative z-10 text-xl md:text-2xl font-bold text-slate-800 leading-relaxed">
-                                {post.excerpt}
+                        <div className="relative mb-20 p-10 bg-white border-y-2 border-slate-900 text-center">
+                            <Quote className="w-8 h-8 text-slate-900 mx-auto mb-6 opacity-20" />
+                            <p className="relative z-10 text-xl md:text-2xl font-bold text-slate-900 leading-relaxed italic">
+                                "{post.excerpt}"
                             </p>
                         </div>
                     )}
 
-                    {/* Check if post.content exists, otherwise show placeholder */}
-                    <div className="prose prose-lg prose-slate max-w-none prose-headings:font-black prose-headings:tracking-tight prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-p:text-slate-600 prose-p:leading-8 prose-blockquote:border-l-4 prose-blockquote:border-indigo-500 prose-blockquote:bg-indigo-50/30 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:not-italic prose-blockquote:rounded-r-lg prose-img:rounded-2xl prose-strong:text-indigo-800 prose-strong:bg-indigo-50 prose-strong:px-1 prose-strong:rounded">
+                    {/* Content Body - Magazine Typography */}
+                    {/* leading-[1.8] line-height, expansive headers */}
+                    <div className="prose prose-lg prose-slate max-w-none 
+                        prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900
+                        prose-h2:text-3xl prose-h2:mt-20 prose-h2:mb-8 prose-h2:border-b prose-h2:border-slate-100 prose-h2:pb-4
+                        prose-p:text-slate-600 prose-p:leading-[1.8] prose-p:mb-6
+                        prose-blockquote:border-l-0 prose-blockquote:border-slate-900 prose-blockquote:pl-0 
+                        prose-blockquote:font-bold prose-blockquote:text-2xl prose-blockquote:leading-normal prose-blockquote:italic prose-blockquote:text-slate-900 prose-blockquote:text-center prose-blockquote:py-10 prose-blockquote:px-8
+                        prose-blockquote:bg-slate-50 prose-blockquote:rounded-2xl
+                        prose-img:rounded-xl prose-img:shadow-lg prose-img:my-12
+                        prose-strong:text-slate-900 prose-strong:font-bold prose-strong:bg-transparent prose-strong:border-b-2 prose-strong:border-yellow-200 prose-strong:px-1
+                        font-medium">
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                     </div>
 
@@ -229,46 +313,52 @@ export function BlogPostPage() {
                                     <h2 className="text-3xl font-black text-slate-900">센터 오시는 길</h2>
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-8 items-start text-left bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                                <div className="text-left bg-slate-50 p-8 rounded-3xl border border-slate-100">
                                     <div className="space-y-6">
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-400 uppercase mb-1">Address</p>
-                                            <p className="text-lg font-bold text-slate-700">{getSetting('center_address') || '서울시 강남구 역삼동 123-45'}</p>
-                                            <p className="text-sm text-slate-500 mt-1">행복아동발달센터 2층</p>
+                                        <div className="flex flex-col md:flex-row gap-8 justify-between items-start md:items-center">
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Address</p>
+                                                <p className="text-lg font-bold text-slate-700">{centerAddress || '주소 정보 없음'}</p>
+                                                <p className="text-sm text-slate-500 mt-1">{centerName}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Contact</p>
+                                                <a href={`tel:${centerPhone}`} className="text-2xl font-black text-slate-900 hover:text-indigo-600 transition-colors">
+                                                    {centerPhone || '전화번호 정보 없음'}
+                                                </a>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-400 uppercase mb-1">Contact</p>
-                                            <a href={`tel:${getSetting('center_phone')}`} className="text-2xl font-black text-slate-900 hover:text-indigo-600 transition-colors">
-                                                {getSetting('center_phone') || '02-1234-5678'}
-                                            </a>
-                                        </div>
-                                    </div>
 
-                                    <div className="space-y-4">
-                                        <div className="aspect-video bg-slate-200 rounded-2xl overflow-hidden relative group">
-                                            {/* Map Placeholder or IFrame if URL exists */}
-                                            {getSetting('center_map_url') ? (
-                                                <iframe
-                                                    src={getSetting('center_map_url') || ''}
-                                                    className="w-full h-full border-0"
-                                                    loading="lazy"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400 font-bold">
-                                                    지도 준비중
-                                                </div>
-                                            )}
-                                        </div>
-                                        {getSetting('center_map_url') && (
+                                        <div className="flex gap-4 pt-4 border-t border-slate-200">
+                                            {/* ✨ 네이버 지도 버튼 - Dynamic URL */}
+                                            {(() => {
+                                                const naverMapUrl = centerInfo?.naver_map_url;
+                                                const fallbackSearchUrl = `https://map.naver.com/v5/search/${encodeURIComponent(centerAddress || centerName)}`;
+                                                const mapUrl = naverMapUrl || fallbackSearchUrl;
+
+                                                return (
+                                                    <a
+                                                        href={mapUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="flex-1 inline-flex justify-center items-center gap-2 px-6 py-4 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-base transition-all shadow-lg shadow-green-200"
+                                                    >
+                                                        <span className="text-xl">📍</span>
+                                                        네이버 지도로 길 찾기
+                                                    </a>
+                                                );
+                                            })()}
+
+                                            {/* Secondary action - Kakao Map fallback */}
                                             <a
-                                                href={getSetting('center_map_url')}
+                                                href={`https://map.kakao.com/?q=${encodeURIComponent(centerAddress || centerName || '아동발달센터')}`}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="block w-full py-3 bg-white border border-slate-200 rounded-xl text-center text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
+                                                className="flex-1 inline-flex justify-center items-center gap-2 px-6 py-4 bg-white border border-slate-200 text-slate-600 hover:bg-yellow-50 hover:border-yellow-200 hover:text-yellow-700 rounded-xl font-bold transition-all"
                                             >
-                                                네이버 지도로 보기
+                                                <span>🗺️</span> 카카오맵으로 보기
                                             </a>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

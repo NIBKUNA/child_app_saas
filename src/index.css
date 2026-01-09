@@ -69,3 +69,10 @@
     font-family: 'Pretendard', sans-serif;
   }
 }
+
+/* ✨ [Logo Skeleton] 로고 플리커 방지를 위한 스켈레톤 애니메이션 */
+@layer utilities {
+  .logo-skeleton {
+    @apply bg-slate-200 animate-pulse rounded;
+  }
+}
