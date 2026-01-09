@@ -156,24 +156,64 @@ export function ParentHomePage() {
                 </div>
             )}
 
-            <header className="px-8 pt-12 pb-10 bg-white border-b border-orange-50/50">
-                <div className="max-w-4xl mx-auto flex items-end justify-between">
-                    <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-[11px] font-black uppercase"><Sparkles className="w-3 h-3" /> Happiness Center</div>
-                        <h1 className="text-3xl font-black leading-tight text-slate-900">
-                            <span className="text-primary">{childInfo?.name}</span> 보호자님,<br />반가워요! 👋
-                        </h1>
+            <header className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-8 pt-16 pb-20">
+                {/* Decorative Blobs */}
+                <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/20 rounded-full blur-2xl"></div>
+
+                <div className="max-w-4xl mx-auto relative z-10">
+                    <div className="flex items-end justify-between">
+                        <div className="space-y-4 text-white">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-black uppercase tracking-wider">
+                                <Sparkles className="w-3 h-3" /> Parent Dashboard
+                            </div>
+                            <h1
+                                className="text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]"
+                                style={{ wordBreak: 'keep-all' }}
+                            >
+                                {childInfo?.name} 보호자님,<br />
+                                오늘도 응원합니다! 💪
+                            </h1>
+                            <p className="text-white/70 text-sm font-medium">
+                                {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsSurveyOpen(true)}
+                            className="hidden md:flex bg-white text-indigo-700 px-6 py-3 rounded-2xl font-black text-sm shadow-xl hover:bg-indigo-50 active:scale-95 transition-all items-center gap-2"
+                        >
+                            <MessageSquare className="w-4 h-4" /> 상담 신청
+                        </button>
                     </div>
-                    <button
-                        onClick={() => setIsSurveyOpen(true)}
-                        className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all flex items-center gap-2"
-                    >
-                        <MessageSquare className="w-4 h-4" /> 상담 신청
-                    </button>
                 </div>
             </header>
 
-            <main className="max-w-4xl mx-auto p-4 md:p-8 space-y-12">
+            {/* Mood Check Banner (Emotional Section) */}
+            <div className="max-w-4xl mx-auto px-4 -mt-8 relative z-20">
+                <div className="bg-white rounded-[28px] p-6 shadow-xl shadow-indigo-100/30 border border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl">☀️</div>
+                        <div>
+                            <p className="text-sm font-black text-slate-800" style={{ wordBreak: 'keep-all' }}>
+                                오늘 {childInfo?.name}의 컨디션은 어떤가요?
+                            </p>
+                            <p className="text-xs text-slate-400 font-medium">가정에서의 상태를 기록해보세요</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        {['😊', '😐', '😢'].map((emoji, idx) => (
+                            <button
+                                key={idx}
+                                className="w-11 h-11 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:scale-110 transition-all text-xl border border-slate-100"
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <main className="max-w-4xl mx-auto p-4 md:p-8 space-y-12 mt-8">
 
                 {/* 1. 수업 일정 캘린더 (리스트 뷰 제거됨) */}
                 <section>
@@ -257,15 +297,21 @@ export function ParentHomePage() {
                                                             <span className="text-slate-500">{label}</span>
                                                             <span className="text-primary bg-primary/5 px-2.5 py-1 rounded-lg font-black">{score}점</span>
                                                         </div>
-                                                        <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden border border-slate-100/50 shadow-inner">
-                                                            <div className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style={{ width: `${score}%` }}></div>
+                                                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                                            <div
+                                                                className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                                style={{
+                                                                    width: `${score}%`,
+                                                                    background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)'
+                                                                }}
+                                                            ></div>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                            <div className="bg-orange-50/50 p-5 rounded-[24px] flex items-start gap-3 border border-orange-100/50 shadow-sm">
-                                                <Info className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                                                <p className="text-[11px] text-orange-800/80 font-black leading-snug">본 그래프는 아이의 발달 상태를 이해하기 위한 참고용 데이터입니다.</p>
+                                            <div className="bg-indigo-50 p-5 rounded-[24px] flex items-start gap-3 border border-indigo-100/50">
+                                                <Info className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
+                                                <p className="text-[11px] text-indigo-700 font-bold leading-snug">본 그래프는 아이의 발달 상태를 이해하기 위한 참고용 데이터입니다.</p>
                                             </div>
                                         </div>
                                     )}
@@ -275,7 +321,7 @@ export function ParentHomePage() {
                             <div className="flex justify-between items-center mt-8 px-4">
                                 <button onClick={prevSlide} disabled={currentIndex === 0} className="w-14 h-14 rounded-full flex items-center justify-center transition-all bg-white text-slate-900 shadow-xl active:scale-90 border border-slate-100 disabled:opacity-20 disabled:shadow-none"><ChevronLeft className="w-6 h-6" /></button>
                                 <div className="flex gap-2">
-                                    {allLogs.slice(0, 5).map((_, idx) => (<div key={idx} className={`h-1.5 rounded-full transition-all ${currentIndex === idx ? 'w-8 bg-primary' : 'w-1.5 bg-slate-200'}`}></div>))}
+                                    {allLogs.slice(0, 5).map((_, idx) => (<div key={idx} className={`h-1.5 rounded-full transition-all ${currentIndex === idx ? 'w-8 bg-indigo-600' : 'w-1.5 bg-slate-200'}`}></div>))}
                                 </div>
                                 <button onClick={nextSlide} disabled={currentIndex === allLogs.length - 1} className="w-14 h-14 rounded-full flex items-center justify-center transition-all bg-white text-slate-900 shadow-xl active:scale-90 border border-slate-100 disabled:opacity-20 disabled:shadow-none"><ChevronRight className="w-6 h-6" /></button>
                             </div>
@@ -287,9 +333,36 @@ export function ParentHomePage() {
                     )}
                 </section>
 
-                <section className="bg-orange-50 rounded-[48px] p-10 text-center border border-orange-100/50 relative overflow-hidden shadow-sm">
+                {/* Quote Section */}
+                <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[48px] p-10 text-center border border-orange-100/30 relative overflow-hidden shadow-sm">
                     <Quote className="absolute -left-4 -top-4 w-24 h-24 text-orange-200/30" />
-                    <p className="relative z-10 text-orange-800 font-black text-[15px] leading-relaxed italic tracking-tight">"조금 천천히 가도 괜찮아요.<br />아이만의 속도를 믿어주는 부모님은<br />아이의 가장 큰 우주입니다."</p>
+                    <p className="relative z-10 text-orange-800 font-black text-[15px] leading-relaxed italic tracking-tight" style={{ wordBreak: 'keep-all' }}>
+                        "조금 천천히 가도 괜찮아요.<br />아이만의 속도를 믿어주는 부모님은<br />아이의 가장 큰 우주입니다."
+                    </p>
+                </section>
+
+                {/* Home Care Tips Section */}
+                <section className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-100/50 border border-slate-100">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-lg">🏠</div>
+                        <h3 className="text-lg font-black text-slate-900">오늘의 홈 케어 팁</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                            <p className="text-xs font-black text-indigo-600 uppercase tracking-wider mb-2">언어 발달</p>
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed" style={{ wordBreak: 'keep-all' }}>
+                                하루 10분, 아이와 눈을 맞추며 그림책을 함께 읽어보세요.
+                                질문을 던지고 기다려주는 것이 핵심입니다.
+                            </p>
+                        </div>
+                        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                            <p className="text-xs font-black text-rose-600 uppercase tracking-wider mb-2">정서 안정</p>
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed" style={{ wordBreak: 'keep-all' }}>
+                                자기 전 5분간 오늘 있었던 일을 얘기해보세요.
+                                "어떤 기분이었어?"라고 물어봐 주세요.
+                            </p>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>

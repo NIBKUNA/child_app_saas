@@ -4,6 +4,25 @@
 
 @layer base {
   :root {
+    /* ============================================
+     * 🎨 ZARADA MASTER TEMPLATE - Theme Variables
+     * ============================================
+     * 
+     * CUSTOMIZATION GUIDE:
+     * To change the theme color for a new center:
+     * 1. Modify --theme-primary with your desired color (HSL or HEX)
+     * 2. Update --theme-primary-light for hover states
+     * 3. All components using these variables will update automatically
+     * 
+     * ============================================ */
+    
+    /* 🎯 PRIMARY THEME COLOR (change this for center branding) */
+    --theme-primary: #4F46E5;        /* Indigo-600 */
+    --theme-primary-light: #6366F1;   /* Indigo-500 */
+    --theme-primary-dark: #3730A3;    /* Indigo-800 */
+    --theme-primary-rgb: 79, 70, 229; /* For rgba() usage */
+
+    /* Shadcn/ui base variables */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;

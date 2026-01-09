@@ -34,6 +34,7 @@ const tooltipProps = {
     cursor: { fill: '#f8fafc', strokeWidth: 0 }
 };
 
+// [인터페이스 복구] KpiCard
 const KpiCard = ({ title, value, icon: Icon, trend, trendUp, color, bg, border }) => (
     <div className={`p-6 rounded-3xl border ${border} ${bg} relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-white/30 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
@@ -55,9 +56,10 @@ const KpiCard = ({ title, value, icon: Icon, trend, trendUp, color, bg, border }
     </div>
 );
 
+// [인터페이스 복구] ChartContainer
 const ChartContainer = ({ title, icon: Icon, children, className = "", innerHeight = "h-[320px]" }) => (
-    <div className={`bg-white p-8 rounded-[36px] shadow-lg border border-slate-100 flex flex-col overflow-hidden ${className} group hover:shadow-2xl transition-all duration-500`}>
-        <h3 className="font-bold text-lg text-slate-900 mb-6 flex items-center gap-3 relative z-10">
+    <div className={`bg-white p-8 rounded-[36px] shadow-lg border border-slate-100 flex flex-col overflow-hidden ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
+        <h3 className="font-bold text-lg text-slate-900 mb-6 flex items-center gap-3 relative z-10 text-left">
             <div className={`p-2 rounded-xl ${Icon ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
                 {Icon && <Icon className="w-5 h-5" />}
             </div>
@@ -69,16 +71,14 @@ const ChartContainer = ({ title, icon: Icon, children, className = "", innerHeig
     </div>
 );
 
+// [인터페이스 복구] ChannelGridCard
 const ChannelGridCard = ({ channel, totalInflow }) => {
     const percent = totalInflow > 0 ? ((channel.value / totalInflow) * 100).toFixed(1) : '0.0';
     return (
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-indigo-100 transition-all">
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-indigo-100 transition-all text-left">
             <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-black shadow-md" style={{ backgroundColor: channel.color }}>
-                    {channel.cat === 'Naver' && 'N'}
-                    {channel.cat === 'Google' && 'G'}
-                    {channel.cat === 'SNS' && 'S'}
-                    {channel.cat === 'Offline' && 'O'}
+                    {channel.cat[0]}
                 </div>
                 <div>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{channel.cat}</span>
@@ -147,7 +147,7 @@ export function Dashboard() {
             const childMap = {};
             const conversionStats = {}; const consultExperience = new Set(); const convertedUsers = new Set();
             const ageCountMap = {}; let mCount = 0, fCount = 0;
-            let currentMonthRev = 0; let currentMonthSessionCount = 0;
+            let currentMonthRev = 0;
 
             allSchedules?.forEach(s => {
                 const category = s.programs?.category || ''; const pName = s.programs?.name || '';
@@ -165,18 +165,13 @@ export function Dashboard() {
 
                 if (m === selectedMonth) {
                     if (statusMap[s.status] !== undefined) statusMap[s.status]++;
-
                     if (s.status === 'completed') {
                         if (paidAmt > 0) {
                             currentMonthRev += paidAmt;
-                            // 치료사별 매출 집계
                             const tName = s.therapists?.name || '미정';
                             therapistRevMap[tName] = (therapistRevMap[tName] || 0) + paidAmt;
-
                             const cName = s.children?.name || '미등록'; childMap[cName] = (childMap[cName] || 0) + paidAmt;
                         }
-                        currentMonthSessionCount++;
-
                         const pName = s.programs?.name || '기타 프로그램';
                         progCountMap[pName] = (progCountMap[pName] || 0) + 1;
                     }
@@ -207,10 +202,7 @@ export function Dashboard() {
                 const converted = consultIds.filter(id => convertedUsers.has(id)).length;
                 return { name: `${m.slice(5)}월`, consults: consultIds.length, converted, rate: consultIds.length > 0 ? Math.round((converted / consultIds.length) * 100) : 0 };
             }));
-
-            // 치료사 데이터 설정
             setTherapistData(Object.keys(therapistRevMap).map(k => ({ name: k, value: therapistRevMap[k] })).sort((a, b) => b.value - a.value));
-
             setProgramData(Object.keys(progCountMap).map(k => ({ name: k, value: progCountMap[k] })).sort((a, b) => b.value - a.value));
             setTopChildren(Object.keys(childMap).map(name => ({ name, value: childMap[name] })).sort((a, b) => b.value - a.value).slice(0, 10));
             setStatusData([{ name: '완료', value: statusMap.completed, color: '#3b82f6' }, { name: '취소', value: statusMap.cancelled, color: '#ef4444' }, { name: '예정', value: statusMap.scheduled, color: '#cbd5e1' }, { name: '이월', value: statusMap.carried_over, color: '#8b5cf6' }]);
@@ -219,46 +211,39 @@ export function Dashboard() {
         } catch (e) { console.error(e); }
     };
 
+    // ✨ [수정] 디자인 유지하며 데이터만 leads 테이블의 source와 연동
     const fetchMarketingData = async () => {
         try {
             const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const { data: visits } = await supabase.from('site_visits').select('*').gte('visited_at', thirtyDaysAgo.toISOString());
-            const { data: registrations } = await supabase.from('children').select('inflow_source').gte('created_at', thirtyDaysAgo.toISOString());
-            const { data: blogData } = await supabase.from('blog_posts').select('title, view_count').order('view_count', { ascending: false }).limit(5);
 
-            const totalBlogViews = blogData?.reduce((sum, p) => sum + (p.view_count || 0), 0) || 0;
+            // leads 테이블에서 실제 상담 신청 경로(source)를 가져옵니다.
+            const { data: leadEntries } = await supabase.from('leads').select('source').gte('created_at', thirtyDaysAgo.toISOString());
+            const { data: blogData } = await supabase.from('posts').select('title, view_count').order('view_count', { ascending: false }).limit(5);
+
             setTopPosts(blogData?.map(b => ({ name: b.title, value: b.view_count || 0 })) || []);
 
-            const channels = { naver: { place: 0, search: 0, blog: totalBlogViews }, google: { search: 0, maps: 0 }, sns: { instagram: 0, youtube: 0 }, offline: { referral: 0, direct: 0 } };
-            visits?.forEach((v: any) => {
-                const src = (v.source_category || '').toLowerCase();
-                const med = (v.source_medium || '').toLowerCase();
-                if (src.includes('naver')) { if (med.includes('place') || med.includes('map')) channels.naver.place++; else channels.naver.search++; }
-                else if (src.includes('google')) { if (med.includes('map')) channels.google.maps++; else channels.google.search++; }
-                else if (src.includes('instagram')) channels.sns.instagram++;
-                else if (src.includes('youtube')) channels.sns.youtube++;
-            });
-            registrations?.forEach((r: any) => {
-                const src = (r.inflow_source || '');
-                if (src.includes('지인') || src.includes('소개')) channels.offline.referral++;
-                else channels.offline.direct++;
+            const counts = { naver: 0, google: 0, sns: 0, offline: 0, etc: 0 };
+            leadEntries?.forEach(l => {
+                const src = (l.source || '').toLowerCase();
+                if (src.includes('naver') || src.includes('blog')) counts.naver++;
+                else if (src.includes('google')) counts.google++;
+                else if (src.includes('insta') || src.includes('sns') || src.includes('youtube')) counts.sns++;
+                else if (src.includes('지인') || src.includes('소개')) counts.offline++;
+                else counts.etc++;
             });
 
             const ALL_CHANNELS = [
-                { name: '네이버 플레이스', cat: 'Naver', color: NAVER_COLOR, value: channels.naver.place },
-                { name: '네이버 검색', cat: 'Naver', color: NAVER_COLOR, value: channels.naver.search },
-                { name: '네이버 블로그', cat: 'Naver', color: NAVER_COLOR, value: channels.naver.blog },
-                { name: '구글 검색', cat: 'Google', color: GOOGLE_COLOR, value: channels.google.search },
-                { name: '인스타그램', cat: 'SNS', color: SNS_COLOR, value: channels.sns.instagram },
-                { name: '유튜브', cat: 'SNS', color: YOUTUBE_COLOR, value: channels.sns.youtube },
-                { name: '지인 소개', cat: 'Offline', color: OFFLINE_COLOR, value: channels.offline.referral },
-                { name: '기타/직접', cat: 'Offline', color: '#94a3b8', value: channels.offline.direct }
+                { name: '네이버 유입', cat: 'Naver', color: NAVER_COLOR, value: counts.naver },
+                { name: '구글 유입', cat: 'Google', color: GOOGLE_COLOR, value: counts.google },
+                { name: 'SNS/인스타', cat: 'SNS', color: SNS_COLOR, value: counts.sns },
+                { name: '지인/소개', cat: 'Offline', color: OFFLINE_COLOR, value: counts.offline },
+                { name: '기타/직접', cat: 'Offline', color: '#94a3b8', value: counts.etc }
             ];
 
             const total = ALL_CHANNELS.reduce((acc, cur) => acc + cur.value, 0);
             setTotalInflow(total);
             setMarketingData(ALL_CHANNELS);
-            setBestChannel([...ALL_CHANNELS].sort((a, b) => b.value - a.value)[0]);
+            setBestChannel([...ALL_CHANNELS].sort((a, b) => b.value - a.value)[0] || { name: '-', value: 0 });
         } catch (e) { console.error(e); }
     };
 
@@ -267,7 +252,7 @@ export function Dashboard() {
             <Helmet><title>지능형 센터 인사이트 허브</title></Helmet>
 
             <div className="flex justify-between items-end">
-                <div>
+                <div className="text-left">
                     <h1 className="text-4xl font-black text-slate-900 tracking-tight">지능형 센터 인사이트 허브</h1>
                     <p className="text-slate-500 font-bold mt-2">AI 기반 운영 & 마케팅 통합 분석 시스템</p>
                 </div>
@@ -281,7 +266,7 @@ export function Dashboard() {
                 <KpiCard title="확정 매출" value={`₩${kpi.revenue.toLocaleString()}`} icon={DollarSign} trend="확정" trendUp={true} color="text-blue-600" bg="bg-white" border="border-slate-200" />
                 <KpiCard title="활성 아동" value={`${kpi.active}명`} icon={Users} trend="현재원" trendUp={true} color="text-indigo-600" bg="bg-white" border="border-slate-200" />
                 <KpiCard title="완료 수업" value={`${kpi.sessions}건`} icon={Calendar} trend="실적" trendUp={true} color="text-emerald-600" bg="bg-white" border="border-slate-200" />
-                <KpiCard title="신규 유입" value={`${kpi.new}명`} icon={Activity} trend="전환" trendUp={true} color="text-rose-600" bg="bg-white" border="border-slate-200" />
+                <KpiCard title="상담 리드" value={`${totalInflow}건`} icon={Activity} trend="실시간" trendUp={true} color="text-rose-600" bg="bg-white" border="border-slate-200" />
             </div>
 
             {slide === 0 && (
@@ -311,7 +296,6 @@ export function Dashboard() {
                         </ChartContainer>
                     </div>
 
-                    {/* ✨ [수정됨] 치료사별 매출 기여도 차트 높이 조절 (h-[400px] -> h-[250px]) */}
                     <ChartContainer title="치료사별 매출 기여도" icon={Stethoscope} innerHeight="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={therapistData} layout="vertical" margin={{ top: 20, right: 50, left: 20, bottom: 20 }}>
@@ -386,11 +370,11 @@ export function Dashboard() {
 
             {slide === 1 && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                    <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl flex justify-between items-center relative overflow-hidden">
+                    <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl flex justify-between items-center relative overflow-hidden text-left">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-20 -mt-20" />
                         <div className="relative z-10">
-                            <h3 className="text-3xl font-black mb-2 flex items-center gap-3">총 유입량: {totalInflow.toLocaleString()} 건</h3>
-                            <p className="text-indigo-200 font-bold text-lg underline underline-offset-8 decoration-yellow-400">최고 성과 채널: {bestChannel.name}</p>
+                            <h3 className="text-3xl font-black mb-2 flex items-center gap-3">실시간 상담 리드: {totalInflow.toLocaleString()} 건</h3>
+                            <p className="text-indigo-200 font-bold text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
                         </div>
                         <div className="hidden lg:block relative z-10 bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/10 min-w-[280px]">
                             <span className="block text-xs font-black mb-1 opacity-60 uppercase tracking-widest">DOMINANT SOURCE</span>
@@ -399,7 +383,7 @@ export function Dashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <ChartContainer title="블로그 인기 콘텐츠 분석" icon={BookOpen} innerHeight="h-[450px]">
+                        <ChartContainer title="인기 콘텐츠 분석" icon={BookOpen} innerHeight="h-[450px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={topPosts} layout="vertical" margin={{ top: 80, right: 30, left: 20 }}>
                                     <XAxis type="number" hide /><YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
@@ -407,8 +391,9 @@ export function Dashboard() {
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
-                        <div className="bg-white p-8 rounded-[40px] shadow-lg border border-slate-100 flex flex-col h-[550px]">
-                            <h3 className="font-bold text-lg text-slate-800 mb-8 flex items-center gap-3"><Share2 className="w-5 h-5 text-indigo-600" /> 채널별 상세 유입 분석</h3>
+
+                        <div className="bg-white p-8 rounded-[40px] shadow-lg border border-slate-100 flex flex-col h-[550px] text-left">
+                            <h3 className="font-bold text-lg text-slate-800 mb-8 flex items-center gap-3 text-left"><Share2 className="w-5 h-5 text-indigo-600" /> 채널별 상세 유입 분석 (Leads)</h3>
                             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {marketingData.map((item, idx) => (

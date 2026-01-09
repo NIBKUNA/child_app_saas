@@ -41,6 +41,8 @@ import { Billing } from '@/pages/app/Billing';
 import { Settlement } from '@/pages/app/Settlement';
 import { ConsultationList } from '@/pages/app/consultations/ConsultationList';
 import { SettingsPage } from '@/pages/app/SettingsPage';
+import { SplashScreen } from '@/components/SplashScreen';
+import { useState, useEffect } from 'react';
 
 function AppHomeRedirect() {
   const { role } = useAuth();
@@ -54,6 +56,21 @@ function AppHomeRedirect() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(() => {
+    // Only show splash once per session
+    const hasSeenSplash = sessionStorage.getItem('splash_shown');
+    return !hasSeenSplash;
+  });
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('splash_shown', 'true');
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
   return (
     <HelmetProvider>
       <AuthProvider>

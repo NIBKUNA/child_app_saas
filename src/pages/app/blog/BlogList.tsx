@@ -17,7 +17,7 @@ export default function BlogList() {
         try {
             // 어떤 필터링도 없이 posts 테이블의 모든 데이터를 가져옵니다.
             const { data, error } = await supabase
-                .from('posts')
+                .from('blog_posts')
                 .select('*')
                 .order('created_at', { ascending: false });
 
@@ -38,7 +38,7 @@ export default function BlogList() {
     const handleDelete = async (id, title) => {
         if (!confirm(`"${title}" 글을 정말 삭제하시겠습니까?`)) return;
         try {
-            const { error } = await supabase.from('posts').delete().eq('id', id);
+            const { error } = await supabase.from('blog_posts').delete().eq('id', id);
             if (error) throw error;
             setPosts(prev => prev.filter(p => p.id !== id));
             alert('삭제되었습니다.');

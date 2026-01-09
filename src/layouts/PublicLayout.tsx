@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useTrafficSource } from '@/hooks/useTrafficSource';
+import { Footer } from '@/components/public/Footer';
 
 export function PublicLayout() {
     const { user, role, signOut } = useAuth();
@@ -101,18 +102,7 @@ export function PublicLayout() {
                 <Outlet />
             </main>
 
-            <footer className="bg-slate-50 py-12 border-t border-slate-100">
-                <div className="max-w-7xl mx-auto px-6 text-center space-y-4">
-                    <div className="flex justify-center items-center gap-2 mb-4">
-                        {logoUrl ? (
-                            <img src={logoUrl} alt="센터 로고" className="h-8 w-auto grayscale opacity-50" />
-                        ) : (
-                            <span className="text-xl font-bold text-slate-400">행복아동발달센터</span>
-                        )}
-                    </div>
-                    <p className="text-slate-400 text-sm">© 2026 행복아동발달센터. All rights reserved.</p>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 }
