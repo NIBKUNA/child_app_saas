@@ -1,12 +1,26 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Loader2, Save, Trash2, UserCheck, AlertCircle, Mail } from 'lucide-react';
+import { InvitationCodeAlert } from '@/components/InvitationCodeAlert';
 
 export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [parents, setParents] = useState([]);
+    const [showCodeAlert, setShowCodeAlert] = useState(false);
+    const [newChildCode, setNewChildCode] = useState('');
+    const [newChildName, setNewChildName] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         registration_number: '',
@@ -80,17 +94,19 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
             let result;
             if (childId) {
                 result = await supabase.from('children').update(submissionData).eq('id', childId);
+                if (result.error) throw result.error;
+                alert('성공적으로 저장되었습니다.');
+                onSuccess();
             } else {
-                result = await supabase.from('children').insert([submissionData]);
-            }
+                // ✨ [신규 등록] insert 후 invitation_code 반환받기
+                result = await supabase.from('children').insert([submissionData]).select('invitation_code, name').single();
+                if (result.error) throw result.error;
 
-            // ✨ 미세 조정 2: Supabase 에러 객체를 직접 체크하여 명확한 원인 파악
-            if (result.error) {
-                throw result.error;
+                // ✨ 초대 코드 알림창 표시
+                setNewChildName(submissionData.name);
+                setNewChildCode(result.data.invitation_code);
+                setShowCodeAlert(true);
             }
-
-            alert('성공적으로 저장되었습니다.');
-            onSuccess();
         } catch (error) {
             console.error('저장 실패 상세:', error);
             // 외래키 에러 시 더 친절한 안내 메시지 출력
@@ -248,6 +264,17 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                         </button>
                     </div>
                 </form>
+
+                {/* ✨ 초대 코드 즉시 알림창 (Modal 위에 덮어씌움) */}
+                <InvitationCodeAlert
+                    isOpen={showCodeAlert}
+                    onClose={() => {
+                        setShowCodeAlert(false);
+                        onSuccess(); // 알림창 닫으면 그제서야 모달 닫기
+                    }}
+                    childName={newChildName}
+                    invitationCode={newChildCode}
+                />
             </div>
         </div>
     );

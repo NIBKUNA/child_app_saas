@@ -1,10 +1,22 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
-import { Search, UserPlus, Pencil, Link as LinkIcon, User } from 'lucide-react';
+import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check } from 'lucide-react';
 import { ChildModal } from './ChildModal';
+// ✨ [Moved] AssessmentFormModal is now in ConsultationList - Developer: 안욱빈
+import { cn } from '@/lib/utils';
 
 export function ChildList() {
     const [children, setChildren] = useState([]);
@@ -14,6 +26,18 @@ export function ChildList() {
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState(null);
+    const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+    // 초대 코드 복사
+    const copyInvitationCode = async (code: string) => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCopiedCode(code);
+            setTimeout(() => setCopiedCode(null), 2000);
+        } catch (error) {
+            console.error('복사 실패:', error);
+        }
+    };
 
     useEffect(() => {
         fetchChildren();
@@ -47,6 +71,8 @@ export function ChildList() {
         setSelectedChildId(id);
         setIsModalOpen(true);
     };
+
+    // ✨ [Moved] Assessment feature now in ConsultationList - Developer: 안욱빈
 
     const handleRegister = () => {
         setSelectedChildId(null);
@@ -97,7 +123,7 @@ export function ChildList() {
                                 <tr>
                                     <th className="px-6 py-5">기본 정보</th>
                                     <th className="px-6 py-5">생년월일/성별</th>
-                                    <th className="px-6 py-5">진단명</th>
+                                    <th className="px-6 py-5">초대 코드</th>
                                     <th className="px-6 py-5">연결된 앱 계정</th>
                                     <th className="px-6 py-5">보호자(수동입력)</th>
                                     <th className="px-6 py-5 text-center">관리</th>
@@ -118,9 +144,25 @@ export function ChildList() {
                                                 <span className="ml-2 text-slate-300 text-xs">{child.gender}</span>
                                             </td>
                                             <td className="px-6 py-5">
-                                                <span className="px-3 py-1 bg-slate-100 rounded-full text-[11px] font-black text-slate-500">
-                                                    {child.diagnosis || '일반'}
-                                                </span>
+                                                {child.invitation_code ? (
+                                                    <button
+                                                        onClick={() => copyInvitationCode(child.invitation_code)}
+                                                        className={cn(
+                                                            "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition-all",
+                                                            copiedCode === child.invitation_code
+                                                                ? "bg-emerald-100 text-emerald-600"
+                                                                : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                                                        )}
+                                                    >
+                                                        {copiedCode === child.invitation_code ? (
+                                                            <><Check className="w-3.5 h-3.5" /> 복사됨!</>
+                                                        ) : (
+                                                            <><Copy className="w-3.5 h-3.5" /> {child.invitation_code}</>
+                                                        )}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-slate-300 text-xs">-</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-5">
                                                 {child.parent_profile ? (
@@ -140,6 +182,7 @@ export function ChildList() {
                                                 <button
                                                     onClick={() => handleEdit(child.id)}
                                                     className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 group-hover:text-slate-900 group-hover:border-slate-900 transition-all hover:shadow-md"
+                                                    title="아동 정보 수정"
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
@@ -161,6 +204,7 @@ export function ChildList() {
                     onSuccess={() => handleModalClose(true)}
                 />
             )}
+
         </>
     );
 }

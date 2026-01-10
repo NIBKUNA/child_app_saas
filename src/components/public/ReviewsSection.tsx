@@ -1,6 +1,16 @@
 // @ts-nocheck
 /* eslint-disable */
 /**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
+/**
  * ============================================
  * 🎨 ZARADA - Reviews Section Component
  * 지점별 서비스 리뷰 표시 및 작성
@@ -120,6 +130,11 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
         e.preventDefault();
         setError(null);
 
+        if (!authorName.trim()) {
+            setError('작성자명을 입력해주세요.');
+            return;
+        }
+
         setSubmitting(true);
         try {
             const { error: insertError } = await supabase.from('reviews').insert({
@@ -147,11 +162,12 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
     return (
         <motion.form
             onSubmit={handleSubmit}
-            className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-100"
+            className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-100 gpu-accelerate"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
         >
-            <h4 className="text-lg font-black text-slate-800 mb-6">리뷰 작성하기</h4>
+            <h4 className="text-lg font-black text-slate-800 mb-2">서비스 평가하기</h4>
+            <p className="text-xs text-slate-400 mb-6">시설, 친절도, 편의성에 대한 별점을 남겨주세요.</p>
 
             <div className="space-y-6">
                 <div>
@@ -165,21 +181,22 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
                     />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                {/* 별점만 수집 (의료법 준수) */}
+                <div className="grid grid-cols-3 gap-4 bg-slate-50 rounded-2xl p-6">
                     <div className="text-center">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">시설 만족도</label>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-3">시설</label>
                         <div className="flex justify-center">
                             <StarRating value={ratings.facility} onChange={(v) => setRatings(p => ({ ...p, facility: v }))} />
                         </div>
                     </div>
                     <div className="text-center">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">선생님 친절도</label>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-3">친절도</label>
                         <div className="flex justify-center">
                             <StarRating value={ratings.kindness} onChange={(v) => setRatings(p => ({ ...p, kindness: v }))} />
                         </div>
                     </div>
                     <div className="text-center">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">상담 편의성</label>
+                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-3">편의성</label>
                         <div className="flex justify-center">
                             <StarRating value={ratings.convenience} onChange={(v) => setRatings(p => ({ ...p, convenience: v }))} />
                         </div>
@@ -196,9 +213,9 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 gpu-accelerate"
                 >
-                    {submitting ? '등록 중...' : <><Send className="w-4 h-4" /> 리뷰 등록</>}
+                    {submitting ? '등록 중...' : <><Send className="w-4 h-4" /> 평가 등록</>}
                 </button>
             </div>
         </motion.form>

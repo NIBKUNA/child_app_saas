@@ -1,5 +1,15 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
@@ -11,8 +21,10 @@ import { MessageCircle } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { cn } from '@/lib/utils';
 
-// 캘린더 라이브러리 (리스트 플러그인 제외됨)
+// 캘린더 라이브러리
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -20,11 +32,14 @@ import interactionPlugin from '@fullcalendar/interaction';
 import koLocale from '@fullcalendar/core/locales/ko';
 
 import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyModal';
+import { InvitationCodeModal } from '@/components/InvitationCodeModal';
 
 export function ParentHomePage() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { getSetting } = useAdminSettings();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const dateInputRef = useRef(null);
 
     // 상태 관리
@@ -37,6 +52,7 @@ export function ParentHomePage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [filterDate, setFilterDate] = useState('');
     const [hasUpcomingConsultation, setHasUpcomingConsultation] = useState(false);
+    const [showInvitationModal, setShowInvitationModal] = useState(false);
 
     useEffect(() => {
         if (user?.id) fetchDashboardData();
@@ -52,10 +68,39 @@ export function ParentHomePage() {
         // Actually, to make this clean, I will replace the top imports and the component start.
         setLoading(true);
         try {
-            const { data: child } = await supabase.from('children').select('*').eq('parent_id', user.id).maybeSingle();
+            // ✨ [자녀 연결 감지] children + family_relationships 체크
+            let child = null;
+
+            // 1. children.parent_id로 직접 연결된 자녀 체크
+            const { data: directChild } = await supabase
+                .from('children')
+                .select('*')
+                .eq('parent_id', user.id)
+                .maybeSingle();
+
+            if (directChild) {
+                child = directChild;
+            } else {
+                // 2. family_relationships 테이블에서 체크
+                const { data: relationship } = await supabase
+                    .from('family_relationships')
+                    .select('child_id')
+                    .eq('parent_id', user.id)
+                    .maybeSingle();
+
+                if (relationship?.child_id) {
+                    const { data: relatedChild } = await supabase
+                        .from('children')
+                        .select('*')
+                        .eq('id', relationship.child_id)
+                        .single();
+                    child = relatedChild;
+                }
+            }
 
             if (child) {
                 setChildInfo(child);
+                setShowInvitationModal(false);
 
                 // 일정 데이터 가져오기
                 const { data: schedules } = await supabase
@@ -97,6 +142,9 @@ export function ParentHomePage() {
                     .eq('child_id', child.id)
                     .order('created_at', { ascending: false });
                 setAllLogs(logs || []);
+            } else {
+                // ✨ [초대 코드 모달] 연결된 자녀가 없으면 모달 표시
+                setShowInvitationModal(true);
             }
         } catch (error) {
             console.error(error);
@@ -115,12 +163,12 @@ export function ParentHomePage() {
     const nextSlide = () => { if (currentIndex < allLogs.length - 1) setCurrentIndex(prev => prev + 1); };
     const prevSlide = () => { if (currentIndex > 0) setCurrentIndex(prev => prev - 1); };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-slate-500">데이터를 불러오는 중입니다...</div>;
+    if (loading) return <div className={cn("min-h-screen flex items-center justify-center font-bold", isDark ? "bg-slate-950 text-slate-400" : "text-slate-500")}>데이터를 불러오는 중입니다...</div>;
 
     const kakaoUrl = getSetting('kakao_url');
 
     return (
-        <div className="min-h-screen bg-[#FDFCFB] font-sans pb-20 text-[#1e293b]">
+        <div className={cn("min-h-screen font-sans pb-20 transition-colors", isDark ? "bg-slate-950 text-slate-100" : "bg-[#FDFCFB] text-[#1e293b]")}>
             <Helmet><title>우리 아이 성장 대시보드</title></Helmet>
 
             <ConsultationSurveyModal
@@ -136,9 +184,23 @@ export function ParentHomePage() {
                 }}
             />
 
-            <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl px-6 py-4 flex justify-between items-center border-b border-slate-100 shadow-sm">
-                <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-900 font-bold text-xs"><Home className="w-4 h-4" /> 홈으로</button>
-                <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase italic">Parent Mode</div>
+            {/* ✨ 초대 코드 입력 모달 (연결된 자녀 없을 시) */}
+            <InvitationCodeModal
+                isOpen={showInvitationModal}
+                onClose={() => setShowInvitationModal(false)}
+                onSuccess={(childName) => {
+                    alert(`🎉 ${childName} 어린이와 성공적으로 연결되었습니다!`);
+                    fetchDashboardData();
+                }}
+                parentId={user?.id}
+            />
+
+            <nav className={cn(
+                "sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b shadow-sm",
+                isDark ? "bg-slate-900/90 border-slate-800" : "bg-white/90 backdrop-blur-sm border-slate-100"
+            )}>
+                <button onClick={() => navigate('/')} className={cn("flex items-center gap-2 font-bold text-xs", isDark ? "text-slate-300" : "text-slate-900")}><Home className="w-4 h-4" /> 홈으로</button>
+                <div className={cn("px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase italic", isDark ? "bg-indigo-900 text-indigo-300" : "bg-primary/10 text-primary")}>Parent Mode</div>
             </nav>
 
             {/* ✨ 상담 확정 알림 배너 */}
@@ -157,14 +219,14 @@ export function ParentHomePage() {
             )}
 
             <header className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-8 pt-16 pb-20">
-                {/* Decorative Blobs */}
-                <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/20 rounded-full blur-2xl"></div>
+                {/* Decorative Blobs - reduced blur */}
+                <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-xl"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/20 rounded-full blur-lg"></div>
 
                 <div className="max-w-4xl mx-auto relative z-10">
                     <div className="flex items-end justify-between">
                         <div className="space-y-4 text-white">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-black uppercase tracking-wider">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-[11px] font-black uppercase tracking-wider">
                                 <Sparkles className="w-3 h-3" /> Parent Dashboard
                             </div>
                             <h1
@@ -180,7 +242,7 @@ export function ParentHomePage() {
                         </div>
                         <button
                             onClick={() => setIsSurveyOpen(true)}
-                            className="hidden md:flex bg-white text-indigo-700 px-6 py-3 rounded-2xl font-black text-sm shadow-xl hover:bg-indigo-50 active:scale-95 transition-all items-center gap-2"
+                            className="hidden md:flex bg-white text-indigo-700 px-6 py-3 rounded-2xl font-black text-sm shadow-lg hover:bg-indigo-50 active:scale-95 transition-all items-center gap-2 ring-2 ring-white/20"
                         >
                             <MessageSquare className="w-4 h-4" /> 상담 신청
                         </button>
@@ -188,23 +250,29 @@ export function ParentHomePage() {
                 </div>
             </header>
 
-            {/* Mood Check Banner (Emotional Section) */}
+            {/* Mood Check Banner */}
             <div className="max-w-4xl mx-auto px-4 -mt-8 relative z-20">
-                <div className="bg-white rounded-[28px] p-6 shadow-xl shadow-indigo-100/30 border border-slate-100 flex items-center justify-between">
+                <div className={cn(
+                    "rounded-[28px] p-6 shadow-lg border flex items-center justify-between",
+                    isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-indigo-100/30"
+                )}>
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl">☀️</div>
+                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-2xl", isDark ? "bg-amber-900/30" : "bg-amber-50")}>☀️</div>
                         <div>
-                            <p className="text-sm font-black text-slate-800" style={{ wordBreak: 'keep-all' }}>
+                            <p className={cn("text-sm font-black", isDark ? "text-white" : "text-slate-800")} style={{ wordBreak: 'keep-all' }}>
                                 오늘 {childInfo?.name}의 컨디션은 어떤가요?
                             </p>
-                            <p className="text-xs text-slate-400 font-medium">가정에서의 상태를 기록해보세요</p>
+                            <p className={cn("text-xs font-medium", isDark ? "text-slate-500" : "text-slate-400")}>가정에서의 상태를 기록해보세요</p>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         {['😊', '😐', '😢'].map((emoji, idx) => (
                             <button
                                 key={idx}
-                                className="w-11 h-11 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:scale-110 transition-all text-xl border border-slate-100"
+                                className={cn(
+                                    "w-11 h-11 rounded-xl hover:scale-110 transition-all text-xl border",
+                                    isDark ? "bg-slate-800 hover:bg-indigo-900 border-slate-700" : "bg-slate-50 hover:bg-indigo-50 border-slate-100"
+                                )}
                             >
                                 {emoji}
                             </button>
@@ -215,19 +283,35 @@ export function ParentHomePage() {
 
             <main className="max-w-4xl mx-auto p-4 md:p-8 space-y-12 mt-8">
 
-                {/* 1. 수업 일정 캘린더 (리스트 뷰 제거됨) */}
+                {/* 1. 수업 일정 캘린더 */}
                 <section>
                     <div className="flex items-center gap-2 mb-4 px-2">
                         <CalendarIcon className="w-5 h-5 text-primary" />
-                        <h2 className="text-xl font-black text-slate-900">수업 일정표</h2>
+                        <h2 className={cn("text-xl font-black", isDark ? "text-white" : "text-slate-900")}>수업 일정표</h2>
                     </div>
-                    <div className="bg-white rounded-[32px] p-4 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                    <div className={cn(
+                        "rounded-[32px] p-4 md:p-8 shadow-lg border overflow-hidden",
+                        isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-slate-200/50"
+                    )}>
                         <style>{`
+                            ${isDark ? `
+                            .fc { --fc-border-color: #334155; --fc-page-bg-color: #0f172a; }
+                            .fc-theme-standard td, .fc-theme-standard th { border-color: #334155 !important; }
+                            .fc-scrollgrid { border-color: #334155 !important; }
+                            .fc-col-header-cell-cushion, .fc-daygrid-day-number { color: #e2e8f0 !important; }
+                            .fc-day-today { background-color: #1e293b !important; }
+                            .fc-event { color: #ffffff !important; }
+                            .fc-event-title { color: #ffffff !important; font-weight: 700; }
+                            .fc-button { background-color: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+                            .fc-button-active { background-color: #334155 !important; }
+                            .fc-toolbar-title { color: #f1f5f9 !important; }
+                            ` : `
                             .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 800 !important; color: #1e293b; }
                             .fc-button { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #64748b !important; font-weight: bold !important; box-shadow: none !important; font-size: 0.8rem !important; }
                             .fc-button-active { background-color: #f1f5f9 !important; color: #0f172a !important; }
                             .fc-event { border-radius: 6px !important; padding: 2px 4px !important; font-size: 0.8rem !important; font-weight: 700 !important; border: none !important; }
                             .fc-day-today { background-color: #fff7ed !important; }
+                            `}
                         `}</style>
                         <FullCalendar
                             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

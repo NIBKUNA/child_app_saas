@@ -1,13 +1,25 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeProvider';
 import { Lock, LogOut, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export function AppLayout() {
     const { profile, loading } = useAuth();
+    const { theme } = useTheme();
 
     // 로딩 중일 때는 아무것도 보여주지 않거나 로딩 스피너를 보여줍니다.
     if (loading) return null;
@@ -16,7 +28,7 @@ export function AppLayout() {
     if (profile?.role === 'retired') {
         return (
             <div className="fixed inset-0 z-[9999] bg-slate-50 flex items-center justify-center p-6 font-sans">
-                <div className="bg-white p-10 rounded-[40px] shadow-2xl shadow-slate-200 max-w-md w-full text-center space-y-6 border border-slate-100 animate-in fade-in zoom-in duration-300">
+                <div className="bg-white p-10 rounded-[40px] shadow-2xl shadow-slate-200 max-w-md w-full text-center space-y-6 border border-slate-100 animate-in fade-in zoom-in duration-300 gpu-accelerate">
                     <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[32px] flex items-center justify-center mx-auto shadow-inner">
                         <ShieldAlert className="w-12 h-12" />
                     </div>
@@ -38,7 +50,7 @@ export function AppLayout() {
                             await supabase.auth.signOut();
                             window.location.href = '/';
                         }}
-                        className="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
+                        className="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200 gpu-accelerate"
                     >
                         <LogOut className="w-5 h-5" /> 로그아웃 후 메인으로
                     </button>
@@ -47,14 +59,17 @@ export function AppLayout() {
         );
     }
 
+    // Theme-aware background
+    const mainBg = theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50';
+
     // 정상 권한(관리자, 치료사, 일반직원)일 경우의 기본 레이아웃
     return (
-        <div className="flex h-screen bg-slate-50 font-sans">
+        <div className={`flex h-screen ${mainBg} font-sans gpu-layer`}>
             {/* 사이드바 영역 */}
             <Sidebar />
 
             <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6">
+                <main className={`flex-1 overflow-x-hidden overflow-y-auto ${mainBg} p-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
                     {/* 개별 페이지 렌더링 */}
                     <Outlet />
                 </main>

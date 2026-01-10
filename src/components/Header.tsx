@@ -1,10 +1,19 @@
 // @ts-nocheck
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext'; // AuthContext 경로 확인
-// ... 기타 import
+import { useAuth } from '@/contexts/AuthContext';
+import { NotificationCenter } from '@/components/NotificationCenter';
 
 export function Header() {
-    // 1. role 정보 가져오기
     const { user, role, signOut } = useAuth();
 
     return (
@@ -23,7 +32,10 @@ export function Header() {
                     {/* ✨ 로그인 상태에 따른 버튼 분기 처리 */}
                     {user ? (
                         <>
-                            {/* 🛡️ [수정됨] 학부모가 아닐 때만(관리자, 치료사 등) '관리자 대시보드' 버튼 노출 */}
+                            {/* 🔔 [추가] 관리자/치료사에게만 알림 센터 표시 */}
+                            {role !== 'parent' && <NotificationCenter />}
+
+                            {/* 🛡️ 학부모가 아닐 때만 '관리자 대시보드' 버튼 노출 */}
                             {role !== 'parent' && (
                                 <Link
                                     to="/app/dashboard"

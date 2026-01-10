@@ -1,16 +1,49 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-    Heart, CheckCircle2, Star, Quote, ChevronDown, ArrowRight, Bell
-} from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { supabase } from '@/lib/supabase';
 import { GrowthIcon, HeartCareIcon, StarIcon, BackgroundShapes } from '@/components/icons/BrandIcons';
 import { PlayTherapyIcon, SpeechTherapyIcon, SensoryTherapyIcon, ArtTherapyIcon } from '@/components/icons/ProgramIcons';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { cn } from '@/lib/utils';
+
+// Custom SVG Icons (no Lucide)
+const SvgIcons = {
+    chevronDown: (className: string) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" />
+        </svg>
+    ),
+    arrowRight: (className: string) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" />
+        </svg>
+    ),
+    quote: (className: string) => (
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4.583 17.321C3.548 16.227 3 15 3 13.044c0-3.347 2.48-6.332 6.264-8.044L10.5 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105zm10.333 0C13.881 16.227 13.333 15 13.333 13.044c0-3.347 2.48-6.332 6.264-8.044L20.833 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105z" />
+        </svg>
+    ),
+    bell: (className: string) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" />
+        </svg>
+    ),
+};
 
 const DEFAULT_CONTENT = {
     brandName: "행복아동발달센터",
@@ -37,7 +70,9 @@ const DEFAULT_CONTENT = {
 export function HomePage() {
     const navigate = useNavigate();
     const { getSetting, loading } = useAdminSettings();
+    const { theme } = useTheme();
     const [centerInfo, setCenterInfo] = useState<any>(null);
+    const isDark = theme === 'dark';
 
     useEffect(() => {
         const fetchCenter = async () => {
@@ -51,33 +86,46 @@ export function HomePage() {
     const noticeText = getSetting('notice_text');
     const bgImage = bannerUrl || DEFAULT_CONTENT.hero.defaultBgImage;
 
-    // ✨ 우선순위: 관리자 설정 센터명 > DB centers 테이블 이름 > 기본 하드코딩 값
-    // getSetting('center_logo')와 혼동되지 않도록 'center_name' 또는 'name' 확인이 필요할 수 있습니다.
     const brandName = getSetting('center_name') || centerInfo?.name || DEFAULT_CONTENT.brandName;
+    const canonicalUrl = `https://jarada-erp.com/centers/${centerInfo?.id || 'main'}`;
 
     return (
-        <div className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden">
+        <div className={`min-h-screen font-sans overflow-x-hidden transition-colors ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
             <Helmet>
-                <title>{brandName} - 아이의 행복한 성장을 함께합니다</title>
+                <title>{brandName} - {centerInfo?.description?.slice(0, 20) || '아이의 행복한 성장을 함께합니다'}</title>
+                <meta name="description" content={centerInfo?.description || DEFAULT_CONTENT.hero.description} />
+                <link rel="canonical" href={canonicalUrl} />
+                <meta property="og:title" content={brandName} />
+                <meta property="og:description" content={centerInfo?.description || DEFAULT_CONTENT.hero.description} />
+                <meta property="og:image" content={bgImage} />
             </Helmet>
 
             {!loading && noticeText && (
-                <div className="bg-slate-900 text-white px-4 py-3">
+                <div className={`px-4 py-3 ${isDark ? 'bg-slate-900' : 'bg-slate-900'} text-white`}>
                     <div className="container mx-auto px-4 md:px-8 flex items-center justify-center gap-2 text-sm font-medium animate-in slide-in-from-top duration-500">
-                        <Bell className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        {SvgIcons.bell("w-4 h-4 text-yellow-400 fill-yellow-400")}
                         <span>{noticeText}</span>
                     </div>
                 </div>
             )}
 
-            <section className="relative h-[85vh] flex items-center overflow-hidden">
+            {/* ✨ 모바일 최적화: 높이 조정 및 object-position */}
+            <section className="relative h-[70vh] md:h-[85vh] flex items-center overflow-hidden">
                 {/* Background with slight scale animation */}
                 <motion.div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${bgImage})` }}
-                    initial={{ scale: 1.1 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 10, ease: "linear" }}
+                    className="absolute inset-0 bg-cover bg-top md:bg-center"
+                    style={{
+                        backgroundImage: `url(${bgImage}?v=1.1)`,
+                        opacity: 0
+                    }}
+                    animate={{
+                        scale: [1.1, 1],
+                        opacity: 1
+                    }}
+                    transition={{
+                        scale: { duration: 10, ease: "linear" },
+                        opacity: { duration: 0.8, ease: "easeOut" }
+                    }}
                 >
                     {/* Stronger gradient for text visibility */}
                     <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-slate-900/50 to-slate-900/80"></div>
@@ -148,27 +196,28 @@ export function HomePage() {
                                 >
                                     {DEFAULT_CONTENT.hero.ctaText}
                                     <div className="bg-slate-900 text-white p-1 rounded-full group-hover:bg-indigo-600 transition-colors">
-                                        <ArrowRight className="w-5 h-5 -rotate-45 group-hover:rotate-0 transition-transform duration-300" />
+                                        {SvgIcons.arrowRight("w-5 h-5 -rotate-45 group-hover:rotate-0 transition-transform duration-300")}
                                     </div>
                                 </motion.button>
                             </Link>
                         </div>
-                    </div>
-                </div>
+                    </div >
+                </div >
 
                 <motion.div
-                    className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50"
+                    className={`absolute bottom-10 left-1/2 -translate-x-1/2 ${isDark ? 'text-white/50' : 'text-white/50'}`}
                     animate={{ y: [0, 10, 0] }}
                     transition={{ duration: 2, repeat: Infinity }}
                 >
-                    <ChevronDown className="w-10 h-10" />
+                    {SvgIcons.chevronDown("w-10 h-10")}
                 </motion.div>
-            </section>
+            </section >
 
             {/* Mobile-First Floating Cards Section */}
-            <div className="bg-slate-50 relative -mt-20 z-20 rounded-tl-[80px] rounded-tr-none px-4 pb-32 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] overflow-visible">
+            < div className={`relative -mt-20 z-20 rounded-tl-[80px] rounded-tr-none px-4 pb-32 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] overflow-visible ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`
+            }>
                 {/* Background Abstract Shapes */}
-                <BackgroundShapes />
+                < BackgroundShapes />
 
                 <div className="container mx-auto pt-24 px-2 md:px-8 relative z-10">
 
@@ -182,12 +231,12 @@ export function HomePage() {
                                 viewport={{ once: true }}
                                 transition={{ type: "spring", stiffness: 100, delay: idx * 0.1 }}
                             >
-                                <div className="h-full bg-white rounded-[40px] p-8 md:p-10 shadow-xl shadow-slate-200/40 border border-slate-100 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+                                <div className={`h-full rounded-[40px] p-8 md:p-10 shadow-xl border hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 ${isDark ? 'bg-slate-800 border-slate-700 shadow-slate-900/40' : 'bg-white border-slate-100 shadow-slate-200/40'}`}>
                                     <div className="mb-6">
                                         {idx === 0 ? <StarIcon /> : idx === 1 ? <HeartCareIcon /> : <GrowthIcon />}
                                     </div>
-                                    <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">{item.title}</h3>
-                                    <p className="text-slate-500 font-medium leading-relaxed text-lg">{item.desc}</p>
+                                    <h3 className={`text-2xl font-black mb-4 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.title}</h3>
+                                    <p className={`font-medium leading-relaxed text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.desc}</p>
                                 </div>
                             </motion.div>
                         ))}
@@ -195,7 +244,7 @@ export function HomePage() {
 
                     {/* Story Section */}
                     <motion.div
-                        className="mt-24 relative bg-white rounded-[50px] overflow-hidden shadow-2xl shadow-indigo-100/50 border border-slate-100"
+                        className={`mt-24 relative rounded-[50px] overflow-hidden shadow-2xl border ${isDark ? 'bg-slate-800 border-slate-700 shadow-slate-900/50' : 'bg-white border-slate-100 shadow-indigo-100/50'}`}
                         initial={{ opacity: 0, scale: 0.95 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true, margin: '-100px' }}
@@ -203,17 +252,17 @@ export function HomePage() {
                     >
                         <div className="grid grid-cols-1 lg:grid-cols-2">
                             <div className="p-10 md:p-16 flex flex-col justify-center space-y-8">
-                                <Quote className="w-14 h-14 text-indigo-100" />
+                                {SvgIcons.quote(`w-14 h-14 ${isDark ? 'text-slate-700' : 'text-indigo-100'}`)}
                                 <h3
-                                    className="text-3xl md:text-4xl font-black leading-[1.15] text-slate-900 tracking-[-0.05em]"
+                                    className={`text-3xl md:text-4xl font-black leading-[1.15] tracking-[-0.05em] ${isDark ? 'text-white' : 'text-slate-900'}`}
                                     style={{ wordBreak: 'keep-all' }}
                                 >
                                     {DEFAULT_CONTENT.story.quote}
                                 </h3>
-                                <p className="text-base text-slate-500 font-medium leading-relaxed" style={{ wordBreak: 'keep-all' }}>
+                                <p className={`text-base font-medium leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ wordBreak: 'keep-all' }}>
                                     {brandName}는 단순한 치료 공간이 아닙니다.
                                     아이들이 스스로 꽃피울 수 있도록
-                                    <strong className="text-indigo-600"> 가장 따뜻한 햇살</strong>이 되어주겠습니다.
+                                    <strong className="text-indigo-600 dark:text-indigo-400"> 가장 따뜻한 햇살</strong>이 되어주겠습니다.
                                 </p>
                             </div>
                             <div className="relative h-[350px] lg:h-auto">
@@ -236,11 +285,17 @@ export function HomePage() {
                         transition={{ type: "spring", stiffness: 80 }}
                     >
                         <div className="mb-12">
-                            <span className="inline-block px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black tracking-wider uppercase mb-4">
+                            <span className={cn(
+                                "inline-block px-4 py-1.5 rounded-full text-xs font-black tracking-wider uppercase mb-4",
+                                isDark ? "bg-indigo-900 text-indigo-300" : "bg-indigo-50 text-indigo-600"
+                            )}>
                                 Our Programs
                             </span>
                             <h2
-                                className="text-3xl md:text-4xl font-black text-slate-900 tracking-[-0.05em]"
+                                className={cn(
+                                    "text-3xl md:text-4xl font-black tracking-[-0.05em]",
+                                    isDark ? "text-white" : "text-slate-900"
+                                )}
                                 style={{ wordBreak: 'keep-all' }}
                             >
                                 맞춤형 발달 지원 프로그램
@@ -248,14 +303,19 @@ export function HomePage() {
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                             {[
-                                { Icon: SpeechTherapyIcon, name: '언어치료', desc: '의사소통 능력 향상', color: 'from-indigo-50 to-white' },
-                                { Icon: SensoryTherapyIcon, name: '감통치료', desc: '감각통합 발달 지원', color: 'from-emerald-50 to-white' },
-                                { Icon: ArtTherapyIcon, name: '미술치료', desc: '정서 표현 및 치유', color: 'from-amber-50 to-white' },
-                                { Icon: PlayTherapyIcon, name: '놀이치료', desc: '사회성·정서 발달', color: 'from-rose-50 to-white' },
+                                { Icon: SpeechTherapyIcon, name: '언어치료', desc: '의사소통 능력 향상', lightColor: 'from-indigo-50 to-white', darkColor: 'from-indigo-900/30 to-slate-900' },
+                                { Icon: SensoryTherapyIcon, name: '감통치료', desc: '감각통합 발달 지원', lightColor: 'from-emerald-50 to-white', darkColor: 'from-emerald-900/30 to-slate-900' },
+                                { Icon: ArtTherapyIcon, name: '미술치료', desc: '정서 표현 및 치유', lightColor: 'from-amber-50 to-white', darkColor: 'from-amber-900/30 to-slate-900' },
+                                { Icon: PlayTherapyIcon, name: '놀이치료', desc: '사회성·정서 발달', lightColor: 'from-rose-50 to-white', darkColor: 'from-rose-900/30 to-slate-900' },
                             ].map((program, idx) => (
                                 <motion.div
                                     key={idx}
-                                    className={`bg-gradient-to-b ${program.color} rounded-[28px] p-6 shadow-lg shadow-slate-100 border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer`}
+                                    className={cn(
+                                        "bg-gradient-to-b rounded-[28px] p-6 shadow-lg border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer",
+                                        isDark
+                                            ? `${program.darkColor} border-slate-800 shadow-black/20`
+                                            : `${program.lightColor} border-slate-100 shadow-slate-100`
+                                    )}
                                     initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
@@ -265,13 +325,16 @@ export function HomePage() {
                                     <div className="w-14 h-14 mx-auto mb-3">
                                         <program.Icon className="w-14 h-14" />
                                     </div>
-                                    <p className="font-black text-slate-800 text-sm mb-1">{program.name}</p>
-                                    <p className="text-xs text-slate-400 font-medium">{program.desc}</p>
+                                    <p className={cn("font-black text-sm mb-1", isDark ? "text-white" : "text-slate-800")}>{program.name}</p>
+                                    <p className={cn("text-xs font-medium", isDark ? "text-slate-400" : "text-slate-400")}>{program.desc}</p>
                                 </motion.div>
                             ))}
                         </div>
-                        <Link to="/programs" className="inline-flex items-center gap-2 mt-10 text-indigo-600 font-bold text-sm hover:underline">
-                            모든 프로그램 보기 <ArrowRight className="w-4 h-4" />
+                        <Link to="/programs" className={cn(
+                            "inline-flex items-center gap-2 mt-10 font-bold text-sm hover:underline",
+                            isDark ? "text-indigo-400" : "text-indigo-600"
+                        )}>
+                            모든 프로그램 보기 {SvgIcons.arrowRight("w-4 h-4")}
                         </Link>
                     </motion.section>
 
@@ -284,9 +347,9 @@ export function HomePage() {
                         transition={{ type: "spring", stiffness: 80 }}
                     >
                         <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-[50px] p-10 md:p-16 text-white relative overflow-hidden">
-                            {/* Decorative */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/10 rounded-full blur-2xl"></div>
+                            {/* Decorative - reduced blur */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-xl"></div>
+                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-400/10 rounded-full blur-lg"></div>
 
                             <div className="relative z-10 text-center max-w-3xl mx-auto">
                                 <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-black tracking-wider uppercase mb-6">
@@ -334,22 +397,33 @@ export function HomePage() {
                         viewport={{ once: true }}
                     >
                         <h2
-                            className="text-3xl md:text-4xl font-black text-slate-900 mb-6 tracking-[-0.05em]"
+                            className={cn(
+                                "text-3xl md:text-4xl font-black mb-6 tracking-[-0.05em]",
+                                isDark ? "text-white" : "text-slate-900"
+                            )}
                             style={{ wordBreak: 'keep-all' }}
                         >
                             아이의 첫 걸음, 함께 시작해요
                         </h2>
-                        <p className="text-slate-500 font-medium mb-10 max-w-md mx-auto" style={{ wordBreak: 'keep-all' }}>
+                        <p className={cn(
+                            "font-medium mb-10 max-w-md mx-auto",
+                            isDark ? "text-slate-400" : "text-slate-500"
+                        )} style={{ wordBreak: 'keep-all' }}>
                             무료 초기 상담을 통해 우리 아이에게 필요한 지원을 알아보세요.
                         </p>
                         <Link to="/contact">
                             <motion.button
-                                className="px-10 py-5 bg-slate-900 text-white rounded-full font-black text-lg shadow-2xl shadow-slate-300 hover:bg-indigo-600 transition-all flex items-center gap-3 mx-auto"
+                                className={cn(
+                                    "px-10 py-5 rounded-full font-black text-lg shadow-xl transition-all flex items-center gap-3 mx-auto ring-2",
+                                    isDark
+                                        ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-900/50 ring-indigo-400/30"
+                                        : "bg-slate-900 text-white hover:bg-indigo-600 shadow-slate-300 ring-slate-800/20"
+                                )}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
                                 무료 상담 예약하기
-                                <ArrowRight className="w-5 h-5" />
+                                {SvgIcons.arrowRight("w-5 h-5")}
                             </motion.button>
                         </Link>
                     </motion.section>

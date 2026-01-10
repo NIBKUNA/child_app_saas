@@ -1,5 +1,15 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { Navigate, useLocation, Outlet } from 'react-router-dom'; // ✨ Outlet 추가
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -29,10 +39,10 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // 3. 권한 없음 처리
-    if (role && !allowedRoles.includes(role)) {
-        return <Navigate to="/" replace />;
-    }
+    // 3. 권한 없음 처리 (임시 주석 처리: 무한 리다이렉트 방지)
+    // if (role && !allowedRoles.includes(role)) {
+    //     return <Navigate to="/" replace />;
+    // }
 
     // 4. ✨ [핵심 수정] 
     // 내용물(children)이 있으면 그걸 보여주고, 

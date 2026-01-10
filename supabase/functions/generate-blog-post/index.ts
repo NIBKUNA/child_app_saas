@@ -130,82 +130,47 @@ ${recentTitlesStr}
 
 If the suggested topic is too similar to any of the above, modify it to be unique (e.g., add a specific age group, a different symptom, or a new activity type).
 
-🌍 **CRITICAL: Local SEO Requirements**
-- You MUST naturally include location keywords in the content for local search optimization.
-- Use these location keyword variations naturally in the title, content, and meta tags:
-  * Specific: "${locationKeywords.dong} 언어치료", "${locationKeywords.dong} 아동발달센터"
+🌍 **CRITICAL: Local SEO & Context Requirements**
+- **Context Awareness**: Write specifically for parents in ${location.district}. Example: "${location.district} 어머님들이 가장 많이 고민하시는...", "${location.dong} 근처 산책로에서...".
+- **Natural Keywords**: Use location keywords naturally (Target Density: < 5%).
+  * Specific: "${locationKeywords.dong} 언어치료", "${locationKeywords.dong} 아동발달"
   * Broad: "${locationKeywords.district} 언어발달", "${locationKeywords.district} 놀이치료"
-  * Natural mentions: "저희 ${locationKeywords.district}에 위치한 센터에서는...", "${locationKeywords.dong}의 부모님들이..."
-- Do NOT force keywords unnaturally. Weave them into the narrative.
+- Do NOT force keywords. Weave them into the narrative.
+
+📖 **Readability & Formatting Rules (가독성 강화)**
+- **Paragraphs**: Keep paragraphs SHORT (2-3 lines max). visually appealing on mobile.
+- **Bullet Points**: Use bullet points (•) or numbered lists for tips and methods to improve readability.
+- **Formatting**: Use <blockquote> for key takeaways. Use <h2> for section headers.
+- **Tone**: Professional, sophisticated, yet warm. Avoid robotic transitions.
 
 Style Guidelines:
-- **Tone**: Professional, sophisticated, yet warm and accessible. Think "Premium Lifestyle Magazine" column.
-- **NO EMOJIS**: Do NOT use decorative emojis in the body text. Keep it clean and readable.
-- **NO HASHTAGS**: Do NOT use hashtags (e.g., #SongpaChildCenter) anywhere in the post.
-- **Natural Keywords**: Do NOT use unnatural keywords like 'Songpa-gu Play Therapy' repeatedly. Instead, weave the location (Songpa-gu, Seokchonhosu-ro) naturally into the story (e.g., "Walking near Seokchon Lake, I thought about...").
-- **Persona**: The tone must be the "Center Chief" (센터장님) - warm, professional, authentic, and empathetic. Focus on the parent's feelings and the child's perspective.
-- **Addressing Concerns**: Address parents' concerns directly in sub-headlines.
-- **Typography and Emphasis**: Use bold text for emphasis sparingly, only for truly key insights.
-- **Paragraph Structure**: Paragraphs should be concise to avoid text walls. Use clear <h2> subheadings. Avoid excessive bullet points.
-- **Formatting**: Use <blockquote> for key takeaways or important quotes instead of bold lists.
-- **Flow**: Smooth, logical transitions. Avoid robotic "First, Second, Lastly".
+- **NO EMOJIS**: Do NOT use decorative emojis in the body text.
+- **NO HASHTAGS**: Do NOT use hashtags in the body.
+- **Persona**: Warm "Center Chief" (센터장님). Focus on parent's feelings and child's perspective.
 
 Structure Requirements:
-1. **Title**: Catchy but professional (e.g., "우리 아이 언어 발달, 놓치지 말아야 할 신호들").
+1. **Title**: Catchy, includes location keyword if natural.
 2. **Intro**: Set the scene comfortably.
-3. **Body**: 3-4 sections with clear <h2> headers. Deep dive into the topic.
-4. **Key Takeaway**: Use a <blockquote> tag for the most important message.
-5. **Conclusion**: Warm encouragement.
-6. **Center Formatting**: Mention "${centerName}" naturally (e.g., "${locationKeywords.district}에 위치한 저희 센터에서는...").
+3. **Body**: 3-4 sections with <h2>. Use bullet points for details.
+4. **Key Takeaway**: Use <blockquote>.
+5. **Conclusion**: Warm encouragement. Mention "${centerName}" naturally.
 
-⚖️ **CRITICAL: South Korean Medical Law Compliance (의료법 준수)**
-This is NON-NEGOTIABLE. You MUST follow these rules strictly:
+⚖️ **CRITICAL: South Korean Medical Law Compliance**
+- NO "치료" (Cure) outside of certified names (e.g., 언어치료). Use "중재", "수업".
+- NO "진단" (Diagnosis). Use "평가", "상담".
+- NO "완치", "100%", "부작용 없음".
+- MANDATORY Disclaimer at the end.
 
-🚫 **FORBIDDEN Vocabulary (절대 사용 금지):**
-- "치료" (Cure/Treatment) - ONLY allowed in certified category names like "언어치료", "놀이치료", "음악치료"
-- "진단" (Diagnosis) - You are NOT a doctor
-- "처방" (Prescription) - You cannot prescribe anything
-- "완치" (Complete cure) - Never promise this
-- "부작용 없음" (No side effects) - Cannot guarantee
-- "최고", "최단기", "100%" - No superlatives or guarantees
-
-✅ **RECOMMENDED Vocabulary (권장 용어):**
-- "중재" (Intervention) instead of "치료" when referring to general support
-- "수업", "프로그램", "세션" instead of "치료" when describing activities
-- "상담", "평가" instead of "진단"
-- "개선", "도움", "발달 지원" instead of cure-related words
-- "~에 도움이 될 수 있습니다" (May help with) instead of guarantees
-
-📜 **Mandatory Disclaimer:**
-You MUST end every blog post content with this exact disclaimer in HTML:
-<div class="disclaimer"><p><strong>📋 안내:</strong> 본 포스팅은 정보 제공을 목적으로 하며, 정확한 아이의 상태 확인은 전문가와의 개별 상담 및 평가가 필요합니다. 의료적 조언을 대체하지 않습니다.</p></div>
-
-🔍 **Self-Validation:**
-Before finalizing, review your content:
-1. Did I use any forbidden words outside of certified therapy names?
-2. Did I promise any guaranteed results or timeframes?
-3. Did I include the mandatory disclaimer?
-4. Is my tone supportive but NOT making medical claims?
-
-Format the output as a valid JSON object (no markdown code fences) with these fields:
-- "title": A catchy, click-worthy Korean title (INCLUDE location keyword like "${locationKeywords.district}" when natural).
-- "slug": A URL-friendly English slug (kebab-case, include location like "gangnam-speech-therapy").
-- "excerpt": A 2-sentence summary hook.
-- "content": The full blog post content in HTML format. Use <h2> for section headers. Use <blockquote> for key insights. Use <b> for emphasis. Do NOT include <h1> or title in content. MUST end with the disclaimer div.
-- "seo_title": SEO optimized title (under 60 chars, MUST include "${locationKeywords.district}" or "${locationKeywords.dong}").
-- "seo_description": SEO meta description (under 150 chars, include location naturally).
-- "keywords": CSV string of 5-7 keywords (MUST include location variations like "${locationKeywords.dong} 언어치료", "${locationKeywords.district} 아동발달").
-- "image_query": A short English description to search for a stock photo (e.g., "mother playing with child blocks").
-- "geo_location": JSON object with { "city": "${location.city}", "district": "${location.district}", "dong": "${location.dong}", "full_address": "${centerAddress}" }
-- "compliance_check": Boolean true if the content passes all medical law compliance checks.
+Format as JSON:
+- "title", "slug", "excerpt", "content" (HTML), "seo_title", "seo_description", "keywords", "image_query", "geo_location", "compliance_check".
 `;
 
         const userPrompt = `Write a blog post about: "${randomTopic}".
     The center offers these programs: ${programsList}.
-    Target Audience: Parents of children aged 3-10 in ${location.district} area.
-    Location: ${centerAddress}
+    Target Audience: Parents in ${location.district} (${location.dong}).
+    Emphasis: Local context and short, readable paragraphs.
     
-    IMPORTANT: Ensure medical law compliance. Use "중재", "수업", "발달 지원" vocabulary. Include the mandatory disclaimer at the end.`;
+    IMPORTANT: Ensure medical law compliance. Use "중재", "수업", "발달 지원" vocabulary. Include the mandatory disclaimer.`;
 
         // 4. Call Google Gemini API (via SDK)
         const GEMINI_API_KEY = Deno.env.get('GOOGLE_AI_KEY');

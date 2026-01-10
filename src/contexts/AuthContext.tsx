@@ -1,5 +1,15 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -112,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     localStorage.setItem(ROLE_CACHE_KEY, fetchedRole);
                 }
             } catch (error) {
-                if (mounted) setRole('parent');
+                if (mounted) setRole('parent'); // 기본값
             } finally {
                 if (mounted) {
                     setLoading(false);
@@ -122,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         fetchRole();
-    }, [user]);
+    }, [user?.id]); // ✨ [Fix] user 객체가 아닌 id 변경 시에만 실행 (무한 루프 방지)
 
     const signOut = async () => {
         localStorage.removeItem(ROLE_CACHE_KEY);

@@ -1,8 +1,22 @@
+// @ts-nocheck
+/* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { cn } from '@/lib/utils';
 
 interface BlogPost {
     id: string;
@@ -15,6 +29,8 @@ interface BlogPost {
 
 export function BlogPage() {
     const { getSetting } = useAdminSettings();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -40,7 +56,10 @@ export function BlogPage() {
     const centerName = getSetting('center_name') || 'Center Blog';
 
     return (
-        <div className="bg-white min-h-screen pb-24 font-sans text-slate-900">
+        <div className={cn(
+            "min-h-screen pb-24 font-sans transition-colors",
+            isDark ? "bg-slate-950 text-white" : "bg-white text-slate-900"
+        )}>
             <Helmet>
                 <title>Blog | {centerName}</title>
                 <meta name="description" content="Professional insights for your child's growth." />
@@ -48,13 +67,22 @@ export function BlogPage() {
 
             {/* Spacious Centered Header */}
             <header className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
-                <p className="text-indigo-600 font-bold tracking-widest text-sm mb-4">
+                <p className={cn(
+                    "font-bold tracking-widest text-sm mb-4",
+                    isDark ? "text-indigo-400" : "text-indigo-600"
+                )}>
                     아이와 함께 성장하는 이야기
                 </p>
-                <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 mb-6 leading-tight">
+                <h1 className={cn(
+                    "text-4xl md:text-6xl font-black tracking-tight mb-6 leading-tight",
+                    isDark ? "text-white" : "text-slate-900"
+                )}>
                     마음 성장 칼럼
                 </h1>
-                <p className="text-lg md:text-xl text-slate-500 font-medium leading-relaxed break-keep">
+                <p className={cn(
+                    "text-lg md:text-xl font-medium leading-relaxed break-keep",
+                    isDark ? "text-slate-400" : "text-slate-500"
+                )}>
                     우리 아이의 건강한 발달을 위한 전문가들의 따뜻한 조언
                 </p>
             </header>
@@ -63,12 +91,24 @@ export function BlogPage() {
             <main className="max-w-7xl mx-auto px-6">
                 {loading ? (
                     <div className="text-center py-32">
-                        <p className="text-xl text-slate-400 font-medium animate-pulse">칼럼을 불러오는 중입니다...</p>
+                        <p className={cn(
+                            "text-xl font-medium animate-pulse",
+                            isDark ? "text-slate-500" : "text-slate-400"
+                        )}>칼럼을 불러오는 중입니다...</p>
                     </div>
                 ) : posts.length === 0 ? (
-                    <div className="text-center py-32 border-t border-slate-100">
-                        <p className="text-xl font-bold text-slate-400">아직 등록된 칼럼이 없습니다.</p>
-                        <p className="text-slate-400 mt-2">조금만 기다려주세요, 알찬 내용을 준비 중입니다.</p>
+                    <div className={cn(
+                        "text-center py-32 border-t",
+                        isDark ? "border-slate-800" : "border-slate-100"
+                    )}>
+                        <p className={cn(
+                            "text-xl font-bold",
+                            isDark ? "text-slate-500" : "text-slate-400"
+                        )}>아직 등록된 칼럼이 없습니다.</p>
+                        <p className={cn(
+                            "mt-2",
+                            isDark ? "text-slate-600" : "text-slate-400"
+                        )}>조금만 기다려주세요, 알찬 내용을 준비 중입니다.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-14">
@@ -79,7 +119,12 @@ export function BlogPage() {
                                 className="group block h-full flex flex-col"
                             >
                                 {/* Thumbnail: 16:9 Aspect Ratio */}
-                                <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100 mb-6 shadow-sm group-hover:shadow-lg transition-all duration-300 ease-out">
+                                <div className={cn(
+                                    "relative aspect-[16/9] overflow-hidden rounded-2xl mb-6 transition-all duration-300 ease-out",
+                                    isDark
+                                        ? "bg-slate-800 shadow-md shadow-black/20 group-hover:shadow-xl"
+                                        : "bg-slate-100 shadow-sm group-hover:shadow-lg"
+                                )}>
                                     {post.cover_image_url ? (
                                         <img
                                             src={post.cover_image_url}
@@ -87,7 +132,10 @@ export function BlogPage() {
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-300 font-black text-2xl tracking-tight">
+                                        <div className={cn(
+                                            "w-full h-full flex items-center justify-center font-black text-2xl tracking-tight",
+                                            isDark ? "bg-slate-800 text-slate-600" : "bg-slate-50 text-slate-300"
+                                        )}>
                                             NO IMAGE
                                         </div>
                                     )}
@@ -98,17 +146,28 @@ export function BlogPage() {
                                 {/* Content */}
                                 <div className="flex-1 flex flex-col">
                                     {/* Minimal Date */}
-                                    <div className="text-xs font-bold text-slate-400 tracking-wide uppercase mb-3">
+                                    <div className={cn(
+                                        "text-xs font-bold tracking-wide uppercase mb-3",
+                                        isDark ? "text-slate-500" : "text-slate-400"
+                                    )}>
                                         {post.published_at ? new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
                                     </div>
 
                                     {/* Bold Title */}
-                                    <h2 className="text-2xl font-black text-slate-900 leading-tight mb-3 line-clamp-2 group-hover:text-indigo-600 transition-colors duration-300">
+                                    <h2 className={cn(
+                                        "text-2xl font-black leading-tight mb-3 line-clamp-2 transition-colors duration-300",
+                                        isDark
+                                            ? "text-white group-hover:text-indigo-400"
+                                            : "text-slate-900 group-hover:text-indigo-600"
+                                    )}>
                                         {post.title}
                                     </h2>
 
                                     {/* Excerpt */}
-                                    <p className="text-slate-500 font-medium leading-relaxed line-clamp-3 text-base flex-1">
+                                    <p className={cn(
+                                        "font-medium leading-relaxed line-clamp-3 text-base flex-1",
+                                        isDark ? "text-slate-400" : "text-slate-500"
+                                    )}>
                                         {post.excerpt}
                                     </p>
                                 </div>

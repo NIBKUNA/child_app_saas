@@ -1,7 +1,18 @@
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-11
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 수업 일지 작성 - 발달 평가 연동 및 치료사 피드백 기능 추가
+ */
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Loader2, ArrowLeft, Save } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, ClipboardCheck, MessageSquare } from 'lucide-react';
+import { AssessmentFormModal } from '@/pages/app/children/AssessmentFormModal';
 
 export default function SessionNote() {
     const { scheduleId } = useParams();
@@ -13,14 +24,18 @@ export default function SessionNote() {
     const [sessionInfo, setSessionInfo] = useState<any>(null);
 
     // Note Fields
-    // const [mood, setMood] = useState('good');
     const [activities, setActivities] = useState('');
     const [childResponse, setChildResponse] = useState('');
     const [nextPlan, setNextPlan] = useState('');
+    // ✨ [NEW] Therapist Feedback for Parents (부모님 확인용)
+    const [parentFeedback, setParentFeedback] = useState('');
 
     // Existing Note ID if updating
     const [noteId, setNoteId] = useState<string | null>(null);
     const [sessionDate, setSessionDate] = useState('');
+
+    // ✨ [NEW] Assessment Modal State
+    const [showAssessment, setShowAssessment] = useState(false);
 
     useEffect(() => {
         if (scheduleId) {
@@ -35,7 +50,7 @@ export default function SessionNote() {
             .from('schedules') as any)
             .select(`
                 *,
-                children ( name, birth_date ),
+                children ( id, name, birth_date ),
                 therapists ( name )
             `)
             .eq('id', id)
@@ -60,12 +75,11 @@ export default function SessionNote() {
 
         if (note) {
             setNoteId(note.id);
-            // setMood(note.mood || 'good');
-            // Using textarea fields
             if (note.session_date) setSessionDate(note.session_date);
             setActivities(note.activities || '');
             setChildResponse(note.child_response || '');
             setNextPlan(note.next_plan || '');
+            setParentFeedback(note.parent_feedback || '');
         }
 
         setLoading(false);
@@ -79,19 +93,17 @@ export default function SessionNote() {
             schedule_id: sessionInfo.id,
             child_id: sessionInfo.child_id,
             therapist_id: sessionInfo.therapist_id,
-            session_date: sessionDate, // Use user-selected date
-            // mood, 
+            session_date: sessionDate,
             activities,
             child_response: childResponse,
-            next_plan: nextPlan
+            next_plan: nextPlan,
+            parent_feedback: parentFeedback // ✨ [NEW] Save parent feedback
         };
 
         let result;
         if (noteId) {
-            // Update
             result = await (supabase.from('counseling_logs') as any).update(payload).eq('id', noteId);
         } else {
-            // Insert
             result = await (supabase.from('counseling_logs') as any).insert([payload]);
         }
 
@@ -119,7 +131,7 @@ export default function SessionNote() {
                 <button onClick={() => navigate('/app/sessions')} className="p-2 hover:bg-slate-100 rounded-full">
                     <ArrowLeft className="w-5 h-5 text-slate-500" />
                 </button>
-                <h1 className="text-2xl font-bold tracking-tight">상담 일지 작성</h1>
+                <h1 className="text-2xl font-bold tracking-tight">수업 일지 작성</h1>
             </div>
 
             {/* Session Info Card */}
@@ -148,7 +160,7 @@ export default function SessionNote() {
                         value={sessionDate}
                         onChange={(e) => setSessionDate(e.target.value)}
                     />
-                    <p className="text-xs text-slate-400 mt-1">* 실제 수업을 진행한 날짜를 선택해주세요. (기본값: 일정 날짜)</p>
+                    <p className="text-xs text-slate-400 mt-1">* 실제 수업을 진행한 날짜를 선택해주세요.</p>
                 </div>
 
                 <div>
@@ -181,6 +193,34 @@ export default function SessionNote() {
                     />
                 </div>
 
+                {/* ✨ [NEW] Therapist Feedback for Parents */}
+                <div className="border-t pt-6">
+                    <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="w-4 h-4 text-indigo-500" />
+                        <label className="block text-sm font-medium text-slate-700">부모님께 전달 메시지</label>
+                        <span className="text-xs text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">부모님 앱에서 확인</span>
+                    </div>
+                    <textarea
+                        className="w-full min-h-[100px] rounded-md border border-indigo-200 bg-indigo-50/50 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        placeholder="부모님께 전달하고 싶은 수업 피드백, 관찰 내용, 가정에서의 연습 권장 사항 등을 작성해주세요. 이 내용은 부모님 앱에서 확인하실 수 있습니다."
+                        value={parentFeedback}
+                        onChange={(e) => setParentFeedback(e.target.value)}
+                    />
+                </div>
+
+                {/* ✨ [NEW] Assessment Integration Button */}
+                <div className="border-t pt-6">
+                    <button
+                        type="button"
+                        onClick={() => setShowAssessment(true)}
+                        className="w-full py-3 border-2 border-dashed border-purple-300 text-purple-600 rounded-xl hover:bg-purple-50 flex items-center justify-center gap-2 font-medium transition-colors"
+                    >
+                        <ClipboardCheck className="w-5 h-5" />
+                        발달 평가 작성하기 (선택)
+                    </button>
+                    <p className="text-xs text-slate-400 mt-2 text-center">수업 완료 후 발달 평가를 바로 작성할 수 있습니다.</p>
+                </div>
+
                 <div className="pt-4 border-t flex justify-end">
                     <button
                         onClick={handleSave}
@@ -193,6 +233,21 @@ export default function SessionNote() {
                     </button>
                 </div>
             </div>
+
+            {/* Assessment Modal */}
+            {showAssessment && sessionInfo?.children?.id && (
+                <AssessmentFormModal
+                    isOpen={showAssessment}
+                    childId={sessionInfo.children.id}
+                    childName={sessionInfo.children.name}
+                    logId={noteId}
+                    onClose={() => setShowAssessment(false)}
+                    onSuccess={() => {
+                        setShowAssessment(false);
+                        alert('발달 평가가 저장되었습니다.');
+                    }}
+                />
+            )}
         </div>
     );
 }

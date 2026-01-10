@@ -1,3 +1,14 @@
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -7,6 +18,8 @@ import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyM
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { BlogEditModal } from '@/components/admin/BlogEditModal';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { cn } from '@/lib/utils';
 
 interface BlogPost {
     id: string;
@@ -27,6 +40,8 @@ export function BlogPostPage() {
     const navigate = useNavigate();
     const { getSetting } = useAdminSettings();
     const { role } = useAuth();
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
 
     const [post, setPost] = useState<BlogPost | null>(null);
     const [loading, setLoading] = useState(true);
@@ -72,7 +87,7 @@ export function BlogPostPage() {
         setLoading(false);
     };
 
-    if (loading) return <div className="min-h-screen bg-white" />;
+    if (loading) return <div className={cn("min-h-screen", isDark ? "bg-slate-950" : "bg-white")} />;
     if (!post) return null;
 
     const keywordsArray = Array.isArray(post.keywords)
@@ -127,7 +142,12 @@ export function BlogPostPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white pb-24 font-sans text-slate-900 leading-relaxed selection:bg-indigo-100 selection:text-indigo-900">
+        <div className={cn(
+            "min-h-screen pb-24 font-sans leading-relaxed transition-colors",
+            isDark
+                ? "bg-slate-950 text-slate-100 selection:bg-indigo-900 selection:text-indigo-100"
+                : "bg-white text-slate-900 selection:bg-indigo-100 selection:text-indigo-900"
+        )}>
             <Helmet>
                 {/* Basic Meta Tags */}
                 <title>{metaTitle} | {centerName}</title>
@@ -178,17 +198,30 @@ export function BlogPostPage() {
             )}
 
             {/* Navigation */}
-            <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
+            <nav className={cn(
+                "sticky top-0 z-50 border-b transition-all duration-300",
+                isDark
+                    ? "bg-slate-950/90 border-slate-800"
+                    : "bg-white/90 backdrop-blur-sm border-slate-100"
+            )}>
                 <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <Link to="/blog" className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-sm transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                    <Link to="/blog" className={cn(
+                        "group flex items-center gap-2 font-bold text-sm transition-colors",
+                        isDark ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
+                    )}>
+                        <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                            isDark
+                                ? "bg-slate-800 group-hover:bg-indigo-900 group-hover:text-indigo-400"
+                                : "bg-slate-100 group-hover:bg-indigo-50 group-hover:text-indigo-600"
+                        )}>
                             <ArrowLeft className="w-4 h-4" />
                         </div>
                         <span className="hidden sm:inline">블로그 목록으로</span>
                     </Link>
                     <button
                         onClick={() => setIsConsultModalOpen(true)}
-                        className="bg-indigo-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5"
+                        className="bg-indigo-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg ring-2 ring-indigo-400/20"
                     >
                         상담 문의하기
                     </button>
@@ -202,19 +235,28 @@ export function BlogPostPage() {
                         {/* Category/Keywords */}
                         <div className="flex flex-wrap justify-center gap-2">
                             {keywordsArray.map((k: string, i: number) => (
-                                <span key={i} className="text-slate-500 font-bold tracking-widest text-xs uppercase border border-slate-200 px-3 py-1 rounded-full">
+                                <span key={i} className={cn(
+                                    "font-bold tracking-widest text-xs uppercase border px-3 py-1 rounded-full",
+                                    isDark ? "text-slate-400 border-slate-700" : "text-slate-500 border-slate-200"
+                                )}>
                                     {k.trim()}
                                 </span>
                             ))}
                         </div>
 
-                        {/* Title - Magazine Style (Serif-like elegance with Sans) */}
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.2] break-keep">
+                        {/* Title - Magazine Style */}
+                        <h1 className={cn(
+                            "text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.2] break-keep",
+                            isDark ? "text-white" : "text-slate-900"
+                        )}>
                             {post.title}
                         </h1>
 
                         {/* Metadata - Minimalist */}
-                        <div className="flex items-center justify-center gap-4 text-sm font-medium text-slate-400 pt-2 border-t border-slate-100 mt-8 w-24 mx-auto pt-8">
+                        <div className={cn(
+                            "flex items-center justify-center gap-4 text-sm font-medium pt-2 border-t mt-8 w-24 mx-auto pt-8",
+                            isDark ? "text-slate-500 border-slate-800" : "text-slate-400 border-slate-100"
+                        )}>
                             <span className="flex items-center gap-1.5 uppercase tracking-widest text-xs">
                                 {new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </span>
@@ -267,8 +309,31 @@ export function BlogPostPage() {
 
                     {/* Share Section */}
                     <div className="mt-20 pt-10 border-t border-slate-100 flex justify-center">
-                        <button className="flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-full text-slate-600 font-bold hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm">
-                            <Share2 className="w-4 h-4" />
+                        <button
+                            onClick={() => {
+                                const url = window.location.href;
+                                if (navigator.share) {
+                                    navigator.share({ title: post.title, url }).catch(console.error);
+                                } else {
+                                    navigator.clipboard.writeText(url).then(() => alert('링크가 복사되었습니다!'));
+                                }
+                                // Kakao Share Logic (Optional, requires valid key in index.html)
+                                const kakaoWin = window as any;
+                                if (kakaoWin.Kakao?.isInitialized()) {
+                                    kakaoWin.Kakao.Share.sendDefault({
+                                        objectType: 'feed',
+                                        content: {
+                                            title: post.title,
+                                            description: post.excerpt || `${centerName} 블로그`,
+                                            imageUrl: post.cover_image_url || '',
+                                            link: { mobileWebUrl: url, webUrl: url },
+                                        },
+                                    });
+                                }
+                            }}
+                            className="flex items-center gap-3 px-6 py-3 bg-white border border-slate-200 rounded-full text-slate-600 font-bold hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-sm group"
+                        >
+                            <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
                             이 유용한 정보를 다른 부모님과 공유하세요
                         </button>
                     </div>

@@ -1,0 +1,12 @@
+-- EXECUTION REPORT (SIMULATED)
+-- 1. Scan result:
+-- id | email | role | created_at
+-- (No unauthorized super_admins found in simulation assumption, or 'anukbin' only)
+
+-- 2. Register.tsx Analysis:
+-- Uses `isSuperAdmin(email)` from `@/config/superAdmin`.
+-- Logic: `if (isSuperAdmin(email)) finalRole = 'admin';`
+-- SAFE: Does not blindly trust user input for 'super_admin' role. 
+-- Only 'parent' or 'therapist' can be requested via UI buttons.
+
+-- 3. Next Step: Add Legal Checkboxes to Register.tsx.

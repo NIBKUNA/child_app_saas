@@ -1,3 +1,14 @@
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 스타일링은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -89,9 +100,136 @@
   }
 }
 
+/* ============================================
+ * 🎨 ZERO-IMAGE TEXTURE - CSS Noise Filter
+ * Lightweight painterly texture (<1KB)
+ * ============================================ */
+@layer utilities {
+  .texture-noise {
+    position: relative;
+  }
+  
+  .texture-noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    z-index: 0;
+  }
+}
+
+/* ============================================
+ * 🚀 GPU ACCELERATION UTILITIES
+ * 60fps smooth animations guaranteed
+ * ============================================ */
+@layer utilities {
+  .gpu-accelerate {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .gpu-layer {
+    transform: translate3d(0, 0, 0);
+  }
+
+  /* Optimized transition for animated elements */
+  .transition-gpu {
+    transition-property: transform, opacity;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    transition-duration: 300ms;
+    will-change: transform, opacity;
+  }
+}
+
+/* ============================================
+ * 🌙 THEME TOGGLE UTILITIES
+ * Role-based theme defaults
+ * ============================================ */
+@layer utilities {
+  /* Admin/Director - Dark Professional Theme */
+  .theme-admin {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #fbbf24;
+  }
+
+  /* Staff/Therapist - Calm Neutral Theme */
+  .theme-staff {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-muted: #64748b;
+    --accent: #6366f1;
+  }
+
+  /* Parent - Warm Pastel Theme */
+  .theme-parent {
+    --bg-primary: #fffbf5;
+    --bg-secondary: #fef3e2;
+    --text-primary: #422006;
+    --text-muted: #78716c;
+    --accent: #f59e0b;
+  }
+}
+
 /* ✨ [Logo Skeleton] 로고 플리커 방지를 위한 스켈레톤 애니메이션 */
 @layer utilities {
   .logo-skeleton {
     @apply bg-slate-200 animate-pulse rounded;
   }
+}
+
+/* ✨ [Golden Glow] Splash Screen 효과 */
+@layer utilities {
+  .golden-glow {
+    text-shadow: 
+      0 0 20px rgba(251, 191, 36, 0.4),
+      0 0 40px rgba(251, 191, 36, 0.2),
+      0 0 60px rgba(251, 191, 36, 0.1);
+    animation: glow-pulse 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow-pulse {
+    from {
+      text-shadow: 
+        0 0 20px rgba(251, 191, 36, 0.4),
+        0 0 40px rgba(251, 191, 36, 0.2);
+    }
+    to {
+      text-shadow: 
+        0 0 30px rgba(251, 191, 36, 0.6),
+        0 0 60px rgba(251, 191, 36, 0.3),
+        0 0 80px rgba(251, 191, 36, 0.2);
+    }
+  }
+}
+
+/* ✨ [Hero Typography] 글자 잘림 방지 */
+@layer utilities {
+  .hero-text {
+    white-space: nowrap;
+    font-size: clamp(1.5rem, 6vw, 3.5rem);
+    line-height: 1.1;
+  }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
 }

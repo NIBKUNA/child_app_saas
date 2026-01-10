@@ -1,26 +1,40 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle, Bell, LayoutTemplate, Info, BookOpen, Palette, CheckCircle2, Brain, Loader2, X, Receipt, Search, ChevronLeft, ChevronRight, Pencil, Clock, Share2 } from 'lucide-react';
+import { MessageCircle, Bell, LayoutTemplate, Info, BookOpen, Palette, CheckCircle2, Brain, Loader2, X, Receipt, Search, ChevronLeft, ChevronRight, Pencil, Clock, Share2, UserX } from 'lucide-react';
 import { useAdminSettings, type AdminSettingKey, type ProgramItem } from '@/hooks/useAdminSettings';
 import { ImageUploader } from '@/components/common/ImageUploader';
 import { ProgramListEditor } from '@/components/admin/ProgramListEditor';
 import { DEFAULT_PROGRAMS } from '@/constants/defaultPrograms';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { AccountDeletionModal } from '@/components/AccountDeletionModal';
 
 // --- ❌ 원본 로직 절대 보존 ---
 const AI_GENERATING_KEY = 'ai_blog_generating';
 const AI_GENERATION_START_KEY = 'ai_blog_generation_start';
 
-type TabType = 'home' | 'about' | 'programs' | 'branding' | 'center_info' | 'ai_blog';
-const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'branding', 'center_info', 'ai_blog'];
+type TabType = 'home' | 'about' | 'programs' | 'branding' | 'center_info' | 'ai_blog' | 'account';
+const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'branding', 'center_info', 'ai_blog', 'account'];
 
 export function SettingsPage() {
     const { settings, getSetting, loading: settingsLoading, fetchSettings } = useAdminSettings();
+    const { user } = useAuth();
     const [saving, setSaving] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const [searchParams, setSearchParams] = useSearchParams();
     const tabParam = searchParams.get('tab') as TabType | null;
@@ -87,6 +101,7 @@ export function SettingsPage() {
                 <TabButton active={activeTab === 'branding'} onClick={() => setActiveTab('branding')} icon={<Palette className="w-4 h-4" />} label="로고" />
                 <TabButton active={activeTab === 'center_info'} onClick={() => setActiveTab('center_info')} icon={<Info className="w-4 h-4" />} label="정보/운영" />
                 <TabButton active={activeTab === 'ai_blog'} onClick={() => setActiveTab('ai_blog')} icon={<Brain className="w-4 h-4" />} label="AI블로그" />
+                <TabButton active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserX className="w-4 h-4" />} label="계정" />
             </div>
 
             <div className="space-y-10 pt-4 text-left">
@@ -135,6 +150,18 @@ export function SettingsPage() {
 
                 {activeTab === 'ai_blog' && (
                     <SectionCard title="AI 자동 포스팅 및 생성">
+                        <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                            <h4 className="text-sm font-black text-blue-900 mb-2">🤖 OpenAI API Key 설정 (필수)</h4>
+                            <SaveableInput
+                                label="OpenAI API Key (sk-...)"
+                                placeholder="sk-..."
+                                initialValue={getSetting('openai_api_key')}
+                                onSave={(v) => handleSave('openai_api_key', v)}
+                                saving={saving}
+                            />
+                            <p className="text-[10px] text-blue-600 mt-2 font-bold ml-1">* 키가 저장되어야 자동 글쓰기가 작동합니다.</p>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2 text-left">
                                 <label className="text-xs font-black text-slate-400 ml-1 text-left">요일 선택</label>
@@ -150,6 +177,47 @@ export function SettingsPage() {
                         </div>
                         <AIBlogGenerateButton />
                     </SectionCard>
+                )}
+
+                {/* ✨ 계정 관리 탭 */}
+                {activeTab === 'account' && (
+                    <>
+                        <SectionCard title="계정 정보" icon={<UserX className="text-rose-500" />}>
+                            <div className="space-y-4">
+                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">로그인 이메일</p>
+                                    <p className="font-bold text-slate-900">{user?.email}</p>
+                                </div>
+                            </div>
+                        </SectionCard>
+
+                        <SectionCard title="회원 탈퇴" icon={<UserX className="text-rose-500" />}>
+                            <div className="space-y-4">
+                                <div className="bg-rose-50 p-6 rounded-2xl border border-rose-100">
+                                    <p className="text-sm font-bold text-rose-700 mb-2">⚠️ 주의: 회원 탈퇴 시 모든 데이터가 삭제됩니다.</p>
+                                    <ul className="text-xs text-rose-600 space-y-1 list-disc list-inside">
+                                        <li>개인정보 및 계정 정보가 삭제됩니다.</li>
+                                        <li>연결된 자녀 정보와의 연결이 해제됩니다.</li>
+                                        <li>이 작업은 되돌릴 수 없습니다.</li>
+                                    </ul>
+                                </div>
+                                <button
+                                    onClick={() => setShowDeleteModal(true)}
+                                    className="w-full py-4 bg-rose-600 text-white rounded-2xl font-black hover:bg-rose-700 transition-colors"
+                                >
+                                    회원 탈퇴 신청
+                                </button>
+                            </div>
+                        </SectionCard>
+
+                        {/* 회원 탈퇴 모달 */}
+                        <AccountDeletionModal
+                            isOpen={showDeleteModal}
+                            onClose={() => setShowDeleteModal(false)}
+                            userId={user?.id || ''}
+                            userEmail={user?.email || ''}
+                        />
+                    </>
                 )}
             </div>
         </div>
@@ -223,6 +291,7 @@ function CenterInfoSection() {
 
 // --- ❌ 원본 AI 블로그 버튼 및 공통 컴포넌트 로직 (수정 금지) ---
 function AIBlogGenerateButton() {
+    const { getSetting } = useAdminSettings(); // Retrieve settings
     const [generating, setGenerating] = useState(() => {
         const isGen = localStorage.getItem(AI_GENERATING_KEY) === 'true';
         const startTime = localStorage.getItem(AI_GENERATION_START_KEY);
@@ -261,13 +330,25 @@ function AIBlogGenerateButton() {
 
     const handleGenerate = async () => {
         if (generating) return;
+
+        // Validation: Check for API Key
+        const apiKey = getSetting('openai_api_key');
+        if (!apiKey) {
+            alert('❌ OpenAI API 키가 설정되지 않았습니다. 설정 위 "API Key 설정"에 키를 입력해주세요.');
+            return;
+        }
+
         setGenerating(true);
         localStorage.setItem(AI_GENERATING_KEY, 'true');
         localStorage.setItem(AI_GENERATION_START_KEY, String(Date.now()));
         setResult(null);
 
         try {
-            const { data, error } = await supabase.functions.invoke('generate-blog-post', { body: {} });
+            const topic = getSetting('ai_next_topic') || '아동 발달 센터';
+            // Pass topic and apiKey explicitly (security: edge function should ideally read from DB, but passing ensures context)
+            const { data, error } = await supabase.functions.invoke('generate-blog-post', {
+                body: { topic, openai_api_key: apiKey }
+            });
             if (data && !data.error) {
                 finishLoading(`✅ 발행 요청이 성공했습니다. 잠시 후 글이 등록됩니다.`);
             } else if (error || data?.error) {

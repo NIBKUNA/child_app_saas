@@ -1,5 +1,15 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
@@ -10,8 +20,12 @@ import interactionPlugin from '@fullcalendar/interaction';
 import koLocale from '@fullcalendar/core/locales/ko';
 import { Plus, Loader2, Calendar, Clock, User, FileText } from 'lucide-react';
 import { ScheduleModal } from '@/components/app/schedule/ScheduleModal';
+import { useTheme } from '@/contexts/ThemeProvider';
+import { cn } from '@/lib/utils';
 
 export function Schedule() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -142,32 +156,46 @@ export function Schedule() {
         }
     };
 
-    if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin w-8 h-8 text-blue-500" /></div>;
+    if (loading) return <div className={cn("flex justify-center items-center h-screen", isDark && "bg-slate-950")}><Loader2 className="animate-spin w-8 h-8 text-blue-500" /></div>;
 
     return (
         <>
             <Helmet><title>치료 일정 - 자라다 Admin</title></Helmet>
             <style>{`
+                /* Dark Mode Calendar Styles */
+                ${isDark ? `
+                .fc { --fc-border-color: #334155; --fc-page-bg-color: #0f172a; }
+                .fc-theme-standard td, .fc-theme-standard th { border-color: #334155; }
+                .fc-scrollgrid { border-color: #334155; }
+                .fc-col-header-cell-cushion, .fc-daygrid-day-number { color: #e2e8f0 !important; }
+                .fc-day-today { background-color: #1e293b !important; }
+                .fc-event { color: #ffffff !important; }
+                .fc-event-title { color: #ffffff !important; font-weight: 700; }
+                .fc-daygrid-event-dot { border-color: currentColor; }
+                .fc-button { background-color: #1e293b !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+                .fc-button-active { background-color: #334155 !important; }
+                .fc-toolbar-title { color: #f1f5f9 !important; }
+                ` : `
                 .fc-timegrid-slot:hover { background-color: #f1f5f9 !important; cursor: pointer; transition: background-color 0.1s; }
                 .fc-daygrid-day:hover { background-color: #f8fafc !important; cursor: pointer; }
+                `}
                 .fc-timegrid-now-indicator-line { border-color: #ef4444; border-width: 2px; }
                 .fc-timegrid-now-indicator-arrow { border-color: #ef4444; border-width: 6px; }
-                /* 취소선 스타일 강제 적용 */
                 .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
             `}</style>
 
-            <div className="space-y-6 h-full flex flex-col pb-6 relative">
+            <div className={cn("space-y-6 h-full flex flex-col pb-6 relative", isDark && "bg-slate-950")}>
                 <div className="flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">치료 일정 관리</h1>
-                        <p className="text-slate-500 font-medium">선생님별 색상으로 일정을 확인하세요.</p>
+                        <h1 className={cn("text-3xl font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>치료 일정 관리</h1>
+                        <p className={cn("font-medium", isDark ? "text-slate-400" : "text-slate-500")}>선생님별 색상으로 일정을 확인하세요.</p>
                     </div>
-                    <button onClick={handleNewEventClick} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-all active:scale-95 shadow-sm">
+                    <button onClick={handleNewEventClick} className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm", isDark ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-900 text-white hover:bg-slate-800")}>
                         <Plus className="w-5 h-5 stroke-[2.5]" /> 새 일정 등록
                     </button>
                 </div>
 
-                <div className="flex-1 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative z-0 overflow-hidden">
+                <div className={cn("flex-1 p-6 rounded-3xl shadow-sm border relative z-0 overflow-hidden", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100")}>
                     <FullCalendar
                         ref={calendarRef}
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

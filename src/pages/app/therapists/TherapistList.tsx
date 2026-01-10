@@ -1,12 +1,23 @@
 // @ts-nocheck
 /* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
     Plus, Search, Phone, Mail, Edit2, Trash2, X, Check,
-    Shield, Stethoscope, UserCog, UserCheck, AlertCircle, UserMinus
+    Shield, Stethoscope, UserCog, UserCheck, AlertCircle, UserMinus, Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { isSuperAdmin, SUPER_ADMIN_EMAIL } from '@/config/superAdmin';
 
 const COLORS = [
     '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
@@ -58,12 +69,24 @@ export function TherapistList() {
     const handleApprove = async (staff) => {
         if (!confirm(`${staff.name}님을 치료사로 승인하시겠습니까?`)) return;
         try {
-            await supabase.from('user_profiles').update({ role: 'therapist' }).eq('id', staff.id);
+            await supabase.from('user_profiles').update({ role: 'therapist', status: 'active' }).eq('id', staff.id);
             await supabase.from('therapists').update({ color: '#3b82f6' }).eq('id', staff.id);
             alert('승인이 완료되었습니다!');
             fetchStaffs();
         } catch (error) {
             alert('승인 오류: ' + error.message);
+        }
+    };
+
+    // ✨ [거절 처리] 가입 신청 거절
+    const handleReject = async (staff) => {
+        if (!confirm(`⚠️ ${staff.name}님의 가입 신청을 거절하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+        try {
+            await supabase.from('user_profiles').update({ status: 'rejected' }).eq('id', staff.id);
+            alert('거절 처리가 완료되었습니다.');
+            fetchStaffs();
+        } catch (error) {
+            alert('거절 처리 오류: ' + error.message);
         }
     };
 
@@ -96,6 +119,11 @@ export function TherapistList() {
     };
 
     const handleEdit = (staff) => {
+        // ✨ [Super Admin 보호] 수정 불가
+        if (isSuperAdmin(staff.email)) {
+            alert('⚠️ 최상위 관리자 계정은 수정할 수 없습니다.');
+            return;
+        }
         setEditingId(staff.id);
         setFormData({
             name: staff.name,
@@ -109,7 +137,12 @@ export function TherapistList() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id, email) => {
+        // ✨ [Super Admin 보호] 삭제 불가
+        if (isSuperAdmin(email)) {
+            alert('⚠️ 최상위 관리자 계정은 삭제할 수 없습니다.');
+            return;
+        }
         if (!confirm('직원 목록에서 완전히 삭제하시겠습니까?')) return;
         await supabase.from('therapists').delete().eq('id', id);
         fetchStaffs();
@@ -148,7 +181,20 @@ export function TherapistList() {
                                     <p className="font-black text-slate-900 text-sm">{staff.name}</p>
                                     <p className="text-[10px] text-slate-400 font-bold">{staff.email}</p>
                                 </div>
-                                <button onClick={() => handleApprove(staff)} className="bg-amber-500 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black transition-all">승인하기</button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleReject(staff)}
+                                        className="border-2 border-red-200 hover:bg-red-50 text-red-500 hover:text-red-600 px-4 py-2 rounded-xl text-xs font-black transition-all"
+                                    >
+                                        거절
+                                    </button>
+                                    <button
+                                        onClick={() => handleApprove(staff)}
+                                        className="bg-amber-500 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black transition-all"
+                                    >
+                                        승인하기
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -187,10 +233,18 @@ export function TherapistList() {
                                     <p className="text-xs text-slate-400 font-bold mt-1">{staff.system_role === 'retired' ? '접속 권한 없음' : staff.remarks}</p>
                                 </div>
                             </div>
-                            <div className="flex gap-1">
-                                <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                <button onClick={() => handleDelete(staff.id)} className="p-2.5 bg-slate-50 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                            </div>
+                            {/* ✨ [Super Admin 보호] 수정/삭제 버튼 */}
+                            {isSuperAdmin(staff.email) ? (
+                                <div className="flex items-center gap-1 px-3 py-2 bg-amber-50 rounded-xl">
+                                    <Lock className="w-4 h-4 text-amber-500" />
+                                    <span className="text-[10px] font-black text-amber-600">보호됨</span>
+                                </div>
+                            ) : (
+                                <div className="flex gap-1">
+                                    <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                    <button onClick={() => handleDelete(staff.id, staff.email)} className="p-2.5 bg-slate-50 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                            )}
                         </div>
                         <div className="grid grid-cols-2 gap-2 pt-5 border-t border-slate-50">
                             <div className="flex items-center gap-2 text-[11px] font-black text-slate-500 truncate"><Phone className="w-3.5 h-3.5 text-slate-300" /> {staff.contact || '미등록'}</div>

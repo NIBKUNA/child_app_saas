@@ -1,9 +1,19 @@
 // @ts-nocheck
 /* eslint-disable */
 /**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+ * 예술적 영감을 바탕으로 구축되었습니다.
+ */
+/**
  * ============================================
- * 🎨 ZARADA MASTER TEMPLATE - SplashScreen
- * Premium "Mysterious Blur Fade-in" Effect
+ * 🎨 ZARADA - Simple Clean SplashScreen
+ * Minimal design with centered logo and center name
  * ============================================
  */
 import { useState, useEffect } from 'react';
@@ -44,8 +54,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
 
         fetchBranding();
 
-        const exitTimer = setTimeout(() => setIsExiting(true), 2000);
-        const completeTimer = setTimeout(() => onComplete(), 2600);
+        const exitTimer = setTimeout(() => setIsExiting(true), 1800);
+        const completeTimer = setTimeout(() => onComplete(), 2200);
 
         return () => {
             clearTimeout(exitTimer);
@@ -53,82 +63,41 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         };
     }, [onComplete]);
 
-    // Letter animation for "Zarada"
-    const zaradaLetters = "Zarada".split("");
-
     return (
         <AnimatePresence>
             {!isExiting && (
                 <motion.div
-                    className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
-                    style={{
-                        background: 'linear-gradient(135deg, #fafafa 0%, #f1f5f9 50%, #e0e7ff 100%)'
-                    }}
+                    className="fixed inset-0 z-[9999] flex flex-col items-center justify-center min-h-screen bg-white"
                     initial={{ opacity: 1 }}
-                    exit={{ opacity: 0, filter: 'blur(20px)' }}
-                    transition={{ duration: 0.5, ease: 'easeInOut' }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
                 >
-                    {/* Floating Gradient Orb */}
+                    {/* Main Content - Centered */}
                     <motion.div
-                        className="absolute w-[500px] h-[500px] rounded-full opacity-30"
-                        style={{
-                            background: 'radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)'
-                        }}
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1.5, opacity: 0.3 }}
-                        transition={{ duration: 2.5, ease: 'easeOut' }}
-                    />
-
-                    {/* Main Content - Mysterious Blur Fade-in */}
-                    <motion.div
-                        className="relative z-10 flex flex-col items-center"
-                        initial={{ opacity: 0, filter: 'blur(30px)', y: 20 }}
-                        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                        transition={{
-                            duration: 1.2,
-                            delay: 0.2,
-                            ease: [0.16, 1, 0.3, 1]
-                        }}
+                        className="flex flex-col items-center"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
                     >
-                        {/* Zarada Typography */}
-                        <div className="flex items-center">
-                            {zaradaLetters.map((letter, i) => (
-                                <motion.span
-                                    key={i}
-                                    className="font-black tracking-tighter"
-                                    style={{
-                                        fontSize: 'clamp(3.5rem, 12vw, 5rem)',
-                                        color: i === 0 ? 'var(--theme-primary, #4F46E5)' : '#0F172A',
-                                        fontFamily: 'system-ui, -apple-system, sans-serif'
-                                    }}
-                                    initial={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
-                                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                                    transition={{
-                                        duration: 0.6,
-                                        delay: 0.4 + i * 0.06,
-                                        ease: [0.16, 1, 0.3, 1]
-                                    }}
-                                >
-                                    {letter}
-                                </motion.span>
-                            ))}
-                        </div>
+                        {/* Logo Text */}
+                        <h1 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900">
+                            <span className="text-indigo-600">Z</span>arada
+                        </h1>
 
-                        {/* Subtle Line */}
+                        {/* Simple Divider */}
                         <motion.div
-                            className="w-16 h-[2px] mt-6 rounded-full"
-                            style={{ background: 'linear-gradient(90deg, transparent, #4F46E5, transparent)' }}
-                            initial={{ scaleX: 0, opacity: 0 }}
-                            animate={{ scaleX: 1, opacity: 1 }}
-                            transition={{ duration: 0.8, delay: 1 }}
+                            className="w-12 h-0.5 bg-slate-200 mt-4 rounded-full"
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
                         />
 
-                        {/* Center Name */}
+                        {/* Center Name - Clean Style */}
                         <motion.p
-                            className="mt-6 text-lg font-semibold text-slate-500 tracking-wide"
-                            initial={{ opacity: 0, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, filter: 'blur(0px)' }}
-                            transition={{ duration: 0.6, delay: 1.2 }}
+                            className="mt-4 text-lg font-medium text-slate-500 tracking-wide"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.5 }}
                         >
                             {centerName || '아동발달센터'}
                         </motion.p>
