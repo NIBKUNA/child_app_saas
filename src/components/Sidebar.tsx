@@ -360,7 +360,10 @@ export function Sidebar() {
 
                         {/* Menu Groups */}
                         {MENU_GROUPS.map((group) => {
-                            const visibleItems = group.items.filter(item => role && item.roles.includes(role));
+                            // ✨ [Super Admin] isSuperAdmin이면 모든 메뉴 표시, 아니면 role 기반 필터링
+                            const visibleItems = isSuperAdmin
+                                ? group.items
+                                : group.items.filter(item => role && item.roles.includes(role));
                             if (visibleItems.length === 0) return null;
                             const isGroupOpen = openGroups.includes(group.name);
 
