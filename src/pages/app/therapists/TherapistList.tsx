@@ -229,18 +229,21 @@ export function TherapistList() {
                                     <p className="text-xs text-slate-400 font-bold mt-1">{staff.system_role === 'retired' ? '접속 권한 없음' : staff.remarks}</p>
                                 </div>
                             </div>
-                            {/* ✨ [Super Admin 보호] 수정/삭제 버튼 */}
-                            {isSuperAdmin(staff.email) ? (
-                                <div className="flex items-center gap-1 px-3 py-2 bg-amber-50 rounded-xl">
-                                    <Lock className="w-4 h-4 text-amber-500" />
-                                    <span className="text-[10px] font-black text-amber-600">보호됨</span>
-                                </div>
-                            ) : (
-                                <div className="flex gap-1">
-                                    <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                                    <button onClick={() => handleDelete(staff.id, staff.email)} className="p-2.5 bg-slate-50 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            )}
+                            {/* ✨ [Super Admin 보호] 수정은 허용, 삭제만 불가 */}
+                            <div className="flex gap-1">
+                                <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors" title="정보 수정">
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                {isSuperAdmin(staff.email) ? (
+                                    <div className="flex items-center justify-center w-10 h-10 bg-amber-50 rounded-xl" title="삭제 불가 (최상위 관리자)">
+                                        <Lock className="w-4 h-4 text-amber-500" />
+                                    </div>
+                                ) : (
+                                    <button onClick={() => handleDelete(staff.id, staff.email)} className="p-2.5 bg-slate-50 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-500 transition-colors" title="삭제">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 pt-5 border-t border-slate-50">
                             <div className="flex items-center gap-2 text-[11px] font-black text-slate-500 truncate"><Phone className="w-3.5 h-3.5 text-slate-300" /> {staff.contact || '미등록'}</div>
