@@ -49,19 +49,12 @@ export function BlogPostPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [centerInfo, setCenterInfo] = useState<any>(null);
 
-    useEffect(() => {
-        if (slug) {
-            fetchPost();
-        }
-        fetchCenterInfo();
-    }, [slug]);
-
     const fetchCenterInfo = async () => {
         const { data } = await (supabase as any)
             .from('centers')
             .select('name, address, phone, naver_map_url')
             .limit(1)
-            .single();
+            .maybeSingle();
         if (data) setCenterInfo(data);
     };
 
@@ -72,20 +65,30 @@ export function BlogPostPage() {
             .select('*')
             .eq('slug', slug)
             .eq('is_published', true)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error fetching post:', error);
             if (error.code === 'PGRST116') {
                 navigate('/blog', { replace: true });
             }
-        } else {
+        } else if (data) {
             setPost(data);
             // Increment view count in background
             await (supabase as any).from('blog_posts').update({ view_count: (data.view_count || 0) + 1 }).eq('id', data.id);
+        } else {
+            // No data found, redirect to blog list
+            navigate('/blog', { replace: true });
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        if (slug) {
+            fetchPost();
+        }
+        fetchCenterInfo();
+    }, [slug]);
 
     if (loading) return <div className={cn("min-h-screen", isDark ? "bg-slate-950" : "bg-white")} />;
     if (!post) return null;

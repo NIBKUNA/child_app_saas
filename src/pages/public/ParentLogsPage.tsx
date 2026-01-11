@@ -39,7 +39,7 @@ export function ParentLogsPage() {
                 .from('user_profiles')
                 .select('child_id, role')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
 
             let targetChildId = profile?.child_id;
 

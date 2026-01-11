@@ -233,7 +233,7 @@ function CenterInfoSection() {
     const fetchCenter = async () => {
         setLoading(true);
         try {
-            const { data } = await supabase.from('centers').select('*').limit(1).single();
+            const { data } = await supabase.from('centers').select('*').limit(1).maybeSingle();
             if (data) setInfo(data);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }

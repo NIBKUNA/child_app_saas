@@ -89,11 +89,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         return getDefaultTheme(role);
     });
 
-    // Check if current user is Super Admin
+    // Check if current user is Super Admin (DB Role-Based - not email-based)
     const isSuperAdmin = useMemo(() => {
-        if (!user?.email) return false;
-        return SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase());
-    }, [user?.email]);
+        return role === 'super_admin';
+    }, [role]);
 
     // Permission flags based on role
     const canExportData = isSuperAdmin; // Only Super Admin can export

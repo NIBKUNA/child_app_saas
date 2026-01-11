@@ -95,4 +95,13 @@ export function useTrafficSource() {
             recordVisit();
         }
     }, [searchParams]);
+
+    // ✨ [For Form Submission] Get the stored source data
+    const getSource = () => {
+        return sessionStorage.getItem('marketing_source') ||
+            localStorage.getItem('utm_source') ||
+            'direct';
+    };
+
+    return { getSource };
 }

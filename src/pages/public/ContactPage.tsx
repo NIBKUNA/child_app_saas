@@ -50,7 +50,7 @@ export function ContactPage() {
 
     useEffect(() => {
         const fetchCenter = async () => {
-            const { data } = await supabase.from('centers').select('*').limit(1).single();
+            const { data } = await supabase.from('centers').select('*').limit(1).maybeSingle();
             if (data) setCenterInfo(data);
         };
         fetchCenter();

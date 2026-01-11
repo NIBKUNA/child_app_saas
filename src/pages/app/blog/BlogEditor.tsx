@@ -64,7 +64,7 @@ export default function BlogEditor() {
             .from('blog_posts')
             .select('*')
             .eq('id', postId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error fetching post:', error);

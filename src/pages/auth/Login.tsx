@@ -80,7 +80,7 @@ export function Login() {
                     .from('user_profiles')
                     .select('role')
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (profileError) {
                     console.error('프로필 정보를 가져올 수 없습니다:', profileError);

@@ -45,7 +45,7 @@ export function InvitationCodeModal({ isOpen, onClose, onSuccess, parentId }: In
                 .from('children')
                 .select('id, name, center_id')
                 .eq('invitation_code', code.toUpperCase().trim())
-                .single();
+                .maybeSingle();
 
             if (childError || !child) {
                 throw new Error('유효하지 않은 초대 코드입니다.');
@@ -57,7 +57,7 @@ export function InvitationCodeModal({ isOpen, onClose, onSuccess, parentId }: In
                 .select('id')
                 .eq('parent_id', parentId)
                 .eq('child_id', child.id)
-                .single();
+                .maybeSingle();
 
             if (existing) {
                 throw new Error('이미 연결된 자녀입니다.');

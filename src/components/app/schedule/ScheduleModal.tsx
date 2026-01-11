@@ -141,7 +141,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         e.preventDefault();
         setLoading(true);
         try {
-            const { data: center } = await supabase.from('centers').select('id').limit(1).single();
+            const { data: center } = await supabase.from('centers').select('id').limit(1).maybeSingle();
             const basePayload = {
                 center_id: center?.id,
                 child_id: formData.child_id,

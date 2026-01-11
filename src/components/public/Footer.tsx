@@ -133,8 +133,8 @@ export function Footer() {
                             </span>
                         </Link>
                         <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
-                            아이들의 건강한 성장과 행복한 미래를 위해<br />
-                            전문적인 발달 지원을 제공합니다.
+                            아이들의 <span className="text-slate-700 font-medium">무한한 가능성</span>을 <span className="text-slate-700 font-medium">데이터</span>로 증명하는<br />
+                            아동 발달 솔루션 플랫폼, <span className="text-indigo-600 font-semibold">자라다(Zarada)</span>입니다.
                         </p>
 
                         {/* SNS Icons */}

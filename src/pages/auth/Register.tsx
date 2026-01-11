@@ -61,7 +61,7 @@ export function Register() {
                     .from('user_profiles')
                     .select('role, center_id, status')
                     .eq('id', session.user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (existingProfile?.center_id) {
                     // ✨ [재접속 사용자] 온보딩 스킵 → 바로 대시보드로

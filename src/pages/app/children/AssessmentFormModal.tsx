@@ -102,7 +102,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                 .from('development_assessments')
                 .select('*')
                 .eq('id', assessmentId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             if (data) {

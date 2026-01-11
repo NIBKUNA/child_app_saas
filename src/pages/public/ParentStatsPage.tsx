@@ -63,7 +63,7 @@ export function ParentStatsPage() {
                 .from('user_profiles')
                 .select('role, child_id')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
 
             setRole(profile?.role || 'parent');
 

@@ -93,7 +93,7 @@ export function ParentHomePage() {
                         .from('children')
                         .select('*')
                         .eq('id', relationship.child_id)
-                        .single();
+                        .maybeSingle();
                     child = relatedChild;
                 }
             }

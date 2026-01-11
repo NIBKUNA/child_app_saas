@@ -22,25 +22,6 @@ export default function BlogList() {
     const navigate = useNavigate();
 
     // ✨ 데이터 로딩 로직을 별도 함수로 분리하여 재사용성 강화
-    const fetchPosts = useCallback(async () => {
-        setLoading(true);
-        try {
-            // 어떤 필터링도 없이 posts 테이블의 모든 데이터를 가져옵니다.
-            const { data, error } = await supabase
-                .from('blog_posts')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            console.log("Fetched posts:", data); // 데이터 확인용 로그
-            setPosts(data || []);
-        } catch (error) {
-            console.error('Error loading posts:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
         fetchPosts();
     }, [fetchPosts]);

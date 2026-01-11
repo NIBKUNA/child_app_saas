@@ -37,12 +37,6 @@ export default function SessionNote() {
     // ✨ [NEW] Assessment Modal State
     const [showAssessment, setShowAssessment] = useState(false);
 
-    useEffect(() => {
-        if (scheduleId) {
-            fetchSessionData(scheduleId);
-        }
-    }, [scheduleId]);
-
     const fetchSessionData = async (id: string) => {
         setLoading(true);
         // 1. Fetch Schedule Info
@@ -54,7 +48,7 @@ export default function SessionNote() {
                 therapists ( name )
             `)
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (startError || !schedule) {
             alert('일정을 찾을 수 없습니다.');
@@ -71,7 +65,7 @@ export default function SessionNote() {
             .from('counseling_logs') as any)
             .select('*')
             .eq('schedule_id', id)
-            .single();
+            .maybeSingle();
 
         if (note) {
             setNoteId(note.id);
@@ -84,6 +78,12 @@ export default function SessionNote() {
 
         setLoading(false);
     };
+
+    useEffect(() => {
+        if (scheduleId) {
+            fetchSessionData(scheduleId);
+        }
+    }, [scheduleId]);
 
     const handleSave = async () => {
         if (!sessionInfo) return;

@@ -169,7 +169,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }) {
             const payAmount = Number(inputs.card) + Number(inputs.cash);
             const { data: pay } = await supabase.from('payments').insert([{
                 child_id: childData.id, amount: payAmount, method: inputs.card > 0 ? '카드' : '계좌이체', credit_used: inputs.creditUsed, memo: inputs.memo, payment_month: month
-            }]).select().single();
+            }]).select().maybeSingle();
 
             const items = selectedSessions.map(sid => ({ payment_id: pay.id, schedule_id: sid, amount: localSessions.find(s => s.id === sid).price }));
             await supabase.from('payment_items').insert(items);
