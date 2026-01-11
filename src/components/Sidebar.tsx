@@ -339,9 +339,12 @@ export function Sidebar() {
                             </h1>
                             <ThemeToggle />
                         </div>
-                        <div className="mt-2 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border inline-block text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700">
-                            {role}
-                        </div>
+                        {/* ✨ [Super Admin] 일반 등급 배지 대신 전용 UI */}
+                        {!isSuperAdmin && (
+                            <div className="mt-2 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border inline-block text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700">
+                                {role}
+                            </div>
+                        )}
                     </div>
 
                     {/* Navigation */}
