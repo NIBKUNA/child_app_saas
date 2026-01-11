@@ -89,6 +89,7 @@ export function Login() {
                 }
 
                 switch (profile.role) {
+                    case 'super_admin':
                     case 'admin':
                         navigate('/app/dashboard');
                         break;

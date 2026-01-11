@@ -39,10 +39,12 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // 3. 권한 없음 처리 (임시 주석 처리: 무한 리다이렉트 방지)
-    // if (role && !allowedRoles.includes(role)) {
-    //     return <Navigate to="/" replace />;
-    // }
+    // 3. ✨ [마스터 키] anukbin@gmail.com 또는 super_admin은 모든 권한 통과
+    const isMasterUser = user.email === 'anukbin@gmail.com' || role === 'super_admin';
+
+    if (!isMasterUser && role && !allowedRoles.includes(role)) {
+        return <Navigate to="/" replace />;
+    }
 
     // 4. ✨ [핵심 수정] 
     // 내용물(children)이 있으면 그걸 보여주고, 
