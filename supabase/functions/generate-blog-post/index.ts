@@ -264,38 +264,49 @@ ${recentTitlesStr}
 
 JSON 형식으로 출력하세요.`;
 
-        // 4. Call Google Gemini API (via SDK)
+        // 4. Call Google Gemini API (via Direct HTTP)
         const GEMINI_API_KEY = Deno.env.get('GOOGLE_AI_KEY');
         if (!GEMINI_API_KEY) {
             console.error("Missing GOOGLE_AI_KEY");
             throw new Error('Missing GOOGLE_AI_KEY environment variable');
         }
 
-        console.log("Initializing Gemini SDK with API key starting with:", GEMINI_API_KEY.substring(0, 10) + "...");
+        console.log("Initializing Gemini API with API key starting with:", GEMINI_API_KEY.substring(0, 10) + "...");
 
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        // ✨ Using direct HTTP fetch to v1 API (more stable than SDK v1beta)
+        const GEMINI_MODEL = "gemini-1.5-flash-latest";
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
-        // ✨ Using gemini-pro for stable production use (v1beta compatible)
-        const model = genAI.getGenerativeModel({
-            model: "gemini-pro",
-            generationConfig: {
-                responseMimeType: "application/json"
-            }
-        });
+        console.log("Generating Content with", GEMINI_MODEL, "via HTTP...");
 
-        console.log("Generating Content with gemini-pro...");
-
-        let result;
         let generatedText: string;
         try {
-            result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
-            const response = result.response;
-            generatedText = response.text();
+            const geminiResponse = await fetch(GEMINI_API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: systemPrompt + "\n\n" + userPrompt }]
+                    }],
+                    generation_config: {
+                        response_mime_type: "application/json"
+                    }
+                })
+            });
+
+            if (!geminiResponse.ok) {
+                const errorBody = await geminiResponse.text();
+                console.error("Gemini API HTTP Error:", geminiResponse.status, errorBody);
+                throw new Error(`Gemini API returned ${geminiResponse.status}: ${errorBody}`);
+            }
+
+            const geminiData = await geminiResponse.json();
+            generatedText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            console.log("Gemini Response Length:", generatedText.length);
         } catch (geminiError: any) {
             console.error("Gemini API Error:", geminiError);
             console.error("Error Name:", geminiError?.name);
             console.error("Error Message:", geminiError?.message);
-            console.error("Error Status:", geminiError?.status);
             throw new Error(`Gemini API failed: ${geminiError?.message || 'Unknown error'}`);
         }
 
