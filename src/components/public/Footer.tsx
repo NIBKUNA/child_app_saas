@@ -89,7 +89,7 @@ export function Footer() {
         const fetchData = async () => {
             try {
                 // Fetch center info
-                const { data: center } = await supabase.from('centers').select('*').limit(1).single();
+                const { data: center } = await supabase.from('centers').select('*').limit(1).maybeSingle();
                 if (center) setCenterInfo(center);
 
                 // Fetch SNS links from admin_settings

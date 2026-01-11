@@ -43,7 +43,7 @@ document.title = cachedName || envName || defaultName;
       .from('admin_settings')
       .select('value')
       .eq('key', 'center_name')
-      .single();
+      .maybeSingle();
 
     if (data?.value) {
       document.title = data.value;

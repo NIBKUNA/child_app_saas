@@ -74,7 +74,7 @@ export function Header() {
                 }
 
                 if (!finalName) {
-                    const { data: centerData } = await supabase.from('centers').select('name').limit(1).single();
+                    const { data: centerData } = await supabase.from('centers').select('name').limit(1).maybeSingle();
                     if (centerData?.name) finalName = centerData.name;
                 }
 

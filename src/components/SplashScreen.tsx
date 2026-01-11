@@ -42,7 +42,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                         .from('centers')
                         .select('name')
                         .limit(1)
-                        .single();
+                        .maybeSingle();
                     if (center?.name) setCenterName(center.name);
                 } else {
                     setCenterName(name);
