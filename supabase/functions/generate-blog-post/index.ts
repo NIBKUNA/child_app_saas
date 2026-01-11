@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 // Declare Deno for TypeScript environment
@@ -38,9 +39,7 @@ serve(async (req: Request) => {
       - HTML 태그 없이 순수 텍스트로 작성하세요.
     `;
 
-        // 🚀 [Smart Retry Logic]
-        // 1. 기본 모델 시도
-        // 2. 404/400 발생 시 -> 모델 리스트 조회 -> 사용 가능한 모델로 재시도
+        // 🚀 [Smart Retry Logic & Quota Management]
         let generatedText = "";
         let usedModel = "";
 
@@ -70,13 +69,22 @@ serve(async (req: Request) => {
         };
 
         try {
-            // --- 1차 시도: gemini-1.5-flash (Standard) ---
+            // --- 1차 시도: gemini-1.5-flash (Standard & Fast) ---
             try {
                 const data = await attemptGeneration("gemini-1.5-flash");
                 generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 usedModel = "gemini-1.5-flash";
             } catch (firstError: any) {
                 console.warn(`[Fail] First attempt failed (${firstError.status}). Checking alternatives...`);
+
+                // 429 (Too Many Requests) -> 바로 에러 메시지 반환 (무작정 재시도하면 계정 정지 위험)
+                if (firstError.status === 429) {
+                    throw {
+                        status: 429,
+                        message: "현재 AI 서비스 이용량이 많아 잠시 후 다시 시도해주세요. (Quota Exceeded)",
+                        originalError: firstError
+                    };
+                }
 
                 // 404 (Not Found) or 400 (Bad Request) -> Auto Discovery
                 if (firstError.status === 404 || firstError.status === 400) {
@@ -100,18 +108,33 @@ serve(async (req: Request) => {
 
                     console.log("[Discovery] Candidates:", candidates.map((m: any) => m.name));
 
-                    // 최적 모델 선정 (flash -> pro -> anything)
-                    let fallbackModel = candidates.find((m: any) => m.name.includes("gemini-1.5-flash")) ||
-                        candidates.find((m: any) => m.name.includes("gemini-1.5-pro")) ||
+                    // 최적 모델 선정 (무조건 Flash 계열 우선 -> 그 다음 Pro)
+                    // gemini-2.0-flash, gemini-1.5-flash 등 Flash 모델을 최우선으로 찾음 (토큰 제한이 더 널널함)
+                    let fallbackModel = candidates.find((m: any) => m.name.includes("gemini-2.0-flash")) ||
+                        candidates.find((m: any) => m.name.includes("gemini-1.5-flash")) ||
+                        candidates.find((m: any) => m.name.includes("flash")) ||
+                        // Flash가 없으면 Pro 중에서도 가벼운 것부터 시도
+                        candidates.find((m: any) => m.name.includes("gemini-1.0-pro")) ||
                         candidates.find((m: any) => m.name.includes("gemini-pro")) ||
                         candidates[0];
 
                     console.log(`[Retry] Retrying with discovered model: ${fallbackModel.name}`);
 
                     // --- 2차 시도: Discovered Model ---
-                    const data = await attemptGeneration(fallbackModel.name);
-                    generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    usedModel = fallbackModel.name;
+                    try {
+                        const data = await attemptGeneration(fallbackModel.name);
+                        generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        usedModel = fallbackModel.name;
+                    } catch (retryError: any) {
+                        if (retryError.status === 429) {
+                            throw {
+                                status: 429,
+                                message: "대체 모델도 현재 이용량이 많습니다. 30초 후 다시 시도해주세요.",
+                                originalError: retryError
+                            };
+                        }
+                        throw retryError;
+                    }
 
                 } else {
                     throw firstError; // 500 등 다른 에러는 재시도 안함
@@ -120,15 +143,25 @@ serve(async (req: Request) => {
 
         } catch (finalError: any) {
             console.error('[Error] All attempts failed:', finalError);
-            const errorMessage = finalError.data?.error?.message || finalError.message || "Unknown GenAI Error";
+
+            let statusCode = 500;
+            let clientMessage = "AI 글 생성 중 오류가 발생했습니다.";
+            let details = finalError.details || "";
+
+            if (finalError.status === 429) {
+                statusCode = 429; // Rate Limit Code
+                clientMessage = finalError.message || "이용량이 초과되었습니다. 잠시 후 다시 시도해주세요.";
+            } else if (finalError.data?.error?.message) {
+                clientMessage = `AI 오류: ${finalError.data.error.message}`;
+            }
 
             return new Response(
                 JSON.stringify({
-                    error: errorMessage,
-                    details: "Automatic model discovery failed.",
-                    lastStatus: finalError.status
+                    error: clientMessage,
+                    details: details || finalError.message,
+                    status: statusCode
                 }),
-                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
 
