@@ -12,18 +12,23 @@ serve(async (req) => {
     }
 
     try {
-        // 2. 데이터 받기
-        const { keyword, center_name, region } = await req.json()
-        const apiKey = Deno.env.get('GOOGLE_AI_KEY')
+        // 2. 데이터 받기 (클라이언트가 topic 또는 keyword로 보낼 수 있음)
+        const { topic, keyword, center_name, region } = await req.json()
+        const subject = topic || keyword || '아동 발달'
 
+        // API 키 확인
+        const apiKey = Deno.env.get('GOOGLE_AI_KEY')
         if (!apiKey) throw new Error('API Key not set')
 
-        // 3. 라이브러리 없이 직접 URL 호출 (모델: gemini-1.5-flash)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
+        console.log(`Generating blog post for subject: ${subject}, Model: gemini-pro (v1)`)
+
+        // 3. 라이브러리 없이 직접 URL 호출 
+        // ✨ 변경: v1beta/gemini-1.5-flash -> v1/gemini-pro (안전성 우선)
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`
 
         const prompt = `
       당신은 아동 심리 발달 전문가입니다. 다음 주제로 블로그 포스팅을 작성해 주세요.
-      주제: ${keyword}
+      주제: ${subject}
       센터 이름: ${center_name || '자라다 아동발달센터'}
       지역: ${region || '지역 정보 없음'}
       
@@ -49,8 +54,8 @@ serve(async (req) => {
 
         // 4. 에러 응답 처리
         if (!response.ok) {
-            console.error('Gemini API Error:', data)
-            throw new Error(data.error?.message || 'Gemini API failed')
+            console.error('Gemini API Error:', JSON.stringify(data))
+            throw new Error(data.error?.message || `Gemini API failed with status ${response.status}`)
         }
 
         // 5. 결과 추출
