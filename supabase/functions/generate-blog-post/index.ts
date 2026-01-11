@@ -3,7 +3,7 @@
 // The URLs below match the mappings defined in supabase/functions/deno.json
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai"
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@latest"
 
 // Declare Deno for TypeScript if environment not configured
 declare const Deno: any;
@@ -294,32 +294,17 @@ ${recentTitlesStr}
 
         console.log("Initializing Gemini API with API key starting with:", GEMINI_API_KEY.substring(0, 10) + "...");
 
-        // ✨ Using direct HTTP fetch to v1beta API (better model compatibility)
-        const GEMINI_MODEL = "gemini-1.5-flash";
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+        // ✨ Using SDK with stable gemini-pro model (most reliable)
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-        console.log("Generating Content with", GEMINI_MODEL, "via HTTP...");
+        console.log("Generating Content with gemini-pro via SDK...");
 
         let generatedText: string;
         try {
-            const geminiResponse = await fetch(GEMINI_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: systemPrompt + "\n\n" + userPrompt }]
-                    }]
-                })
-            });
-
-            if (!geminiResponse.ok) {
-                const errorBody = await geminiResponse.text();
-                console.error("Gemini API HTTP Error:", geminiResponse.status, errorBody);
-                throw new Error(`Gemini API returned ${geminiResponse.status}: ${errorBody}`);
-            }
-
-            const geminiData = await geminiResponse.json();
-            const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
+            const response = result.response;
+            const rawText = response.text();
             console.log("Raw Gemini Response Length:", rawText.length);
 
             // ✨ Extract JSON from response (handles markdown code blocks)
