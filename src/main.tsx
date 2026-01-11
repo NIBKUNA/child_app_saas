@@ -21,6 +21,39 @@ if (cachedLogoUrl) {
   preloadImg.src = cachedLogoUrl;
 }
 
+// ✨ [Instant Title] 센터 이름을 즉시 적용 (Flash 방지)
+// 우선순위: 1. localStorage 캐시 → 2. 환경 변수 → 3. 기본값
+const TITLE_CACHE_KEY = 'cached_center_name';
+const cachedName = localStorage.getItem(TITLE_CACHE_KEY);
+const envName = import.meta.env.VITE_CENTER_NAME;
+const defaultName = '아동발달센터';
+
+// 즉시 타이틀 설정 (0ms 지연 없음)
+document.title = cachedName || envName || defaultName;
+
+// 비동기로 DB에서 최신 이름 가져와서 갱신
+(async () => {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY
+    );
+    const { data } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'center_name')
+      .single();
+
+    if (data?.value) {
+      document.title = data.value;
+      localStorage.setItem(TITLE_CACHE_KEY, data.value);
+    }
+  } catch (e) {
+    // 실패해도 캐시된 이름 유지
+  }
+})();
+
 // ✨ [Developer Signature]
 console.log(
   "%c 🎨 Zarada ERP System %c Designed & Developed by 안욱빈 ",
