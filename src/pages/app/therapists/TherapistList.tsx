@@ -119,11 +119,7 @@ export function TherapistList() {
     };
 
     const handleEdit = (staff) => {
-        // ✨ [Super Admin 보호] 수정 불가
-        if (isSuperAdmin(staff.email)) {
-            alert('⚠️ 최상위 관리자 계정은 수정할 수 없습니다.');
-            return;
-        }
+        // ✨ [Refactor] Allowed editing even for Super Admin (to change name)
         setEditingId(staff.id);
         setFormData({
             name: staff.name,
