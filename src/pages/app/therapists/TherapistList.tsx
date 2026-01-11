@@ -12,6 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import {
     Plus, Search, Phone, Mail, Edit2, Trash2, X, Check,
     Shield, Stethoscope, UserCog, UserCheck, AlertCircle, UserMinus, Lock
@@ -26,6 +27,7 @@ const COLORS = [
 ];
 
 export function TherapistList() {
+    const { user } = useAuth();
     const [staffs, setStaffs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -229,11 +231,18 @@ export function TherapistList() {
                                     <p className="text-xs text-slate-400 font-bold mt-1">{staff.system_role === 'retired' ? '접속 권한 없음' : staff.remarks}</p>
                                 </div>
                             </div>
-                            {/* ✨ [Super Admin 보호] 수정은 허용, 삭제만 불가 */}
+                            {/* ✨ [Super Admin 보호] 본인만 수정 가능, 삭제는 절대 불가 */}
                             <div className="flex gap-1">
-                                <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors" title="정보 수정">
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
+                                {isSuperAdmin(staff.email) && user?.email !== staff.email ? (
+                                    <div className="flex items-center justify-center w-10 h-10 bg-slate-100 rounded-xl" title="수정 불가 (권한 없음)">
+                                        <Lock className="w-4 h-4 text-slate-400" />
+                                    </div>
+                                ) : (
+                                    <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors" title="정보 수정">
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                )}
+
                                 {isSuperAdmin(staff.email) ? (
                                     <div className="flex items-center justify-center w-10 h-10 bg-amber-50 rounded-xl" title="삭제 불가 (최상위 관리자)">
                                         <Lock className="w-4 h-4 text-amber-500" />

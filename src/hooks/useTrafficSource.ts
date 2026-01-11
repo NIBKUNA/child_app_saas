@@ -71,40 +71,28 @@ export function useTrafficSource() {
         const visitRecorded = sessionStorage.getItem('visit_recorded');
         if (!visitRecorded) {
             const category = categorizeSource(referrer, source);
-            recordVisit(category, referrer, source, medium, campaign);
-            sessionStorage.setItem('visit_recorded', 'true');
+
+            const recordVisit = async () => {
+                try {
+                    await (supabase as any).from('site_visits').insert({
+                        source_category: category,
+                        referrer_url: referrer || null,
+                        utm_source: source || null,
+                        utm_medium: medium || null,
+                        utm_campaign: campaign || null,
+                        page_url: window.location.href,
+                        user_agent: navigator.userAgent,
+                        visited_at: new Date().toISOString()
+                    });
+                    console.log('Visit recorded:', category);
+                    sessionStorage.setItem('visit_recorded', 'true');
+                } catch (error) {
+                    // Silently fail - don't break the app for tracking
+                    console.warn('Failed to record visit:', error);
+                }
+            };
+
+            recordVisit();
         }
-
     }, [searchParams]);
-
-    return {
-        // Helper to get the current source for form submission
-        getSource: () => sessionStorage.getItem('marketing_source') || 'direct'
-    };
-}
-
-// ✨ 방문 기록을 데이터베이스에 저장
-async function recordVisit(
-    category: string,
-    referrer: string,
-    utmSource?: string | null,
-    utmMedium?: string | null,
-    utmCampaign?: string | null
-) {
-    try {
-        await (supabase as any).from('site_visits').insert({
-            source_category: category,
-            referrer_url: referrer || null,
-            utm_source: utmSource || null,
-            utm_medium: utmMedium || null,
-            utm_campaign: utmCampaign || null,
-            page_url: window.location.href,
-            user_agent: navigator.userAgent,
-            visited_at: new Date().toISOString()
-        });
-        console.log('Visit recorded:', category);
-    } catch (error) {
-        // Silently fail - don't break the app for tracking
-        console.warn('Failed to record visit:', error);
-    }
 }
