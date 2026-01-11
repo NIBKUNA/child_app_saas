@@ -263,15 +263,15 @@ JSON 형식으로 출력하세요.`;
 
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-        // Using gemini-flash-latest to avoid quota issues with 2.0 preview
+        // Using gemini-2.0-flash for stable production use
         const model = genAI.getGenerativeModel({
-            model: "gemini-flash-latest",
+            model: "gemini-2.0-flash",
             generationConfig: {
                 responseMimeType: "application/json"
             }
         });
 
-        console.log("Generating Content with gemini-flash-latest...");
+        console.log("Generating Content with gemini-2.0-flash...");
 
         const result = await model.generateContent(systemPrompt + "\n\n" + userPrompt);
         const response = result.response;
