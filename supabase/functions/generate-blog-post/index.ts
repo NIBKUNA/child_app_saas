@@ -35,6 +35,27 @@ function parseAddress(address: string): { city: string; district: string; dong: 
     };
 }
 
+// ✨ Helper function to extract JSON from AI response (handles markdown blocks)
+function extractJson(text: string): string {
+    // Remove markdown code blocks if present
+    let cleaned = text.trim();
+
+    // Remove ```json and ``` markers
+    cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/, '');
+    cleaned = cleaned.replace(/\s*```$/g, '');
+
+    // Find JSON object boundaries
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        return cleaned.substring(jsonStart, jsonEnd + 1);
+    }
+
+    // Return as-is if no JSON markers found
+    return cleaned;
+}
+
 serve(async (req: Request) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
@@ -262,7 +283,7 @@ ${recentTitlesStr}
 4. 지역 키워드 최대 2회만 사용
 5. 면책 조항 필수 포함
 
-JSON 형식으로 출력하세요.`;
+**중요: 응답은 반드시 순수한 JSON 형식으로만 출력하세요. 다른 설명이나 마크다운 없이 오직 JSON만 반환해야 합니다.**`;
 
         // 4. Call Google Gemini API (via Direct HTTP)
         const GEMINI_API_KEY = Deno.env.get('GOOGLE_AI_KEY');
@@ -287,10 +308,7 @@ JSON 형식으로 출력하세요.`;
                 body: JSON.stringify({
                     contents: [{
                         parts: [{ text: systemPrompt + "\n\n" + userPrompt }]
-                    }],
-                    generation_config: {
-                        response_mime_type: "application/json"
-                    }
+                    }]
                 })
             });
 
@@ -301,8 +319,12 @@ JSON 형식으로 출력하세요.`;
             }
 
             const geminiData = await geminiResponse.json();
-            generatedText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            console.log("Gemini Response Length:", generatedText.length);
+            const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            console.log("Raw Gemini Response Length:", rawText.length);
+
+            // ✨ Extract JSON from response (handles markdown code blocks)
+            generatedText = extractJson(rawText);
+            console.log("Extracted JSON Length:", generatedText.length);
         } catch (geminiError: any) {
             console.error("Gemini API Error:", geminiError);
             console.error("Error Name:", geminiError?.name);
