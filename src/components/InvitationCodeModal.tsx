@@ -40,48 +40,21 @@ export function InvitationCodeModal({ isOpen, onClose, onSuccess, parentId }: In
         setError(null);
 
         try {
-            // 1. 초대 코드로 아동 조회
-            const { data: child, error: childError } = await supabase
-                .from('children')
-                .select('id, name, center_id')
-                .eq('invitation_code', code.toUpperCase().trim())
-                .maybeSingle();
+            // ✨ [Secure Code Connection] RPC 함수 사용 (RLS 우회 및 트랜잭션 보장)
+            const { data: result, error: rpcError } = await supabase.rpc('connect_child_with_code', {
+                p_parent_id: parentId,
+                p_code: code.toUpperCase().trim()
+            });
 
-            if (childError || !child) {
-                throw new Error('유효하지 않은 초대 코드입니다.');
+            if (rpcError) throw rpcError;
+
+            // RPC가 커스텀 에러 메시지를 반환했는지 확인
+            if (!result.success) {
+                throw new Error(result.message || '연결에 실패했습니다.');
             }
 
-            // 2. 이미 연결되어 있는지 확인
-            const { data: existing } = await supabase
-                .from('family_relationships')
-                .select('id')
-                .eq('parent_id', parentId)
-                .eq('child_id', child.id)
-                .maybeSingle();
-
-            if (existing) {
-                throw new Error('이미 연결된 자녀입니다.');
-            }
-
-            // 3. family_relationships에 연결 추가
-            const { error: insertError } = await supabase
-                .from('family_relationships')
-                .insert({
-                    parent_id: parentId,
-                    child_id: child.id,
-                    relationship: 'parent'
-                });
-
-            if (insertError) throw insertError;
-
-            // 4. children 테이블의 parent_id도 업데이트 (호환성 유지)
-            await supabase
-                .from('children')
-                .update({ parent_id: parentId })
-                .eq('id', child.id);
-
-            // 성공
-            onSuccess(child.name);
+            // 성공 시 아동 이름 반환
+            onSuccess(result.child_name);
         } catch (err: any) {
             setError(err.message || '연결에 실패했습니다.');
         } finally {

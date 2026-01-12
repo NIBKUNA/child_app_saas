@@ -80,11 +80,19 @@ export function Register() {
                         navigate('/login');
                         return;
                     } else {
-                        // pending 상태
-                        alert('아직 승인 대기 중입니다. 센터 관리자의 승인을 기다려 주세요.');
-                        await supabase.auth.signOut();
-                        navigate('/login');
-                        return;
+                        // ✨ [Pending 상태 구제] 승인 대기 중이지만 역할을 바꾸거나 수정하고 싶어하는 경우
+                        // 로그아웃 시키지 않고 폼을 채워서 수정 기회를 줌
+                        setIsOAuthUser(true);
+                        setOauthUserData(session.user);
+                        setEmail(existingProfile.email || session.user.email || '');
+                        setName(existingProfile.name || '');
+                        setCenterId(existingProfile.center_id);
+                        // 기존 역할을 유지하되, 수정 가능하게 함
+                        setRole(existingProfile.role || 'parent');
+                        setError('⚠️ 현재 승인 대기 중인 계정입니다. 가입 유형을 학부모로 변경하면 즉시 이용 가능합니다.');
+
+                        // 기존 상태가 pending이면 수정 폼을 보여주기 위해 여기서 return하지 않고 진행
+                        // (단, 알림은 너무 자주 뜨지 않게 제거하거나 상단 에러로 대체)
                     }
                 }
 
@@ -127,7 +135,7 @@ export function Register() {
                     finalStatus = 'active';
                 }
 
-                // ✨ [소셜 로그인 온보딩] user_profiles에 저장
+                // ✨ [소셜 로그인 온보딩 / 정보 수정] user_profiles에 저장
                 const { error: profileError } = await supabase
                     .from('user_profiles')
                     .upsert({
@@ -158,7 +166,7 @@ export function Register() {
                     navigate('/parent/home');
                 } else {
                     // 치료사: 승인 대기 안내
-                    alert('회원가입이 완료되었습니다!\n센터 관리자의 승인 후 서비스를 이용하실 수 있습니다.');
+                    alert('가입 신청이 완료되었습니다!\n센터 관리자의 승인이 필요합니다. (치료사/직원)');
                     await supabase.auth.signOut();
                     navigate('/login');
                 }
@@ -200,7 +208,11 @@ export function Register() {
                 }
             }
         } catch (err: any) {
-            setError(err.message || '오류가 발생했습니다.');
+            let msg = err.message || '오류가 발생했습니다.';
+            if (msg.includes('User already registered') || msg.includes('unique constraint')) {
+                msg = 'ALREADY_REGISTERED';
+            }
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -351,9 +363,22 @@ export function Register() {
 
                     {error && (
                         <div className={cn(
-                            "p-4 rounded-2xl text-xs font-bold border",
+                            "p-4 rounded-2xl text-xs font-bold border text-center transition-all animate-in fade-in slide-in-from-bottom-2",
                             isDark ? "bg-red-900/20 text-red-400 border-red-800" : "bg-red-50 text-red-500 border-red-100"
-                        )}>{error}</div>
+                        )}>
+                            {error === 'ALREADY_REGISTERED' ? (
+                                <div className="flex flex-col gap-2 items-center">
+                                    <span className="text-sm">😲 이미 가입된 이메일입니다!</span>
+                                    <span className="text-[10px] text-slate-500">혹시 구글/카카오로 가입하셨나요? 간편 로그인을 이용해 주세요.</span>
+                                    <Link
+                                        to="/login"
+                                        className="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                                    >
+                                        로그인하러 가기
+                                    </Link>
+                                </div>
+                            ) : error}
+                        </div>
                     )}
 
                     {/* Register Button - Always visible with indigo-600 */}

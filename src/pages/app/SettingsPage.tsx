@@ -345,16 +345,65 @@ function AIBlogGenerateButton() {
 
         try {
             const topic = getSetting('ai_next_topic') || '아동 발달 센터';
-            // Pass topic and apiKey explicitly (security: edge function should ideally read from DB, but passing ensures context)
-            const { data, error } = await supabase.functions.invoke('generate-blog-post', {
-                body: { topic, openai_api_key: apiKey }
+
+            // ✨ [Client Side Geneartion] Edge Function 대신 직접 호출 (배포 편의성 및 디버깅 용이)
+            const systemPrompt = "당신은 20년 경력의 아동 발달 센터 원장입니다. 걱정하는 부모님을 안심시키고 전문가로서 신뢰감 있는 조언을 주는 따뜻한 말투로 글을 작성해주세요.";
+            const userPrompt = `
+                주제: ${topic}
+                센터 이름: 자라다 아동발달센터
+                
+                조건:
+                1. 제목은 매력적으로.
+                2. 완치, 100% 장담 등 의료법 위반 표현 금지.
+                3. 마크다운 형식 사용.
+                4. [공감] - [정보3가지] - [안심] 구조로 작성할 것.
+            `;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini', // 가성비 모델
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    temperature: 0.7,
+                }),
             });
-            if (data && !data.error) {
-                finishLoading(`✅ 발행 요청이 성공했습니다. 잠시 후 글이 등록됩니다.`);
-            } else if (error || data?.error) {
-                throw new Error(error?.message || data?.error);
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                if (response.status === 429) {
+                    throw new Error("OpenAI 사용 한도 초과(429). 결제 정보를 확인해주세요.");
+                }
+                throw new Error(errData.error?.message || `API Error: ${response.status}`);
             }
-        } catch (err) {
+
+            const data = await response.json();
+            const generatedText = data.choices?.[0]?.message?.content;
+
+            if (!generatedText) throw new Error("글이 생성되지 않았습니다.");
+
+            // ✨ [Save to Cloud] 생성된 글을 Posts 테이블에 저장
+            const { error: dbError } = await supabase.from('posts').insert({
+                title: generatedText.split('\n')[0].replace(/^#+\s*/, '') || topic,
+                content: generatedText,
+                author_id: (await supabase.auth.getUser()).data.user?.id,
+                status: 'published',
+                category: 'column',
+                tags: ['AI생성', topic]
+            });
+
+            if (dbError) throw dbError;
+
+            finishLoading(`✅ AI 작가가 글을 발행했습니다! 블로그 메뉴에서 확인하세요.`);
+
+        } catch (err: any) {
+            console.error(err);
             setResult({ success: false, message: `❌ 오류: ${err.message}` });
             setGenerating(false);
             localStorage.removeItem(AI_GENERATING_KEY);

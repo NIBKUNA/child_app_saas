@@ -106,7 +106,13 @@ export function TherapistList() {
 
             if (editingId) {
                 await supabase.from('therapists').update(therapistPayload).eq('id', editingId);
-                await supabase.from('user_profiles').update({ role: formData.system_role }).eq('id', editingId);
+
+                // ✨ [권한 부여 시 자동 승인] 관리자, 치료사, 직원 부여 시 status=active로 변경
+                const profileUpdates: any = { role: formData.system_role };
+                if (['admin', 'therapist', 'staff'].includes(formData.system_role)) {
+                    profileUpdates.status = 'active';
+                }
+                await supabase.from('user_profiles').update(profileUpdates).eq('id', editingId);
             } else {
                 await supabase.from('therapists').insert([therapistPayload]);
             }

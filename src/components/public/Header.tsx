@@ -10,8 +10,10 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -47,8 +49,16 @@ const Icons = {
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user, role, signOut } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
+
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/');
+        setIsMenuOpen(false);
+    };
 
     // ✨ [Instant Logo/Name] 기존 캐시 로직 100% 유지
     const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem(LOGO_CACHE_KEY) || '');
@@ -168,8 +178,37 @@ export function Header() {
                             >
                                 {isDark ? Icons.sun("w-5 h-5") : Icons.moon("w-5 h-5")}
                             </button>
-                            <Link to="/login" className={cn("text-sm font-medium transition-colors", isDark ? "text-slate-400 hover:text-white" : "text-muted-foreground hover:text-primary")}>로그인</Link>
-                            <Link to="/contact" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">상담 예약</Link>
+
+                            {user ? (
+                                <>
+                                    {role === 'parent' ? (
+                                        <Link
+                                            to="/parent/home"
+                                            className="text-sm font-bold text-yellow-600 bg-yellow-50 px-4 py-2 rounded-full hover:bg-yellow-100 transition-all border border-yellow-200"
+                                        >
+                                            👶 마이 페이지
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            to="/app"
+                                            className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-all flex items-center gap-2"
+                                        >
+                                            ⚙️ 업무 시스템
+                                        </Link>
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        className={cn("text-sm font-medium transition-colors", isDark ? "text-slate-400 hover:text-red-400" : "text-muted-foreground hover:text-red-500")}
+                                    >
+                                        로그아웃
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/login" className={cn("text-sm font-medium transition-colors", isDark ? "text-slate-400 hover:text-white" : "text-muted-foreground hover:text-primary")}>로그인</Link>
+                                    <Link to="/contact" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">상담 예약</Link>
+                                </>
+                            )}
                         </div>
                     </nav>
 
@@ -199,24 +238,93 @@ export function Header() {
                 </div>
             </div>
 
-            {isMenuOpen && (
-                <div className={cn("md:hidden border-t text-left", isDark ? "border-slate-800" : "")}>
-                    <div className="container mx-auto px-4 py-4 space-y-2">
-                        {navigation.map((item) => (
-                            <Link
-                                key={item.name}
-                                to={item.href}
-                                className={cn("block px-3 py-2 rounded-md text-base font-medium transition-colors",
-                                    isActive(item.href)
-                                        ? (isDark ? "bg-slate-800 text-indigo-400" : "bg-primary/10 text-primary")
-                                        : (isDark ? "text-slate-400 hover:bg-slate-800" : "text-muted-foreground hover:bg-accent")
-                                )}
-                                onClick={() => setIsMenuOpen(false)}
-                            >{item.name}</Link>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "100vh" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className={cn(
+                            "fixed inset-0 top-[64px] z-40 md:hidden overflow-hidden",
+                            isDark ? "bg-slate-950/95" : "bg-white/95",
+                            "backdrop-blur-md"
+                        )}
+                    >
+                        <div className="container mx-auto px-6 py-8 flex flex-col gap-6">
+                            {navigation.map((item) => (
+                                <Link
+                                    key={item.name}
+                                    to={item.href}
+                                    className={cn("text-2xl font-bold transition-colors py-2 border-b border-transparent hover:border-current w-full",
+                                        isActive(item.href)
+                                            ? (isDark ? "text-indigo-400" : "text-primary")
+                                            : (isDark ? "text-slate-400 hover:text-white" : "text-slate-600 hover:text-slate-900")
+                                    )}
+                                    onClick={() => setIsMenuOpen(false)}
+                                >{item.name}</Link>
+                            ))}
+
+                            <hr className={cn("border-t my-2", isDark ? "border-slate-800" : "border-slate-100")} />
+
+                            {user ? (
+                                <div className="flex flex-col gap-4">
+                                    {role === 'parent' ? (
+                                        <Link
+                                            to="/parent/home"
+                                            className="flex items-center justify-center w-full py-3 text-lg font-bold text-yellow-700 bg-yellow-100 rounded-xl hover:bg-yellow-200 transition-all"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            👶 마이 페이지
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            to="/app"
+                                            className="flex items-center justify-center w-full py-3 text-lg font-bold text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            ⚙️ 업무 시스템 접속
+                                        </Link>
+                                    )}
+                                    <button
+                                        onClick={handleLogout}
+                                        className={cn("w-full py-3 text-lg font-medium transition-colors rounded-xl border",
+                                            isDark ? "border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-red-400" : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-red-500"
+                                        )}
+                                    >
+                                        로그아웃
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-4">
+                                    <Link
+                                        to="/login"
+                                        className={cn("flex items-center justify-center w-full py-3 text-lg font-medium transition-colors rounded-xl border",
+                                            isDark ? "border-slate-800 text-white hover:bg-slate-800" : "border-slate-200 text-slate-900 hover:bg-slate-50"
+                                        )}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        로그인
+                                    </Link>
+                                    <Link
+                                        to="/contact"
+                                        className="flex items-center justify-center w-full py-3 text-lg font-bold text-white bg-primary rounded-xl hover:bg-primary/90 shadow-lg transition-all"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        상담 예약 하기
+                                    </Link>
+                                </div>
+                            )}
+
+                            <div className="pt-4 mt-auto mb-20">
+                                <p className={cn("text-sm", isDark ? "text-slate-500" : "text-slate-400")}>
+                                    © 2026 Zarada Child Development Center.<br />All rights reserved.
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </header>
     );
 }
