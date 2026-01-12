@@ -50,6 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // ✨ [No Re-block] 초기 로딩 후에는 전체 화면 로딩을 다시 보여주지 않음
     const initialLoadComplete = useRef(false);
+    const isMounted = useRef(true); // ✨ [Fix] Mount tracking
+
+    useEffect(() => {
+        return () => { isMounted.current = false; };
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -113,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .eq('id', user.id)
                 .maybeSingle();
 
-            if (mounted) {
+            if (isMounted.current) {
                 if (data) {
                     const dbRole = (data.role as UserRole) || 'parent';
                     console.log(`[Auth] Role Synced: ${dbRole} (${data.email})`);
@@ -131,9 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } catch (error) {
             console.error('[Auth] Role fetch error:', error);
-            if (mounted) setRole('parent');
+            if (isMounted.current) setRole('parent');
         } finally {
-            if (mounted) {
+            if (isMounted.current) {
                 setLoading(false);
                 initialLoadComplete.current = true;
             }
