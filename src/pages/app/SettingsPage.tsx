@@ -334,11 +334,13 @@ function AIBlogGenerateButton() {
         // Validation: Check for API Key
         const apiKey = getSetting('openai_api_key');
         if (!apiKey) {
-            alert('❌ OpenAI API 키가 설정되지 않았습니다. 설정 위 "API Key 설정"에 키를 입력해주세요.');
+            alert('❌ API 키가 설정되지 않았습니다. 설정 위 "API Key 설정"에 키를 입력해주세요.');
             return;
         }
-        if (!apiKey.startsWith('sk-')) {
-            alert('❌ 올바르지 않은 API 키 형식입니다.\nOpenAI 키는 "sk-"로 시작해야 합니다.\n(현재 입력된 키는 구글 Gemini 키 등 다른 키로 보입니다)');
+        // ✨ [Gemini 복구] OpenAI 강제 제거. Gemini 키 형식을 체크하거나 관대하게 허용.
+        // Google AI Key는 보통 AIza... 로 시작하지만, 엄격한 검사보다는 길이 체크 정도만 함.
+        if (apiKey.length < 20) {
+            alert('❌ API 키가 너무 짧습니다. Google Gemini API 키를 확인해주세요.');
             return;
         }
 
@@ -350,7 +352,6 @@ function AIBlogGenerateButton() {
         try {
             const topic = getSetting('ai_next_topic') || '아동 발달 센터';
 
-            // ✨ [Client Side Geneartion] Edge Function 대신 직접 호출 (배포 편의성 및 디버깅 용이)
             const systemPrompt = "당신은 20년 경력의 아동 발달 센터 원장입니다. 걱정하는 부모님을 안심시키고 전문가로서 신뢰감 있는 조언을 주는 따뜻한 말투로 글을 작성해주세요.";
             const userPrompt = `
                 주제: ${topic}
@@ -363,32 +364,25 @@ function AIBlogGenerateButton() {
                 4. [공감] - [정보3가지] - [안심] 구조로 작성할 것.
             `;
 
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            // ✨ [Gemini API] Client Side Call
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'gpt-4o-mini', // 가성비 모델
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt }
-                    ],
-                    temperature: 0.7,
-                }),
+                    contents: [{
+                        parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
+                    }]
+                })
             });
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                if (response.status === 429) {
-                    throw new Error("OpenAI 사용 한도 초과(429). 결제 정보를 확인해주세요.");
-                }
+                if (response.status === 429) throw new Error("Google AI 사용 한도 초과(429). 잠시 후 다시 시도해주세요.");
                 throw new Error(errData.error?.message || `API Error: ${response.status}`);
             }
 
             const data = await response.json();
-            const generatedText = data.choices?.[0]?.message?.content;
+            const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
             if (!generatedText) throw new Error("글이 생성되지 않았습니다.");
 
@@ -452,10 +446,10 @@ function SnsLinksSection() {
     const handleSave = async (key: string, value: string) => {
         if (!key) return;
 
-        // ✨ [API Key Validation] OpenAI 키는 sk-로 시작해야 함
-        if (key === 'openai_api_key' && value && !value.startsWith('sk-')) {
-            alert('❌ API 키 형식이 올바르지 않습니다.\nOpenAI 키는 반드시 "sk-"로 시작합니다.\n입력하신 키를 다시 확인해주세요.');
-            return;
+        // ✨ [API Key Validation] Gemini 키 (sk- 검사 제거)
+        if (key === 'openai_api_key' && value && value.startsWith('sk-')) {
+            alert('⚠️ 구글 Gemini 키를 입력해주세요. (현재 OpenAI 키 형식이 입력되었습니다)');
+            // 막지는 않음
         }
 
         setSaving(true);
