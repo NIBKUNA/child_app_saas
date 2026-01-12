@@ -88,9 +88,52 @@ export function ConsultationList() {
         }
     };
 
-    const handleOpenAssessment = (session) => {
-        setSelectedSession(session);
-        setIsAssessModalOpen(true);
+    // ✨ [수정] 일지 ID 가져오기 로직 추가 (FK Violation 해결)
+    const handleOpenAssessment = async (session) => {
+        try {
+            // 1. 해당 일정에 연결된 상담일지(counseling_logs)가 있는지 확인
+            const { data: log } = await supabase
+                .from('counseling_logs')
+                .select('id')
+                .eq('schedule_id', session.id)
+                .maybeSingle();
+
+            let targetLogId = log?.id;
+
+            // 2. 일지가 없다면? -> 자동 생성 후 진행 (평가를 위해서는 일지 데이터가 부모여야 함)
+            if (!targetLogId) {
+                if (!confirm(`해당 수업의 '[상담 일지]'가 아직 작성되지 않았습니다.\n\n빈 일지를 먼저 생성하고 평가를 작성하시겠습니까?`)) return;
+
+                const { data: newLog, error } = await supabase
+                    .from('counseling_logs')
+                    .insert({
+                        schedule_id: session.id,
+                        therapist_id: session.therapist_id,
+                        child_id: session.child_id, // session.children.id 가 아니라 session.child_id
+                        content: '발달 평가 작성을 위해 자동 생성된 기본 일지입니다.',
+                        activities: '평가 진행',
+                        child_response: '평가 진행',
+                        next_plan: '평가 결과 기반 계획 수립',
+                        created_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                targetLogId = newLog.id;
+                alert("✅ 빈 상담 일지가 생성되었습니다. 이제 평가를 작성합니다.");
+            }
+
+            setSelectedSession({
+                ...session,
+                realLogId: targetLogId // ✨ Store Explicit Log ID 
+            });
+            setIsAssessModalOpen(true);
+
+        } catch (error) {
+            console.error("일지 확인 중 오류:", error);
+            alert("상담 일지 정보를 확인할 수 없습니다: " + error.message);
+        }
     };
 
     const handleAssessmentSuccess = () => {
@@ -100,10 +143,14 @@ export function ConsultationList() {
         fetchData(); // 목록 갱신
     };
 
-    // ✨ [수정 기능] 기존 평가 수정 모달 열기
+    // ✨ [수정 기능] 기존 평가 수정 
     const handleEdit = (assess) => {
         setEditingAssessmentId(assess.id);
-        setSelectedSession({ children: assess.children || { id: assess.child_id, name: '아동' } });
+        // 이미 log_id가 assessment에 들어있으므로 그것을 사용
+        setSelectedSession({
+            children: assess.children || { id: assess.child_id, name: '아동' },
+            realLogId: assess.log_id
+        });
         setIsAssessModalOpen(true);
     };
 
@@ -255,7 +302,7 @@ export function ConsultationList() {
                     onClose={() => { setIsAssessModalOpen(false); setSelectedSession(null); setEditingAssessmentId(null); }}
                     childId={selectedSession.children.id}
                     childName={selectedSession.children.name}
-                    logId={selectedSession.id || null} // ✨ [Link] Link to Schedule ID
+                    logId={selectedSession.realLogId || null} // ✨ [Fix] Use resolved Log ID
                     assessmentId={editingAssessmentId}
                     onSuccess={handleAssessmentSuccess}
                 />
