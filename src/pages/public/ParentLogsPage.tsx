@@ -23,6 +23,8 @@ export function ParentLogsPage() {
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [latestSummary, setLatestSummary] = useState<string | null>(null);
+    const [parentObservations, setParentObservations] = useState<any[]>([]);  // ✨ 부모 관찰 일기
 
     useEffect(() => {
         fetchLogs();
@@ -36,12 +38,29 @@ export function ParentLogsPage() {
 
             // 1. 유저 프로필 및 권한 확인
             const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('child_id, role')
+                .from('profiles')  // ✨ user_profiles -> profiles
+                .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
 
-            let targetChildId = profile?.child_id;
+            // ✨ 본인 자녀 ID 찾기
+            let targetChildId = null;
+            const { data: directChild } = await supabase
+                .from('children')
+                .select('id')
+                .eq('parent_id', user.id)
+                .maybeSingle();
+
+            if (directChild) {
+                targetChildId = directChild.id;
+            } else {
+                const { data: rel } = await supabase
+                    .from('family_relationships')
+                    .select('child_id')
+                    .eq('parent_id', user.id)
+                    .maybeSingle();
+                targetChildId = rel?.child_id;
+            }
 
             // 2. 상담 일지 조회 (치료사 이름 포함)
             // ✨ consultations -> counseling_logs 로 테이블 변경
@@ -66,6 +85,27 @@ export function ParentLogsPage() {
 
             if (fetchError) throw fetchError;
             setLogs(data || []);
+
+            // ✨ 최신 평가의 종합 소견 가져오기
+            if (targetChildId) {
+                const { data: latestAssessment } = await supabase
+                    .from('development_assessments')
+                    .select('summary')
+                    .eq('child_id', targetChildId)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                setLatestSummary(latestAssessment?.summary || null);
+
+                // ✨ 부모 관찰 일기 가져오기
+                const { data: observations } = await supabase
+                    .from('parent_observations')
+                    .select('*')
+                    .eq('child_id', targetChildId)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                setParentObservations(observations || []);
+            }
 
         } catch (e: any) {
             console.error("Logs fetch error:", e);
@@ -100,6 +140,8 @@ export function ParentLogsPage() {
                         </div>
                     </div>
                 </div>
+
+
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-20 gap-4">
@@ -151,15 +193,22 @@ export function ParentLogsPage() {
                                         </div>
                                     )}
 
-                                    {/* Next Plan */}
-                                    {log.next_plan && (
+                                    {/* ✨ 선생님 소견 및 향후 계획 (통합) */}
+                                    {(log.next_plan || latestSummary) && (
                                         <div className="relative pt-4 border-t border-slate-100">
-                                            <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-                                                <ChevronRight className="w-4 h-4" /> 다음 수업 계획
+                                            <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                <ChevronRight className="w-4 h-4" /> 선생님 소견 및 향후 계획
                                             </h4>
-                                            <p className="text-slate-900 font-bold leading-relaxed whitespace-pre-wrap pl-1">
-                                                {log.next_plan}
-                                            </p>
+                                            {latestSummary && (
+                                                <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap pl-1 mb-3 italic bg-indigo-50/50 p-3 rounded-xl">
+                                                    "📝 {latestSummary}"
+                                                </p>
+                                            )}
+                                            {log.next_plan && (
+                                                <p className="text-slate-900 font-bold leading-relaxed whitespace-pre-wrap pl-1">
+                                                    📅 {log.next_plan}
+                                                </p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -173,6 +222,27 @@ export function ParentLogsPage() {
                     </div>
                 )}
             </div>
+
+            {/* ✨ 부모 관찰 일기 기록함 */}
+            {parentObservations.length > 0 && (
+                <div className="max-w-2xl mx-auto mt-12 px-6">
+                    <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
+                        <span>📝</span> 내가 쓴 관찰 일기
+                    </h3>
+                    <div className="space-y-4">
+                        {parentObservations.map((obs) => (
+                            <div key={obs.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                                <p className="text-xs font-bold text-slate-400 mb-2">
+                                    {new Date(obs.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                                <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                                    {obs.content}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

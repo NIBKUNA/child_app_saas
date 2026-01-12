@@ -42,7 +42,7 @@ export function ConsultationList() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).maybeSingle();
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
             const role = profile?.role || 'therapist';
             setUserRole(role);
 
@@ -50,6 +50,28 @@ export function ConsultationList() {
             // Now strictly relies on DB Role
             const isSuperAdmin = role === 'super_admin';
             const isAdmin = role === 'admin' || isSuperAdmin;
+
+            // ✨ [FIX] therapists 테이블에서 현재 유저의 therapist 레코드 조회
+            // therapists.profile_id = profiles.id = auth.users.id 이므로 profile_id로 조회
+            let currentTherapistId = null;
+            if (!isAdmin) {
+                const { data: therapist } = await supabase
+                    .from('therapists')
+                    .select('id')
+                    .eq('profile_id', user.id)  // ✨ profile_id = auth.users.id
+                    .maybeSingle();
+
+                currentTherapistId = therapist?.id;
+
+                // 치료사 레코드가 없으면 빈 목록 표시
+                if (!currentTherapistId) {
+                    console.warn('현재 로그인 유저에 연결된 therapist 레코드가 없습니다.');
+                    setTodoChildren([]);
+                    setRecentAssessments([]);
+                    setLoading(false);
+                    return;
+                }
+            }
 
             // 1. 이미 일지가 작성된 '스케줄 ID' 수집 (교차 검증)
             // counseling_logs 테이블에서 schedule_id를 가져와야 정확히 매칭됨
@@ -68,7 +90,10 @@ export function ConsultationList() {
                 .select(`id, child_id, status, therapist_id, start_time, children (id, name), programs (name)`)
                 .or(`status.eq.completed,start_time.lt.${today}T23:59:59`);
 
-            // if (!isAdmin) sessionQuery = sessionQuery.eq('therapist_id', user.id);
+            // ✨ [FIX] therapist 테이블의 ID로 필터 (user.id가 아님!)
+            if (!isAdmin && currentTherapistId) {
+                sessionQuery = sessionQuery.eq('therapist_id', currentTherapistId);
+            }
             const { data: sessions } = await sessionQuery.order('start_time', { ascending: false });
 
             // 2. 일지가 없는(ID가 Set에 없는) 스케줄만 필터링
@@ -82,7 +107,10 @@ export function ConsultationList() {
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            if (!isAdmin) assessQuery = assessQuery.eq('therapist_id', user.id);
+            // ✨ [FIX] therapist 테이블의 ID로 필터
+            if (!isAdmin && currentTherapistId) {
+                assessQuery = assessQuery.eq('therapist_id', currentTherapistId);
+            }
             const { data: assessments } = await assessQuery;
             setRecentAssessments(assessments || []);
 
@@ -308,7 +336,8 @@ export function ConsultationList() {
                     onClose={() => { setIsAssessModalOpen(false); setSelectedSession(null); setEditingAssessmentId(null); }}
                     childId={selectedSession.children.id}
                     childName={selectedSession.children.name}
-                    logId={selectedSession.realLogId || null} // ✨ [Fix] Use resolved Log ID
+                    logId={selectedSession.realLogId || null}
+                    therapistId={selectedSession.therapist_id || null} // ✨ [Fix] 담당 치료사 ID 전달
                     assessmentId={editingAssessmentId}
                     onSuccess={handleAssessmentSuccess}
                 />

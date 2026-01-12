@@ -15,22 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Loader2, BarChart3, Users, ChevronDown, Printer } from 'lucide-react';
 import { ParentDevelopmentChart } from '@/components/app/parent/ParentDevelopmentChart';
 
-// ✨ [Print CSS] 인쇄 전용 스타일
-const printStyles = `
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    .print-container {
-        max-width: 100% !important;
-        padding: 0 !important;
-    }
-}
-`;
+
 
 export function ParentStatsPage() {
     const navigate = useNavigate();
@@ -46,11 +31,7 @@ export function ParentStatsPage() {
 
     useEffect(() => {
         initializePage();
-        // Inject print styles
-        const style = document.createElement('style');
-        style.innerHTML = printStyles;
-        document.head.appendChild(style);
-        return () => { document.head.removeChild(style); };
+        return () => { };
     }, []);
 
     const initializePage = async () => {
@@ -60,8 +41,8 @@ export function ParentStatsPage() {
             if (!user) return setError("로그인이 필요합니다.");
 
             const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('role, child_id')
+                .from('profiles')  // ✨ user_profiles -> profiles
+                .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
 
@@ -77,15 +58,41 @@ export function ParentStatsPage() {
                     setSelectedChildName(childList[0].name);
                     await loadChildStats(childList[0].id);
                 }
-            } else if (profile?.child_id) {
-                // ✨ 부모님이라면: 내 아이 정보 즉시 로드
-                setSelectedChildId(profile.child_id);
-                // Get child name
-                const { data: childData } = await supabase.from('children').select('name').eq('id', profile.child_id).single();
-                setSelectedChildName(childData?.name || '아동');
-                await loadChildStats(profile.child_id);
             } else {
-                setError("연결된 아이 정보가 없습니다.");
+                // ✨ [FIX] 부모님: family_relationships 통해 연결된 자녀 조회
+                let childId = null;
+
+                // 1. children.parent_id로 직접 연결된 자녀 체크
+                const { data: directChild } = await supabase
+                    .from('children')
+                    .select('id, name')
+                    .eq('parent_id', user.id)
+                    .maybeSingle();
+
+                if (directChild) {
+                    childId = directChild.id;
+                    setSelectedChildName(directChild.name || '아동');
+                } else {
+                    // 2. family_relationships 테이블에서 체크
+                    const { data: relationship } = await supabase
+                        .from('family_relationships')
+                        .select('child_id')
+                        .eq('parent_id', user.id)
+                        .maybeSingle();
+
+                    if (relationship?.child_id) {
+                        const { data: childData } = await supabase.from('children').select('id, name').eq('id', relationship.child_id).single();
+                        childId = childData?.id;
+                        setSelectedChildName(childData?.name || '아동');
+                    }
+                }
+
+                if (childId) {
+                    setSelectedChildId(childId);
+                    await loadChildStats(childId);
+                } else {
+                    setError("연결된 아이 정보가 없습니다.");
+                }
             }
         } catch (e) {
             console.error(e);
@@ -115,10 +122,7 @@ export function ParentStatsPage() {
         loadChildStats(id);
     };
 
-    // ✨ [Print] 인쇄하기 버튼 클릭
-    const handlePrint = () => {
-        window.print();
-    };
+
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] p-6">
@@ -139,15 +143,6 @@ export function ParentStatsPage() {
                             <p className="text-xs text-slate-500 font-bold">{selectedChildName} 아동 • 성장 지표 확인</p>
                         </div>
                     </div>
-
-                    {/* 인쇄하기 버튼 */}
-                    <button
-                        onClick={handlePrint}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-2xl transition-colors no-print"
-                    >
-                        <Printer className="w-4 h-4" />
-                        인쇄하기
-                    </button>
                 </div>
 
                 {/* ✨ 관리자용 아동 선택 셀렉트박스 - 인쇄시 숨김 */}

@@ -52,7 +52,7 @@ export function TherapistList() {
         try {
             const { data: therapistData } = await supabase.from('therapists').select('*').order('created_at', { ascending: false });
             // ✨ status 필드도 가져와서 승인 대기 여부 확인
-            const { data: profileData } = await supabase.from('user_profiles').select('id, role, email, status, name');
+            const { data: profileData } = await supabase.from('profiles').select('id, role, email, status, name');
 
             const mergedData = therapistData?.map(t => {
                 const profile = profileData?.find(p => p.id === t.id);
@@ -80,7 +80,7 @@ export function TherapistList() {
         try {
             // 1. ✨ [Check] 실제 가입된 유저인지 확인 (ID 매핑을 위해)
             const { data: profile, error: profileError } = await supabase
-                .from('user_profiles')
+                .from('profiles')
                 .select('id, email')
                 .eq('email', staff.email)
                 .maybeSingle();
@@ -163,7 +163,7 @@ export function TherapistList() {
             // 목록에서 사라지게 하기 위해 therapists 테이블에서 삭제
             await supabase.from('therapists').delete().eq('id', staff.id);
             // 프로필 상태도 거절로 변경 (선택 사항)
-            await supabase.from('user_profiles').update({ status: 'rejected' }).eq('id', staff.id);
+            await supabase.from('profiles').update({ status: 'rejected' }).eq('id', staff.id);
 
             // 알림 삭제
             await supabase
@@ -196,7 +196,7 @@ export function TherapistList() {
                 // ✨ [Fix] 수정 시에도 ID 매핑 확인 (Foreign Key 오류 해결 핵심)
                 // 1. 실제 가입된 프로필이 있는지 확인
                 const { data: realProfile } = await supabase
-                    .from('user_profiles')
+                    .from('profiles')
                     .select('id')
                     .eq('email', formData.email)
                     .maybeSingle();
@@ -321,7 +321,7 @@ export function TherapistList() {
             if (error) {
                 console.error('Delete RPC Error:', error);
                 await supabase.from('therapists').delete().eq('id', id);
-                await supabase.from('user_profiles').delete().eq('id', id);
+                await supabase.from('profiles').delete().eq('id', id);
                 throw error;
             }
 

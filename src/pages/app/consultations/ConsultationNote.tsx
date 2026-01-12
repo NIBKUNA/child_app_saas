@@ -28,7 +28,7 @@ export function ConsultationList() {
     const fetchInitialData = async () => {
         // 1. 센터 정보 및 아동 목록 가져오기
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('user_profiles').select('center_id').eq('id', user.id).maybeSingle();
+        const { data: profile } = await supabase.from('profiles').select('center_id').eq('id', user.id).maybeSingle();
 
         if (profile) {
             setCenterId(profile.center_id);

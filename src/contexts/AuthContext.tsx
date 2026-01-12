@@ -24,6 +24,8 @@ type AuthContextType = {
     user: User | null;
     role: UserRole;
     profile: any;
+    therapistId: string | null;  // ✨ therapists.id (치료사 전용)
+    centerId: string | null;     // ✨ center_id (소속 센터)
     loading: boolean;
     signOut: () => Promise<void>;
 };
@@ -33,6 +35,8 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     role: null,
     profile: null,
+    therapistId: null,
+    centerId: null,
     loading: true,
     signOut: async () => { },
 });
@@ -46,6 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return cached ? (cached as UserRole) : null;
     });
     const [profile, setProfile] = useState<any>(null);
+    const [therapistId, setTherapistId] = useState<string | null>(null);  // ✨ therapists.id
+    const [centerId, setCenterId] = useState<string | null>(null);        // ✨ center_id
     const [loading, setLoading] = useState(true);
 
     // ✨ [No Re-block] 초기 로딩 후에는 전체 화면 로딩을 다시 보여주지 않음
@@ -113,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             // ✨ [Direct DB Query] 항상 최신 권한을 가져옴
             const { data, error } = await supabase
-                .from('user_profiles')
+                .from('profiles') // ✨ user_profiles -> profiles (Schema Alignment)
                 .select('*') // 모든 프로필 정보 가져옴
                 .eq('id', user.id)
                 .maybeSingle();
@@ -138,6 +144,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                     setRole(dbRole);
                     setProfile(data);
+                    setCenterId(data.center_id || null);  // ✨ 센터 ID 저장
+
+                    // ✨ 치료사인 경우 therapists 테이블에서 ID 조회
+                    if (dbRole === 'therapist') {
+                        const { data: therapistData } = await supabase
+                            .from('therapists')
+                            .select('id, center_id')
+                            .eq('profile_id', user.id)
+                            .maybeSingle();
+                        if (therapistData) {
+                            setTherapistId(therapistData.id);
+                            if (!data.center_id && therapistData.center_id) {
+                                setCenterId(therapistData.center_id);
+                            }
+                        }
+                    }
 
                     // 캐시 업데이트 (오프라인/빠른 로딩용, 실제 검증은 DB가 함)
                     localStorage.setItem(ROLE_CACHE_KEY, dbRole);
@@ -162,9 +184,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchRole();
 
         // ✨ [Real-time] 내 권한이 변경되면 즉시 반영 (Supabase Realtime)
-        const channel = supabase.channel(`public:user_profiles:id=eq.${user?.id}`)
+        const channel = supabase.channel(`public:profiles:id=eq.${user?.id}`)
             .on('postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${user?.id}` },
+                { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` },
                 (payload) => {
                     console.log('[Auth] Role updated via Realtime:', payload.new.role);
                     fetchRole(true); // 강제 업데이트
@@ -185,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, role, profile, loading, signOut }}>
+        <AuthContext.Provider value={{ session, user, role, profile, therapistId, centerId, loading, signOut }}>
             {children}
             {/* ✨ 초기 로딩 때만 전체 화면 로딩 표시 (한 번 완료되면 다시 표시 안 함) */}
             {loading && !initialLoadComplete.current && (

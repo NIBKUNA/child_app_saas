@@ -11,6 +11,7 @@ interface AssessmentFormModalProps {
     childId: string | null;
     childName?: string;
     logId?: string | null;
+    therapistId?: string | null;  // ✨ [담당 치료사 ID] 어드민이 대신 입력시 사용
     assessmentId?: string | null;  // ✨ [수정 모드용] 기존 평가 ID
     onSuccess: () => void;
 }
@@ -54,7 +55,7 @@ const CHECKLIST_ITEMS = {
     ]
 };
 
-export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId, assessmentId, onSuccess }: AssessmentFormModalProps) {
+export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId, therapistId, assessmentId, onSuccess }: AssessmentFormModalProps) {
     const [loading, setLoading] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
@@ -156,10 +157,27 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
+            // ✨ [FIX] therapist ID 결정 로직 개선
+            // 1. 어드민이 대신 작성시: therapistId prop 사용 (from session.therapist_id)
+            // 2. 본인 작성시: therapists 테이블에서 profile_id로 조회하여 ID 가져오기
+            let effectiveTherapistId = therapistId;
+            if (!effectiveTherapistId) {
+                const { data: myTherapist } = await supabase
+                    .from('therapists')
+                    .select('id')
+                    .eq('profile_id', user.id)  // ✨ profile_id = auth.users.id
+                    .maybeSingle();
+                effectiveTherapistId = myTherapist?.id || null;
+            }
+
+            if (!effectiveTherapistId) {
+                throw new Error('치료사 레코드를 찾을 수 없습니다. 관리자에게 문의하세요.');
+            }
+
             const payload = {
                 child_id: childId,
-                therapist_id: user.id,
-                log_id: currentLogId, // ✨ Use State (Preserved or Prop)
+                therapist_id: effectiveTherapistId, // ✨ therapists 테이블의 ID 사용
+                log_id: currentLogId,
                 evaluation_date: new Date().toISOString().split('T')[0],
                 score_communication: sc.communication,
                 score_social: sc.social,

@@ -46,7 +46,7 @@ export function Settlement() {
 
             const { data: staffs } = await supabase.from('therapists').select('*').order('name');
             // ✨ [Fix] user_profiles 상태 확인 (승인된 사용자만 표시)
-            const { data: profiles } = await supabase.from('user_profiles').select('id, status');
+            const { data: profiles } = await supabase.from('profiles').select('id, status');
 
             const { data: schedules } = await supabase
                 .from('schedules')

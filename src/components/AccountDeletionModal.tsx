@@ -62,7 +62,7 @@ export function AccountDeletionModal({ isOpen, onClose, userId, userEmail }: Acc
 
             // user_profiles 삭제 (cascade로 연관 데이터 정리)
             await supabase
-                .from('user_profiles')
+                .from('profiles')
                 .delete()
                 .eq('id', userId);
 

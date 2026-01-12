@@ -49,7 +49,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     const fetchParentAccounts = async () => {
         try {
             const { data, error } = await supabase
-                .from('user_profiles')
+                .from('profiles')
                 .select('id, name, email')
                 .eq('role', 'parent')
                 .order('name');

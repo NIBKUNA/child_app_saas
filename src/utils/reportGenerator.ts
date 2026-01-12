@@ -61,7 +61,7 @@ export const generateIntegratedReport = async (selectedMonth: string) => {
             // 1. Children (Master List)
             supabase.from('children').select(`
                 id, name, gender, birth_date, is_active, created_at, parent_id,
-                user_profiles:parent_id ( name, email )
+                profiles:parent_id ( name, email )
             `),
             // 2. Profiles (Phone Numbers)
             supabase.from('profiles').select('id, phone'),
@@ -72,7 +72,7 @@ export const generateIntegratedReport = async (selectedMonth: string) => {
             // 5. Leads (Marketing)
             supabase.from('leads').select('*').order('created_at', { ascending: false }),
             // 6. Staff (User Profiles with roles)
-            supabase.from('user_profiles').select('*').in('role', ['admin', 'therapist', 'super_admin']),
+            supabase.from('profiles').select('*').in('role', ['admin', 'therapist', 'super_admin']),
             // 7. Schedules (Selected Month for KPI)
             supabase.from('schedules').select('status, date').like('date', `${selectedMonth}%`)
         ]);
@@ -177,7 +177,7 @@ export const generateIntegratedReport = async (selectedMonth: string) => {
 
         // Sheet 5: Integrated Master (Existing Logic)
         const masterData = (children || []).map(child => {
-            const guardianBase = child.user_profiles || { name: '-', email: '-' };
+            const guardianBase = child.profiles || { name: '-', email: '-' };
             const guardianPhone = phoneMap.get(child.parent_id) || '-';
             const assess = assessmentMap.get(child.id);
             const totalPay = paymentMap.get(child.id) || 0;

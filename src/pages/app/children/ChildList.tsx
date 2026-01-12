@@ -49,7 +49,7 @@ export function ChildList() {
                 .from('children')
                 .select(`
                     *,
-                    parent_profile:user_profiles!parent_id(name, email)
+                    parent_profile:profiles!parent_id(name, email)
                 `) // ✨ parent_id를 통해 연결된 보호자 계정 정보도 함께 가져옴
                 .order('name');
 

@@ -24,6 +24,11 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 
+// 📊 Recharts for Horizontal Bar Chart
+import {
+    BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList, Cell, Tooltip
+} from 'recharts';
+
 // 캘린더 라이브러리
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -33,6 +38,15 @@ import koLocale from '@fullcalendar/core/locales/ko';
 
 import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyModal';
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
+
+// 🎨 Brand Colors for Chart
+const CHART_COLORS = [
+    '#6366f1', // Indigo - 의사소통
+    '#ec4899', // Pink - 사회성
+    '#8b5cf6', // Violet - 인지
+    '#f59e0b', // Amber - 운동
+    '#10b981', // Emerald - 적응
+];
 
 export function ParentHomePage() {
     const navigate = useNavigate();
@@ -53,6 +67,9 @@ export function ParentHomePage() {
     const [filterDate, setFilterDate] = useState('');
     const [hasUpcomingConsultation, setHasUpcomingConsultation] = useState(false);
     const [showInvitationModal, setShowInvitationModal] = useState(false);
+    // ✨ 관찰 일기 상태
+    const [observationText, setObservationText] = useState('');
+    const [savingObs, setSavingObs] = useState(false);
 
     useEffect(() => {
         if (user?.id) fetchDashboardData();
@@ -184,6 +201,28 @@ export function ParentHomePage() {
     };
     const nextSlide = () => { if (currentIndex < allLogs.length - 1) setCurrentIndex(prev => prev + 1); };
     const prevSlide = () => { if (currentIndex > 0) setCurrentIndex(prev => prev - 1); };
+
+    // ✨ 관찰 일기 저장 핸들러
+    const handleSaveObservation = async () => {
+        if (!observationText.trim() || !childInfo?.id || !user?.id) return;
+        setSavingObs(true);
+        try {
+            const { error } = await supabase.from('parent_observations').insert({
+                parent_id: user.id,
+                child_id: childInfo.id,
+                content: observationText.trim(),
+                observation_date: new Date().toISOString().split('T')[0]
+            });
+            if (error) throw error;
+            alert('관찰 일기가 저장되었습니다! 🌟');
+            setObservationText('');
+        } catch (e) {
+            console.error(e);
+            alert('저장 중 오류가 발생했습니다.');
+        } finally {
+            setSavingObs(false);
+        }
+    };
 
     if (loading) return <div className={cn("min-h-screen flex items-center justify-center font-bold", isDark ? "bg-slate-950 text-slate-400" : "text-slate-500")}>데이터를 불러오는 중입니다...</div>;
 
@@ -396,24 +435,26 @@ export function ParentHomePage() {
                                     {allLogs[currentIndex].domain_scores && (
                                         <div className="pt-8 border-t border-slate-100 space-y-6">
                                             <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest"><Activity className="w-4 h-4" /> 영역별 성취도</div>
-                                            <div className="space-y-4">
-                                                {Object.entries(allLogs[currentIndex].domain_scores).map(([label, score]) => (
-                                                    <div key={label} className="space-y-2">
-                                                        <div className="flex justify-between items-center text-[11px] font-black">
-                                                            <span className="text-slate-500">{label}</span>
-                                                            <span className="text-primary bg-primary/5 px-2.5 py-1 rounded-lg font-black">{score}점</span>
-                                                        </div>
-                                                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                            <div
-                                                                className="h-full rounded-full transition-all duration-1000 ease-out"
-                                                                style={{
-                                                                    width: `${score}%`,
-                                                                    background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)'
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                            {/* ✨ Recharts Horizontal Bar Chart */}
+                                            <div style={{ width: '100%', minHeight: 280 }}>
+                                                <ResponsiveContainer width="100%" height={280}>
+                                                    <BarChart
+                                                        layout="vertical"
+                                                        data={Object.entries(allLogs[currentIndex].domain_scores).map(([name, value], idx) => ({ name, value, fill: CHART_COLORS[idx % CHART_COLORS.length] }))}
+                                                        margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
+                                                        barCategoryGap="20%"
+                                                    >
+                                                        <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                        <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#334155', fontWeight: 700 }} axisLine={false} tickLine={false} width={70} />
+                                                        <Tooltip formatter={(value) => [`${value}점`, '점수']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                                        <Bar dataKey="value" radius={[0, 8, 8, 0]} animationDuration={1200}>
+                                                            {Object.entries(allLogs[currentIndex].domain_scores).map((_, idx) => (
+                                                                <Cell key={`cell-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                                                            ))}
+                                                            <LabelList dataKey="value" position="right" formatter={(v) => `${v}점`} style={{ fontSize: 12, fontWeight: 800, fill: '#1e293b' }} />
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
                                             </div>
                                             <div className="bg-indigo-50 p-5 rounded-[24px] flex items-start gap-3 border border-indigo-100/50">
                                                 <Info className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
@@ -433,8 +474,35 @@ export function ParentHomePage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-[40px] p-20 text-center border border-slate-100 shadow-sm">
-                            <p className="text-slate-400 font-bold text-sm italic">등록된 성장 리포트가 없습니다.</p>
+                        <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm space-y-6">
+                            <div className="text-center">
+                                <p className="text-slate-400 font-bold text-sm italic mb-2">등록된 성장 리포트가 없습니다.</p>
+                                <p className="text-xs text-slate-300">치료사가 평가를 작성하면 이곳에 표시됩니다.</p>
+                            </div>
+
+                            {/* ✨ [Observation Diary] 부모 관찰 일기 입력 */}
+                            <div className="pt-6 border-t border-slate-100">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-sm">📝</div>
+                                    <h4 className="font-black text-slate-700 text-sm">오늘의 관찰 일기</h4>
+                                </div>
+                                <textarea
+                                    value={observationText}
+                                    onChange={(e) => setObservationText(e.target.value)}
+                                    placeholder="오늘 아이에게서 발견한 작은 변화나 특별한 순간을 기록해보세요..."
+                                    className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:border-indigo-300 focus:bg-white outline-none resize-none transition-all"
+                                    rows={4}
+                                />
+                                <div className="flex justify-end mt-3">
+                                    <button
+                                        onClick={handleSaveObservation}
+                                        disabled={savingObs || !observationText.trim()}
+                                        className="px-5 py-2 bg-indigo-600 text-white text-xs font-black rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {savingObs ? '저장 중...' : '저장하기'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </section>

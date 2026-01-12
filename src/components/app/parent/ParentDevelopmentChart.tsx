@@ -67,12 +67,13 @@ export function ParentDevelopmentChart({ assessments }: { assessments: any[] }) 
 
     // 1. 최신 데이터 (Radar Chart용)
     const latest = assessments[0];
+    const previous = assessments.length > 1 ? assessments[1] : null;  // ✨ 이전 평가
     const radarData = [
-        { subject: '언어/의사소통', A: latest.score_communication || 0, fullMark: 5 },
-        { subject: '사회/정서', A: latest.score_social || 0, fullMark: 5 },
-        { subject: '인지/학습', A: latest.score_cognitive || 0, fullMark: 5 },
-        { subject: '대/소근육', A: latest.score_motor || 0, fullMark: 5 },
-        { subject: '자조/적응', A: latest.score_adaptive || 0, fullMark: 5 },
+        { subject: '언어/의사소통', A: latest.score_communication || 0, B: previous?.score_communication || 0, fullMark: 5 },
+        { subject: '사회/정서', A: latest.score_social || 0, B: previous?.score_social || 0, fullMark: 5 },
+        { subject: '인지/학습', A: latest.score_cognitive || 0, B: previous?.score_cognitive || 0, fullMark: 5 },
+        { subject: '대/소근육', A: latest.score_motor || 0, B: previous?.score_motor || 0, fullMark: 5 },
+        { subject: '자조/적응', A: latest.score_adaptive || 0, B: previous?.score_adaptive || 0, fullMark: 5 },
     ];
 
     // 2. 이력 데이터 (Line Chart용 - 최근 6개월 역순 정렬)
@@ -126,6 +127,11 @@ export function ParentDevelopmentChart({ assessments }: { assessments: any[] }) 
                                 <h3 className="text-lg font-black text-slate-900">영역별 발달 밸런스</h3>
                                 <p className="text-xs text-slate-400 mt-1 font-bold">최근 평가: {latest.evaluation_date}</p>
                             </div>
+                            {previous && (
+                                <div className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
+                                    회색 = 이전 평가
+                                </div>
+                            )}
                         </div>
 
                         <div className="h-[300px] w-full">
@@ -142,6 +148,18 @@ export function ParentDevelopmentChart({ assessments }: { assessments: any[] }) 
                                         fill="#8b5cf6"
                                         fillOpacity={0.4}
                                     />
+                                    {/* ✨ 성장 비교 모드: 이전 평가 오버레이 */}
+                                    {previous && (
+                                        <Radar
+                                            name="이전 평가"
+                                            dataKey="B"
+                                            stroke="#94a3b8"
+                                            strokeWidth={2}
+                                            strokeDasharray="5 5"
+                                            fill="#cbd5e1"
+                                            fillOpacity={0.15}
+                                        />
+                                    )}
                                 </RadarChart>
                             </ResponsiveContainer>
                         </div>
@@ -158,12 +176,7 @@ export function ParentDevelopmentChart({ assessments }: { assessments: any[] }) 
                             ))}
                         </div>
 
-                        {latest.summary && (
-                            <div className="mt-6 p-5 bg-slate-50 rounded-3xl text-sm text-slate-600 leading-relaxed font-medium">
-                                <span className="block text-xs font-black text-slate-400 mb-2">종합 소견</span>
-                                "{latest.summary}"
-                            </div>
-                        )}
+
                     </section>
 
                     {/* 2. 성장 추이 (Line Chart) */}

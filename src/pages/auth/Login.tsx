@@ -72,7 +72,7 @@ export function Login() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 const { data: profile } = await supabase
-                    .from('user_profiles')
+                    .from('profiles')
                     .select('role, center_id, status')
                     .eq('id', session.user.id)
                     .maybeSingle();
@@ -109,7 +109,7 @@ export function Login() {
 
             if (user) {
                 const { data: profile, error: profileError } = await supabase
-                    .from('user_profiles')
+                    .from('profiles')
                     .select('role')
                     .eq('id', user.id)
                     .maybeSingle();
