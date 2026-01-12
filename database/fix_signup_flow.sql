@@ -41,6 +41,11 @@ BEGIN
 
   ELSE
     -- [Case B] 신규 가입자: Pending 상태로 생성
+    
+    -- ✨ [Critical Fix] 이메일 충돌 방지: 기존에 같은 이메일을 쓰는 좀비 데이터가 있다면 삭제
+    DELETE FROM public.user_profiles WHERE email = new.email AND id != new.id;
+    DELETE FROM public.therapists WHERE email = new.email AND id != new.id;
+    
     INSERT INTO public.user_profiles (id, email, name, role, status)
     VALUES (
       new.id, 
@@ -51,13 +56,20 @@ BEGIN
     );
 
     -- therapists 테이블에도 추가해야 목록에 뜸 (중요)
-    INSERT INTO public.therapists (id, name, email, color)
-    VALUES (
-        new.id, 
-        COALESCE(new.raw_user_meta_data->>'name', '승인대기유저'), 
-        new.email, 
-        '#cbd5e1' -- 회색 (대기상태)
-    );
+    -- therapists 테이블에도 추가해야 목록에 뜸 (중요)
+    -- 이미 존재하면 무시 (중복 에러 방지)
+    IF NOT EXISTS (SELECT 1 FROM public.therapists WHERE email = new.email) THEN
+        INSERT INTO public.therapists (id, name, email, color)
+        VALUES (
+            new.id, 
+            COALESCE(new.raw_user_meta_data->>'name', '승인대기유저'), 
+            new.email, 
+            '#cbd5e1'
+        );
+    ELSE
+        -- 이미 존재한다면 ID만이라도 맞춰줌 (혹시나 해서)
+        UPDATE public.therapists SET id = new.id WHERE email = new.email;
+    END IF;
 
     -- ✨ 승인 요청 알림 생성 (관리자용)
     INSERT INTO public.admin_notifications (type, message, user_id, is_read)

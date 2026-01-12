@@ -41,7 +41,7 @@ export function Register() {
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [centerId, setCenterId] = useState('');
-    const [role, setRole] = useState('parent');
+
     const [centers, setCenters] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -123,19 +123,15 @@ export function Register() {
 
         try {
             if (isOAuthUser && oauthUserData) {
-                // ✨ [권한 결정] Super Admin > 학부모(즉시승인) > 치료사(승인대기)
-                let finalRole = role;
-                let finalStatus = 'pending';
+                // ✨ [권한 결정] Super Admin > 그 외 모두 학부모(Parent)
+                let finalRole = 'parent';
+                let finalStatus = 'active';
 
                 if (isSuperAdmin(oauthUserData.email)) {
                     finalRole = 'admin';
-                    finalStatus = 'active';
-                } else if (role === 'parent') {
-                    // ✨ [학부모 프리패스] 즉시 승인
-                    finalStatus = 'active';
                 }
 
-                // ✨ [소셜 로그인 온보딩 / 정보 수정] user_profiles에 저장
+                // ✨ user_profiles에 저장
                 const { error: profileError } = await supabase
                     .from('user_profiles')
                     .upsert({
@@ -149,39 +145,16 @@ export function Register() {
 
                 if (profileError) throw profileError;
 
-                // therapist로 가입한 경우 therapists 테이블에도 추가
-                if (role === 'therapist') {
-                    await supabase.from('therapists').upsert({
-                        id: oauthUserData.id,
-                        name: name,
-                        email: oauthUserData.email,
-                        center_id: centerId,
-                        color: '#64748b'
-                    }, { onConflict: 'id' });
-                }
+                // ✨ 무조건 학부모 홈으로 이동
+                navigate('/parent/home');
 
-                // ✨ [분기 처리] 학부모는 즉시 대시보드, 치료사는 승인 대기
-                if (role === 'parent' || isSuperAdmin(oauthUserData.email)) {
-                    // 학부모/관리자: 즉시 메인으로
-                    navigate('/parent/home');
-                } else {
-                    // 치료사: 승인 대기 안내
-                    alert('가입 신청이 완료되었습니다!\n센터 관리자의 승인이 필요합니다. (치료사/직원)');
-                    await supabase.auth.signOut();
-                    navigate('/login');
-                }
             } else {
                 // 일반 이메일 회원가입
-                // ✨ [권한 결정] Super Admin > 학부모(즉시승인) > 치료사(승인대기)
-                let finalRole = role;
-                let finalStatus = 'pending';
+                let finalRole = 'parent';
+                let finalStatus = 'active';
 
                 if (isSuperAdmin(email)) {
                     finalRole = 'admin';
-                    finalStatus = 'active';
-                } else if (role === 'parent') {
-                    // ✨ [학부모 프리패스] 즉시 승인
-                    finalStatus = 'active';
                 }
 
                 const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -199,7 +172,7 @@ export function Register() {
                 if (authError) throw authError;
 
                 if (authData.user) {
-                    // ✨ [일반 가입자 프로필 생성] user_profiles에 직접 저장
+                    // ✨ user_profiles에 직접 저장
                     await supabase.from('user_profiles').upsert({
                         id: authData.user.id,
                         email: email,
@@ -209,23 +182,9 @@ export function Register() {
                         status: finalStatus,
                     }, { onConflict: 'id' });
 
-                    // ✨ [치료사/직원 자동 등록] therapists 테이블에도 추가해야 관리 페이지에서 보임
-                    if (role === 'therapist') {
-                        await supabase.from('therapists').upsert({
-                            id: authData.user.id,
-                            name: name,
-                            email: email,
-                            center_id: centerId,
-                            color: '#64748b'
-                        }, { onConflict: 'id' });
-                    }
-
-                    if (role === 'parent') {
-                        alert('회원가입이 완료되었습니다!\n이메일 인증 후 로그인해 주세요.');
-                    } else {
-                        alert('회원가입이 완료되었습니다!\n센터 관리자의 승인 후 로그인해 주세요.');
-                    }
-                    navigate('/login');
+                    alert('회원가입이 완료되었습니다!\n환영합니다.');
+                    await supabase.auth.signInWithPassword({ email, password }); // 자동 로그인 시도
+                    navigate('/parent/home');
                 }
             }
         } catch (err: any) {
@@ -307,39 +266,7 @@ export function Register() {
                         </select>
                     </div>
 
-                    {/* 역할 선택 */}
-                    <div className="space-y-1">
-                        <label className={cn(
-                            "text-xs font-black ml-1",
-                            isDark ? "text-slate-500" : "text-slate-400"
-                        )}>
-                            가입 유형
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {[
-                                { value: 'parent', label: '학부모' },
-                                { value: 'therapist', label: '치료사' },
-                            ].map((r) => (
-                                <button
-                                    key={r.value}
-                                    type="button"
-                                    onClick={() => setRole(r.value)}
-                                    className={cn(
-                                        "py-3 rounded-xl text-xs font-black border transition-all",
-                                        role === r.value
-                                            ? (isDark
-                                                ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
-                                                : "bg-slate-900 text-white border-slate-900 shadow-md")
-                                            : (isDark
-                                                ? "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600"
-                                                : "bg-white text-slate-400 border-slate-200 hover:border-slate-300")
-                                    )}
-                                >
-                                    {r.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+
 
                     <div className="space-y-4 pt-2">
                         <InputField label="이름" placeholder="성함 입력" value={name} onChange={setName} isDark={isDark} />
