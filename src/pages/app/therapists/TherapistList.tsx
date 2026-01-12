@@ -3,7 +3,7 @@
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
+ * 📅 Date: 2026-01-12
  * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
  * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
  * -----------------------------------------------------------
@@ -51,7 +51,7 @@ export function TherapistList() {
         setLoading(true);
         try {
             const { data: therapistData } = await supabase.from('therapists').select('*').order('created_at', { ascending: false });
-            // ✨ [Fix] status 필드도 가져와서 승인 대기 여부 확인
+            // ✨ status 필드도 가져와서 승인 대기 여부 확인
             const { data: profileData } = await supabase.from('user_profiles').select('id, role, email, status, name');
 
             const mergedData = therapistData?.map(t => {
@@ -59,7 +59,7 @@ export function TherapistList() {
                 return {
                     ...t,
                     system_role: profile?.role || 'therapist',
-                    // ✨ [Fix] 프로필이 없으면(직접 등록) 'invited', 있으면 실제 상태 사용
+                    // ✨ 프로필이 없으면(직접 등록) 'invited', 있으면 실제 상태 사용
                     system_status: profile ? profile.status : 'invited'
                 };
             });
@@ -157,7 +157,6 @@ export function TherapistList() {
     };
 
     // ✨ [거절 처리] 가입 신청 거절
-    // ✨ [거절 처리] 데이터 완전 삭제 (목록에서 제거)
     const handleReject = async (staff) => {
         if (!confirm(`⚠️ ${staff.name}님의 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
         try {
@@ -166,7 +165,7 @@ export function TherapistList() {
             // 프로필 상태도 거절로 변경 (선택 사항)
             await supabase.from('user_profiles').update({ status: 'rejected' }).eq('id', staff.id);
 
-            // 3. ✨ [Fix] 거절 시에도 알림 삭제
+            // 알림 삭제
             await supabase
                 .from('admin_notifications')
                 .delete()
@@ -206,47 +205,35 @@ export function TherapistList() {
                 }
 
                 // 2. user_profiles 테이블 업데이트 (권한 변경)
-                // ✨ [중요] role 매핑: admin, therapist, staff, retired -> parent (비활성화)
                 let dbRole = formData.system_role;
                 let dbStatus = 'active';
 
                 if (formData.system_role === 'retired') {
                     dbStatus = 'inactive';
-                    dbRole = 'therapist'; // DB에서는 therapist로 유지하되 status로 구분
+                    dbRole = 'therapist';
                 }
 
+                // ✨ RPC 호출 (Upsert 지원) - 빈 문자열 fallback 추가 + 오버로딩 지원
                 const { data: rpcData, error: rpcError } = await supabase
                     .rpc('update_user_role_safe', {
                         target_user_id: editingId,
                         new_role: dbRole,
                         new_status: dbStatus,
-                        user_email: formData.email,
-                        user_name: formData.name
+                        user_email: formData.email || '',
+                        user_name: formData.name || ''
                     });
 
                 if (rpcError) {
                     console.error('Role update RPC error:', rpcError);
                     alert('권한 변경 실패 (RPC): ' + rpcError.message);
                 } else if (rpcData && !rpcData.success) {
-                    // 실패했다면 프로필이 아예 없는 경우일 수 있음 -> 수동 Insert 시도
-                    const { error: manualInsertError } = await supabase.from('user_profiles').upsert({
-                        id: editingId,
-                        email: formData.email,
-                        name: formData.name,
-                        role: dbRole,
-                        status: dbStatus
-                    });
-
-                    if (manualInsertError) {
-                        alert('권한 변경 실패: ' + rpcData.message);
-                    } else {
-                        alert('✅ 권한 변경 및 프로필 생성 완료');
-                    }
+                    console.error('Role update failed:', rpcData.message);
+                    alert('권한 변경 실패: ' + rpcData.message);
                 } else {
-                    alert('✅ 권한이 성공적으로 변경되었습니다.');
+                    alert('✅ 권한이 정상적으로 변경되었습니다.');
                 }
             } else {
-                // ✨ [직접 등록] 새 직원 등록 시 therapists에만 추가 (user_profiles는 회원가입 시 생성됨)
+                // ✨ [직접 등록] 새 직원 등록 시 therapists에만 추가
                 await supabase.from('therapists').insert([therapistPayload]);
                 alert('✅ 직원이 등록되었습니다.');
             }
@@ -261,7 +248,6 @@ export function TherapistList() {
     };
 
     const handleEdit = (staff) => {
-        // ✨ [Refactor] Allowed editing even for Super Admin (to change name)
         setEditingId(staff.id);
         setFormData({
             name: staff.name,
@@ -276,7 +262,6 @@ export function TherapistList() {
     };
 
     const handleDelete = async (id, email) => {
-        // ✨ [Super Admin 보호] 삭제 불가
         if (isSuperAdmin(email)) {
             alert('⚠️ 최상위 관리자 계정은 삭제할 수 없습니다.');
             return;
@@ -285,12 +270,10 @@ export function TherapistList() {
         if (!confirm('직원 목록에서 완전히 삭제하시겠습니까?\n(계정도 함께 삭제되어 재가입이 가능해집니다)')) return;
 
         try {
-            // ✨ [Fix] RPC를 사용하여 auth.users까지 완전 삭제
             const { error } = await supabase.rpc('delete_user_completely', { target_user_id: id });
 
             if (error) {
                 console.error('Delete RPC Error:', error);
-                // RPC가 없거나 실패하면 기존 방식(테이블 삭제) 시도 (Fallback)
                 await supabase.from('therapists').delete().eq('id', id);
                 await supabase.from('user_profiles').delete().eq('id', id);
                 throw error;
@@ -300,17 +283,10 @@ export function TherapistList() {
             fetchStaffs();
         } catch (error) {
             console.error("Deletion error:", error);
-            // alert('삭제 중 오류가 발생했습니다 (새로고침 후 확인해주세요).');
-            // 에러가 나도 화면 갱신 시도
             fetchStaffs();
         }
     };
 
-    // ✨ [Fix] status 기준으로 승인 대기/완료 구분 (role이 아니라 status로!)
-    // invited: 직접 등록됨 (승인 불필요, 가입 대기중)
-    // pending: 가입함 (승인 필요)
-    // active: 승인됨
-    // rejected: 거절됨 (숨김)
     const pendingStaffs = staffs.filter(s => s.system_status === 'pending');
     const approvedStaffs = staffs.filter(s => s.system_status !== 'pending' && s.system_status !== 'rejected').filter(s => s.name.includes(searchTerm));
 
@@ -399,7 +375,6 @@ export function TherapistList() {
                                     <p className="text-xs text-slate-400 font-bold mt-1">{staff.system_role === 'retired' ? '접속 권한 없음' : staff.remarks}</p>
                                 </div>
                             </div>
-                            {/* ✨ [Super Admin 보호] 본인만 수정 가능, 삭제는 절대 불가 */}
                             <div className="flex gap-1">
                                 {isSuperAdmin(staff.email) && user?.email !== staff.email ? (
                                     <div className="flex items-center justify-center w-10 h-10 bg-slate-100 rounded-xl" title="수정 불가 (권한 없음)">

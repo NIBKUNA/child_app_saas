@@ -144,14 +144,21 @@ export default function SessionNote() {
         if (id) navigate('/app/sessions');
     };
 
+    // ✨ [State] Active Session Log ID for Modal (Bypasses stale state issues)
+    const [activeLogId, setActiveLogId] = useState<string | null>(null);
+
     const handleAssessmentClick = async () => {
         // ✨ Auto-save if note doesn't exist yet
         if (!noteId) {
             if (confirm('발달 평가를 작성하려면 먼저 일지를 저장해야 합니다.\n저장 후 계속하시겠습니까?')) {
                 const id = await saveSessionLog(true); // Silent alert, but we show confirm
-                if (id) setShowAssessment(true);
+                if (id) {
+                    setActiveLogId(id); // Set explicit ID for modal
+                    setShowAssessment(true);
+                }
             }
         } else {
+            setActiveLogId(noteId);
             setShowAssessment(true);
         }
     };
@@ -275,7 +282,7 @@ export default function SessionNote() {
                     isOpen={showAssessment}
                     childId={sessionInfo.children.id}
                     childName={sessionInfo.children.name}
-                    logId={noteId}
+                    logId={activeLogId || noteId} // ✨ Use explicit active ID first
                     onClose={() => setShowAssessment(false)}
                     onSuccess={() => {
                         setShowAssessment(false);

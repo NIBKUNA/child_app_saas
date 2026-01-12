@@ -95,50 +95,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    useEffect(() => {
-        let mounted = true;
+    // ✨ [Single Source of Truth] 권한 확인 로직 리팩토링
+    // Auth Metadata가 아닌 실제 DB(user_profiles)의 role을 기준으로 함
+    const fetchRole = async (forceUpdate = false) => {
+        if (!user) return;
 
-        const fetchRole = async () => {
-            if (!user) return;
+        // 이미 로드되었고 강제 업데이트가 아니면 스킵 (초기 로딩 시)
+        if (!forceUpdate && role && initialLoadComplete.current) return;
 
-            // ✨ [Optimization] 이미 역할이 있으면 loading을 true로 다시 설정하지 않음
-            // 초기 로딩 때만 전체 화면 로딩 표시
-            if (!initialLoadComplete.current) {
-                setLoading(true);
-            }
+        if (!initialLoadComplete.current) setLoading(true);
 
-            try {
-                const { data, error } = await supabase
-                    .from('user_profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .maybeSingle();
+        try {
+            // ✨ [Direct DB Query] 항상 최신 권한을 가져옴
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('*') // 모든 프로필 정보 가져옴
+                .eq('id', user.id)
+                .maybeSingle();
 
-                if (mounted) {
-                    // ✨ [Refactor] Remove Hardcoded Super Admin Override
-                    // Logic now strictly follows the DB value.
-                    // If DB says 'admin', it is 'admin'. If 'super_admin', it is 'super_admin'.
+            if (mounted) {
+                if (data) {
+                    const dbRole = (data.role as UserRole) || 'parent';
+                    console.log(`[Auth] Role Synced: ${dbRole} (${data.email})`);
 
-                    // Prioritize DB role, fallback to 'parent'
-                    const fetchedRole = (data?.role as UserRole) || 'parent';
-
-                    setRole(fetchedRole);
+                    setRole(dbRole);
                     setProfile(data);
-                    // ✨ localStorage에 캐시
-                    localStorage.setItem(ROLE_CACHE_KEY, fetchedRole);
-                }
-            } catch (error) {
-                if (mounted) setRole('parent'); // 기본값
-            } finally {
-                if (mounted) {
-                    setLoading(false);
-                    initialLoadComplete.current = true;
+
+                    // 캐시 업데이트 (오프라인/빠른 로딩용, 실제 검증은 DB가 함)
+                    localStorage.setItem(ROLE_CACHE_KEY, dbRole);
+                } else {
+                    // 프로필이 없는 경우 (아직 생성 전)
+                    console.warn('[Auth] No profile found, defaulting to parent');
+                    setRole('parent');
                 }
             }
-        };
+        } catch (error) {
+            console.error('[Auth] Role fetch error:', error);
+            if (mounted) setRole('parent');
+        } finally {
+            if (mounted) {
+                setLoading(false);
+                initialLoadComplete.current = true;
+            }
+        }
+    };
 
+    useEffect(() => {
         fetchRole();
-    }, [user?.id]); // ✨ [Fix] user 객체가 아닌 id 변경 시에만 실행 (무한 루프 방지)
+
+        // ✨ [Real-time] 내 권한이 변경되면 즉시 반영 (Supabase Realtime)
+        const channel = supabase.channel(`public:user_profiles:id=eq.${user?.id}`)
+            .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${user?.id}` },
+                (payload) => {
+                    console.log('[Auth] Role updated via Realtime:', payload.new.role);
+                    fetchRole(true); // 강제 업데이트
+                })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user?.id]);
+
+    // ✨ [Manual Refresh] 외부에서(예: 로그인 직후) 권한 갱신 요청 가능하게 노출
+    const refreshRole = () => fetchRole(true);
 
     const signOut = async () => {
         localStorage.removeItem(ROLE_CACHE_KEY);
