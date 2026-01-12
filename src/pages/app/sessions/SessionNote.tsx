@@ -85,40 +85,75 @@ export default function SessionNote() {
         }
     }, [scheduleId]);
 
-    const handleSave = async () => {
-        if (!sessionInfo) return;
+    // ✨ [Refactor] Save Logic Separated from Navigation
+    const saveSessionLog = async (silent = false) => {
+        if (!sessionInfo) return null;
         setSaving(true);
+        try {
+            const payload = {
+                schedule_id: sessionInfo.id,
+                child_id: sessionInfo.child_id,
+                therapist_id: sessionInfo.therapist_id,
+                session_date: sessionDate,
+                activities,
+                child_response: childResponse,
+                next_plan: nextPlan,
+                parent_feedback: parentFeedback
+            };
 
-        const payload = {
-            schedule_id: sessionInfo.id,
-            child_id: sessionInfo.child_id,
-            therapist_id: sessionInfo.therapist_id,
-            session_date: sessionDate,
-            activities,
-            child_response: childResponse,
-            next_plan: nextPlan,
-            parent_feedback: parentFeedback // ✨ [NEW] Save parent feedback
-        };
+            let result;
+            let savedId = noteId;
 
-        let result;
-        if (noteId) {
-            result = await (supabase.from('counseling_logs') as any).update(payload).eq('id', noteId);
-        } else {
-            result = await (supabase.from('counseling_logs') as any).insert([payload]);
-        }
+            if (noteId) {
+                result = await (supabase.from('counseling_logs') as any)
+                    .update(payload)
+                    .eq('id', noteId)
+                    .select()
+                    .single();
+            } else {
+                result = await (supabase.from('counseling_logs') as any)
+                    .insert([payload])
+                    .select() // ✨ Important: Return the inserted row to get ID
+                    .single();
+            }
 
-        if (result.error) {
-            alert('저장 실패: ' + result.error.message);
+            if (result.error) throw result.error;
+
+            if (result.data) {
+                savedId = result.data.id;
+                setNoteId(savedId); // Update state
+            }
+
+            // Update Schedule Status to completed
+            await (supabase.from('schedules') as any).update({ status: 'completed' }).eq('id', sessionInfo.id);
+
+            if (!silent) alert('저장되었습니다.');
+            return savedId;
+
+        } catch (error: any) {
+            console.error('Save Error:', error);
+            alert('저장 실패: ' + error.message);
+            return null;
+        } finally {
             setSaving(false);
-            return;
         }
+    };
 
-        // Update Schedule Status to completed
-        await (supabase.from('schedules') as any).update({ status: 'completed' }).eq('id', sessionInfo.id);
+    const handleSaveAndExit = async () => {
+        const id = await saveSessionLog();
+        if (id) navigate('/app/sessions');
+    };
 
-        setSaving(false);
-        alert('저장되었습니다.');
-        navigate('/app/sessions');
+    const handleAssessmentClick = async () => {
+        // ✨ Auto-save if note doesn't exist yet
+        if (!noteId) {
+            if (confirm('발달 평가를 작성하려면 먼저 일지를 저장해야 합니다.\n저장 후 계속하시겠습니까?')) {
+                const id = await saveSessionLog(true); // Silent alert, but we show confirm
+                if (id) setShowAssessment(true);
+            }
+        } else {
+            setShowAssessment(true);
+        }
     };
 
     if (loading) {
@@ -212,7 +247,7 @@ export default function SessionNote() {
                 <div className="border-t pt-6">
                     <button
                         type="button"
-                        onClick={() => setShowAssessment(true)}
+                        onClick={handleAssessmentClick}
                         className="w-full py-3 border-2 border-dashed border-purple-300 text-purple-600 rounded-xl hover:bg-purple-50 flex items-center justify-center gap-2 font-medium transition-colors"
                     >
                         <ClipboardCheck className="w-5 h-5" />
@@ -223,7 +258,7 @@ export default function SessionNote() {
 
                 <div className="pt-4 border-t flex justify-end">
                     <button
-                        onClick={handleSave}
+                        onClick={handleSaveAndExit}
                         disabled={saving}
                         className="px-6 py-2.5 bg-primary text-white rounded-md font-medium text-sm hover:bg-primary/90 flex items-center shadow-sm"
                     >

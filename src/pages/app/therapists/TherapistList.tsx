@@ -186,7 +186,9 @@ export function TherapistList() {
                     .rpc('update_user_role_safe', {
                         target_user_id: editingId,
                         new_role: dbRole,
-                        new_status: dbStatus
+                        new_status: dbStatus,
+                        user_email: formData.email,
+                        user_name: formData.name
                     });
 
                 if (rpcError) {
