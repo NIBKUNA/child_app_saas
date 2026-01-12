@@ -73,28 +73,26 @@ export function TherapistList() {
     const handleApprove = async (staff) => {
         if (!confirm(`${staff.name}님을 치료사로 승인하시겠습니까?`)) return;
         try {
-            // ✨ [Direct Update] RPC 의존 제거, 직접 update 시도
-            const { error: profileError } = await supabase
-                .from('user_profiles')
-                .update({ role: 'therapist', status: 'active' })
-                .eq('id', staff.id);
+            // ✨ [Secure Approval] RPC 함수 사용 (RLS 우회)
+            const { data, error } = await supabase.rpc('approve_therapist', { target_user_id: staff.id });
 
-            if (profileError) {
-                console.error('Profile update error:', profileError);
-                throw profileError;
-            }
-
-            // therapists 테이블 색상 업데이트
-            await supabase
-                .from('therapists')
-                .update({ color: '#3b82f6' })
-                .eq('id', staff.id);
+            if (error) throw error;
+            if (data && !data.success) throw new Error(data.message);
 
             alert('✅ 승인이 완료되었습니다!');
-            fetchStaffs();
+            // DB 반영 시간 벌기
+            setTimeout(() => {
+                fetchStaffs();
+            }, 1000);
+
         } catch (error: any) {
             console.error('Approval error:', error);
-            alert(`❌ 승인 오류: ${error.message || '알 수 없는 오류'}\n\n관리자에게 문의하세요.`);
+            // 만약 RPC가 없어서 에러가 난다면 (SQL 미실행 등)
+            if (error.message?.includes('function not found')) {
+                alert('❌ 서버 함수(RPC)가 없습니다. Supabase SQL Editor에서 스크립트를 실행해주세요.');
+                return;
+            }
+            alert(`❌ 승인 오류: ${error.message || '알 수 없는 오류'}`);
         }
     };
 
