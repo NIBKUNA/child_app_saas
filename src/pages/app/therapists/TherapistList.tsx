@@ -50,13 +50,15 @@ export function TherapistList() {
         setLoading(true);
         try {
             const { data: therapistData } = await supabase.from('therapists').select('*').order('created_at', { ascending: false });
-            const { data: profileData } = await supabase.from('user_profiles').select('id, role, email');
+            // ✨ [Fix] status 필드도 가져와서 승인 대기 여부 확인
+            const { data: profileData } = await supabase.from('user_profiles').select('id, role, email, status, name');
 
             const mergedData = therapistData?.map(t => {
                 const profile = profileData?.find(p => p.id === t.id);
                 return {
                     ...t,
-                    system_role: profile?.role || 'parent'
+                    system_role: profile?.role || 'parent',
+                    system_status: profile?.status || 'pending' // 기본값: pending
                 };
             });
 
@@ -152,8 +154,9 @@ export function TherapistList() {
         fetchStaffs();
     };
 
-    const pendingStaffs = staffs.filter(s => s.system_role === 'parent' || !s.system_role);
-    const approvedStaffs = staffs.filter(s => s.system_role !== 'parent' && s.system_role).filter(s => s.name.includes(searchTerm));
+    // ✨ [Fix] status 기준으로 승인 대기/완료 구분 (role이 아니라 status로!)
+    const pendingStaffs = staffs.filter(s => s.system_status === 'pending' || !s.system_status);
+    const approvedStaffs = staffs.filter(s => s.system_status === 'active').filter(s => s.name.includes(searchTerm));
 
     return (
         <div className="space-y-6 pb-20 p-8 bg-slate-50/50 min-h-screen">

@@ -199,6 +199,27 @@ export function Register() {
                 if (authError) throw authError;
 
                 if (authData.user) {
+                    // ✨ [일반 가입자 프로필 생성] user_profiles에 직접 저장
+                    await supabase.from('user_profiles').upsert({
+                        id: authData.user.id,
+                        email: email,
+                        name: name,
+                        role: finalRole,
+                        center_id: centerId,
+                        status: finalStatus,
+                    }, { onConflict: 'id' });
+
+                    // ✨ [치료사/직원 자동 등록] therapists 테이블에도 추가해야 관리 페이지에서 보임
+                    if (role === 'therapist') {
+                        await supabase.from('therapists').upsert({
+                            id: authData.user.id,
+                            name: name,
+                            email: email,
+                            center_id: centerId,
+                            color: '#64748b'
+                        }, { onConflict: 'id' });
+                    }
+
                     if (role === 'parent') {
                         alert('회원가입이 완료되었습니다!\n이메일 인증 후 로그인해 주세요.');
                     } else {
