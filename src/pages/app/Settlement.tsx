@@ -45,6 +45,9 @@ export function Settlement() {
             const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
             const { data: staffs } = await supabase.from('therapists').select('*').order('name');
+            // ✨ [Fix] user_profiles 상태 확인 (승인된 사용자만 표시)
+            const { data: profiles } = await supabase.from('user_profiles').select('id, status');
+
             const { data: schedules } = await supabase
                 .from('schedules')
                 .select(`
@@ -64,6 +67,10 @@ export function Settlement() {
             const aList = [];
 
             staffs.forEach(staff => {
+                // 🛑 승인 대기 중이거나 비활성 사용자 제외
+                const userProfile = profiles?.find(p => p.id === staff.id);
+                if (userProfile && userProfile.status !== 'active') return;
+
                 if (staff.hire_type === 'admin') {
                     const pay = staff.base_salary || 0;
                     totalPay += pay;
