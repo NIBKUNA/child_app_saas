@@ -75,51 +75,84 @@ export function TherapistList() {
     const handleApprove = async (staff) => {
         if (!confirm(`${staff.name}님을 치료사로 승인하시겠습니까?`)) return;
 
-        console.log('Starting approval process for:', staff.id);
+        console.log('Starting approval process for:', staff.id, staff.email);
 
         try {
-            // ✨ [Direct Update] 과거 정상 작동 코드 복원 (RPC 미사용)
-            // 1. user_profiles 업데이트
-            const { error: profileError } = await supabase
+            // 1. ✨ [Check] 실제 가입된 유저인지 확인 (ID 매핑을 위해)
+            const { data: profile, error: profileError } = await supabase
                 .from('user_profiles')
-                .update({ role: 'therapist', status: 'active' })
-                .eq('id', staff.id);
+                .select('id, email')
+                .eq('email', staff.email)
+                .maybeSingle();
 
-            if (profileError) {
-                console.error("Profile update error:", profileError);
-                throw profileError;
+            if (!profile) {
+                alert('⚠️ 승인 불가: 해당 이메일로 가입된 계정이 없습니다.\n사용자가 먼저 회원가입을 완료해야 합니다.');
+                return;
             }
 
-            // 2. therapists 업데이트
-            const { error: therapistError } = await supabase
-                .from('therapists')
-                .update({ color: '#3b82f6' })
-                .eq('id', staff.id);
+            console.log('Found matching profile:', profile.id);
 
-            if (therapistError) {
-                console.error("Therapist update error:", therapistError);
-                throw therapistError;
+            // 2. ✨ [Migration] Case A: 수동 등록 ID != 실제 가입 ID -> 통합 필요
+            if (staff.id !== profile.id) {
+                console.log('ID Mismatch detected. Executing Merge & Approve...');
+
+                const { data: mergeRes, error: mergeError } = await supabase
+                    .rpc('merge_and_approve_therapist', {
+                        old_therapist_id: staff.id,
+                        real_user_id: profile.id,
+                        user_email: staff.email,
+                        user_name: staff.name
+                    });
+
+                if (mergeError) {
+                    throw mergeError;
+                }
+
+                if (mergeRes && !mergeRes.success) {
+                    alert('❌ 통합 승인 실패: ' + mergeRes.message);
+                    return;
+                }
+
+                alert('✅ 계정이 통합되어 승인되었습니다!\n(기존 수동 등록 데이터가 실제 계정으로 이관됨)');
+            }
+            // 3. ✨ [Standard] Case B: ID 일치 (일반적인 승인)
+            else {
+                console.log('ID Match. Executing Standard Approve...');
+
+                const { data: rpcData, error: rpcError } = await supabase
+                    .rpc('update_user_role_safe', {
+                        target_user_id: staff.id,
+                        new_role: 'therapist',
+                        new_status: 'active',
+                        user_email: staff.email,
+                        user_name: staff.name
+                    });
+
+                if (rpcError) throw rpcError;
+                if (rpcData && !rpcData.success) {
+                    alert('❌ 승인 실패: ' + rpcData.message);
+                    return;
+                }
+
+                // therapists 테이블 업데이트 (색상 등)
+                await supabase.from('therapists').update({ color: '#3b82f6' }).eq('id', staff.id);
+
+                alert('✅ 승인이 완료되었습니다!');
             }
 
-            // 3. ✨ [Fix] 알림 센터에서 해당 유저의 가입 요청 알림 삭제
-            // (에러가 나도 진행되도록 try-catch 감쌈)
+            // 4. 알림 삭제 (공통)
             try {
-                await supabase
-                    .from('admin_notifications')
-                    .delete()
-                    .eq('user_id', staff.id)
-                    .eq('type', 'new_user');
-            } catch (notifyError) {
-                console.warn('알림 삭제 실패 (무시됨):', notifyError);
+                await supabase.from('admin_notifications').delete().eq('user_id', profile.id).eq('type', 'new_user');
+            } catch (e) {
+                console.warn('Ignore notify delete error');
             }
 
-            alert('✅ 승인이 완료되었습니다!');
-            fetchStaffs(); // 즉시 갱신
+            // 5. 화면 갱신
+            await fetchStaffs();
 
         } catch (error: any) {
             console.error('Approval error:', error);
-            // 권한(RLS) 에러일 경우 구체적 안내
-            alert(`❌ 승인 오류 발생!\n\nDB 권한 문제일 가능성이 높습니다.\n\n[해결 방법]\nSupabase SQL Editor에서 'database/auto_approve_and_fix_rls.sql' 파일을 실행해주세요.\n\n에러 상세: ${error.message}`);
+            alert(`❌ 승인 오류 발생: ${error.message}`);
         }
     };
 
