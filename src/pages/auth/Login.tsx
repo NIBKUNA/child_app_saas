@@ -59,9 +59,16 @@ export function Login() {
     const [rememberMe, setRememberMeState] = useState(getRememberMe()); // ✨ 로그인 유지 체크박스
     const navigate = useNavigate();
 
-    // ✨ [이미 로그인된 유저 처리]
+    // ✨ [OAuth 콜백 처리] OAuth 로그인 후 돌아왔을 때만 세션 체크
     useEffect(() => {
-        async function checkSession() {
+        async function handleOAuthCallback() {
+            // URL에 access_token이나 code가 있을 때만 (OAuth 콜백일 때만) 세션 체크
+            const hash = window.location.hash;
+            const params = new URLSearchParams(window.location.search);
+            const isOAuthCallback = hash.includes('access_token') || params.has('code');
+
+            if (!isOAuthCallback) return; // OAuth 콜백이 아니면 아무것도 안 함
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 const { data: profile } = await supabase
@@ -70,17 +77,18 @@ export function Login() {
                     .eq('id', session.user.id)
                     .maybeSingle();
 
-                if (profile?.center_id) {
+                if (profile?.center_id && profile?.status === 'active') {
+                    // 이미 가입 완료 -> 홈으로
                     if (profile.role === 'admin' || profile.role === 'super_admin') navigate('/app/dashboard');
                     else if (profile.role === 'therapist') navigate('/app/schedule');
                     else navigate('/parent/home');
                 } else {
-                    // 프로필 없으면 가입 페이지로 (새로운 구글 유저 등)
+                    // 신규 유저 -> 가입 페이지로
                     navigate('/register');
                 }
             }
         }
-        checkSession();
+        handleOAuthCallback();
     }, [navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
