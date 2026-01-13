@@ -41,6 +41,9 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
 });
 
+// ✨ Import Fixed Center ID
+import { JAMSIL_CENTER_ID } from '@/config/center';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
@@ -51,7 +54,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const [profile, setProfile] = useState<any>(null);
     const [therapistId, setTherapistId] = useState<string | null>(null);  // ✨ therapists.id
-    const [centerId, setCenterId] = useState<string | null>(null);        // ✨ center_id
+    // ✨ [Force Single Center] Initialize with Jamsil ID
+    const [centerId, setCenterId] = useState<string | null>(JAMSIL_CENTER_ID); // ✨ center_id
     const [loading, setLoading] = useState(true);
 
     // ✨ [No Re-block] 초기 로딩 후에는 전체 화면 로딩을 다시 보여주지 않음

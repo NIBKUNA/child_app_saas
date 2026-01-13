@@ -25,7 +25,7 @@ BEGIN
     -- 3. Update profiles (The table AuthContext reads)
     BEGIN
         UPDATE public.profiles
-        SET role = 'user',
+        SET role = 'parent',
             status = 'active', 
             updated_at = NOW()
         WHERE id = target_user_id;
@@ -36,7 +36,7 @@ BEGIN
     -- 4. Update user_profiles (Legacy/Alias table)
     BEGIN
         UPDATE public.user_profiles
-        SET role = 'user',
+        SET role = 'parent',
             status = 'active',
             updated_at = NOW()
         WHERE id = target_user_id;
@@ -50,7 +50,7 @@ BEGIN
         UPDATE auth.users
         SET raw_user_meta_data = 
             COALESCE(raw_user_meta_data, '{}'::jsonb) || 
-            jsonb_build_object('role', 'user', 'status', 'active')
+            jsonb_build_object('role', 'parent', 'status', 'active')
         WHERE id = target_user_id;
     EXCEPTION WHEN OTHERS THEN
         -- Log warning but don't fail, as this might be permission issue
