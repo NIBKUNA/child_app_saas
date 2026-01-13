@@ -58,7 +58,6 @@ export function ChildList() {
                     *,
                     parent:user_profiles!children_parent_id_fkey(*)
                 `) // ✨ 명시적 FK 지정으로 PGRST201(관계 모호성) 에러 해결
-                `) // ✨ 명시적 FK 지정으로 PGRST201(관계 모호성) 에러 해결
                 .order('name');
 
             if (error) throw error;
