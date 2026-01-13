@@ -1,13 +1,13 @@
 {
     "rewrites": [
         {
-            "source": "/((?!api/).*)",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ],
     "headers": [
         {
-            "source": "/assets/(.*)",
+            "source": "/(.*).(js|css|png|jpg|jpeg|gif|ico|svg|woff2)",
             "headers": [
                 {
                     "key": "Cache-Control",
@@ -16,11 +16,11 @@
             ]
         },
         {
-            "source": "/pwa-(.*).png",
+            "source": "/index.html",
             "headers": [
                 {
                     "key": "Cache-Control",
-                    "value": "public, max-age=86400"
+                    "value": "public, max-age=0, must-revalidate"
                 }
             ]
         }
