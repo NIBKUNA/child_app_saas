@@ -4,7 +4,7 @@
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Modified by: Gemini AI (for An Uk-bin)
  * 📅 Date: 2026-01-13
- * 🖋️ Description: "DB Role 우선 정책 적용 및 권한 변경 로직 최적화"
+ * 🖋️ Description: "UI-백엔드 권한 상태 완전 동기화 패치"
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -46,31 +46,34 @@ export function TherapistList() {
     const fetchStaffs = async () => {
         setLoading(true);
         try {
+            // 1. 치료사 정보와 유저 프로필 정보를 동시에 가져옵니다.
             const { data: therapistData } = await supabase.from('therapists').select('*').order('created_at', { ascending: false });
             const { data: profileData } = await supabase.from('user_profiles').select('id, role, email, status, name');
 
             const mergedData = therapistData?.map(t => {
-                const profile = profileData?.find(p => p.id === t.id || p.email === t.email);
+                // ✨ [연결 핵심] 이메일을 기준으로 실제 가입된 프로필을 매칭합니다.
+                const profile = profileData?.find(p => p.email === t.email);
 
-                // ✨ [핵심 수정] DB(user_profiles)의 role을 최우선으로 신뢰합니다.
+                // ✨ [백엔드 직결] UI에서 사용할 역할(Role)은 무조건 DB(user_profiles) 값을 1순위로 합니다.
                 let effectiveRole = profile?.role || 'therapist';
                 let effectiveStatus = profile?.status || 'invited';
 
-                // 퇴사자 상태일 때만 UI 역할을 'retired'로 표시합니다.
+                // 퇴사/비활성화 상태인 경우에만 UI상에서 'retired' 처리를 합니다.
                 if (effectiveStatus === 'retired' || effectiveStatus === 'inactive') {
                     effectiveRole = 'retired';
                 }
 
                 return {
                     ...t,
-                    system_role: effectiveRole, // 이제 DB가 'admin'이면 'admin'으로 정확히 뜹니다.
+                    id: profile?.id || t.id, // 실제 가입된 ID가 있으면 그것을 사용
+                    system_role: effectiveRole, // 이 값이 UI 배지에 직접 전달됩니다.
                     system_status: effectiveStatus
                 };
             });
 
             setStaffs(mergedData || []);
         } catch (error) {
-            console.error("데이터 로딩 실패:", error);
+            console.error("데이터 동기화 실패:", error);
         } finally {
             setLoading(false);
         }
@@ -86,6 +89,7 @@ export function TherapistList() {
 
         try {
             const newStatus = isRetired ? 'active' : 'retired';
+            // 백엔드(user_profiles)의 상태를 물리적으로 변경합니다.
             const { error } = await supabase
                 .from('user_profiles')
                 .update({ status: newStatus })
@@ -130,17 +134,21 @@ export function TherapistList() {
             };
 
             if (editingId) {
-                // 1. therapists 테이블 정보 수정
-                await supabase.from('therapists').update(therapistPayload).eq('id', editingId);
-
-                // 2. [핵심] user_profiles의 권한(role)을 관리자가 선택한 대로 강제 동기화합니다.
-                const { error: profileError } = await supabase.from('user_profiles').update({
-                    role: formData.system_role,
-                    status: formData.system_role === 'retired' ? 'retired' : 'active'
-                }).eq('email', formData.email);
+                // 1. [백엔드 반영] user_profiles의 실제 role을 관리자가 선택한 대로 강제 변경합니다.
+                const { error: profileError } = await supabase
+                    .from('user_profiles')
+                    .update({
+                        role: formData.system_role,
+                        status: (formData.system_role === 'retired') ? 'retired' : 'active'
+                    })
+                    .eq('email', formData.email);
 
                 if (profileError) throw profileError;
-                alert('✅ 정보 및 권한이 수정되었습니다.');
+
+                // 2. 치료사 부가 정보 업데이트
+                await supabase.from('therapists').update(therapistPayload).eq('email', formData.email);
+
+                alert(`✅ ${formData.name}님의 권한이 [${formData.system_role}] (으)로 실시간 변경되었습니다.`);
             } else {
                 await supabase.from('therapists').insert([therapistPayload]);
                 alert('✅ 직원이 등록되었습니다.');
@@ -148,9 +156,9 @@ export function TherapistList() {
 
             setIsModalOpen(false);
             setEditingId(null);
-            fetchStaffs();
+            fetchStaffs(); // ✨ 변경된 백엔드 값을 즉각 다시 불러와 UI를 갱신합니다.
         } catch (error) {
-            alert('❌ 저장 실패: ' + error.message);
+            alert('❌ 저장 및 권한 변경 실패: ' + error.message);
         }
     };
 
@@ -210,7 +218,7 @@ export function TherapistList() {
 
             <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input type="text" placeholder="직원 이름으로 검색..." className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold shadow-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <input type="text" placeholder="직원 이름으로 검색..." className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -227,11 +235,12 @@ export function TherapistList() {
                                 <div>
                                     <h3 className="font-black text-slate-900 flex items-center gap-2 text-lg">
                                         {staff.name}
-                                        {/* ✨ DB role을 기반으로 배지 색상을 결정합니다. */}
+                                        {/* ✨ [UI 동기화 핵심] 백엔드에서 가져온 system_role 값에 따라 배지 색상과 텍스트를 정확히 결정합니다. */}
                                         <span className={cn(
                                             "text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider",
-                                            staff.system_role === 'admin' ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600",
-                                            staff.system_status === 'retired' && "bg-slate-200 text-slate-500"
+                                            staff.system_status === 'retired' ? "bg-slate-200 text-slate-500" :
+                                                staff.system_role === 'admin' ? "bg-rose-100 text-rose-600 border border-rose-200" :
+                                                    "bg-emerald-100 text-emerald-600 border border-emerald-200"
                                         )}>
                                             {staff.system_status === 'retired' ? '퇴사' : (staff.system_role === 'admin' ? 'Admin' : '치료사')}
                                         </span>
@@ -280,6 +289,7 @@ export function TherapistList() {
                                     <select className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-slate-900" value={formData.system_role} onChange={e => setFormData({ ...formData, system_role: e.target.value })}>
                                         <option value="therapist">치료사 (일반)</option>
                                         <option value="admin">관리자 (Admin)</option>
+                                        <option value="retired">퇴사/중지</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
