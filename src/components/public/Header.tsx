@@ -53,6 +53,7 @@ export function Header() {
     const { user, role, signOut } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
+    const { branding } = useCenterBranding(); // ✨ Use Unified Hook
 
     const handleLogout = async () => {
         await signOut();
@@ -60,48 +61,7 @@ export function Header() {
         setIsMenuOpen(false);
     };
 
-    // ✨ [Instant Logo/Name] 기존 캐시 로직 100% 유지
-    const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem(LOGO_CACHE_KEY) || '');
-    const [centerName, setCenterName] = useState(() => localStorage.getItem(NAME_CACHE_KEY) || import.meta.env.VITE_CENTER_NAME || '아동발달센터');
-    const [imageLoaded, setImageLoaded] = useState(false);
-
-    useEffect(() => {
-        const fetchBranding = async () => {
-            try {
-                const { data: settingsData } = await supabase
-                    .from('admin_settings')
-                    .select('key, value')
-                    .in('key', ['center_logo', 'center_name']);
-
-                let finalLogo = '';
-                let finalName = '';
-
-                if (settingsData) {
-                    settingsData.forEach((item: any) => {
-                        if (item.key === 'center_logo') finalLogo = item.value;
-                        if (item.key === 'center_name') finalName = item.value;
-                    });
-                }
-
-                if (!finalName) {
-                    const { data: centerData } = await supabase.from('centers').select('name').limit(1).maybeSingle();
-                    if (centerData?.name) finalName = centerData.name;
-                }
-
-                if (finalLogo) {
-                    setLogoUrl(finalLogo);
-                    localStorage.setItem(LOGO_CACHE_KEY, finalLogo);
-                }
-                if (finalName) {
-                    setCenterName(finalName);
-                    localStorage.setItem(NAME_CACHE_KEY, finalName);
-                }
-            } catch (error) {
-                console.error('Failed to fetch branding:', error);
-            }
-        };
-        fetchBranding();
-    }, []);
+    // ✨ [Clean Code] Internal cache logic removed in favor of hook
 
     const navigation = [
         { name: '홈', href: '/' },
@@ -124,28 +84,19 @@ export function Header() {
                 <div className="flex h-16 items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Link to="/" className={cn("flex items-center gap-2 font-bold text-xl", isDark ? "text-white" : "text-primary")}>
-                            {logoUrl ? (
-                                <div className={`h-8 min-w-[100px] flex items-center ${!imageLoaded ? 'logo-skeleton' : ''}`}>
+                            {branding.logo_url ? (
+                                <div className="h-8 min-w-[100px] flex items-center">
                                     <img
-                                        src={logoUrl}
-                                        alt={centerName}
-                                        className={cn(
-                                            "h-8 w-auto object-contain transition-all duration-150",
-                                            imageLoaded ? 'opacity-100' : 'opacity-0'
-                                        )}
+                                        src={branding.logo_url}
+                                        alt={branding.name}
+                                        className="h-8 w-auto object-contain"
                                         style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
-                                        loading="eager"
-                                        onLoad={() => setImageLoaded(true)}
-                                        onError={() => {
-                                            localStorage.removeItem(LOGO_CACHE_KEY);
-                                            setLogoUrl('');
-                                        }}
                                     />
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <span className="text-2xl">🧸</span>
-                                    <span>{centerName}</span>
+                                    <span>{branding.name}</span>
                                 </div>
                             )}
                         </Link>

@@ -12,6 +12,7 @@
  */
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
@@ -112,6 +113,7 @@ function App() {
       <AuthProvider>
         <ThemeProvider>
           <BrowserRouter>
+            <SEOHead />
             <Routes>
               {/* 1. 공개 페이지 */}
               <Route element={<PublicLayout />}>

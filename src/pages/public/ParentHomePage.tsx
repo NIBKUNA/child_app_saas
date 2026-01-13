@@ -38,6 +38,7 @@ import koLocale from '@fullcalendar/core/locales/ko';
 
 import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyModal';
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
+import { DynamicHomeCareTips } from '@/components/public/DynamicHomeCareTips';
 
 // 🎨 Brand Colors for Chart
 const CHART_COLORS = [
@@ -70,19 +71,14 @@ export function ParentHomePage() {
     // ✨ 관찰 일기 상태
     const [observationText, setObservationText] = useState('');
     const [savingObs, setSavingObs] = useState(false);
+    // ✨ 지능형 홈 케어 팁 상태
+    const [smartTips, setSmartTips] = useState([]);
 
     useEffect(() => {
         if (user?.id) fetchDashboardData();
     }, [user]);
 
     const fetchDashboardData = async () => {
-        // ... (existing code omitted for brevity but presumed same)
-        // Note: For replace_file_content, I must include enough context if I am replacing a big block, 
-        // but here I am just injecting imports and state. 
-        // Wait, I can't easily partially inject state inside the function without replacing the function body start.
-        // So I will replace the start of the component to include state and import.
-
-        // Actually, to make this clean, I will replace the top imports and the component start.
         setLoading(true);
         try {
             // ✨ [자녀 연결 감지] children + family_relationships 체크
@@ -155,6 +151,9 @@ export function ParentHomePage() {
                 // 상담 일지 가져오기
                 // ✨ [FIX] 상담 일지(실제 성장 리포트) 가져오기
                 // consultations(문의)가 아닌 development_assessments(평가) + counseling_logs(내용) 조회
+                // 🚀 [Optimization] SQL 레벨에서 최신 2개만 가져오도록 최적화 (Comparison Logic용)
+                // 단, 전체 리스트가 필요하다면 limit을 없애야 하지만, 성능 문제 지적에 따라 limit을 적용함.
+                // 타임라인 슬라이더가 2개만 나오게 됨.
                 const { data: logs } = await supabase
                     .from('development_assessments')
                     .select(`
@@ -166,7 +165,8 @@ export function ParentHomePage() {
                         counseling_logs (content)
                     `)
                     .eq('child_id', child.id)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(2); // ✨ Optimization: Fetch only latest 2 (Current & Previous)
 
                 // UI에 맞게 데이터 매핑
                 const formattedLogs = logs?.map(log => ({
@@ -181,6 +181,34 @@ export function ParentHomePage() {
                     }
                 }));
                 setAllLogs(formattedLogs || []);
+
+                // ✨ [Smart Logic] 최신 평가 기반 취약 영역 분석 및 팁 추천 (Removed, now handled by DynamicHomeCareTips)
+                // if (formattedLogs && formattedLogs.length > 0) {
+                //     const latest = formattedLogs[0];
+                //     const scores = {
+                //         'communication': latest.score_communication || 0,
+                //         'social': latest.score_social || 0,
+                //         'cognitive': latest.score_cognitive || 0,
+                //         'motor': latest.score_motor || 0,
+                //         'adaptive': latest.score_adaptive || 0
+                //     };
+
+                //     // 점수가 가장 낮은 영역 찾기 (여러 개일 경우 첫 번째)
+                //     const sortedDomains = Object.entries(scores).sort(([, a], [, b]) => a - b);
+                //     const lowestDomain = sortedDomains[0][0]; // e.g., 'social'
+
+                //     console.log('🔍 [Smart Analysis] Lowest Domain:', lowestDomain);
+
+                //     // 해당 영역의 팁 가져오기 (DB 연동)
+                //     const { data: tips } = await supabase
+                //         .from('home_care_tips')
+                //         .select('*')
+                //         .eq('category', lowestDomain)
+                //         .limit(2);
+
+                //     setSmartTips(tips || []);
+                // }
+
             } else {
                 // ✨ [초대 코드 모달] 연결된 자녀가 없으면 모달 표시
                 setShowInvitationModal(true);
@@ -230,7 +258,7 @@ export function ParentHomePage() {
 
     return (
         <div className={cn("min-h-screen font-sans pb-20 transition-colors", isDark ? "bg-slate-950 text-slate-100" : "bg-[#FDFCFB] text-[#1e293b]")}>
-            <Helmet><title>우리 아이 성장 대시보드</title></Helmet>
+            {/* 🚀 [SEO] Global SEOHead가 적용되므로 하드코딩 Helmet 삭제됨 */}
 
             <ConsultationSurveyModal
                 isOpen={isSurveyOpen}
@@ -505,39 +533,23 @@ export function ParentHomePage() {
                             </div>
                         </div>
                     )}
+                    import {DynamicHomeCareTips} from '@/components/public/DynamicHomeCareTips';
+
+                    // ... (rest of imports are fine, handled by context)
+
+                    // Inside ParentHomePage, inside return:
+
+                    {/* 4. 지능형 홈 케어 팁 (Dynamic) */}
+                    <div className="flex items-center gap-2 mb-4 px-2">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-[10px]">✨</div>
+                        <h2 className={cn("text-xl font-black", isDark ? "text-white" : "text-slate-900")}>
+                            {childInfo?.name}를 위한 맞춤 케어 팁
+                        </h2>
+                    </div>
+
+                    <DynamicHomeCareTips latestAssessment={allLogs[0]} />
                 </section>
 
-                {/* Quote Section */}
-                <section className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[48px] p-10 text-center border border-orange-100/30 relative overflow-hidden shadow-sm">
-                    <Quote className="absolute -left-4 -top-4 w-24 h-24 text-orange-200/30" />
-                    <p className="relative z-10 text-orange-800 font-black text-[15px] leading-relaxed italic tracking-tight" style={{ wordBreak: 'keep-all' }}>
-                        "조금 천천히 가도 괜찮아요.<br />아이만의 속도를 믿어주는 부모님은<br />아이의 가장 큰 우주입니다."
-                    </p>
-                </section>
-
-                {/* Home Care Tips Section */}
-                <section className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-100/50 border border-slate-100">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-lg">🏠</div>
-                        <h3 className="text-lg font-black text-slate-900">오늘의 홈 케어 팁</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                            <p className="text-xs font-black text-indigo-600 uppercase tracking-wider mb-2">언어 발달</p>
-                            <p className="text-sm text-slate-600 font-medium leading-relaxed" style={{ wordBreak: 'keep-all' }}>
-                                하루 10분, 아이와 눈을 맞추며 그림책을 함께 읽어보세요.
-                                질문을 던지고 기다려주는 것이 핵심입니다.
-                            </p>
-                        </div>
-                        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                            <p className="text-xs font-black text-rose-600 uppercase tracking-wider mb-2">정서 안정</p>
-                            <p className="text-sm text-slate-600 font-medium leading-relaxed" style={{ wordBreak: 'keep-all' }}>
-                                자기 전 5분간 오늘 있었던 일을 얘기해보세요.
-                                "어떤 기분이었어?"라고 물어봐 주세요.
-                            </p>
-                        </div>
-                    </div>
-                </section>
             </main>
         </div>
     );

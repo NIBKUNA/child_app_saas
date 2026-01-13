@@ -13,9 +13,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
-import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check } from 'lucide-react';
+import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check, Eye } from 'lucide-react';
 import { ChildModal } from './ChildModal';
-// ✨ [Moved] AssessmentFormModal is now in ConsultationList - Developer: 안욱빈
+import { ChildDetailModal } from '@/components/app/children/ChildDetailModal';
 import { cn } from '@/lib/utils';
 
 export function ChildList() {
@@ -26,6 +26,8 @@ export function ChildList() {
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [detailChild, setDetailChild] = useState(null);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
     // 초대 코드 복사
@@ -37,6 +39,11 @@ export function ChildList() {
         } catch (error) {
             console.error('복사 실패:', error);
         }
+    };
+
+    const handleOpenDetail = (child) => {
+        setDetailChild(child);
+        setIsDetailModalOpen(true);
     };
 
     useEffect(() => {
@@ -178,10 +185,17 @@ export function ChildList() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-5 text-slate-600 font-bold">{child.guardian_name || '-'}</td>
-                                            <td className="px-6 py-5 text-center">
+                                            <td className="px-6 py-5 text-center flex items-centerjustify-center gap-2">
+                                                <button
+                                                    onClick={() => handleOpenDetail(child)}
+                                                    className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all hover:shadow-md"
+                                                    title="상세 정보 및 관찰일기 보기"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleEdit(child.id)}
-                                                    className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 group-hover:text-slate-900 group-hover:border-slate-900 transition-all hover:shadow-md"
+                                                    className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all hover:shadow-md"
                                                     title="아동 정보 수정"
                                                 >
                                                     <Pencil className="w-4 h-4" />
@@ -204,6 +218,13 @@ export function ChildList() {
                     onSuccess={() => handleModalClose(true)}
                 />
             )}
+
+            {/* ✨ 상세 보기 모달 (치료사/관리자용) */}
+            <ChildDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                child={detailChild}
+            />
 
         </>
     );
