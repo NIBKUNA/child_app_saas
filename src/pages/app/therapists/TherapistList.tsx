@@ -4,7 +4,7 @@
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Modified by: Gemini AI (for An Uk-bin)
  * 📅 Date: 2026-01-13
- * 🖋️ Description: "이메일 기반 UI-백엔드 완전 동기화 패치"
+ * 🖋️ Description: "UPSERT 로직 도입으로 데이터 자동 생성 및 권한 강제 동기화"
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -32,13 +32,8 @@ export function TherapistList() {
     const [editingId, setEditingId] = useState(null);
 
     const [formData, setFormData] = useState({
-        name: '',
-        contact: '',
-        email: '',
-        hire_type: 'freelancer',
-        system_role: 'therapist',
-        remarks: '',
-        color: '#3b82f6'
+        name: '', contact: '', email: '', hire_type: 'freelancer',
+        system_role: 'therapist', remarks: '', color: '#3b82f6'
     });
 
     useEffect(() => { fetchStaffs(); }, []);
@@ -46,113 +41,87 @@ export function TherapistList() {
     const fetchStaffs = async () => {
         setLoading(true);
         try {
-            // 1. 치료사 목록과 유저 프로필 목록을 가져옵니다.
             const { data: therapistData } = await supabase.from('therapists').select('*').order('created_at', { ascending: false });
             const { data: profileData } = await supabase.from('user_profiles').select('id, role, email, status');
 
             const mergedData = therapistData?.map(t => {
-                // ✨ [핵심] 이메일을 기준으로 실제 가입된 프로필을 강제 매칭합니다.
+                // ✨ 이메일을 기준으로 프로필 매칭 (ID가 달라도 이메일이 같으면 동일인)
                 const profile = profileData?.find(p => p.email === t.email);
 
-                // ✨ [백엔드 동기화] UI 배지에 표시할 역할은 무조건 DB(user_profiles)의 role 값을 따릅니다.
                 let dbRole = profile?.role || 'therapist';
                 let dbStatus = profile?.status || 'invited';
 
                 return {
                     ...t,
-                    system_role: dbRole,    // 이제 DB가 'admin'이면 배지도 빨간색 Admin으로 뜹니다.
+                    system_role: dbRole,    // DB 값을 UI 배지에 직결
                     system_status: dbStatus
                 };
             });
 
             setStaffs(mergedData || []);
         } catch (error) {
-            console.error("데이터 동기화 실패:", error);
+            console.error("데이터 로딩 실패:", error);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleToggleStatus = async (staff) => {
-        const isRetired = staff.system_status === 'retired' || staff.system_status === 'inactive';
-        const confirmMsg = isRetired
-            ? `${staff.name}님을 다시 '재직' 상태로 복구하시겠습니까?`
-            : `${staff.name}님을 '퇴사' 처리하시겠습니까?\n(로그인 및 서비스 이용이 즉시 제한됩니다.)`;
-
-        if (!confirm(confirmMsg)) return;
-
-        try {
-            const newStatus = isRetired ? 'active' : 'retired';
-            // 백엔드 상태를 물리적으로 변경
-            const { error } = await supabase
-                .from('user_profiles')
-                .update({ status: newStatus })
-                .eq('email', staff.email);
-
-            if (error) throw error;
-            alert(isRetired ? '✅ 복구되었습니다.' : '✅ 퇴사 처리가 완료되었습니다.');
-            fetchStaffs();
-        } catch (error) {
-            alert('처리 실패: ' + error.message);
-        }
-    };
-
-    const handleApprove = async (staff) => {
-        if (!confirm(`${staff.name}님을 치료사로 승인하시겠습니까?`)) return;
-        try {
-            const { data: profile } = await supabase.from('user_profiles').select('id, email').eq('email', staff.email).maybeSingle();
-            if (!profile) return alert('⚠️ 사용자가 먼저 회원가입을 완료해야 합니다.');
-
-            const { error: rpcError } = await supabase.rpc('approve_therapist', { target_user_id: profile.id });
-            if (rpcError) throw rpcError;
-
-            await supabase.from('therapists').update({ id: profile.id }).eq('email', staff.email);
-            alert('✅ 승인이 완료되었습니다!');
-            fetchStaffs();
-        } catch (error) {
-            alert(`❌ 오류: ${error.message}`);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const therapistPayload = {
-                name: formData.name,
-                contact: formData.contact,
-                email: formData.email,
-                hire_type: formData.hire_type,
-                remarks: formData.remarks,
-                color: formData.color,
-                center_id: 'd327993a-e558-4442-bac5-1469306c35bb'
-            };
+            // 🚨 [핵심 변경] UPSERT 로직: 데이터가 없으면 생성(Insert), 있으면 수정(Update)
+            // 1. user_profiles 테이블 권한 강제 설정
+            const { error: profileError } = await supabase
+                .from('user_profiles')
+                .upsert({
+                    email: formData.email,
+                    name: formData.name,
+                    role: formData.system_role, // 'admin' 또는 'therapist'
+                    status: (formData.system_role === 'retired') ? 'retired' : 'active',
+                    center_id: 'd327993a-e558-4442-bac5-1469306c35bb' // 잠실 센터 고정
+                }, { onConflict: 'email' }); // 이메일 충돌 시 업데이트 수행
 
-            if (editingId) {
-                // 1. [핵심] user_profiles의 실제 role을 관리자가 선택한 대로 강제 변경합니다.
-                const { error: profileError } = await supabase
-                    .from('user_profiles')
-                    .update({
-                        role: formData.system_role,
-                        status: (formData.system_role === 'retired') ? 'retired' : 'active'
-                    })
-                    .eq('email', formData.email); // 이메일 기준 업데이트로 유실 방지
+            if (profileError) throw profileError;
 
-                if (profileError) throw profileError;
+            // 2. therapists 테이블 정보 자동 생성/수정
+            const { error: therapistError } = await supabase
+                .from('therapists')
+                .upsert({
+                    email: formData.email,
+                    name: formData.name,
+                    contact: formData.contact,
+                    hire_type: formData.hire_type,
+                    remarks: formData.remarks,
+                    color: formData.color,
+                    center_id: 'd327993a-e558-4442-bac5-1469306c35bb'
+                }, { onConflict: 'email' });
 
-                // 2. 치료사 부가 정보 업데이트
-                await supabase.from('therapists').update(therapistPayload).eq('email', formData.email);
+            if (therapistError) throw therapistError;
 
-                alert(`✅ ${formData.name}님의 권한이 [${formData.system_role}] (으)로 실시간 변경되었습니다.`);
-            } else {
-                await supabase.from('therapists').insert([therapistPayload]);
-                alert('✅ 직원이 등록되었습니다.');
-            }
+            alert(`✅ [동기화 성공] ${formData.name}님의 데이터가 생성/수정되었습니다.`);
 
-            setIsModalOpen(false);
-            setEditingId(null);
-            fetchStaffs(); // ✨ 변경된 백엔드 값을 즉시 다시 불러와 UI를 갱신
+            // ✨ [UI 강제 새로고침] DB 값을 화면에 즉각 반영하기 위함
+            window.location.reload();
+
         } catch (error) {
-            alert('❌ 저장 및 권한 변경 실패: ' + error.message);
+            alert('❌ 처리 실패: ' + error.message);
+        }
+    };
+
+    const handleToggleStatus = async (staff) => {
+        const isRetired = staff.system_status === 'retired' || staff.system_status === 'inactive';
+        if (!confirm(`${staff.name}님을 ${isRetired ? '복구' : '퇴사'} 처리하시겠습니까?`)) return;
+
+        try {
+            const { error } = await supabase
+                .from('user_profiles')
+                .update({ status: isRetired ? 'active' : 'retired' })
+                .eq('email', staff.email);
+
+            if (error) throw error;
+            fetchStaffs();
+        } catch (error) {
+            alert('실패: ' + error.message);
         }
     };
 
@@ -163,56 +132,27 @@ export function TherapistList() {
             contact: staff.contact || '',
             email: staff.email || '',
             hire_type: staff.hire_type || 'freelancer',
-            system_role: staff.system_role || 'therapist', // DB에서 가져온 값이 이미 반영됨
+            system_role: staff.system_role || 'therapist',
             remarks: staff.remarks || '',
             color: staff.color || '#3b82f6'
         });
         setIsModalOpen(true);
     };
 
-    const pendingStaffs = staffs.filter(s => s.system_status === 'pending');
     const approvedStaffs = staffs.filter(s => s.system_status !== 'pending' && s.system_status !== 'rejected').filter(s => s.name.includes(searchTerm));
 
     return (
         <div className="space-y-6 pb-20 p-8 bg-slate-50/50 min-h-screen">
             <Helmet><title>직원 관리 - 자라다</title></Helmet>
 
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900">직원 및 권한 관리</h1>
-                    <p className="text-slate-500 font-bold">권한 변경 사항은 DB와 즉시 동기화됩니다.</p>
+                    <p className="text-slate-500 font-bold">UPSERT 로직으로 데이터 부재 문제를 자동 해결합니다.</p>
                 </div>
                 <button onClick={() => { setEditingId(null); setFormData({ name: '', contact: '', email: '', hire_type: 'freelancer', system_role: 'therapist', remarks: '', color: '#3b82f6' }); setIsModalOpen(true); }} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:scale-105 shadow-lg shadow-slate-200">
                     <Plus className="w-5 h-5" /> 직원 직접 등록
                 </button>
-            </div>
-
-            {/* 승인 대기 목록 */}
-            {pendingStaffs.length > 0 && (
-                <div className="bg-amber-50 border-2 border-amber-200 rounded-[32px] p-6 animate-in slide-in-from-top duration-500">
-                    <h2 className="text-lg font-black text-amber-900 mb-4 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5" /> 신규 승인 대기 ({pendingStaffs.length})
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {pendingStaffs.map(staff => (
-                            <div key={staff.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                                <div>
-                                    <p className="font-black text-slate-900">{staff.name}</p>
-                                    <p className="text-xs text-slate-500">{staff.email}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => handleToggleStatus(staff)} className="px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 rounded-xl">거절</button>
-                                    <button onClick={() => handleApprove(staff)} className="px-4 py-2 text-xs font-bold bg-amber-500 text-white rounded-xl hover:bg-slate-900 transition-all shadow-md">승인하기</button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input type="text" placeholder="직원 이름으로 검색..." className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-slate-900 transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -223,18 +163,17 @@ export function TherapistList() {
                     )}>
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl shadow-inner" style={{ backgroundColor: staff.color }}>
+                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl" style={{ backgroundColor: staff.color }}>
                                     {staff.name[0]}
                                 </div>
                                 <div>
                                     <h3 className="font-black text-slate-900 flex items-center gap-2 text-lg">
                                         {staff.name}
-                                        {/* ✨ [UI 렌더링 직결] DB role 값에 따라 배지 색상을 즉각 결정합니다. */}
                                         <span className={cn(
-                                            "text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider",
-                                            staff.system_status === 'retired' ? "bg-slate-200 text-slate-500" :
-                                                staff.system_role === 'admin' ? "bg-rose-100 text-rose-600 border border-rose-200" :
-                                                    "bg-emerald-100 text-emerald-600 border border-emerald-200"
+                                            "text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider border",
+                                            staff.system_status === 'retired' ? "bg-slate-200 text-slate-500 border-slate-300" :
+                                                staff.system_role === 'admin' ? "bg-rose-100 text-rose-600 border-rose-200" :
+                                                    "bg-emerald-100 text-emerald-600 border-emerald-200"
                                         )}>
                                             {staff.system_status === 'retired' ? '퇴사' : (staff.system_role === 'admin' ? 'Admin' : '치료사')}
                                         </span>
@@ -243,18 +182,9 @@ export function TherapistList() {
                                 </div>
                             </div>
                             <div className="flex gap-1">
-                                <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors" title="수정"><Edit2 className="w-4 h-4 text-slate-500" /></button>
-                                <button
-                                    onClick={() => handleToggleStatus(staff)}
-                                    className={cn(
-                                        "p-2.5 rounded-xl transition-all",
-                                        (staff.system_status === 'retired' || staff.system_status === 'inactive')
-                                            ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
-                                            : "bg-rose-50 hover:bg-rose-100 text-rose-400"
-                                    )}
-                                    title={staff.system_status === 'retired' ? "복구" : "퇴사 처리"}
-                                >
-                                    {(staff.system_status === 'retired' || staff.system_status === 'inactive') ? <RotateCcw className="w-4 h-4" /> : <UserMinus className="w-4 h-4" />}
+                                <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors"><Edit2 className="w-4 h-4 text-slate-500" /></button>
+                                <button onClick={() => handleToggleStatus(staff)} className={cn("p-2.5 rounded-xl transition-all", staff.system_status === 'retired' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-400")}>
+                                    {staff.system_status === 'retired' ? <RotateCcw className="w-4 h-4" /> : <UserMinus className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
@@ -262,7 +192,6 @@ export function TherapistList() {
                 ))}
             </div>
 
-            {/* 모달 구조는 동일하되 데이터는 system_role과 연동됨 */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
@@ -274,13 +203,12 @@ export function TherapistList() {
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="space-y-2">
                                 <label className="text-sm font-black text-slate-700 ml-1">이름</label>
-                                <input required className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-slate-900 transition-all" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <input required className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-slate-900" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-black text-slate-700 ml-1">시스템 권한</label>
-                                    {/* ✨ 여기서 변경한 값이 handleSubmit을 통해 user_profiles.role을 직접 바꿉니다. */}
                                     <select className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-slate-900" value={formData.system_role} onChange={e => setFormData({ ...formData, system_role: e.target.value })}>
                                         <option value="therapist">치료사 (일반)</option>
                                         <option value="admin">관리자 (Admin)</option>
