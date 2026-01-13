@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeProvider';
+import { useCenterBranding } from '@/hooks/useCenterBranding';
 
 const LOGO_CACHE_KEY = 'cached_center_logo';
 const NAME_CACHE_KEY = 'cached_center_name';
