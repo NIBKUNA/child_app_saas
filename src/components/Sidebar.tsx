@@ -214,6 +214,7 @@ const MENU_GROUPS = [
         name: '시스템',  // Platform
         icon: Icons.system,
         items: [
+            { name: '전체 센터 관리', path: '/app/admin/centers', icon: Icons.centerStatus, roles: ['super_admin'] },
             { name: '블로그 관리', path: '/app/blog', icon: Icons.blog, roles: ['super_admin'] },
             { name: '사이트 설정', path: '/app/settings', icon: Icons.settings, roles: ['super_admin'] },
         ]

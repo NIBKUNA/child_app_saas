@@ -56,7 +56,7 @@ export function ChildList() {
                 .from('children')
                 .select(`
                     *,
-                    parent_profile:profiles!parent_id(name, email)
+                    parent:parents!parent_id(name, email)
                 `) // ✨ parent_id를 통해 연결된 보호자 계정 정보도 함께 가져옴
                 .order('name');
 
@@ -172,10 +172,10 @@ export function ChildList() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-5">
-                                                {child.parent_profile ? (
+                                                {child.parent ? (
                                                     <div className="flex items-center gap-2 text-emerald-600 font-black">
                                                         <LinkIcon className="w-3.5 h-3.5" />
-                                                        <span className="text-xs">{child.parent_profile.name} 계정</span>
+                                                        <span className="text-xs">{child.parent?.name || '보호자'} 계정</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-slate-300 font-bold">

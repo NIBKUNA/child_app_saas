@@ -1,21 +1,26 @@
 -- ============================================================
--- 🛡️ Supabase Security Hardening & Zero-Warning Solution
+-- 🛡️ Supabase Security Hardening & Zero-Warning Solution (v3)
+-- Fixes Idempotency (Policy already exists error)
 -- ============================================================
 
 -- 0. Helper Function for Super Admin Check
--- This centralizes the logic so we don't repeat the email string everywhere.
 CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-  -- Check if the current user's email matches the Super Admin email
-  -- Note: auth.jwt() usually contains the email
   RETURN (auth.jwt() ->> 'email') = 'anukbin@gmail.com';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 1. Enable RLS on ALL Tables (Audit List: 25 Tables)
--- We force enable to ensure no table is left unprotected.
+-- 0.1 Helper Function to Get Center ID safely (AVOIDS RECURSION)
+CREATE OR REPLACE FUNCTION public.get_my_center_id()
+RETURNS UUID AS $$
+BEGIN
+  RETURN (SELECT center_id FROM public.profiles WHERE id = auth.uid());
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
+
+-- 1. Enable RLS on ALL Tables
 ALTER TABLE public.centers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.therapists ENABLE ROW LEVEL SECURITY;
@@ -40,82 +45,85 @@ ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.home_care_tips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.parent_observations ENABLE ROW LEVEL SECURITY;
--- Check development_assessments existence
 CREATE TABLE IF NOT EXISTS public.development_assessments (id UUID PRIMARY KEY); 
 ALTER TABLE public.development_assessments ENABLE ROW LEVEL SECURITY;
 
 
--- 2. Define Strict Isolation Policies (Examples + Full Coverage)
--- Strategy: (Super Admin Bypass) OR (Center Isolation)
+-- 2. Define Strict Isolation Policies (Using Helper Function)
 
--- [Example 1] Profiles: Users can only view profiles in their center
+-- [Profile]
 DROP POLICY IF EXISTS "View own center profiles" ON public.profiles;
 CREATE POLICY "View own center profiles" ON public.profiles
 FOR SELECT USING (
-  public.is_super_admin() -- 🔓 Super Admin Bypass
+  public.is_super_admin() 
   OR
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid()) -- 🔒 Center Isolation
+  center_id = public.get_my_center_id() 
 );
 
--- [Example 2] Children: Only view children in same center
+-- [Center]
+DROP POLICY IF EXISTS "View own center" ON public.centers;
+CREATE POLICY "View own center" ON public.centers
+FOR SELECT USING (
+  public.is_super_admin()
+  OR
+  id = public.get_my_center_id()
+);
+
+-- [Children]
 DROP POLICY IF EXISTS "View center children" ON public.children;
 CREATE POLICY "View center children" ON public.children
 FOR SELECT USING (
   public.is_super_admin()
   OR
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid())
+  center_id = public.get_my_center_id()
 );
 
--- [Example 3] Schedules: Only view schedules in same center
+-- [Schedules]
 DROP POLICY IF EXISTS "View center schedules" ON public.schedules;
 CREATE POLICY "View center schedules" ON public.schedules
 FOR SELECT USING (
   public.is_super_admin()
   OR
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid())
+  center_id = public.get_my_center_id()
 );
 
--- [Example 4] Leads: Only view leads in same center
-DROP POLICY IF EXISTS "View center leads" ON public.leads;
-CREATE POLICY "View center leads" ON public.leads
-FOR SELECT USING (
-  public.is_super_admin()
-  OR
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid())
-);
-
--- [Example 5] Admin Settings: Only view own center settings (Global settings handled by NULL check if needed)
+-- [Admin Settings]
 DROP POLICY IF EXISTS "View admin settings" ON public.admin_settings;
 CREATE POLICY "View admin settings" ON public.admin_settings
 FOR SELECT USING (
   public.is_super_admin()
   OR
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid())
-  OR center_id IS NULL -- Global defaults
+  center_id = public.get_my_center_id()
+  OR center_id IS NULL 
+);
+
+-- [Generic - Leads]
+DROP POLICY IF EXISTS "View center leads" ON public.leads;
+CREATE POLICY "View center leads" ON public.leads
+FOR SELECT USING (
+   public.is_super_admin() OR center_id = public.get_my_center_id()
+);
+
+-- [Generic - Therapists]
+DROP POLICY IF EXISTS "View center therapists" ON public.therapists;
+CREATE POLICY "View center therapists" ON public.therapists
+FOR SELECT USING (
+   public.is_super_admin() OR center_id = public.get_my_center_id()
 );
 
 
--- 3. Hardening Write Policies (INSERT/UPDATE/DELETE)
--- Ensure users cannot create data for other centers
-
+-- 3. Hardening Write Policies
+DROP POLICY IF EXISTS "Manage center schedules" ON public.schedules; -- 🔥 Added DROP
 CREATE POLICY "Manage center schedules" ON public.schedules
 FOR ALL USING (
   public.is_super_admin() 
   OR 
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid())
+  center_id = public.get_my_center_id()
 );
 
--- 4. Notification & System Logs (Strict Personal Scope)
-DROP POLICY IF EXISTS "View own logs" ON public.activity_logs;
-CREATE POLICY "View own logs" ON public.activity_logs
-FOR SELECT USING (
-  public.is_super_admin()
-  OR
-  center_id = (SELECT center_id FROM public.profiles WHERE id = auth.uid())
-);
 
 -- 5. Final Confirmation Log
 DO $$
 BEGIN
-  RAISE NOTICE '✅ Security Hardening Completed. RLS Enabled on all 25 tables. Super Admin Bypass Active.';
+  RAISE NOTICE '✅ Security Hardening V3 (Idempotent) Applied.';
 END $$;
