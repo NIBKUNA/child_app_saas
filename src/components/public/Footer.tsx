@@ -64,12 +64,13 @@ export function Footer() {
 
                     {/* Brand Column */}
                     <div className="md:col-span-4 space-y-6">
+                        {/* Brand Logo - Fixed to Platform Brand */}
                         <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 group">
                             <span className="text-3xl font-black tracking-tighter text-slate-900 group-hover:text-indigo-600 transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                                 <span className="text-indigo-600 mr-0.5">Z</span>arada
                             </span>
                         </a>
-                        <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+                        <p className="text-sm text-slate-500 leading-relaxed max-w-xs mt-4">
                             아이들의 <span className="text-slate-700 font-medium">무한한 가능성</span>을 <span className="text-slate-700 font-medium">데이터</span>로 증명하는<br />
                             아동 발달 솔루션 플랫폼, <span className="text-indigo-600 font-semibold">자라다</span>입니다.
                         </p>
