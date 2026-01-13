@@ -30,7 +30,7 @@ const DEFAULT_BRANDING: CenterBranding = {
 
 export function useCenterBranding() {
     const { user } = useAuth();
-    const [branding, setBranding] = useState<CenterBranding>(DEFAULT_BRANDING);
+    const [branding, setBranding] = useState<CenterBranding>({ ...DEFAULT_BRANDING, name: '' });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -48,20 +48,33 @@ export function useCenterBranding() {
                     centerId = profile?.center_id || '';
                 }
 
-                // 2. If no user or no center (e.g. public page or public user), 
-                // In a real multi-tenant app with subdomains, we would parse window.location.hostname
-                // For now, if no centerId, we might fetch the first one as fallback OR allow "Global" via a specific query param.
-                // However, to fix the "limit(1)" issue safely:
-                // If we can't identify the center, we should show "Platform Default" or nothing precise.
-                // But for this project context, if user is not logged in, maybe we fallback to a "Demo Center" or just keep default.
-                // Let's assume there is at least one center and we might pick specific one via ENV or DB config if needed.
-                // For safety: if no centerId, return DEFAULT.
-
+                // 2. If no user, check Domain (Public Access)
                 if (!centerId) {
-                    // Fallback for demo/dev: Try to get the first center ONLY if we truly have no context.
-                    // But 'limit(1)' was the bug. Ideally we shouldn't do this.
-                    // Let's check if there's an environment variable for DEFAULT_CENTER_ID
-                    // centerId = import.meta.env.VITE_DEFAULT_CENTER_ID;
+                    const hostname = window.location.hostname;
+                    // For dev/test, if localhost, we might want a fallback or just specific logic
+                    // Query admin_settings for the domain
+                    // We assume there is a setting key 'domain_url' that stores the hostname
+                    const { data: domainSetting } = await supabase
+                        .from('admin_settings')
+                        .select('center_id')
+                        .eq('key', 'domain_url')
+                        .ilike('value', `%${hostname}%`) // Flexible match
+                        .maybeSingle(); // Use maybeSingle to avoid 406/errors if not found
+
+                    if (domainSetting) {
+                        centerId = domainSetting.center_id;
+                    } else {
+                        // Fallback: If no domain match (e.g. localhost initial), 
+                        // attempt to fetch the "Main" center or first one to avoid empty screen
+                        // For this SaaS, we'll fetch the first created center as default
+                        const { data: firstCenter } = await supabase
+                            .from('centers')
+                            .select('id')
+                            .order('created_at', { ascending: true })
+                            .limit(1)
+                            .maybeSingle();
+                        if (firstCenter) centerId = firstCenter.id;
+                    }
                 }
 
                 if (centerId) {
@@ -84,7 +97,7 @@ export function useCenterBranding() {
 
                         setBranding({
                             id: center.id,
-                            name: settingsMap['center_name'] || center.name, // Setting overrides DB column
+                            name: settingsMap['center_name'] || center.name,
                             logo_url: settingsMap['center_logo'] || center.logo_url,
                             phone: settingsMap['center_phone'] || center.phone,
                             address: settingsMap['center_address'] || center.address,

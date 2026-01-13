@@ -95,9 +95,17 @@ export function Header() {
                                     />
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-2xl">🧸</span>
-                                    <span>{branding.name}</span>
+                                <div className="flex items-center gap-1 font-black">
+                                    {branding.name ? (
+                                        <>
+                                            {/* ✨ 'Z' Point Design: First char colored */}
+                                            <span className="text-2xl text-primary">{branding.name.charAt(0)}</span>
+                                            <span className="text-xl">{branding.name.slice(1)}</span>
+                                        </>
+                                    ) : (
+                                        /* Skeleton / Loading State */
+                                        <div className="h-6 w-32 bg-slate-200 animate-pulse rounded"></div>
+                                    )}
                                 </div>
                             )}
                         </Link>

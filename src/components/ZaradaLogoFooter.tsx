@@ -17,22 +17,16 @@ export function ZaradaLogoFooter() {
                 />
             ) : (
                 /* Fallback to Text Logo if no image */
-                <div className="relative inline-block">
-                    <div className="absolute rounded-full bg-[#6ABF69]" style={{ top: '-12px', right: '10px', width: '8px', height: '8px' }} />
-                    <span
-                        style={{
-                            fontFamily: "sans-serif", // Simplified for generic
-                            fontSize: '48px',
-                            fontWeight: 800,
-                            letterSpacing: '1px',
-                            background: 'linear-gradient(90deg, #5BC4D4, #6B9FD6, #8B7BBF)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text'
-                        }}
-                    >
-                        {branding.name}
-                    </span>
+                <div className="relative inline-block font-black text-3xl tracking-tight">
+                    {/* ✨ 'Z' Point Design */}
+                    {branding.name ? (
+                        <>
+                            <span className="text-primary text-4xl mr-0.5">{branding.name.charAt(0)}</span>
+                            <span className="text-slate-900">{branding.name.slice(1)}</span>
+                        </>
+                    ) : (
+                        <div className="h-8 w-40 bg-slate-200 animate-pulse rounded"></div>
+                    )}
                 </div>
             )}
         </footer>
