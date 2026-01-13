@@ -16,7 +16,9 @@ BEGIN
     END;
     
     IF v_email IS NULL THEN
-        RETURN jsonb_build_object('success', false, 'message', 'User not found in profiles');
+        -- ✨ [Robustness] 프로필이 없어도 진행 (이미 삭제된 유저의 잔재일 수 있음)
+        RAISE NOTICE 'User not found in profiles, proceeding with cleanup of therapists table only.';
+        -- Return early if purely clean? No, we should try to clean therapists table at least.
     END IF;
 
     -- 2. Delete from therapists table

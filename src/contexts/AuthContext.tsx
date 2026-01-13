@@ -116,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         // 이미 로드되었고 강제 업데이트가 아니면 스킵 (초기 로딩 시)
+        // 하지만 role이 null이거나 parent인 경우(권한 상승 대기 등)는 재확인 필요할 수 있음
         if (!forceUpdate && role && initialLoadComplete.current) return;
 
         if (!initialLoadComplete.current) setLoading(true);
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             // ✨ [Direct DB Query] 항상 최신 권한을 가져옴
             const { data, error } = await supabase
-                .from('profiles') // ✨ user_profiles -> profiles (Schema Alignment)
+                .from('user_profiles') // ✨ profiles -> user_profiles (Requested by User)
                 .select('*') // 모든 프로필 정보 가져옴
                 .eq('id', user.id)
                 .maybeSingle();
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (isMounted.current) {
                 if (data) {
                     const dbRole = (data.role as UserRole) || 'parent';
-                    console.log(`[Auth] Role Synced: ${dbRole} (${data.email})`);
+                    console.log(`[Auth] Role Synced (user_profiles): ${dbRole} (${data.email})`);
 
                     // ✨ [Security] 퇴사자나 비활성 사용자는 강제로 접근 차단
                     if (data.status === 'inactive' || data.status === 'banned' || dbRole === 'retired') {
@@ -169,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     localStorage.setItem(ROLE_CACHE_KEY, dbRole);
                 } else {
                     // 프로필이 없는 경우 (아직 생성 전)
-                    console.warn('[Auth] No profile found, defaulting to parent');
+                    console.warn('[Auth] No user_profile found, defaulting to parent');
                     setRole('parent');
                 }
             }
@@ -188,12 +189,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchRole();
 
         // ✨ [Real-time] 내 권한이 변경되면 즉시 반영 (Supabase Realtime)
-        const channel = supabase.channel(`public:profiles:id=eq.${user?.id}`)
+        // user_profiles 테이블의 변경사항을 감지
+        const channel = supabase.channel(`public:user_profiles:id=eq.${user?.id}`)
             .on('postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` },
+                { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${user?.id}` },
                 (payload) => {
-                    console.log('[Auth] Role updated via Realtime:', payload.new.role);
-                    fetchRole(true); // 강제 업데이트
+                    console.log('[Auth] Role updated via Realtime (user_profiles):', payload.new.role);
+                    setRole(payload.new.role as UserRole); // 화면 즉시 반영
+                    fetchRole(true); // 전체 프로필 데이터 재동기화
                 })
             .subscribe();
 

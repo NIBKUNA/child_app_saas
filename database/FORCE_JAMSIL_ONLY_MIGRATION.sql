@@ -38,17 +38,19 @@ DELETE FROM public.centers
 WHERE id != 'd327993a-e558-4442-bac5-1469306c35bb';
 
 -- 8. Ensure Jamsil Center Exists (Upsert)
-INSERT INTO public.centers (id, name, address, phone, is_active)
+INSERT INTO public.centers (id, name, address, phone, slug)
 VALUES (
     'd327993a-e558-4442-bac5-1469306c35bb',
-    '자라다보일 잠실점',
-    '서울 송파구 올림픽로 300 롯데월드타워 10층',
-    '02-1234-5678',
-    true
+    '자라다 아동심리발달센터 잠실점',
+    '서울특별시 송파구 석촌호수로12길 51 201호',
+    '02-416-2213',
+    'jamsil'
 )
 ON CONFLICT (id) DO UPDATE
-SET is_active = true,
-    name = '자라다보일 잠실점';
+SET name = '자라다 아동심리발달센터 잠실점',
+    address = '서울특별시 송파구 석촌호수로12길 51 201호',
+    phone = '02-416-2213',
+    slug = 'jamsil';
 
 COMMIT;
 
