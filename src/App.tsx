@@ -29,6 +29,8 @@ import { ProgramsPage } from '@/pages/public/ProgramsPage';
 import { ContactPage } from '@/pages/public/ContactPage';
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
+import { ForgotPassword } from '@/pages/auth/ForgotPassword';
+import { UpdatePassword } from '@/pages/auth/UpdatePassword';
 import { BlogPage } from '@/pages/public/BlogPage';
 import { BlogPostPage } from '@/pages/public/BlogPostPage';
 
@@ -128,8 +130,11 @@ function App() {
               </Route>
 
               {/* 2. 로그인/회원가입 */}
+              {/* 2. 로그인/회원가입 */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/update-password" element={<UpdatePassword />} />
 
               {/* 3. 학부모 전용 구역 */}
               <Route element={<ProtectedRoute allowedRoles={['parent', 'admin']} />}>

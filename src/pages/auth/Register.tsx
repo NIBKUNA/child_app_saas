@@ -40,7 +40,7 @@ export function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [centerId, setCenterId] = useState('');
+    const [centerId, setCenterId] = useState(import.meta.env.VITE_CENTER_ID || ''); // ✨ Auto Assign
 
     const [centers, setCenters] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -245,25 +245,19 @@ export function Register() {
                 />
 
                 <form className="space-y-5" onSubmit={handleRegister}>
-                    {/* 센터 선택 */}
-                    <div className="space-y-1">
-                        <label className={cn(
-                            "text-xs font-black ml-1",
-                            isDark ? "text-slate-500" : "text-slate-400"
-                        )}>
-                            소속 센터
-                        </label>
-                        <select
-                            required
-                            value={centerId}
-                            onChange={(e) => setCenterId(e.target.value)}
-                            className={inputClass}
-                        >
-                            <option value="">다니시는 센터 선택</option>
-                            {centers.map((c: any) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </select>
+                    {/* 센터 선택 (자동 할당) */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">가입 센터</p>
+                                <p className="text-sm font-black text-slate-800 dark:text-slate-200">
+                                    {import.meta.env.VITE_SITE_TITLE || '잠실 아동심리발달센터'}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
 
@@ -286,26 +280,32 @@ export function Register() {
                         )}
                     </div>
 
-                    {/* 이용약관 동의 */}
+                    {/* 이용약관 동의 (Simplified) */}
                     <div className="flex items-start gap-3 px-1">
                         <input
                             type="checkbox"
                             id="terms"
                             required
-                            className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
-                        <label htmlFor="terms" className={cn("text-xs leading-relaxed", isDark ? "text-slate-400" : "text-slate-500")}>
-                            <span
+                        <label htmlFor="terms" className={cn("text-xs leading-relaxed cursor-pointer select-none", isDark ? "text-slate-400" : "text-slate-500")}>
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400">[필수]</span> Zarada Platform의{' '}
+                            <button
+                                type="button"
                                 onClick={(e) => { e.preventDefault(); setModalType('terms'); }}
-                                className="font-bold underline cursor-pointer hover:text-indigo-500"
+                                className="font-bold underline hover:text-indigo-500"
                             >
                                 이용약관
-                            </span> 및 <span
+                            </button>
+                            {' '}및{' '}
+                            <button
+                                type="button"
                                 onClick={(e) => { e.preventDefault(); setModalType('privacy'); }}
-                                className="font-bold underline cursor-pointer hover:text-indigo-500"
+                                className="font-bold underline hover:text-indigo-500"
                             >
                                 개인정보 처리방침
-                            </span>을 확인하였으며, 이에 동의합니다. (필수)
+                            </button>
+                            에 모두 동의합니다.
                         </label>
                     </div>
 

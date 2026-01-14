@@ -35,13 +35,17 @@ export function ImageUploader({
             const file = e.target.files?.[0];
             if (!file) return;
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
+            // ✨ Image Optimization (WebP + Resize)
+            const { compressImage } = await import('@/utils/imageOptimizer');
+            const optimizedFile = await compressImage(file);
+
+            const fileExt = 'webp'; // Always WebP now
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from(bucketName)
-                .upload(filePath, file);
+                .upload(filePath, optimizedFile);
 
             if (uploadError) throw uploadError;
 

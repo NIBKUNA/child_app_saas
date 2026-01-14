@@ -12,6 +12,8 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { JAMSIL_CENTER_ID } from '@/config/center';
+import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     MessageCircle, Phone, Clock, FileText, UserPlus,
     ShieldCheck, RefreshCcw, AlertCircle, Trash2,
@@ -34,6 +36,7 @@ export default function ConsultationInquiryList() {
                 .from('consultations')
                 .select('*')
                 .is('schedule_id', null)
+                .eq('center_id', JAMSIL_CENTER_ID) // ✨ [SECURITY] Enforce Center ID Filter
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -97,9 +100,29 @@ export default function ConsultationInquiryList() {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">상담 문의 센터</h1>
                     <p className="text-slate-500 font-bold mt-2">비회원 문의부터 상담 기록까지 한 화면에서 관리하세요.</p>
                 </div>
-                <button onClick={fetchData} className="p-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-lg shadow-indigo-100 group">
-                    <RefreshCcw className="w-5 h-5 text-white group-hover:rotate-180 transition-all duration-500" />
-                </button>
+                <div className="flex gap-2">
+                    {/* ✨ [Export] Excel Download Button */}
+                    <ExcelExportButton
+                        data={inquiries}
+                        fileName="상담문의_목록"
+                        headers={['child_name', 'child_gender', 'guardian_name', 'guardian_phone', 'preferred_consult_schedule', 'primary_concerns', 'status', 'marketing_source', 'inflow_source', 'created_at']}
+                        headerLabels={{
+                            child_name: '아동명',
+                            child_gender: '성별',
+                            guardian_name: '보호자명',
+                            guardian_phone: '연락처',
+                            preferred_consult_schedule: '희망일정',
+                            primary_concerns: '주호소',
+                            status: '상태',
+                            marketing_source: '유입경로(UTM)',
+                            inflow_source: '유입경로(설문)',
+                            created_at: '접수일시'
+                        }}
+                    />
+                    <button onClick={fetchData} className="p-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-lg shadow-indigo-100 group">
+                        <RefreshCcw className="w-5 h-5 text-white group-hover:rotate-180 transition-all duration-500" />
+                    </button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 gap-8">

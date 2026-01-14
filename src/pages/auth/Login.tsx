@@ -56,21 +56,30 @@ export function Login() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [rememberMe, setRememberMeState] = useState(getRememberMe()); // ✨ 로그인 유지 체크박스
+    const [rememberMe, setRememberMeState] = useState(getRememberMe());
+    const [selectedTab, setSelectedTab] = useState<'parent' | 'teacher' | 'admin'>('parent'); // ✨ Tab State
     const navigate = useNavigate();
+
+    // ✨ Agreement Modal State
+    const [showAgreement, setShowAgreement] = useState(false);
 
     // ✨ [OAuth 콜백 처리] OAuth 로그인 후 돌아왔을 때만 세션 체크
     useEffect(() => {
         async function handleOAuthCallback() {
-            // URL에 access_token이나 code가 있을 때만 (OAuth 콜백일 때만) 세션 체크
             const hash = window.location.hash;
             const params = new URLSearchParams(window.location.search);
             const isOAuthCallback = hash.includes('access_token') || params.has('code');
 
-            if (!isOAuthCallback) return; // OAuth 콜백이 아니면 아무것도 안 함
+            if (!isOAuthCallback) return;
 
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
+                // 🛡️ Super Admin Whitelist (Bypass Consent)
+                if (session.user.email === 'anukbin@gmail.com') {
+                    navigate('/app/dashboard');
+                    return;
+                }
+
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role, center_id, status')
@@ -83,8 +92,8 @@ export function Login() {
                     else if (profile.role === 'therapist') navigate('/app/schedule');
                     else navigate('/parent/home');
                 } else {
-                    // 신규 유저 -> 가입 페이지로
-                    navigate('/register');
+                    // ✨ 신규 유저 or 프로필 미완성 -> 약관 동의 모달 표시
+                    setShowAgreement(true);
                 }
             }
         }
@@ -97,7 +106,6 @@ export function Login() {
         setError(null);
 
         try {
-            // ✨ [로그인 유지] 체크 여부에 따라 세션 스토리지 결정
             setRememberMe(rememberMe);
 
             const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
@@ -108,6 +116,12 @@ export function Login() {
             if (authError) throw authError;
 
             if (user) {
+                // 🛡️ Super Admin Whitelist
+                if (user.email === 'anukbin@gmail.com') {
+                    navigate('/app/dashboard');
+                    return;
+                }
+
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('role')
@@ -141,6 +155,17 @@ export function Login() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAgree = () => {
+        // ✨ 약관 동의 후 회원가입 페이지로 이동
+        navigate('/register');
+    };
+
+    const handleDisagree = async () => {
+        // 🛑 동의 거부 시 로그아웃 및 홈으로
+        await supabase.auth.signOut();
+        navigate('/');
     };
 
     return (
@@ -181,118 +206,55 @@ export function Login() {
                         </p>
                     </div>
 
-                    <form className="mt-8 space-y-5" onSubmit={handleLogin}>
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="email" className={cn(
-                                    "block text-xs font-black ml-1 mb-1",
-                                    isDark ? "text-slate-500" : "text-slate-400"
-                                )}>
-                                    이메일 주소
-                                </label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className={cn(
-                                        "block w-full rounded-2xl border px-4 py-3.5 text-sm font-bold outline-none transition-all",
-                                        isDark
-                                            ? "border-slate-700 bg-slate-800 text-white placeholder-slate-500 focus:bg-slate-700 focus:ring-4 focus:ring-indigo-500/20"
-                                            : "border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                                    )}
-                                    placeholder="example@email.com"
-                                />
-                            </div>
+                    {/* ✨ 3-Tier Login Tabs */}
+                    <div className="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl relative">
+                        <div className={cn(
+                            "absolute inset-y-1 w-1/3 bg-white dark:bg-slate-700 rounded-xl shadow-sm transition-all duration-300 ease-spring",
+                            selectedTab === 'parent' ? "left-1" : selectedTab === 'teacher' ? "left-[33.33%] translate-x-0.5" : "left-[66.66%]"
+                        )} />
 
-                            <div>
-                                <label htmlFor="password" className={cn(
-                                    "block text-xs font-black ml-1 mb-1",
-                                    isDark ? "text-slate-500" : "text-slate-400"
-                                )}>
-                                    비밀번호
-                                </label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className={cn(
-                                        "block w-full rounded-2xl border px-4 py-3.5 text-sm font-bold outline-none transition-all",
-                                        isDark
-                                            ? "border-slate-700 bg-slate-800 text-white placeholder-slate-500 focus:bg-slate-700 focus:ring-4 focus:ring-indigo-500/20"
-                                            : "border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-                                    )}
-                                    placeholder="••••••••"
-                                />
-                            </div>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedTab('parent')}
+                            className={cn(
+                                "flex-1 py-2.5 text-sm font-bold relative z-10 transition-colors rounded-xl",
+                                selectedTab === 'parent'
+                                    ? "text-slate-900 dark:text-white"
+                                    : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                            )}
+                        >
+                            부모님
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedTab('teacher')}
+                            className={cn(
+                                "flex-1 py-2.5 text-sm font-bold relative z-10 transition-colors rounded-xl",
+                                selectedTab === 'teacher'
+                                    ? "text-slate-900 dark:text-white"
+                                    : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                            )}
+                        >
+                            선생님
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setSelectedTab('admin')}
+                            className={cn(
+                                "flex-1 py-2.5 text-sm font-bold relative z-10 transition-colors rounded-xl",
+                                selectedTab === 'admin'
+                                    ? "text-slate-900 dark:text-white"
+                                    : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                            )}
+                        >
+                            관리자
+                        </button>
+                    </div>
 
-                        {error && (
-                            <div className="rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 text-xs font-bold text-red-500 dark:text-red-400 border border-red-100 dark:border-red-800">
-                                {error}
-                            </div>
-                        )}
-
-                        {/* ✨ 로그인 상태 유지 체크박스 */}
-                        <div className="flex items-center gap-3 pt-2">
-                            <input
-                                id="remember-me"
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMeState(e.target.checked)}
-                                className={cn(
-                                    "w-5 h-5 rounded-lg border-2 cursor-pointer transition-all accent-indigo-600",
-                                    isDark
-                                        ? "border-slate-600 bg-slate-800"
-                                        : "border-slate-300 bg-white"
-                                )}
-                            />
-                            <label htmlFor="remember-me" className={cn(
-                                "text-sm font-bold cursor-pointer select-none",
-                                isDark ? "text-slate-400" : "text-slate-600"
-                            )}>
-                                로그인 상태 유지
-                            </label>
-                        </div>
-
-                        <div className="pt-2">
-                            {/* Login Button */}
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className={cn(
-                                    "flex w-full justify-center items-center py-4 px-4 text-sm font-black rounded-2xl shadow-lg transition-all",
-                                    "bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-[1.02] active:scale-95",
-                                    "shadow-indigo-500/25",
-                                    loading && "opacity-80 cursor-not-allowed"
-                                )}
-                            >
-                                {loading ? (
-                                    <>
-                                        {Icons.loader("w-5 h-5 animate-spin mr-2")}
-                                        로그인 중...
-                                    </>
-                                ) : '로그인'}
-                            </button>
-                        </div>
-
-                        {/* ✨ 소셜 로그인 구분선 */}
-                        <div className="relative my-6">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className={cn("w-full border-t", isDark ? "border-slate-700" : "border-slate-200")} />
-                            </div>
-                            <div className="relative flex justify-center text-xs">
-                                <span className={cn("px-4 font-bold", isDark ? "bg-slate-900 text-slate-500" : "bg-white text-slate-400")}>
-                                    또는
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* ✨ 소셜 로그인 버튼 */}
-                        <div className="space-y-3">
+                    <div className="pt-2">
+                        {/* ✨ 소셜 로그인 버튼 (Priority) */}
+                        <div className="space-y-3 mb-8">
+                            {/* ✨ Google (Primary) */}
                             <button
                                 type="button"
                                 onClick={async () => {
@@ -301,14 +263,8 @@ export function Login() {
                                             provider: 'google',
                                             options: { redirectTo: `${window.location.origin}/login` }
                                         });
-                                        if (error) {
-                                            console.error('Google OAuth error:', error);
-                                            alert('Google 로그인 오류: ' + error.message);
-                                        }
-                                    } catch (err: any) {
-                                        console.error('Google OAuth exception:', err);
-                                        alert('Google 로그인 오류: ' + err.message);
-                                    }
+                                        if (error) alert('Google 로그인 오류: ' + error.message);
+                                    } catch (err: any) { alert('Google 로그인 오류: ' + err.message); }
                                 }}
                                 className={cn(
                                     "flex w-full items-center justify-center gap-3 py-3.5 px-4 rounded-2xl border-2 font-bold text-sm transition-all hover:scale-[1.02]",
@@ -321,6 +277,7 @@ export function Login() {
                                 Google로 계속하기
                             </button>
 
+                            {/* ✨ Kakao (Secondary) */}
                             <button
                                 type="button"
                                 onClick={async () => {
@@ -329,52 +286,198 @@ export function Login() {
                                             provider: 'kakao',
                                             options: { redirectTo: `${window.location.origin}/login` }
                                         });
-                                        if (error) {
-                                            console.error('Kakao OAuth error:', error);
-                                            alert('카카오 로그인 오류: ' + error.message);
-                                        }
-                                    } catch (err: any) {
-                                        console.error('Kakao OAuth exception:', err);
-                                        alert('카카오 로그인 오류: ' + err.message);
-                                    }
+                                        if (error) alert('카카오 로그인 오류: ' + error.message);
+                                    } catch (err: any) { alert('카카오 로그인 오류: ' + err.message); }
                                 }}
-                                className="flex w-full items-center justify-center gap-3 py-3.5 px-4 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FDD800]"
+                                className="flex w-full items-center justify-center gap-3 py-4 px-4 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-95 bg-[#FEE500] text-[#3C1E1E] hover:bg-[#FDD800] shadow-sm"
                             >
-                                {Icons.kakao("w-5 h-5")}
-                                카카오로 계속하기
+                                {Icons.kakao("w-6 h-6")}
+                                카카오톡으로 계속하기
                             </button>
                         </div>
 
-                        <div className="text-center space-y-4">
-                            <div className={cn(
-                                "text-sm font-medium",
-                                isDark ? "text-slate-400" : "text-slate-500"
-                            )}>
-                                계정이 없으신가요?
-                                {/* Register Link - indigo-600 / indigo-400 for dark */}
-                                <Link
-                                    to="/register"
-                                    className={cn(
-                                        "ml-1 font-bold hover:underline",
-                                        isDark ? "text-indigo-400" : "text-indigo-600"
-                                    )}
-                                >
-                                    회원가입
-                                </Link>
+                        {/* ✨ Divider */}
+                        <div className="relative mb-8">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className={cn("w-full border-t", isDark ? "border-slate-800" : "border-slate-200")} />
                             </div>
-                            <Link
-                                to="/"
+                            <div className="relative flex justify-center text-xs">
+                                <span className={cn("px-4 font-bold rounded-full", isDark ? "bg-slate-900 text-slate-600" : "bg-white text-slate-400")}>
+                                    또는 이메일로 로그인
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Email Form */}
+                        <form className="space-y-5" onSubmit={handleLogin}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="email" className={cn(
+                                        "block text-xs font-black ml-1 mb-1",
+                                        isDark ? "text-slate-500" : "text-slate-400"
+                                    )}>
+                                        이메일 주소
+                                    </label>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className={cn(
+                                            "block w-full rounded-2xl border px-4 py-3.5 text-sm font-bold outline-none transition-all",
+                                            isDark
+                                                ? "border-slate-700 bg-slate-800 text-white placeholder-slate-600 focus:bg-slate-700 focus:ring-4 focus:ring-indigo-500/20"
+                                                : "border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+                                        )}
+                                        placeholder="example@email.com"
+                                        autoComplete="email"
+                                    />
+                                </div>
+
+                                <div>
+                                    <div className="flex justify-between items-center mb-1 ml-1">
+                                        <label htmlFor="password" className={cn(
+                                            "block text-xs font-black",
+                                            isDark ? "text-slate-500" : "text-slate-400"
+                                        )}>
+                                            비밀번호
+                                        </label>
+                                        {/* ✨ Forgot Password Link */}
+                                        <Link
+                                            to="/auth/forgot-password"
+                                            className="text-[11px] font-bold text-indigo-500 hover:text-indigo-600"
+                                        >
+                                            비밀번호를 잊으셨나요?
+                                        </Link>
+                                    </div>
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className={cn(
+                                            "block w-full rounded-2xl border px-4 py-3.5 text-sm font-bold outline-none transition-all",
+                                            isDark
+                                                ? "border-slate-700 bg-slate-800 text-white placeholder-slate-600 focus:bg-slate-700 focus:ring-4 focus:ring-indigo-500/20"
+                                                : "border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+                                        )}
+                                        placeholder="••••••••"
+                                        autoComplete="current-password"
+                                    />
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 text-xs font-bold text-red-500 dark:text-red-400 border border-red-100 dark:border-red-800">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-3 pt-2">
+                                <input
+                                    id="remember-me"
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMeState(e.target.checked)}
+                                    className={cn(
+                                        "w-5 h-5 rounded-lg border-2 cursor-pointer transition-all accent-indigo-600",
+                                        isDark
+                                            ? "border-slate-600 bg-slate-800"
+                                            : "border-slate-300 bg-white"
+                                    )}
+                                />
+                                <label htmlFor="remember-me" className={cn(
+                                    "text-sm font-bold cursor-pointer select-none",
+                                    isDark ? "text-slate-400" : "text-slate-600"
+                                )}>
+                                    로그인 상태 유지
+                                </label>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
                                 className={cn(
-                                    "block text-xs font-bold transition-colors",
-                                    isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600"
+                                    "flex w-full justify-center items-center py-4 px-4 text-sm font-black rounded-2xl shadow-lg transition-all",
+                                    "bg-slate-900 text-white hover:bg-slate-800 hover:scale-[1.02] active:scale-95",
+                                    loading && "opacity-80 cursor-not-allowed"
                                 )}
                             >
-                                ← 홈으로 돌아가기
+                                {loading ? (
+                                    <>
+                                        {Icons.loader("w-5 h-5 animate-spin mr-2")}
+                                        로그인 중...
+                                    </>
+                                ) : '이메일로 로그인'}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="text-center space-y-4 mt-8">
+                        <div className={cn(
+                            "text-sm font-medium",
+                            isDark ? "text-slate-400" : "text-slate-500"
+                        )}>
+                            계정이 없으신가요?
+                            <Link
+                                to="/register"
+                                className={cn(
+                                    "ml-1 font-bold hover:underline",
+                                    isDark ? "text-indigo-400" : "text-indigo-600"
+                                )}
+                            >
+                                회원가입
                             </Link>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
+
+            {/* ✨ Agreement Modal */}
+            {showAgreement && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className={cn(
+                        "w-full max-w-md p-8 rounded-[32px] shadow-2xl space-y-6 relative overflow-hidden",
+                        isDark ? "bg-slate-900" : "bg-white"
+                    )}>
+                        <div className="text-center space-y-2">
+                            <h3 className={cn("text-2xl font-black", isDark ? "text-white" : "text-slate-900")}>이용 약관 동의</h3>
+                            <p className={cn("text-sm", isDark ? "text-slate-400" : "text-slate-500")}>
+                                서비스 이용을 위해 필수 약관에 동의해주세요.<br />
+                                동의 후 회원가입 절차가 진행됩니다.
+                            </p>
+                        </div>
+
+                        <div className={cn("p-4 rounded-2xl text-xs space-y-2 max-h-40 overflow-y-auto custom-scrollbar", isDark ? "bg-slate-800 text-slate-300" : "bg-slate-50 text-slate-600")}>
+                            <p className="font-bold">[필수] 서비스 이용 약관</p>
+                            <p>제 1조 (목적) 본 약관은...</p>
+                            <div className="h-px bg-current opacity-10 my-2" />
+                            <p className="font-bold">[필수] 개인정보 수집 및 이용 동의</p>
+                            <p>1. 수집 항목: 이메일, 프로필 이미지...</p>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={handleDisagree}
+                                className={cn(
+                                    "flex-1 py-3.5 rounded-2xl font-bold text-sm transition-colors",
+                                    isDark ? "bg-slate-800 text-slate-400 hover:bg-slate-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                )}
+                            >
+                                동의 안함
+                            </button>
+                            <button
+                                onClick={handleAgree}
+                                className="flex-1 py-3.5 rounded-2xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                            >
+                                모두 동의하고 시작
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

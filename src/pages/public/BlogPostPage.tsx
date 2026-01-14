@@ -20,6 +20,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BlogEditModal } from '@/components/admin/BlogEditModal';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface BlogPost {
     id: string;
@@ -48,6 +50,13 @@ export function BlogPostPage() {
     const [isConsultModalOpen, setIsConsultModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [centerInfo, setCenterInfo] = useState<any>(null);
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 300);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const fetchPost = async () => {
         setLoading(true);
@@ -222,16 +231,19 @@ export function BlogPostPage() {
                 />
             )}
 
+
+
             {/* Navigation */}
             <nav className={cn(
                 "sticky top-0 z-50 border-b transition-all duration-300",
                 isDark
                     ? "bg-slate-950/90 border-slate-800"
-                    : "bg-white/90 backdrop-blur-sm border-slate-100"
+                    : "bg-white/90 backdrop-blur-sm border-slate-100",
+                scrolled && "shadow-sm"
             )}>
-                <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
                     <Link to="/blog" className={cn(
-                        "group flex items-center gap-2 font-bold text-sm transition-colors",
+                        "group flex items-center gap-2 font-bold text-sm transition-colors shrink-0",
                         isDark ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
                     )}>
                         <div className={cn(
@@ -244,9 +256,23 @@ export function BlogPostPage() {
                         </div>
                         <span className="hidden sm:inline">블로그 목록으로</span>
                     </Link>
+
+                    {/* ✨ Sticky Title (Appears on Scroll) */}
+                    <div className={cn(
+                        "flex-1 text-center transition-all duration-500 overflow-hidden",
+                        scrolled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+                    )}>
+                        <h2 className={cn(
+                            "text-sm font-bold truncate max-w-[200px] md:max-w-md mx-auto",
+                            isDark ? "text-white" : "text-slate-900"
+                        )}>
+                            {post.title}
+                        </h2>
+                    </div>
+
                     <button
                         onClick={() => setIsConsultModalOpen(true)}
-                        className="bg-indigo-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg ring-2 ring-indigo-400/20"
+                        className="bg-indigo-600 text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg ring-2 ring-indigo-400/20 shrink-0"
                     >
                         상담 문의하기
                     </button>
@@ -329,7 +355,14 @@ export function BlogPostPage() {
                         prose-img:rounded-xl prose-img:shadow-lg prose-img:my-12
                         prose-strong:text-slate-900 prose-strong:font-bold prose-strong:bg-transparent prose-strong:border-b-2 prose-strong:border-yellow-200 prose-strong:px-1
                         font-medium">
-                        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                img: ({ node, ...props }) => <img {...props} className="rounded-xl shadow-lg my-12 w-full h-auto" loading="lazy" />,
+                            }}
+                        >
+                            {post.content}
+                        </ReactMarkdown>
                     </div>
 
                     {/* Share Section */}

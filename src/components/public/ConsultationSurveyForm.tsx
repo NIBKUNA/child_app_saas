@@ -120,6 +120,21 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
             const mappedGender = formData.child_gender === '남아' ? 'male' :
                 formData.child_gender === '여아' ? 'female' : 'other';
 
+            // 👑 [Sovereign Marketing] UTM & Inflow Source Binding
+            // localStorage에서 마케팅 데이터 추출 (App.tsx에서 저장됨)
+            const utmSource = localStorage.getItem('utm_source');
+            const utmMedium = localStorage.getItem('utm_medium');
+            const utmCampaign = localStorage.getItem('utm_campaign');
+            const utmContent = localStorage.getItem('utm_content');
+
+            // 사람이 읽기 좋은 형태로 포맷팅
+            const marketingInfo = [
+                utmSource ? `Source: ${utmSource}` : null,
+                utmMedium ? `Medium: ${utmMedium}` : null,
+                utmCampaign ? `Campaign: ${utmCampaign}` : null,
+                utmContent ? `Content: ${utmContent}` : null,
+            ].filter(Boolean).join(' / ');
+
             // ✨ [FIX] Submit to 'consultations' table
             const { error } = await supabase.from('consultations').insert([{
                 center_id: centerId, // From Props
@@ -131,7 +146,9 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                 // child_birth_year: parseInt(birth.year), // If needed in schema, otherwise omitted or added if schema allows
                 primary_concerns: `${formData.concern}\n\n[관리자 참고] 관계: ${formData.relation} / 장애진단: ${formData.diagnosis}`,
                 preferred_consult_schedule: formData.preferred_service.join(', '), // Joined Array
-                notes: `생년월일: ${birth.year}-${String(birth.month).padStart(2, '0')}-${String(birth.day).padStart(2, '0')} / 유입: ${getSource() || 'Direct'}`,
+                notes: `생년월일: ${birth.year}-${String(birth.month).padStart(2, '0')}-${String(birth.day).padStart(2, '0')}`,
+                inflow_source: getSource() || 'Direct', // useTrafficSource hook result
+                marketing_source: marketingInfo || null, // ✨ UTM Data Binding
                 status: 'pending',
                 created_at: new Date().toISOString()
             }]);

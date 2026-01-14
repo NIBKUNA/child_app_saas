@@ -91,7 +91,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Check if current user is Super Admin (Role OR Email)
     const isSuperAdmin = useMemo(() => {
-        const emailMatch = user?.email && SUPER_ADMIN_EMAILS.includes(user.email);
+        const emailMatch = user?.email && SUPER_ADMIN_EMAILS.some(email => email.toLowerCase() === user.email?.toLowerCase());
         return role === 'super_admin' || !!emailMatch;
     }, [role, user?.email]);
 

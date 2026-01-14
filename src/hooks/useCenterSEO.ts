@@ -27,10 +27,19 @@ export function useCenterSEO() {
                     .from('profiles')
                     .select('center_id')
                     .eq('id', user.id)
-                    .single() as { data: { center_id: string } | null, error: any };
+                    .maybeSingle() as { data: { center_id: string } | null, error: any };
 
-                if (profileError || !profile?.center_id) {
-                    throw new Error('No center assigned');
+                if (profileError) {
+                    console.warn('Profile fetch error:', profileError);
+                }
+
+                if (!profile?.center_id) {
+                    console.log('No center assigned for this user, using default SEO.');
+                    setSeoData({
+                        name: '자라다 발달센터',
+                        seo_description: '우리 아이 성장 발달 관리 플랫폼'
+                    });
+                    return;
                 }
 
                 // 2. centers 테이블에서 정보 가져오기
@@ -38,9 +47,10 @@ export function useCenterSEO() {
                     .from('centers')
                     .select('name, logo_url')
                     .eq('id', profile.center_id)
-                    .single() as { data: { name: string, logo_url: string } | null, error: any };
+                    .maybeSingle() as { data: { name: string, logo_url: string } | null, error: any };
 
-                if (centerError || !center) throw centerError || new Error('Center not found');
+                if (centerError) throw centerError;
+                if (!center) throw new Error('Center not found');
 
                 setSeoData({
                     name: center.name,

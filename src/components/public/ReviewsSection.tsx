@@ -64,50 +64,50 @@ function ReviewCard({ review }: { review: any }) {
 
     return (
         <motion.div
-            className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-100 relative overflow-hidden"
+            className="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-xl shadow-slate-100 dark:shadow-none border border-slate-100 dark:border-slate-800 relative overflow-hidden transition-colors"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ type: "spring", stiffness: 100 }}
         >
             {/* Gradient Accent */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-50 to-transparent rounded-bl-full"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-50 to-transparent dark:from-indigo-900/20 rounded-bl-full"></div>
 
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center text-lg font-black text-indigo-600">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 dark:from-indigo-900 dark:to-violet-900 flex items-center justify-center text-lg font-black text-indigo-600 dark:text-indigo-400">
                             {review.author_name.charAt(0)}
                         </div>
                         <div>
-                            <p className="font-black text-slate-800">{review.author_name}</p>
-                            <p className="text-xs text-slate-400 font-medium">
+                            <p className="font-black text-slate-800 dark:text-slate-100">{review.author_name}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
                                 {new Date(review.created_at).toLocaleDateString('ko-KR')}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-full">
+                    <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/30 px-3 py-1.5 rounded-full">
                         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                        <span className="font-black text-amber-600 text-sm">{avgRating}</span>
+                        <span className="font-black text-amber-600 dark:text-amber-400 text-sm">{avgRating}</span>
                     </div>
                 </div>
 
                 {/* Ratings Breakdown */}
-                <div className="grid grid-cols-3 gap-4 mb-6 bg-slate-50 rounded-2xl p-4">
+                <div className="grid grid-cols-3 gap-4 mb-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4">
                     <div className="text-center">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">시설</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">시설</p>
                         <div className="flex justify-center">
                             <StarRating value={review.rating_facility} readonly />
                         </div>
                     </div>
                     <div className="text-center">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">친절도</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">친절도</p>
                         <div className="flex justify-center">
                             <StarRating value={review.rating_kindness} readonly />
                         </div>
                     </div>
                     <div className="text-center">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">편의성</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">편의성</p>
                         <div className="flex justify-center">
                             <StarRating value={review.rating_convenience} readonly />
                         </div>
@@ -162,41 +162,41 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
     return (
         <motion.form
             onSubmit={handleSubmit}
-            className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-100 border border-slate-100 gpu-accelerate"
+            className="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-xl shadow-slate-100 dark:shadow-none border border-slate-100 dark:border-slate-800 gpu-accelerate transition-colors"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
         >
-            <h4 className="text-lg font-black text-slate-800 mb-2">서비스 평가하기</h4>
-            <p className="text-xs text-slate-400 mb-6">시설, 친절도, 편의성에 대한 별점을 남겨주세요.</p>
+            <h4 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-2">서비스 평가하기</h4>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mb-6">시설, 친절도, 편의성에 대한 별점을 남겨주세요.</p>
 
             <div className="space-y-6">
                 <div>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">작성자명</label>
+                    <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">작성자명</label>
                     <input
                         type="text"
                         value={authorName}
                         onChange={(e) => setAuthorName(e.target.value)}
                         placeholder="홍길동 어머님"
-                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-medium focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-medium focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition-all text-slate-900 dark:text-slate-100"
                     />
                 </div>
 
                 {/* 별점만 수집 (의료법 준수) */}
-                <div className="grid grid-cols-3 gap-4 bg-slate-50 rounded-2xl p-6">
+                <div className="grid grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6">
                     <div className="text-center">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-3">시설</label>
+                        <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">시설</label>
                         <div className="flex justify-center">
                             <StarRating value={ratings.facility} onChange={(v) => setRatings(p => ({ ...p, facility: v }))} />
                         </div>
                     </div>
                     <div className="text-center">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-3">친절도</label>
+                        <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">친절도</label>
                         <div className="flex justify-center">
                             <StarRating value={ratings.kindness} onChange={(v) => setRatings(p => ({ ...p, kindness: v }))} />
                         </div>
                     </div>
                     <div className="text-center">
-                        <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-3">편의성</label>
+                        <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">편의성</label>
                         <div className="flex justify-center">
                             <StarRating value={ratings.convenience} onChange={(v) => setRatings(p => ({ ...p, convenience: v }))} />
                         </div>
@@ -204,7 +204,7 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-2 text-rose-600 bg-rose-50 px-4 py-3 rounded-2xl">
+                    <div className="flex items-center gap-2 text-rose-600 bg-rose-50 dark:bg-rose-900/10 dark:text-rose-400 px-4 py-3 rounded-2xl">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <p className="text-sm font-bold">{error}</p>
                     </div>
@@ -213,7 +213,7 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 gpu-accelerate"
+                    className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 gpu-accelerate"
                 >
                     {submitting ? '등록 중...' : <><Send className="w-4 h-4" /> 평가 등록</>}
                 </button>

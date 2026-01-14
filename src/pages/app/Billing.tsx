@@ -15,6 +15,8 @@ import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
+import { JAMSIL_CENTER_ID } from '@/config/center';
+import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     ChevronLeft, ChevronRight, Search, CreditCard, Banknote, Receipt,
     X, Loader2, CheckSquare, Square, Settings2, Trash2, User
@@ -34,8 +36,20 @@ export function Billing() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const { data: sData } = await supabase.from('schedules').select(`*, children (*), programs (*)`).order('start_time', { ascending: false });
-            const { data: pData } = await supabase.from('payments').select(`*, payment_items(*)`).eq('payment_month', selectedMonth);
+            // ✨ [SECURITY] Enforce Center ID Filter via Inner Join
+            const { data: sData } = await supabase
+                .from('schedules')
+                .select(`*, children!inner (*), programs (*)`)
+                .eq('children.center_id', JAMSIL_CENTER_ID)
+                .order('start_time', { ascending: false });
+
+            // ✨ [SECURITY] Enforce Center ID Filter via Inner Join on Payments
+            const { data: pData } = await supabase
+                .from('payments')
+                .select(`*, payment_items(*), children!inner(center_id)`)
+                .eq('payment_month', selectedMonth)
+                .eq('children.center_id', JAMSIL_CENTER_ID);
+
             setSchedules(sData || []);
             setPayments(pData || []);
         } finally {
@@ -87,7 +101,21 @@ export function Billing() {
             <Helmet><title>수납 관리 - 자라다</title></Helmet>
 
             <div className="flex justify-between items-center">
-                <h1 className={cn("text-3xl font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>수납 관리</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className={cn("text-3xl font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>수납 관리</h1>
+                    {/* ✨ [Export] Excel Download Button */}
+                    <ExcelExportButton
+                        data={stats.childList}
+                        fileName={`수납리스트_${selectedMonth}`}
+                        headers={['name', 'completed', 'paid', 'credit']}
+                        headerLabels={{
+                            name: '아동명',
+                            completed: '총 수업료',
+                            paid: '기수납액',
+                            credit: '잔여 크레딧'
+                        }}
+                    />
+                </div>
 
                 <div className={cn("flex items-center gap-3 p-2 rounded-2xl border shadow-sm", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200")}>
                     <button onClick={() => changeMonth(-1)} className={cn("p-1 rounded-xl transition-colors", isDark ? "hover:bg-slate-800 text-slate-400" : "hover:bg-slate-100")}><ChevronLeft /></button>

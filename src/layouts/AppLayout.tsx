@@ -10,7 +10,9 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { Outlet } from 'react-router-dom';
+import React from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -62,16 +64,103 @@ export function AppLayout() {
     // Theme-aware background
     const mainBg = theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50';
 
+    // ✨ [Real-time Notification] 상담 신청 알림
+    const [notif, setNotif] = React.useState<{ title: string, msg: string, visible: boolean } | null>(null);
+
+    React.useEffect(() => {
+        // ✨ [Notification API] Request Permission on mount
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => console.log('SW Registered:', registration.scope))
+                .catch(err => console.log('SW Registration Failed:', err));
+        }
+
+        const channel = supabase
+            .channel('global_consultation_alerts')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'consultations' },
+                (payload) => {
+                    const newItem = payload.new;
+                    const title = '🚀 새로운 상담 신청!';
+                    const body = `${newItem.child_name || '아동'} (${newItem.guardian_name}) 님이 상담을 요청했습니다.`;
+
+                    // 1. In-App Toast
+                    setNotif({
+                        title: title,
+                        msg: body,
+                        visible: true
+                    });
+
+                    // 2. Browser Notification (System Level)
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        // Use Service Worker if available for better background handling
+                        if (navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.controller.postMessage({
+                                type: 'SHOW_NOTIFICATION',
+                                title,
+                                body
+                            });
+                        } else {
+                            // Fallback to main thread notification
+                            new Notification(title, {
+                                body: body,
+                                icon: '/pwa-192x192.png', // Ensure this exists or use standard icon
+                                tag: 'consultation-alert'
+                            });
+                        }
+                    }
+
+                    // 5초 후 자동 숨김
+                    setTimeout(() => setNotif(prev => prev ? { ...prev, visible: false } : null), 6000);
+                }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
+
     // 정상 권한(관리자, 치료사, 일반직원)일 경우의 기본 레이아웃
     return (
-        <div className={`flex h-screen ${mainBg} font-sans gpu-layer`}>
+        <div className={`flex h-screen ${mainBg} font-sans gpu-layer relative`}>
+            {/* 🔔 Notification Popup */}
+            {notif && notif.visible && (
+                <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-top-4 fade-in duration-500 cursor-pointer" onClick={() => window.location.href = '/app/consultations'}>
+                    <div className="bg-slate-900/90 dark:bg-slate-800/90 text-white backdrop-blur-md p-5 rounded-[28px] shadow-2xl flex items-center gap-4 border border-slate-700/50 hover:scale-105 transition-transform gpu-accelerate">
+                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30">
+                            🔔
+                        </div>
+                        <div>
+                            <h4 className="font-black text-base text-yellow-300 mb-0.5">{notif.title}</h4>
+                            <p className="text-sm font-bold text-slate-200">{notif.msg}</p>
+                        </div>
+                        <div className="w-2 h-2 bg-rose-500 rounded-full animate-ping ml-2" />
+                    </div>
+                </div>
+            )}
+
             {/* 사이드바 영역 */}
             <Sidebar />
 
             <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
                 <main className={`flex-1 overflow-x-hidden overflow-y-auto ${mainBg} p-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
-                    {/* 개별 페이지 렌더링 */}
-                    <Outlet />
+                    {/* 개별 페이지 렌더링 (Framer Motion Transition) */}
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={location.pathname}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="w-full h-full"
+                        >
+                            <Outlet />
+                        </motion.div>
+                    </AnimatePresence>
                 </main>
             </div>
         </div>

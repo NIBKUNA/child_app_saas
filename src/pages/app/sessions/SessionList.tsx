@@ -12,8 +12,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
-import { Loader2, FileText, CheckCircle, Calendar, Trash2 } from 'lucide-react';
+import { FileText, CheckCircle, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { JAMSIL_CENTER_ID } from '@/config/center';
+import { Skeleton } from '@/components/common/Skeleton';
 
 type Schedule = Database['public']['Tables']['schedules']['Row'] & {
     children: { name: string } | null;
@@ -50,7 +52,7 @@ export default function SessionList() {
             console.log(`Auto-completed ${idsToUpdate.length} sessions.`);
         }
 
-        // 2. Fetch all sessions
+        // 2. Fetch all sessions (Filtered by Center)
         const { data, error } = await supabase
             .from('schedules')
             .select(`
@@ -59,6 +61,7 @@ export default function SessionList() {
                 therapists ( name ),
                 counseling_logs ( created_at, session_date )
             `)
+            .eq('center_id', JAMSIL_CENTER_ID) // ✨ Data Isolation: Strict Filter
             .order('start_time', { ascending: false });
 
         if (error) {
@@ -105,7 +108,33 @@ export default function SessionList() {
     };
 
     if (loading) {
-        return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <Skeleton className="w-48 h-8 rounded-lg" />
+                </div>
+                <div className="bg-white rounded-lg border shadow-sm">
+                    <div className="p-4 border-b bg-slate-50 grid grid-cols-12 gap-4">
+                        {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-6 col-span-2 rounded" />)}
+                    </div>
+                    <div className="divide-y">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="p-4 grid grid-cols-12 gap-4">
+                                <Skeleton className="h-5 col-span-2 rounded w-20" />
+                                <Skeleton className="h-5 col-span-2 rounded w-16" />
+                                <Skeleton className="h-5 col-span-2 rounded w-24" />
+                                <Skeleton className="h-5 col-span-2 rounded w-12" />
+                                <Skeleton className="h-5 col-span-2 rounded w-16" />
+                                <div className="col-span-2 flex justify-center gap-2">
+                                    <Skeleton className="h-8 w-16 rounded" />
+                                    <Skeleton className="h-8 w-8 rounded" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (

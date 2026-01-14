@@ -11,6 +11,7 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Home, BarChart2, MessageSquare, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -31,7 +32,17 @@ export function ParentLayout() {
 
     return (
         <div className={cn("min-h-screen transition-colors pb-24", isDark ? "bg-slate-950" : "bg-slate-50")}>
-            <Outlet />
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={location.pathname}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.25 }}
+                >
+                    <Outlet />
+                </motion.div>
+            </AnimatePresence>
 
             <PWAInstallPrompt />
 

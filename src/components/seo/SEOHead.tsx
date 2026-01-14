@@ -1,30 +1,37 @@
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
-import { useCenterSEO } from '@/hooks/useCenterSEO';
+import { seoConfig } from '@/config/seo';
 
 export function SEOHead() {
-    const { seoData } = useCenterSEO();
+    // 👑 [Sovereign SEO] Environment Variable Driven
+    // DB 조회가 아닌, 배포 시 설정된 환경변수를 최우선으로 따릅니다.
+    const { title, description, ogImage } = seoConfig;
     const location = useLocation();
 
-    // 기본값 (데이터 로딩 전)
-    const defaultTitle = "자라다 발달센터";
-    const defaultDesc = "아동 발달 성장 관리 플랫폼";
-
-    // 경로별 suffix 설정 (선택사항)
+    // 경로별 suffix 설정
     let pageSuffix = "";
     if (location.pathname.includes('/parent/home')) pageSuffix = " - 학부모 홈";
     else if (location.pathname.includes('/app/dashboard')) pageSuffix = " - 대시보드";
     else if (location.pathname.includes('/login')) pageSuffix = " - 로그인";
 
-    const title = seoData?.name ? `${seoData.name}${pageSuffix}` : defaultTitle;
-    const description = seoData?.seo_description || defaultDesc;
+    const displayTitle = `${title}${pageSuffix}`;
 
     return (
         <Helmet>
-            <title>{title}</title>
+            <title>{displayTitle}</title>
             <meta name="description" content={description} />
-            <meta property="og:title" content={title} />
+
+            {/* Open Graph */}
+            <meta property="og:title" content={displayTitle} />
             <meta property="og:description" content={description} />
+            <meta property="og:image" content={ogImage} />
+            <meta property="og:type" content="website" />
+
+            {/* Twitter */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={displayTitle} />
+            <meta name="twitter:description" content={description} />
+            <meta name="twitter:image" content={ogImage} />
         </Helmet>
     );
 }

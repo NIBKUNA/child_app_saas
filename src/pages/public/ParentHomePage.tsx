@@ -39,6 +39,7 @@ import koLocale from '@fullcalendar/core/locales/ko';
 import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyModal';
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
 import { DynamicHomeCareTips } from '@/components/public/DynamicHomeCareTips';
+import { Skeleton } from '@/components/common/Skeleton';
 
 // 🎨 Brand Colors for Chart
 const CHART_COLORS = [
@@ -210,8 +211,15 @@ export function ParentHomePage() {
                 // }
 
             } else {
-                // ✨ [초대 코드 모달] 연결된 자녀가 없으면 모달 표시
-                setShowInvitationModal(true);
+                // ✨ [초대 코드 모달] 연결된 자녀가 없고 '부모' 권한일 때만 모달 표시
+                // 슈퍼 어드민이나 치료사는 굳이 이 모달을 볼 필요가 없음
+                const isParent = user?.user_metadata?.role === 'parent' || user?.role === 'parent';
+                // Note: AuthContext might not have role fully set yet if we use user object directly, 
+                // but we can trust checking context role if available. 
+                // Ideally we use the 'role' from useAuth() hook.
+                if (isParent) {
+                    setShowInvitationModal(true);
+                }
             }
         } catch (error) {
             console.error(error);
@@ -252,7 +260,33 @@ export function ParentHomePage() {
         }
     };
 
-    if (loading) return <div className={cn("min-h-screen flex items-center justify-center font-bold", isDark ? "bg-slate-950 text-slate-400" : "text-slate-500")}>데이터를 불러오는 중입니다...</div>;
+    if (loading) {
+        return (
+            <div className={cn("min-h-screen font-sans pb-20 transition-colors", isDark ? "bg-slate-950" : "bg-[#FDFCFB]")}>
+                <nav className="sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b shadow-sm bg-white/90 backdrop-blur-sm border-slate-100">
+                    <Skeleton className="w-20 h-6 rounded-md" />
+                    <Skeleton className="w-24 h-6 rounded-full" />
+                </nav>
+                <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 px-8 pt-16 pb-20">
+                    <div className="max-w-4xl mx-auto relative z-10 flex justify-between items-end">
+                        <div className="space-y-4 w-2/3">
+                            <Skeleton className="w-32 h-6 rounded-full bg-white/20" />
+                            <Skeleton className="w-full max-w-md h-12 rounded-lg bg-white/20" />
+                            <Skeleton className="w-48 h-4 rounded bg-white/20" />
+                        </div>
+                        <Skeleton className="w-32 h-12 rounded-2xl bg-white/20 hidden md:block" />
+                    </div>
+                </div>
+                <div className="max-w-4xl mx-auto px-4 -mt-8 relative z-20">
+                    <Skeleton className="w-full h-24 rounded-[28px] shadow-lg" />
+                </div>
+                <div className="max-w-4xl mx-auto p-8 space-y-12 mt-8">
+                    <Skeleton className="w-full h-96 rounded-[32px]" />
+                    <Skeleton className="w-full h-80 rounded-[48px]" />
+                </div>
+            </div>
+        );
+    }
 
     const kakaoUrl = getSetting('kakao_url');
 

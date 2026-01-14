@@ -14,11 +14,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { ConsultationSurveyForm } from '@/components/public/ConsultationSurveyForm';
-import { useAdminSettings } from '@/hooks/useAdminSettings';
+import { useCenterBranding } from '@/hooks/useCenterBranding'; // ✨ Use Centralized Hook
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 
-// Custom SVG Icons
+// ... icons (unchanged) ...
 const Icons = {
     mapPin: (className: string) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,23 +43,14 @@ const Icons = {
 };
 
 export function ContactPage() {
-    const { getSetting, loading } = useAdminSettings();
+    const { branding, loading } = useCenterBranding(); // ✨ Use uniform data source
     const { theme } = useTheme();
     const isDark = theme === 'dark';
-    const [centerInfo, setCenterInfo] = useState<any>(null);
-
-    useEffect(() => {
-        const fetchCenter = async () => {
-            const { data } = await supabase.from('centers').select('*').limit(1).maybeSingle();
-            if (data) setCenterInfo(data);
-        };
-        fetchCenter();
-    }, []);
 
     return (
         <>
             <Helmet>
-                <title>문의 및 오시는 길 - {centerInfo?.name || '센터'}</title>
+                <title>문의 및 오시는 길 - {branding?.name || '센터'}</title>
                 <meta name="description" content="센터 위치 안내, 운영 시간, 상담 예약 문의 방법을 안내해드립니다." />
             </Helmet>
 
@@ -112,21 +103,21 @@ export function ContactPage() {
                                         isDark ? "bg-slate-800" : "bg-slate-50"
                                     )}>
                                         <div className={cn("shrink-0 font-bold", isDark ? "text-white" : "text-slate-900")}>주소</div>
-                                        <div className={cn("text-sm", isDark ? "text-slate-400" : "text-slate-600")}>{centerInfo?.address || '주소 정보가 없습니다.'}</div>
+                                        <div className={cn("text-sm", isDark ? "text-slate-400" : "text-slate-600")}>{branding?.address || '주소 정보가 없습니다.'}</div>
                                     </div>
                                     <div className={cn(
                                         "flex flex-col sm:flex-row gap-2 sm:gap-4 p-4 rounded-2xl",
                                         isDark ? "bg-slate-800" : "bg-slate-50"
                                     )}>
                                         <div className={cn("shrink-0 font-bold", isDark ? "text-white" : "text-slate-900")}>전화</div>
-                                        <div className={cn("text-lg font-bold", isDark ? "text-slate-200" : "text-slate-800")}>{centerInfo?.phone || '02-000-0000'}</div>
+                                        <div className={cn("text-lg font-bold", isDark ? "text-slate-200" : "text-slate-800")}>{branding?.phone || '전화번호가 없습니다.'}</div>
                                     </div>
                                     <div className={cn(
                                         "flex flex-col sm:flex-row gap-2 sm:gap-4 p-4 rounded-2xl",
                                         isDark ? "bg-slate-800" : "bg-slate-50"
                                     )}>
                                         <div className={cn("shrink-0 font-bold", isDark ? "text-white" : "text-slate-900")}>이메일</div>
-                                        <div className={cn("text-sm", isDark ? "text-slate-400" : "text-slate-600")}>{centerInfo?.email || 'contact@center.com'}</div>
+                                        <div className={cn("text-sm", isDark ? "text-slate-400" : "text-slate-600")}>{branding?.email || '이메일 정보가 없습니다.'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -150,18 +141,20 @@ export function ContactPage() {
                                         isDark ? "border-slate-700" : "border-slate-100"
                                     )}>
                                         <span className={cn("font-bold", isDark ? "text-slate-400" : "text-slate-600")}>평일 (월-금)</span>
-                                        <span className={cn("font-bold", isDark ? "text-white" : "text-slate-900")}>{centerInfo?.weekday_hours || '09:00 - 19:00'}</span>
+                                        {/* ✨ [Fix] Use dynamic data, no hardcoding */}
+                                        <span className={cn("font-bold", isDark ? "text-white" : "text-slate-900")}>{branding?.weekday_hours || '정보 없음'}</span>
                                     </div>
                                     <div className={cn(
                                         "flex justify-between border-b pb-3",
                                         isDark ? "border-slate-700" : "border-slate-100"
                                     )}>
                                         <span className={cn("font-bold", isDark ? "text-slate-400" : "text-slate-600")}>토요일</span>
-                                        <span className={cn("font-bold", isDark ? "text-white" : "text-slate-900")}>{centerInfo?.saturday_hours || '09:00 - 16:00'}</span>
+                                        {/* ✨ [Fix] Use dynamic data, no hardcoding */}
+                                        <span className={cn("font-bold", isDark ? "text-white" : "text-slate-900")}>{branding?.saturday_hours || '정보 없음'}</span>
                                     </div>
                                     <div className="flex justify-between text-rose-500 font-black">
                                         <span>일요일/공휴일</span>
-                                        <span>{centerInfo?.holiday_text || '휴무'}</span>
+                                        <span>{branding?.holiday_text || '휴무'}</span>
                                     </div>
                                 </div>
                                 <p className={cn(

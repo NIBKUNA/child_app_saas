@@ -191,29 +191,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto">
-                    <div className="bg-blue-50/50 p-6 rounded-[24px] border border-blue-100 space-y-4">
-                        <label className="text-xs font-black text-blue-600 flex items-center gap-2">
-                            <Mail className="w-4 h-4" /> 보호자 이메일 계정 연결
-                        </label>
-                        <select
-                            className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-100 outline-none transition-all appearance-none"
-                            value={formData.parent_id}
-                            onChange={e => setFormData({ ...formData, parent_id: e.target.value })}
-                        >
-                            <option value="">계정 연결 안 함 (이메일 선택)</option>
-                            {parents.map(p => (
-                                <option key={p.id} value={p.id}>
-                                    {p.name} | {p.email}
-                                </option>
-                            ))}
-                        </select>
-                        <div className="flex items-start gap-2 ml-1">
-                            <AlertCircle className="w-3 h-3 text-blue-400 mt-0.5" />
-                            <p className="text-[10px] text-blue-400 font-bold leading-relaxed">
-                                보호자가 가입한 이메일을 선택해 주세요. 연결 시 해당 보호자가 아이 정보를 볼 수 있습니다.
-                            </p>
-                        </div>
-                    </div>
+                    {/* Email connection removed as per core operation phase 2 */}
 
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">

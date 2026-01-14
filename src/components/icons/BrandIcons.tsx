@@ -171,16 +171,7 @@ export function BackgroundShapes() {
                 <ellipse cx="100" cy="300" rx="200" ry="150" />
             </svg>
 
-            {/* Floating Dots */}
-            <svg className="absolute top-1/4 left-1/4 w-4 h-4 text-indigo-200" viewBox="0 0 16 16" fill="currentColor">
-                <circle cx="8" cy="8" r="8" />
-            </svg>
-            <svg className="absolute top-1/3 right-1/3 w-3 h-3 text-rose-200" viewBox="0 0 12 12" fill="currentColor">
-                <circle cx="6" cy="6" r="6" />
-            </svg>
-            <svg className="absolute bottom-1/4 right-1/4 w-5 h-5 text-amber-200" viewBox="0 0 20 20" fill="currentColor">
-                <circle cx="10" cy="10" r="10" />
-            </svg>
+
         </div>
     );
 }

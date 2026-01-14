@@ -27,8 +27,8 @@ import { AccountDeletionModal } from '@/components/AccountDeletionModal';
 const AI_GENERATING_KEY = 'ai_blog_generating';
 const AI_GENERATION_START_KEY = 'ai_blog_generation_start';
 
-type TabType = 'home' | 'about' | 'programs' | 'branding' | 'center_info' | 'ai_blog' | 'account';
-const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'branding', 'center_info', 'ai_blog', 'account'];
+type TabType = 'home' | 'about' | 'programs' | 'branding' | 'center_info' | 'account';
+const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'branding', 'center_info', 'account'];
 
 export function SettingsPage() {
     const { settings, getSetting, loading: settingsLoading, fetchSettings } = useAdminSettings();
@@ -124,7 +124,6 @@ export function SettingsPage() {
                 <TabButton active={activeTab === 'programs'} onClick={() => setActiveTab('programs')} icon={<BookOpen className="w-4 h-4" />} label="프로그램" />
                 <TabButton active={activeTab === 'branding'} onClick={() => setActiveTab('branding')} icon={<Palette className="w-4 h-4" />} label="로고" />
                 <TabButton active={activeTab === 'center_info'} onClick={() => setActiveTab('center_info')} icon={<Info className="w-4 h-4" />} label="정보/운영" />
-                <TabButton active={activeTab === 'ai_blog'} onClick={() => setActiveTab('ai_blog')} icon={<Brain className="w-4 h-4" />} label="AI블로그" />
                 <TabButton active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserX className="w-4 h-4" />} label="계정" />
             </div>
 
@@ -172,36 +171,7 @@ export function SettingsPage() {
                 {/* ✨ 정보/운영 탭 통합 섹션 - 원본 UI 보존 및 필드 추가 */}
                 {activeTab === 'center_info' && <CenterInfoSection />}
 
-                {activeTab === 'ai_blog' && (
-                    <SectionCard title="AI 자동 포스팅 및 생성">
-                        <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                            <h4 className="text-sm font-black text-blue-900 mb-2">🤖 Google Gemini API Key 설정 (무료)</h4>
-                            <SaveableInput
-                                label="Google API Key (AIza...)"
-                                placeholder="AIza..."
-                                initialValue={getSetting('openai_api_key')}
-                                onSave={(v) => handleSave('openai_api_key', v)}
-                                saving={saving}
-                            />
-                            <p className="text-[10px] text-blue-600 mt-2 font-bold ml-1">* Google AI Studio에서 무료로 키를 발급받을 수 있습니다.</p>
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2 text-left">
-                                <label className="text-xs font-black text-slate-400 ml-1 text-left">요일 선택</label>
-                                <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold" value={getSetting('ai_posting_day') || 'Monday'} onChange={(e) => handleSave('ai_posting_day', e.target.value)}>
-                                    <option value="Monday">월요일</option><option value="Tuesday">화요일</option><option value="Wednesday">수요일</option>
-                                    <option value="Thursday">목요일</option><option value="Friday">금요일</option><option value="Saturday">토요일</option><option value="Sunday">일요일</option>
-                                </select>
-                            </div>
-                            <SaveableInput label="시간 (HH:MM)" initialValue={getSetting('ai_posting_time')} onSave={(v) => handleSave('ai_posting_time', v)} saving={saving} />
-                        </div>
-                        <div className="mt-6 pb-8 border-b">
-                            <SaveableTextArea label="다음 주제 키워드" initialValue={getSetting('ai_next_topic')} onSave={(v) => handleSave('ai_next_topic', v)} saving={saving} rows={2} />
-                        </div>
-                        <AIBlogGenerateButton />
-                    </SectionCard>
-                )}
 
                 {/* ✨ 계정 관리 탭 */}
                 {activeTab === 'account' && (
@@ -268,14 +238,42 @@ function CenterInfoSection() {
     const handleInfoSave = async (key: string, value: string) => {
         if (!info?.id) return;
         setSaving(true);
+        {/* ✨ [Sync] Update both 'centers' and 'admin_settings' tables */ }
         try {
             const finalValue = value === "" ? null : value;
+
+            // 1. Update 'centers' table
             const { data, error } = await supabase.from('centers').update({ [key]: finalValue }).eq('id', info.id).select();
-            if (!error && data) {
-                setInfo(data[0]);
-                alert('변경사항이 저장되었습니다.');
-            } else if (error) throw error;
+
+            if (error) throw error;
+            if (data) setInfo(data[0]);
+
+            // 2. Update 'admin_settings' table (Forcing sync as requested)
+            // Map 'centers' keys to 'admin_settings' keys
+            const settingKeyMap: Record<string, string> = {
+                'name': 'center_name',
+                'phone': 'center_phone',
+                'address': 'center_address',
+                'email': 'center_email',
+                'naver_map_url': 'center_map_url',
+                'weekday_hours': 'center_weekday_hours', // New key if needed, or just rely on centers for this? User specifically mentioned address/email.
+                'saturday_hours': 'center_saturday_hours',
+                'holiday_text': 'center_holiday_text'
+            };
+
+            const settingKey = settingKeyMap[key];
+            if (settingKey) {
+                await supabase.from('admin_settings').upsert({
+                    center_id: info.id,
+                    key: settingKey,
+                    value: finalValue,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'center_id, key' });
+            }
+
+            alert('변경사항이 저장되었습니다.');
         } catch (e) {
+            console.error(e);
             alert('저장 실패: DB 컬럼 정보를 확인해주세요.');
         } finally {
             setSaving(false);
@@ -314,152 +312,7 @@ function CenterInfoSection() {
 }
 
 // --- ❌ 원본 AI 블로그 버튼 및 공통 컴포넌트 로직 (수정 금지) ---
-function AIBlogGenerateButton() {
-    const { getSetting } = useAdminSettings(); // Retrieve settings
-    const [generating, setGenerating] = useState(() => {
-        const isGen = localStorage.getItem(AI_GENERATING_KEY) === 'true';
-        const startTime = localStorage.getItem(AI_GENERATION_START_KEY);
-        if (isGen && startTime && (Date.now() - parseInt(startTime, 10) > 180000)) {
-            localStorage.removeItem(AI_GENERATING_KEY);
-            localStorage.removeItem(AI_GENERATION_START_KEY);
-            return false;
-        }
-        return isGen;
-    });
-    const [result, setResult] = useState(null);
 
-    useEffect(() => {
-        if (!generating) return;
-        const checkForNewPost = async () => {
-            try {
-                const { data } = await supabase.from('blog_posts').select('title, created_at').order('created_at', { ascending: false }).limit(1).single();
-                if (data) {
-                    const startTimeStr = localStorage.getItem(AI_GENERATION_START_KEY);
-                    if (startTimeStr && new Date(data.created_at) > new Date(parseInt(startTimeStr, 10))) {
-                        finishLoading(`✅ 생성이 완료되었습니다: "${data.title}"`);
-                    }
-                }
-            } catch (err) { }
-        };
-        const interval = setInterval(checkForNewPost, 5000);
-        return () => clearInterval(interval);
-    }, [generating]);
-
-    const finishLoading = (msg) => {
-        setGenerating(false);
-        localStorage.removeItem(AI_GENERATING_KEY);
-        localStorage.removeItem(AI_GENERATION_START_KEY);
-        setResult({ success: true, message: msg });
-    };
-
-    const handleGenerate = async () => {
-        if (generating) return;
-
-        // Validation: Check for API Key
-        const apiKey = getSetting('openai_api_key');
-        if (!apiKey) {
-            alert('❌ API 키가 설정되지 않았습니다. 설정 위 "API Key 설정"에 키를 입력해주세요.');
-            return;
-        }
-        // ✨ [Gemini] AIza 형식 검증 (OpenAI 제거)
-        if (!apiKey.startsWith('AIza')) {
-            alert('❌ 올바르지 않은 API 키 형식입니다. Google Gemini 키는 "AIza"로 시작해야 합니다.');
-            return;
-        }
-
-        setGenerating(true);
-        localStorage.setItem(AI_GENERATING_KEY, 'true');
-        localStorage.setItem(AI_GENERATION_START_KEY, String(Date.now()));
-        setResult(null);
-
-        try {
-            const topic = getSetting('ai_next_topic') || '아동 발달 센터';
-
-            const systemPrompt = "당신은 20년 경력의 아동 발달 센터 원장입니다. 걱정하는 부모님을 안심시키고 전문가로서 신뢰감 있는 조언을 주는 따뜻한 말투로 글을 작성해주세요.";
-            const userPrompt = `
-                주제: ${topic}
-                센터 이름: {centerName || 'Zarada'}
-                
-                조건:
-                1. 제목은 매력적으로.
-                2. 완치, 100% 장담 등 의료법 위반 표현 금지.
-                3. 마크다운 형식 사용.
-                4. [공감] - [정보3가지] - [안심] 구조로 작성할 것.
-            `;
-
-            // ✨ [Gemini API] v1 + gemini-2.0-flash-lite (무료, 최신 지원 모델)
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-                    }]
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                if (response.status === 429) throw new Error("Google AI 사용 한도 초과(429). 잠시 후 다시 시도해주세요.");
-                throw new Error(errData.error?.message || `API Error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!generatedText) throw new Error("글이 생성되지 않았습니다.");
-
-            // ✨ [Save to Cloud] 생성된 글을 Posts 테이블에 저장
-            const { error: dbError } = await supabase.from('posts').insert({
-                title: generatedText.split('\n')[0].replace(/^#+\s*/, '') || topic,
-                content: generatedText,
-                author_id: (await supabase.auth.getUser()).data.user?.id,
-                status: 'published',
-                category: 'column',
-                tags: ['AI생성', topic]
-            });
-
-            if (dbError) throw dbError;
-
-            finishLoading(`✅ AI 작가가 글을 발행했습니다! 블로그 메뉴에서 확인하세요.`);
-
-        } catch (err: any) {
-            console.error(err);
-            setResult({ success: false, message: `❌ 오류: ${err.message}` });
-            setGenerating(false);
-            localStorage.removeItem(AI_GENERATING_KEY);
-            localStorage.removeItem(AI_GENERATION_START_KEY);
-        }
-    };
-
-    return (
-        <div className="mt-8 space-y-4 text-left">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="font-bold text-slate-900">수동 포스팅 실행</h3>
-                    <p className="text-sm text-slate-500 font-medium">지금 즉시 AI가 주제를 분석하고 글을 작성하여 발행합니다.</p>
-                </div>
-                <button
-                    onClick={handleGenerate}
-                    disabled={generating}
-                    className={cn(
-                        "px-8 py-4 rounded-2xl font-black text-sm flex items-center gap-3 transition-all",
-                        generating ? "bg-indigo-100 text-indigo-400 cursor-wait" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 active:scale-95"
-                    )}
-                >
-                    {generating ? <Loader2 className="animate-spin w-4 h-4" /> : <Brain className="w-4 h-4" />}
-                    {generating ? "AI가 집필 중..." : "지금 생성 및 발행하기"}
-                </button>
-            </div>
-            {result && (
-                <div className={cn("p-4 rounded-xl text-sm font-bold border animate-in fade-in slide-in-from-top-2",
-                    result.success ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-rose-50 text-rose-700 border-rose-100")}>
-                    {result.message}
-                </div>
-            )}
-        </div>
-    );
-}
 
 // --- ✨ SNS 링크 설정 섹션 ---
 function SnsLinksSection() {

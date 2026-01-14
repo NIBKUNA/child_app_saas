@@ -48,6 +48,7 @@ export function Schedule() {
         const { data } = await supabase
             .from('therapists')
             .select('id, name, color')
+            .neq('email', 'anukbin@gmail.com') // 🛡️ Super Admin 제외
             .order('name');
         setTherapists(data || []);
     };

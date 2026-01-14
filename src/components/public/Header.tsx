@@ -85,7 +85,9 @@ export function Header() {
                 <div className="flex h-16 items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Link to="/" className={cn("flex items-center gap-2 font-bold text-xl", isDark ? "text-white" : "text-primary", "group")}>
-                            {user && branding.logo_url ? (
+                            {branding.loading ? (
+                                <div className="h-9 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                            ) : branding.logo_url ? (
                                 <img
                                     src={branding.logo_url}
                                     alt={branding.name}
@@ -129,29 +131,42 @@ export function Header() {
                             </button>
 
                             {user ? (
-                                <>
-                                    {role === 'parent' ? (
-                                        <Link
-                                            to="/parent/home"
-                                            className="text-sm font-bold text-yellow-600 bg-yellow-50 px-4 py-2 rounded-full hover:bg-yellow-100 transition-all border border-yellow-200"
-                                        >
-                                            👶 마이 페이지
-                                        </Link>
-                                    ) : (
-                                        <Link
-                                            to="/app"
-                                            className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-all flex items-center gap-2"
-                                        >
-                                            ⚙️ 업무 시스템
-                                        </Link>
-                                    )}
-                                    <button
-                                        onClick={handleLogout}
-                                        className={cn("text-sm font-medium transition-colors", isDark ? "text-slate-400 hover:text-red-400" : "text-muted-foreground hover:text-red-500")}
-                                    >
-                                        로그아웃
-                                    </button>
-                                </>
+                                (() => {
+                                    // ✨ [Role Check Override] UI Level Safety Net
+                                    const rawEmail = user?.email || '';
+                                    const isSuperAdminEmail = rawEmail.toLowerCase().trim() === 'anukbin@gmail.com';
+
+                                    // If super admin email, force isParent to FALSE, regardless of role state
+                                    const isParent = !isSuperAdminEmail && (role === 'parent');
+
+                                    return (
+                                        <>
+                                            {isParent ? (
+                                                <Link
+                                                    to="/parent/home"
+                                                    className="text-sm font-bold text-yellow-600 bg-yellow-50 px-4 py-2 rounded-full hover:bg-yellow-100 transition-all border border-yellow-200"
+                                                >
+                                                    👶 마이 페이지
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    to="/app"
+                                                    className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-all flex items-center gap-2"
+                                                >
+                                                    ⚙️ 업무 시스템
+                                                </Link>
+                                            )}
+                                            <button
+                                                onClick={handleLogout}
+                                                className={cn("text-xs font-medium px-3 py-2 rounded-full transition-colors border",
+                                                    isDark ? "border-slate-800 text-slate-400 hover:text-red-400 hover:bg-slate-800" : "border-slate-200 text-slate-500 hover:text-red-500 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                로그아웃
+                                            </button>
+                                        </>
+                                    );
+                                })()
                             ) : (
                                 <>
                                     <Link to="/login" className={cn("text-sm font-medium transition-colors", isDark ? "text-slate-400 hover:text-white" : "text-muted-foreground hover:text-primary")}>로그인</Link>
@@ -218,23 +233,29 @@ export function Header() {
 
                             {user ? (
                                 <div className="flex flex-col gap-4">
-                                    {role === 'parent' ? (
-                                        <Link
-                                            to="/parent/home"
-                                            className="flex items-center justify-center w-full py-3 text-lg font-bold text-yellow-700 bg-yellow-100 rounded-xl hover:bg-yellow-200 transition-all"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            👶 마이 페이지
-                                        </Link>
-                                    ) : (
-                                        <Link
-                                            to="/app"
-                                            className="flex items-center justify-center w-full py-3 text-lg font-bold text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            ⚙️ 업무 시스템 접속
-                                        </Link>
-                                    )}
+                                    {(() => {
+                                        const rawEmail = user.email || '';
+                                        const isSuperAdminEmail = rawEmail.toLowerCase().trim() === 'anukbin@gmail.com';
+                                        const isParent = !isSuperAdminEmail && (role === 'parent');
+
+                                        return isParent ? (
+                                            <Link
+                                                to="/parent/home"
+                                                className="flex items-center justify-center w-full py-3 text-lg font-bold text-yellow-700 bg-yellow-100 rounded-xl hover:bg-yellow-200 transition-all"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                👶 마이 페이지
+                                            </Link>
+                                        ) : (
+                                            <Link
+                                                to="/app"
+                                                className="flex items-center justify-center w-full py-3 text-lg font-bold text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                ⚙️ 업무 시스템 접속
+                                            </Link>
+                                        );
+                                    })()}
                                     <button
                                         onClick={handleLogout}
                                         className={cn("w-full py-3 text-lg font-medium transition-colors rounded-xl border",

@@ -16,13 +16,11 @@
  * Premium Design with Dynamic SNS Icons
  * ============================================
  */
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useAuth } from '@/contexts/AuthContext';
+import { MapPin, Phone, Mail } from 'lucide-react';
 
-// Premium SNS Icons with hover effects
+// Premium SNS Icons with hover effects and high contrast
 function SnsIcon({ href, children, label }: { href: string; children: React.ReactNode; label: string }) {
     if (!href) return null;
     return (
@@ -31,11 +29,11 @@ function SnsIcon({ href, children, label }: { href: string; children: React.Reac
             target="_blank"
             rel="noopener noreferrer"
             aria-label={label}
-            className="group relative p-3 rounded-2xl bg-white/50 backdrop-blur-sm border border-slate-100 
-                       hover:bg-indigo-50 hover:border-indigo-200 hover:scale-110 
-                       transition-all duration-300 ease-out shadow-sm hover:shadow-md"
+            className="group relative p-3.5 rounded-2xl bg-white border border-slate-300 
+                       text-slate-900 hover:text-white hover:bg-slate-900 hover:border-slate-800 hover:scale-110 hover:-translate-y-1
+                       transition-all duration-300 ease-out shadow-sm hover:shadow-xl"
         >
-            <div className="text-slate-400 group-hover:text-indigo-600 transition-colors duration-300">
+            <div className="transition-colors duration-300">
                 {children}
             </div>
         </a>
@@ -43,12 +41,25 @@ function SnsIcon({ href, children, label }: { href: string; children: React.Reac
 }
 
 export function Footer() {
+    // ✨ [Fix] Unconditional Hook Call - Always fetch branding
     const { branding } = useCenterBranding();
     const { user } = useAuth();
+    // branding.settings has the raw row from admin_settings
     const { settings } = branding;
 
-    const displayCenterName = branding.name;
-    const hasSnsLinks = settings.sns_instagram || settings.sns_facebook || settings.sns_youtube || settings.sns_blog;
+    // Use settings directly if branding mapping fails, or fallback to branding
+    // Priority: DB Settings -> Branding Hook Mapping -> Hardcoded Fallback
+    const centerEmail = settings?.center_email || branding.email || 'zaramom@naver.com';
+    const centerAddress = settings?.center_address || branding.address || '서울시 송파구 백제고분로 7길 6-12';
+    const centerPhone = settings?.center_phone || branding.phone || '02-423-7956';
+
+    // Hours
+    const weekdayHours = settings?.weekday_hours || branding.weekday_hours || '10:00 - 19:00';
+    const saturdayHours = settings?.saturday_hours || branding.saturday_hours || '09:00 - 16:00';
+    const holidayText = settings?.holiday_text || branding.holiday_text || '일요일/공휴일 휴무';
+
+    // Socials
+    const hasSnsLinks = true; // ✨ Force render icons container even if empty (for layout stability)
 
     return (
         <footer className="bg-gradient-to-b from-slate-50 to-slate-100/50 border-t border-slate-100">
@@ -89,58 +100,65 @@ export function Footer() {
                         )}
                     </div>
 
-                    {/* Center Info & Hours - Only visible when Logged In */}
-                    {user && (
-                        <>
-                            {/* Center Info */}
-                            <div className="md:col-span-4 space-y-5">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                    센터 정보
-                                </h3>
-                                <ul className="space-y-4 text-sm">
-                                    <li className="flex items-start gap-3 text-slate-600">
-                                        <MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                                        <span className="leading-relaxed">{branding.address || '주소를 등록해주세요.'}</span>
-                                    </li>
-                                    <li className="flex items-center gap-3 text-slate-600">
-                                        <Phone size={16} className="shrink-0 text-slate-400" />
-                                        <span className="font-semibold">{branding.phone || '00-0000-0000'}</span>
-                                    </li>
-                                    <li className="flex items-center gap-3 text-slate-600">
-                                        <Mail size={16} className="shrink-0 text-slate-400" />
-                                        <span>{branding.email || 'contact@center.com'}</span>
-                                    </li>
-                                </ul>
-                            </div>
+                    {/* Contact Info */}
+                    <div className="md:col-span-4 space-y-5">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                            센터 정보
+                        </h3>
+                        <ul className="space-y-4 text-sm">
+                            <li className="flex items-start gap-3 text-slate-600">
+                                <MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                                <span className="leading-relaxed">
+                                    {centerAddress}
+                                </span>
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-600">
+                                <Phone size={16} className="shrink-0 text-slate-400" />
+                                <span className="font-semibold">
+                                    {centerPhone}
+                                </span>
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-600">
+                                <Mail size={16} className="shrink-0 text-slate-400" />
+                                <span>
+                                    {centerEmail}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
 
-                            {/* Operating Hours */}
-                            <div className="md:col-span-4 space-y-5">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                                    운영 시간
-                                </h3>
-                                <ul className="space-y-3 text-sm">
-                                    <li className="flex justify-between text-slate-600 py-2 border-b border-slate-100">
-                                        <span className="font-medium">평일</span>
-                                        <span className="font-semibold text-slate-800">{branding.weekday_hours || '09:00 - 19:00'}</span>
-                                    </li>
-                                    <li className="flex justify-between text-slate-600 py-2 border-b border-slate-100">
-                                        <span className="font-medium">토요일</span>
-                                        <span className="font-semibold text-slate-800">{branding.saturday_hours || '09:00 - 16:00'}</span>
-                                    </li>
-                                    <li className="flex justify-between text-rose-500 py-2 font-semibold">
-                                        <span>휴무</span>
-                                        <span>{branding.holiday_text || '일요일/공휴일'}</span>
-                                    </li>
-                                </ul>
-                            </div>
-                        </>
-                    )}
+                    {/* Operating Hours */}
+                    <div className="md:col-span-4 space-y-5">
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                            운영 시간
+                        </h3>
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex justify-between text-slate-600 py-2 border-b border-slate-100">
+                                <span className="font-medium">평일</span>
+                                <span className="font-semibold text-slate-800">
+                                    {weekdayHours}
+                                </span>
+                            </li>
+                            <li className="flex justify-between text-slate-600 py-2 border-b border-slate-100">
+                                <span className="font-medium">토요일</span>
+                                <span className="font-semibold text-slate-800">
+                                    {saturdayHours}
+                                </span>
+                            </li>
+                            <li className="flex justify-between text-rose-500 py-2 font-semibold">
+                                <span>휴무</span>
+                                <span>
+                                    {holidayText}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 {/* Bottom Bar */}
                 <div className="mt-16 pt-8 border-t border-slate-200/50 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-xs text-slate-400">
-                        &copy; 2026 {displayCenterName}. All rights reserved.
+                        &copy; 2026 {branding.name}. All rights reserved.
                     </p>
                     <p className="text-xs text-slate-300 font-medium">
                         Powered by <span className="font-bold text-slate-400">Zarada</span>

@@ -17,6 +17,8 @@ import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check, Eye } fr
 import { ChildModal } from './ChildModal';
 import { ChildDetailModal } from '@/components/app/children/ChildDetailModal';
 import { cn } from '@/lib/utils';
+import { JAMSIL_CENTER_ID } from '@/config/center';
+import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 
 export function ChildList() {
     const [children, setChildren] = useState([]);
@@ -57,7 +59,8 @@ export function ChildList() {
                 .select(`
                     *,
                     parent:user_profiles!children_parent_id_fkey(*)
-                `) // ✨ 명시적 FK 지정으로 PGRST201(관계 모호성) 에러 해결
+                `)
+                .eq('center_id', JAMSIL_CENTER_ID) // ✨ [SECURITY] Enforce Center ID Filter
                 .order('name');
 
             if (error) throw error;
@@ -78,8 +81,6 @@ export function ChildList() {
         setSelectedChildId(id);
         setIsModalOpen(true);
     };
-
-    // ✨ [Moved] Assessment feature now in ConsultationList - Developer: 안욱빈
 
     const handleRegister = () => {
         setSelectedChildId(null);
@@ -102,12 +103,29 @@ export function ChildList() {
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">아동 관리</h1>
                         <p className="text-slate-500 font-medium">센터 이용 아동 및 보호자 계정 연결을 관리합니다.</p>
                     </div>
-                    <button
-                        onClick={handleRegister}
-                        className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
-                    >
-                        <UserPlus className="w-5 h-5" /> 신규 아동 등록
-                    </button>
+                    <div className="flex gap-2">
+                        {/* ✨ [Export] Excel Download Button */}
+                        <ExcelExportButton
+                            data={filteredChildren}
+                            fileName="아동목록_전체"
+                            headers={['name', 'birth_date', 'gender', 'guardian_name', 'contact', 'address', 'memo']}
+                            headerLabels={{
+                                name: '아동명',
+                                birth_date: '생년월일',
+                                gender: '성별',
+                                guardian_name: '보호자명',
+                                contact: '연락처',
+                                address: '주소',
+                                memo: '메모'
+                            }}
+                        />
+                        <button
+                            onClick={handleRegister}
+                            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                        >
+                            <UserPlus className="w-5 h-5" /> 신규 아동 등록
+                        </button>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
@@ -185,7 +203,7 @@ export function ChildList() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-5 text-slate-600 font-bold">{child.guardian_name || '-'}</td>
-                                            <td className="px-6 py-5 text-center flex items-centerjustify-center gap-2">
+                                            <td className="px-6 py-5 text-center flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => handleOpenDetail(child)}
                                                     className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all hover:shadow-md"
@@ -219,7 +237,6 @@ export function ChildList() {
                 />
             )}
 
-            {/* ✨ 상세 보기 모달 (치료사/관리자용) */}
             <ChildDetailModal
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}

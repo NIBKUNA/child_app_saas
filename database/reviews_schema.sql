@@ -1,85 +1,53 @@
--- ============================================
--- 🎨 ZARADA MASTER TEMPLATE - Reviews System
--- 지점별 서비스 리뷰 테이블
--- ============================================
-
--- reviews 테이블 생성
-CREATE TABLE IF NOT EXISTS reviews (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    center_id UUID REFERENCES centers(id) ON DELETE CASCADE,
-    author_name VARCHAR(100) NOT NULL,
-    
-    -- 별점 항목 (1-5점)
-    rating_facility SMALLINT CHECK (rating_facility >= 1 AND rating_facility <= 5),
-    rating_kindness SMALLINT CHECK (rating_kindness >= 1 AND rating_kindness <= 5),
-    rating_convenience SMALLINT CHECK (rating_convenience >= 1 AND rating_convenience <= 5),
-    
-    -- 리뷰 내용
-    content TEXT,
-    
-    -- 메타데이터
-    is_approved BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+-- Create reviews table
+create table if not exists public.reviews (
+    id uuid default gen_random_uuid() primary key,
+    center_id uuid not null references public.centers(id) on delete cascade,
+    parent_id uuid references auth.users(id) on delete set null,
+    rating integer not null check (rating >= 1 and rating <= 5),
+    content text not null,
+    parent_name text, -- Optional manual name if we want to allow masking or custom names
+    is_visible boolean default true,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 인덱스 생성 (지점별 조회 최적화)
-CREATE INDEX IF NOT EXISTS idx_reviews_center_id ON reviews(center_id);
-CREATE INDEX IF NOT EXISTS idx_reviews_approved ON reviews(is_approved);
-CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at DESC);
+-- RLS
+alter table public.reviews enable row level security;
 
--- RLS 정책
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+-- Public Read (Center filtered)
+create policy "Public can read visible reviews"
+    on public.reviews for select
+    using (is_visible = true);
 
--- 모든 사용자가 승인된 리뷰만 조회 가능
-CREATE POLICY "Anyone can view approved reviews"
-    ON reviews FOR SELECT
-    USING (is_approved = TRUE);
-
--- 인증된 사용자만 리뷰 작성 가능
-CREATE POLICY "Authenticated users can create reviews"
-    ON reviews FOR INSERT
-    TO authenticated
-    WITH CHECK (TRUE);
-
--- 관리자만 리뷰 수정/삭제 가능 (user_profiles role 체크)
-CREATE POLICY "Admins can update reviews"
-    ON reviews FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM user_profiles
-            WHERE user_profiles.id = auth.uid()
-            AND user_profiles.role IN ('admin', 'staff')
+-- Authenticated Parents can insert (linked to their center)
+create policy "Parents can insert reviews"
+    on public.reviews for insert
+    with check (
+        auth.role() = 'authenticated' and
+        (
+            -- Must match the center they belong to (optional strict check, but usually nice)
+            exists (
+                select 1 from public.children c
+                where c.parent_id = auth.uid()
+                and c.center_id = reviews.center_id
+            )
+            OR
+            -- Or if we don't strictly enforce children-link (e.g. just signed up parents)
+            auth.uid() = parent_id
         )
     );
 
-CREATE POLICY "Admins can delete reviews"
-    ON reviews FOR DELETE
-    USING (
-        EXISTS (
-            SELECT 1 FROM user_profiles
-            WHERE user_profiles.id = auth.uid()
-            AND user_profiles.role IN ('admin', 'staff')
+-- Users can update THEIR OWN reviews
+create policy "Users can update own reviews"
+    on public.reviews for update
+    using (auth.uid() = parent_id);
+
+-- Super Admin Full Access
+create policy "Super Admin full access reviews"
+    on public.reviews for all
+    using (
+        exists (
+            select 1 from public.profiles
+            where id = auth.uid() and role = 'super_admin'
         )
     );
-
--- 자동 updated_at 트리거
-CREATE OR REPLACE FUNCTION update_reviews_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER reviews_updated_at_trigger
-    BEFORE UPDATE ON reviews
-    FOR EACH ROW
-    EXECUTE FUNCTION update_reviews_updated_at();
-
--- 코멘트
-COMMENT ON TABLE reviews IS '지점별 서비스 리뷰 테이블';
-COMMENT ON COLUMN reviews.rating_facility IS '시설 만족도 (1-5)';
-COMMENT ON COLUMN reviews.rating_kindness IS '선생님 친절도 (1-5)';
-COMMENT ON COLUMN reviews.rating_convenience IS '상담 편의성 (1-5)';
-COMMENT ON COLUMN reviews.is_approved IS '관리자 승인 여부 (기본값 false)';

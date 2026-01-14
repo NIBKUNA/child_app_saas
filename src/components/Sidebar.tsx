@@ -20,6 +20,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
+import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from "@/lib/utils";
 
@@ -255,6 +256,7 @@ export function Sidebar() {
     const location = useLocation();
     const { role, signOut } = useAuth();
     const { theme, isSuperAdmin } = useTheme();
+    const { branding } = useCenterBranding();
     const [isOpen, setIsOpen] = useState(false);
 
     // 🔐 Initialize openGroups from localStorage or default to empty (all closed)
@@ -328,12 +330,18 @@ export function Sidebar() {
                     <div className="p-6 mb-2 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between">
                             <h1 className={cn(
-                                "text-2xl font-black tracking-tighter flex items-center gap-2",
+                                "flex items-center gap-2",
                                 "text-indigo-600 dark:text-yellow-400"
                             )}>
-                                ZARADA
+                                {branding?.loading ? (
+                                    <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                                ) : branding?.logo_url ? (
+                                    <img src={branding.logo_url} alt="Center Logo" className="h-8 w-auto object-contain" />
+                                ) : (
+                                    <span className="text-2xl font-black tracking-tighter">ZARADA</span>
+                                )}
                                 {isSuperAdmin && (
-                                    <span className="text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    <span className="text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider ml-1">
                                         Super
                                     </span>
                                 )}

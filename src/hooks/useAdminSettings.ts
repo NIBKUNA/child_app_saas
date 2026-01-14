@@ -133,6 +133,14 @@ export const useAdminSettings = () => {
             // ✨ [Global Sync] 설정 변경 이벤트 발송 (다른 컴포넌트 즉시 갱신)
             window.dispatchEvent(new Event('settings-updated'));
 
+            // ✨ [Cache Invalidation] 강제 무효화
+            try {
+                localStorage.removeItem(BRAND_CACHE_KEY);
+            } catch (e) { }
+
+            // Refetch immediately to ensure strict consistency
+            await fetchSettings();
+
             return { success: true };
         } catch (err: any) {
             console.error(`Error updating setting ${key}:`, err);
