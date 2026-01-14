@@ -121,7 +121,35 @@ export function AppLayout() {
             )
             .subscribe();
 
-        return () => { supabase.removeChannel(channel); };
+        // ✨ [Real-time Notification] 일정/세션 변경 알림
+        const scheduleChannel = supabase
+            .channel('global_schedule_alerts')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'schedules' },
+                (payload) => {
+                    const eventType = payload.eventType;
+                    const title = `📅 일정 ${eventType === 'INSERT' ? '등록' : eventType === 'UPDATE' ? '수정' : '취소'}`;
+                    const body = '치료 일정이 변경되었습니다. 확인해주세요.';
+
+                    setNotif({ title, msg: body, visible: true });
+                }
+            )
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'sessions' },
+                (payload) => {
+                    const eventType = payload.eventType;
+                    const title = `📝 세션 ${eventType === 'INSERT' ? '기록' : eventType === 'UPDATE' ? '수정' : '삭제'}`;
+                    const body = '치료 세션 정보가 변경되었습니다.';
+
+                    setNotif({ title, msg: body, visible: true });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+            supabase.removeChannel(scheduleChannel);
+        };
     }, []);
 
     // 정상 권한(관리자, 치료사, 일반직원)일 경우의 기본 레이아웃
@@ -146,7 +174,7 @@ export function AppLayout() {
             {/* 사이드바 영역 */}
             <Sidebar />
 
-            <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+            <div className="flex-1 flex flex-col overflow-hidden ml-0 md:ml-64">
                 <main className={`flex-1 overflow-x-hidden overflow-y-auto ${mainBg} p-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
                     {/* 개별 페이지 렌더링 (Framer Motion Transition) */}
                     <AnimatePresence mode="wait">

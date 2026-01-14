@@ -65,7 +65,7 @@ import { useState, useEffect } from 'react';
 function AppHomeRedirect() {
   const { role } = useAuth();
   if (role === 'super_admin' || role === 'admin' || role === 'staff') {
-    return <Navigate to="/app/dashboard" replace />;
+    return <Navigate to="/app/schedule" replace />;
   }
   if (role === 'therapist') {
     return <Navigate to="/app/schedule" replace />;

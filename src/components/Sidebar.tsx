@@ -185,13 +185,6 @@ const Icons = {
 // ============================================
 const MENU_GROUPS = [
     {
-        name: '통계',  // Insight
-        icon: Icons.centerStatus,
-        items: [
-            { name: '대시보드', path: '/app/dashboard', icon: Icons.dashboard, roles: ['super_admin', 'admin', 'staff'] },
-        ]
-    },
-    {
         name: '센터 운영',  // Operations
         icon: Icons.calendar,
         items: [
@@ -215,6 +208,7 @@ const MENU_GROUPS = [
         name: '시스템',  // Platform
         icon: Icons.system,
         items: [
+            { name: '대시보드', path: '/app/dashboard', icon: Icons.dashboard, roles: ['super_admin', 'admin', 'staff'] },
             { name: '전체 센터 관리', path: '/app/admin/centers', icon: Icons.centerStatus, roles: ['super_admin'] },
             { name: '블로그 관리', path: '/app/blog', icon: Icons.blog, roles: ['super_admin'] },
             { name: '사이트 설정', path: '/app/settings', icon: Icons.settings, roles: ['super_admin'] },
@@ -299,6 +293,9 @@ export function Sidebar() {
         }
     }, [location.pathname, findGroupForPath]);
 
+
+
+    // Mobile Toggle (Keep Click)
     const toggleGroup = (groupName: string) => {
         setOpenGroups(prev => prev.includes(groupName) ? prev.filter(g => g !== groupName) : [...prev, groupName]);
     };
@@ -313,7 +310,7 @@ export function Sidebar() {
         <>
             {/* Mobile Menu Button */}
             <button
-                className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-slate-900 rounded-lg shadow-md gpu-accelerate border border-slate-200 dark:border-slate-700"
+                className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-slate-900 rounded-lg shadow-md gpu-accelerate border border-slate-200 dark:border-slate-700"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {isOpen ? Icons.close("w-6 h-6 text-slate-900 dark:text-white") : Icons.menu("w-6 h-6 text-slate-900 dark:text-white")}
@@ -321,9 +318,9 @@ export function Sidebar() {
 
             {/* Sidebar */}
             <aside className={cn(
-                "fixed top-0 left-0 z-40 h-screen transition-transform duration-300 w-64 shadow-2xl gpu-accelerate",
+                "fixed top-0 left-0 z-40 h-screen transition-transform duration-300 w-64 shadow-2xl",
                 "bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800",
-                isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+                isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
             )}>
                 <div className="flex flex-col h-full">
                     {/* Header */}
@@ -362,6 +359,7 @@ export function Sidebar() {
                         <Link
                             to="/"
                             className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold border text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                            onClick={() => setIsOpen(false)}
                         >
                             {Icons.globe("w-5 h-5 text-blue-500 dark:text-blue-400")}
                             홈페이지 바로가기
@@ -377,7 +375,10 @@ export function Sidebar() {
                             const isGroupOpen = openGroups.includes(group.name);
 
                             return (
-                                <div key={group.name} className="space-y-1">
+                                <div
+                                    key={group.name}
+                                    className="space-y-1"
+                                >
                                     <button
                                         onClick={() => toggleGroup(group.name)}
                                         className="flex items-center justify-between w-full px-4 py-2 text-[11px] font-black uppercase tracking-widest transition-colors rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
@@ -420,7 +421,10 @@ export function Sidebar() {
                     {/* Footer */}
                     <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
                         <button
-                            onClick={handleLogout}
+                            onClick={() => {
+                                setIsOpen(false);
+                                handleLogout();
+                            }}
                             className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all font-bold text-sm text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950"
                         >
                             {Icons.logout("w-4 h-4")} 로그아웃
@@ -432,7 +436,7 @@ export function Sidebar() {
             {/* Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 lg:hidden gpu-accelerate"
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 md:hidden gpu-accelerate"
                     onClick={() => setIsOpen(false)}
                 />
             )}
