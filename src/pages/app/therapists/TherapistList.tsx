@@ -131,7 +131,53 @@ export function TherapistList() {
         }
     };
 
-    // ... toggle / reset functions ...
+    const handleToggleStatus = async (staff: any) => {
+        const isRetired = staff.system_status === 'retired';
+        const newStatus = isRetired ? 'active' : 'retired';
+        const message = isRetired
+            ? `${staff.name}님을 다시 근무중으로 복귀시키겠습니까?`
+            : `${staff.name}님을 퇴사 처리하시겠습니까? (계정은 유지되며 보관됩니다)`;
+
+        if (!confirm(message)) return;
+
+        try {
+            await supabase
+                .from('user_profiles')
+                .update({ status: newStatus })
+                .eq('email', staff.email);
+
+            alert('상태가 변경되었습니다.');
+            fetchStaffs();
+        } catch (error) {
+            console.error(error);
+            alert('상태 변경 실패');
+        }
+    };
+
+    const handleHardReset = async (staff: any) => {
+        const confirmMsg = `[⚠️ 중대 경고]\n\n${staff.name} 치료사 정보를 완전히 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며, 모든 급여 기록 및 배정된 일정이 사라질 수 있습니다.`;
+        if (!confirm(confirmMsg)) return;
+
+        const doubleCheck = prompt(`삭제를 원하시면 다음 문구를 똑같이 입력하세요:\n\n${staff.email}`);
+        if (doubleCheck !== staff.email) {
+            alert('이메일이 일치하지 않아 취소합니다.');
+            return;
+        }
+
+        try {
+            // 1. Delete Therapist Record
+            await supabase.from('therapists').delete().eq('id', staff.id);
+            // 2. Delete Profile (If linked)
+            if (staff.userId) {
+                await supabase.from('user_profiles').delete().eq('id', staff.userId);
+            }
+            alert('영구 삭제되었습니다.');
+            fetchStaffs();
+        } catch (error) {
+            console.error(error);
+            alert('삭제 실패: ' + (error as any).message);
+        }
+    };
 
     const handleEdit = (staff) => {
         setEditingId(staff.id);

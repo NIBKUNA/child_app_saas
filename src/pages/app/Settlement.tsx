@@ -29,6 +29,55 @@ export function Settlement() {
     const [adminList, setAdminList] = useState<any[]>([]);
     const [totalStats, setTotalStats] = useState({ revenue: 0, payout: 0, net: 0, count: 0 });
 
+    // ✨ [Fix] Missing State Definitions
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState({
+        hire_type: 'freelancer',
+        base_salary: 0,
+        base_session_count: 0,
+        weekday: 0,
+        weekend: 0,
+        eval: 0,
+        consult: 0,
+        remarks: ''
+    });
+
+    const startEdit = (t: any) => {
+        setEditingId(t.id);
+        setEditForm({
+            hire_type: t.hire_type || 'freelancer',
+            base_salary: t.base_salary || 0,
+            base_session_count: t.required_sessions || 0,
+            weekday: t.session_price_weekday || 0,
+            weekend: t.session_price_weekend || 0,
+            eval: t.evaluation_price || 0,
+            consult: t.incentive_price || 0,
+            remarks: t.remarks || ''
+        });
+    };
+
+    const saveEdit = async (id: string) => {
+        if (!window.confirm('저장하시겠습니까?')) return;
+        try {
+            await supabase.from('therapists').update({
+                hire_type: editForm.hire_type,
+                base_salary: editForm.base_salary,
+                required_sessions: editForm.base_session_count,
+                session_price_weekday: editForm.weekday,
+                session_price_weekend: editForm.weekend,
+                evaluation_price: editForm.eval,
+                incentive_price: editForm.consult,
+                remarks: editForm.remarks
+            }).eq('id', id);
+
+            setEditingId(null);
+            fetchSettlements();
+        } catch (e) {
+            console.error(e);
+            alert('저장 실패');
+        }
+    };
+
     const handleDownloadExcel = () => {
         if (!window.confirm('현재 화면에 표시된 정산 내역을 엑셀로 저장하시겠습니까?')) return;
 
