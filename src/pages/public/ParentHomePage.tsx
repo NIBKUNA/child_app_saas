@@ -155,32 +155,46 @@ export function ParentHomePage() {
                 // 🚀 [Optimization] SQL 레벨에서 최신 2개만 가져오도록 최적화 (Comparison Logic용)
                 // 단, 전체 리스트가 필요하다면 limit을 없애야 하지만, 성능 문제 지적에 따라 limit을 적용함.
                 // 타임라인 슬라이더가 2개만 나오게 됨.
+                // ✨ [FIX] 상담 일지(counseling_logs)를 메인으로 조회하여, 평가서가 없어도 일지가 보이도록 수정
+                // Left Join: counseling_logs -> development_assessments
                 const { data: logs } = await supabase
-                    .from('development_assessments')
+                    .from('counseling_logs')
                     .select(`
                         id,
                         created_at,
-                        score_communication, score_social, score_cognitive, score_motor, score_adaptive,
-                        evaluation_content,
+                        content,
+                        activities,
+                        child_response,
+                        next_plan,
+                        parent_feedback,
                         therapists:therapist_id (name),
-                        counseling_logs (content)
+                        development_assessments (
+                            score_communication, score_social, score_cognitive, score_motor, score_adaptive,
+                            evaluation_content
+                        )
                     `)
                     .eq('child_id', child.id)
                     .order('created_at', { ascending: false })
-                    .limit(2); // ✨ Optimization: Fetch only latest 2 (Current & Previous)
+                    .limit(5); // Show last 5 logs
 
                 // UI에 맞게 데이터 매핑
-                const formattedLogs = logs?.map(log => ({
-                    ...log,
-                    content: log.evaluation_content || log.counseling_logs?.content || '작성된 내용이 없습니다.',
-                    domain_scores: {
-                        '의사소통': log.score_communication,
-                        '사회성': log.score_social,
-                        '인지': log.score_cognitive,
-                        '운동': log.score_motor,
-                        '적응': log.score_adaptive
-                    }
-                }));
+                const formattedLogs = logs?.map(log => {
+                    const assessment = log.development_assessments?.[0] || log.development_assessments; // Handle array or single object
+
+                    return {
+                        ...log,
+                        // 콘텐츠 우선순위: 부모 피드백 -> 평가 상세 -> 일지 내용 -> 없음
+                        content: log.parent_feedback || assessment?.evaluation_content || log.content || '작성된 내용이 없습니다.',
+                        // 평가 점수가 있으면 매핑, 없으면 null (그래프 숨김 처리)
+                        domain_scores: assessment ? {
+                            '의사소통': assessment.score_communication,
+                            '사회성': assessment.score_social,
+                            '인지': assessment.score_cognitive,
+                            '운동': assessment.score_motor,
+                            '적응': assessment.score_adaptive
+                        } : null
+                    };
+                });
                 setAllLogs(formattedLogs || []);
 
                 // ✨ [Smart Logic] 최신 평가 기반 취약 영역 분석 및 팁 추천 (Removed, now handled by DynamicHomeCareTips)

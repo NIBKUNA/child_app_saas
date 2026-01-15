@@ -57,8 +57,9 @@ export function TherapistList() {
 
             const mergedData = therapistData?.map(t => {
                 const profile = profileData?.find(p => p.email === t.email);
-                let dbRole = profile?.role || 'therapist';
-                let dbStatus = profile?.status || 'invited';
+                // ✨ [Priority Logic] 1. Profile (Real User) -> 2. Therapists Table (Pending/Fallback)
+                let dbRole = profile?.role || t.system_role || 'therapist';
+                let dbStatus = profile?.status || t.system_status || 'invited';
 
                 return {
                     ...t,
@@ -99,7 +100,10 @@ export function TherapistList() {
                     session_price_weekend: formData.session_price_weekend,
                     incentive_price: formData.incentive_price,
                     evaluation_price: formData.evaluation_price,
-                    center_id: import.meta.env.VITE_CENTER_ID
+                    center_id: import.meta.env.VITE_CENTER_ID,
+                    // ✨ [Role Persistence] Save pending role info
+                    system_role: formData.system_role,
+                    system_status: 'active' // Default to active on creation
                 }, { onConflict: 'email' });
 
             // ... rest of logic
@@ -141,10 +145,24 @@ export function TherapistList() {
         if (!confirm(message)) return;
 
         try {
-            await supabase
+            // 1. Update Profile (if exists)
+            const { error: profileError } = await supabase
                 .from('user_profiles')
                 .update({ status: newStatus })
                 .eq('email', staff.email);
+
+            // 2. Update Therapists Table (Source of Truth for Pending)
+            // ✨ This fixes the bug where "Pending" staff wouldn't disappear
+            await supabase
+                .from('therapists')
+                .update({ system_status: newStatus })
+                .eq('email', staff.email);
+
+            if (profileError && !start.userId) {
+                // Ignore profile error if user doesn't exist yet
+            } else if (profileError) {
+                throw profileError;
+            }
 
             alert('상태가 변경되었습니다.');
             fetchStaffs();
@@ -248,8 +266,39 @@ export function TherapistList() {
                         </button>
                     </div>
 
-                    <button onClick={() => { setEditingId(null); setFormData({ name: '', contact: '', email: '', hire_type: 'freelancer', system_role: 'therapist', remarks: '', color: '#3b82f6' }); setIsModalOpen(true); }} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-                        <Plus className="w-5 h-5" /> 직원 등록
+                    <button
+                        onClick={() => {
+                            setEditingId(null);
+                            setFormData({
+                                name: '', contact: '', email: '', hire_type: 'freelancer',
+                                system_role: 'therapist', // Default
+                                system_status: 'active',
+                                remarks: '', color: '#3b82f6',
+                                bank_name: '', account_number: '', account_holder: '',
+                                base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000
+                            });
+                            setIsModalOpen(true);
+                        }}
+                        className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:bg-indigo-700 shadow-lg shadow-indigo-200"
+                    >
+                        <Plus className="w-5 h-5" /> 치료사 등록
+                    </button>
+                    <button
+                        onClick={() => {
+                            setEditingId(null);
+                            setFormData({
+                                name: '', contact: '', email: '', hire_type: 'fulltime',
+                                system_role: 'admin', // Auto-set Admin
+                                system_status: 'active',
+                                remarks: '', color: '#ef4444', // Red for Admin
+                                bank_name: '', account_number: '', account_holder: '',
+                                base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 0, evaluation_price: 0
+                            });
+                            setIsModalOpen(true);
+                        }}
+                        className="bg-rose-100 text-rose-600 px-5 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:bg-rose-200 border border-rose-200"
+                    >
+                        <Shield className="w-5 h-5" /> 관리자 등록
                     </button>
                 </div>
             </div>
@@ -270,7 +319,7 @@ export function TherapistList() {
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl shadow-lg transform group-hover:scale-110 transition-transform" style={{ backgroundColor: staff.system_status === 'retired' ? '#94a3b8' : staff.color }}>
-                                    {staff.name[0]}
+                                    {staff.name?.[0] || '?'}
                                 </div>
                                 <div>
                                     <h3 className="font-black text-slate-900 flex items-center gap-2 text-lg">

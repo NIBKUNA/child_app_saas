@@ -109,10 +109,17 @@ export function Register() {
     useEffect(() => {
         async function fetchCenters() {
             const { data } = await supabase.from('centers').select('id, name');
-            if (data) setCenters(data);
+            if (data && data.length > 0) {
+                setCenters(data);
+                // ✨ [Auto-Select] If env var is missing or empty, pick the first center (Common for Single-Center apps)
+                if (!centerId) {
+                    console.log("📍 Auto-selecting center from DB:", data[0].name);
+                    setCenterId(data[0].id);
+                }
+            }
         }
         fetchCenters();
-    }, []);
+    }, [centerId]); // Add centerId dependency to strictly check it
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -122,70 +129,55 @@ export function Register() {
         setError(null);
 
         try {
-            if (isOAuthUser && oauthUserData) {
-                // ✨ [권한 결정] Super Admin > 그 외 모두 학부모(Parent)
-                let finalRole = 'parent';
-                let finalStatus = 'active';
+            // 일반 이메일 회원가입
+            let finalRole = 'parent';
+            let finalStatus = 'active';
 
-                if (isSuperAdmin(oauthUserData.email)) {
-                    finalRole = 'admin';
-                }
-
-                // ✨ user_profiles에 저장
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: oauthUserData.id,
-                        email: oauthUserData.email,
-                        name: name,
-                        role: finalRole,
-                        center_id: centerId,
-                        status: finalStatus
-                    }, { onConflict: 'id' });
-
-                if (profileError) throw profileError;
-
-                // ✨ 무조건 학부모 홈으로 이동
-                navigate('/parent/home');
-
+            if (isSuperAdmin(email)) {
+                finalRole = 'admin';
             } else {
-                // 일반 이메일 회원가입
-                let finalRole = 'parent';
-                let finalStatus = 'active';
+                // 🔍 Check if pre-registered in Therapists table
+                const { data: therapistInfo } = await supabase
+                    .from('therapists')
+                    .select('system_role, system_status')
+                    .eq('email', email)
+                    .maybeSingle();
 
-                if (isSuperAdmin(email)) {
-                    finalRole = 'admin';
+                if (therapistInfo) {
+                    finalRole = therapistInfo.system_role || 'therapist';
+                    finalStatus = therapistInfo.system_status || 'active';
+                    console.log(`✨ [Auto-Assign] Recognized Staff: ${finalRole}`);
                 }
+            }
 
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            full_name: name,
-                            role: finalRole,
-                            center_id: centerId
-                        }
-                    },
-                });
-
-                if (authError) throw authError;
-
-                if (authData.user) {
-                    // ✨ user_profiles에 직접 저장
-                    await supabase.from('profiles').upsert({
-                        id: authData.user.id,
-                        email: email,
-                        name: name,
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        full_name: name,
                         role: finalRole,
-                        center_id: centerId,
-                        status: finalStatus,
-                    }, { onConflict: 'id' });
+                        center_id: centerId
+                    }
+                },
+            });
 
-                    alert('회원가입이 완료되었습니다!\n환영합니다.');
-                    await supabase.auth.signInWithPassword({ email, password }); // 자동 로그인 시도
-                    navigate('/parent/home');
-                }
+            if (authError) throw authError;
+
+            if (authData.user) {
+                // ✨ user_profiles에 직접 저장
+                await supabase.from('profiles').upsert({
+                    id: authData.user.id,
+                    email: email,
+                    name: name,
+                    role: finalRole,
+                    center_id: centerId,
+                    status: finalStatus,
+                }, { onConflict: 'id' });
+
+                alert('회원가입이 완료되었습니다!\n환영합니다.');
+                await supabase.auth.signInWithPassword({ email, password }); // 자동 로그인 시도
+                navigate('/parent/home');
             }
         } catch (err: any) {
             let msg = err.message || '오류가 발생했습니다.';
@@ -264,20 +256,8 @@ export function Register() {
 
                     <div className="space-y-4 pt-2">
                         <InputField label="이름" placeholder="성함 입력" value={name} onChange={setName} isDark={isDark} />
-                        {!isOAuthUser && (
-                            <>
-                                <InputField label="이메일" type="email" placeholder="example@email.com" value={email} onChange={setEmail} isDark={isDark} />
-                                <InputField label="비밀번호" type="password" placeholder="8자 이상" value={password} onChange={setPassword} isDark={isDark} />
-                            </>
-                        )}
-                        {isOAuthUser && (
-                            <div className={cn(
-                                "p-4 rounded-2xl text-xs font-bold border",
-                                isDark ? "bg-emerald-900/20 text-emerald-400 border-emerald-800" : "bg-emerald-50 text-emerald-600 border-emerald-200"
-                            )}>
-                                ✨ {oauthUserData?.email}으로 로그인되었습니다. 소속 센터와 가입 유형을 선택해 주세요.
-                            </div>
-                        )}
+                        <InputField label="이메일" type="email" placeholder="example@email.com" value={email} onChange={setEmail} isDark={isDark} />
+                        <InputField label="비밀번호" type="password" placeholder="8자 이상" value={password} onChange={setPassword} isDark={isDark} />
                     </div>
 
                     {/* 이용약관 동의 (Simplified) */}
