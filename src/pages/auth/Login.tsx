@@ -206,50 +206,7 @@ export function Login() {
                         </p>
                     </div>
 
-                    {/* ✨ 3-Tier Login Tabs */}
-                    <div className="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl relative">
-                        <div className={cn(
-                            "absolute inset-y-1 w-1/3 bg-white dark:bg-slate-700 rounded-xl shadow-sm transition-all duration-300 ease-spring",
-                            selectedTab === 'parent' ? "left-1" : selectedTab === 'teacher' ? "left-[33.33%] translate-x-0.5" : "left-[66.66%]"
-                        )} />
 
-                        <button
-                            type="button"
-                            onClick={() => setSelectedTab('parent')}
-                            className={cn(
-                                "flex-1 py-2.5 text-sm font-bold relative z-10 transition-colors rounded-xl",
-                                selectedTab === 'parent'
-                                    ? "text-slate-900 dark:text-white"
-                                    : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                            )}
-                        >
-                            부모님
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedTab('teacher')}
-                            className={cn(
-                                "flex-1 py-2.5 text-sm font-bold relative z-10 transition-colors rounded-xl",
-                                selectedTab === 'teacher'
-                                    ? "text-slate-900 dark:text-white"
-                                    : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                            )}
-                        >
-                            선생님
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setSelectedTab('admin')}
-                            className={cn(
-                                "flex-1 py-2.5 text-sm font-bold relative z-10 transition-colors rounded-xl",
-                                selectedTab === 'admin'
-                                    ? "text-slate-900 dark:text-white"
-                                    : "text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                            )}
-                        >
-                            관리자
-                        </button>
-                    </div>
 
                     {/* Email Form */}
                     <form className="space-y-5" onSubmit={handleLogin}>

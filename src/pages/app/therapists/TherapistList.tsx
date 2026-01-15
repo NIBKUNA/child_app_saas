@@ -79,59 +79,64 @@ export function TherapistList() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true); // Show global loading or local loading
+
         try {
-            // 1. Therapists 테이블 우선 생성/수정
-            const { error: therapistError } = await supabase
-                .from('therapists')
-                .upsert({
-                    email: formData.email,
-                    name: formData.name,
-                    contact: formData.contact,
-                    hire_type: formData.hire_type,
-                    remarks: formData.remarks,
-                    color: formData.color,
-                    bank_name: formData.bank_name,
-                    account_number: formData.account_number,
-                    account_holder: formData.account_holder,
-                    // ✨ Advanced Settlement Fields
-                    base_salary: formData.base_salary,
-                    required_sessions: formData.required_sessions,
-                    session_price_weekday: formData.session_price_weekday,
-                    session_price_weekend: formData.session_price_weekend,
-                    incentive_price: formData.incentive_price,
-                    evaluation_price: formData.evaluation_price,
-                    center_id: import.meta.env.VITE_CENTER_ID,
-                    // ✨ [Role Persistence] Save pending role info
-                    system_role: formData.system_role,
-                    system_status: 'active' // Default to active on creation
-                }, { onConflict: 'email' });
+            if (!editingId) {
+                // ✨ [New Registration] Use Edge Function for Secure Invitation
+                const { data, error } = await supabase.functions.invoke('invite-user', {
+                    body: {
+                        email: formData.email,
+                        name: formData.name,
+                        role: formData.system_role, // 'admin' or 'therapist'
+                        hire_type: formData.hire_type,
+                        color: formData.color,
+                        bank_name: formData.bank_name,
+                        account_number: formData.account_number,
+                        account_holder: formData.account_holder,
+                        center_id: import.meta.env.VITE_CENTER_ID,
+                    }
+                });
 
-            // ... rest of logic
-            if (therapistError) throw therapistError;
+                if (error) throw error;
+                // If function returns error in body
+                if (data && data.error) throw new Error(data.error);
 
-            // 2. 프로필이 있으면 업데이트, 없으면 무시 (가입은 사용자가 직접 해야 함)
-            const { data: existingProfile } = await supabase
-                .from('user_profiles')
-                .select('id')
-                .eq('email', formData.email)
-                .maybeSingle();
-
-            if (existingProfile) {
-                await supabase
-                    .from('user_profiles')
+                alert(`✅ [초대 발송 성공] ${formData.name}님에게 이메일이 발송되었습니다.`);
+            } else {
+                // ✨ [Edit Mode] Direct Update (As Admin)
+                const { error: therapistError } = await supabase
+                    .from('therapists')
                     .update({
-                        role: formData.system_role,
-                        name: formData.name
+                        name: formData.name,
+                        hire_type: formData.hire_type,
+                        color: formData.color,
+                        bank_name: formData.bank_name,
+                        account_number: formData.account_number,
+                        account_holder: formData.account_holder,
+                        system_role: formData.system_role,
+                        // Note: Email is not editable in simple mode usually, or carefully
                     })
-                    .eq('email', formData.email);
+                    .eq('id', editingId);
+
+                if (therapistError) throw therapistError;
+
+                // Also sync Profile if exists
+                if (formData.userId) {
+                    await supabase.from('profiles').update({ name: formData.name }).eq('id', formData.userId);
+                }
+
+                alert(`✅ [수정 완료] 정보가 업데이트되었습니다.`);
             }
 
-            alert(`✅ [저장 완료] ${formData.name}님의 정보가 저장되었습니다.`);
-            fetchStaffs(); // Reload properly instead of window.reload()
-            setIsModalOpen(false); // Close modal
+            fetchStaffs();
+            setIsModalOpen(false);
 
         } catch (error) {
-            alert('❌ 처리 실패: ' + error.message);
+            console.error(error);
+            alert('❌ 처리 실패: ' + (error.message || '알 수 없는 오류'));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -369,116 +374,116 @@ export function TherapistList() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
                         <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-2xl font-black text-slate-900">{editingId ? '직원 정보 및 권한 수정' : '새 직원 등록'}</h2>
+                            <h2 className="text-2xl font-black text-slate-900">
+                                {editingId
+                                    ? (formData.system_role === 'admin' ? '관리자 정보 수정' : '치료사 정보 수정')
+                                    : (formData.system_role === 'admin' ? '새 관리자 등록' : '새 치료사 등록')}
+                            </h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="space-y-2">
-                                <label className="text-sm font-black text-slate-700 ml-1">이름</label>
-                                <input required className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold outline-none focus:ring-2 focus:ring-slate-900" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-black text-slate-700 ml-1">시스템 권한</label>
-                                    <select className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-slate-900" value={formData.system_role} onChange={e => setFormData({ ...formData, system_role: e.target.value })}>
-                                        <option value="therapist">치료사 (일반)</option>
-                                        <option value="admin">관리자 (Admin)</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-black text-slate-700 ml-1">고용 형태</label>
-                                    <select className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold focus:ring-2 focus:ring-slate-900" value={formData.hire_type} onChange={e => setFormData({ ...formData, hire_type: e.target.value })}>
-                                        <option value="fulltime">정규직</option>
-                                        <option value="freelancer">프리랜서</option>
-                                        <option value="parttime">파트타임</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-black text-slate-700 ml-1">이메일 (계정연동)</label>
-                                <input type="email" required className="w-full px-5 py-4 bg-slate-50 rounded-2xl border-none font-bold" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} disabled={!!editingId} />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-black text-slate-700 ml-1">프로필 색상</label>
-                                <div className="flex flex-wrap gap-2 p-2 bg-slate-50 rounded-2xl">
-                                    {COLORS.map(c => (
-                                        <button key={c} type="button" onClick={() => setFormData({ ...formData, color: c })} className={cn("w-8 h-8 rounded-full transition-transform", formData.color === c && "scale-125 ring-2 ring-white shadow-md")} style={{ backgroundColor: c }} />
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4 border-t border-slate-100">
-                                <h3 className="text-sm font-black text-slate-400">💰 정산 및 계좌 정보</h3>
-                                <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-6">
+                                {/* Basic Info Group */}
+                                <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 ml-1">은행명</label>
-                                        <input className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="예: 국민은행" value={formData.bank_name || ''} onChange={e => setFormData({ ...formData, bank_name: e.target.value })} />
+                                        <label className="text-sm font-bold text-slate-600 ml-1">이름</label>
+                                        <input required
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                                            placeholder="실명 입력"
+                                            value={formData.name}
+                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        />
                                     </div>
-                                    <div className="col-span-2 space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 ml-1">계좌번호</label>
-                                        <input className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="'-' 없이 입력" value={formData.account_number || ''} onChange={e => setFormData({ ...formData, account_number: e.target.value })} />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
+
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 ml-1">예금주</label>
-                                        <input className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="예금주명" value={formData.account_holder || ''} onChange={e => setFormData({ ...formData, account_holder: e.target.value })} />
-                                    </div>
-                                </div>
-
-                                {/* ✨ Advanced Settlement Settings */}
-                                <div className="space-y-4 pt-4 border-t border-slate-100">
-                                    <h3 className="text-sm font-black text-slate-400">📊 급여/정산 설정 (고도화 엔진)</h3>
-
-                                    {/* Common Field */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 ml-1">평가 수당 (회당)</label>
-                                            <input type="number" className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none font-bold text-sm" placeholder="기본 50000" value={formData.evaluation_price || 0} onChange={e => setFormData({ ...formData, evaluation_price: parseInt(e.target.value) || 0 })} />
-                                        </div>
+                                        <label className="text-sm font-bold text-slate-600 ml-1">이메일 (계정 연동)</label>
+                                        <input type="email" required
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all disabled:opacity-50"
+                                            placeholder="sample@email.com"
+                                            value={formData.email}
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            disabled={!!editingId}
+                                        />
+                                        <p className="text-[11px] text-slate-400 font-medium px-1">⚠️ 이 주소로 초대 메일이 발송됩니다.</p>
                                     </div>
 
-                                    {/* Regular: Base Salary + Target */}
-                                    {formData.hire_type === 'fulltime' && (
-                                        <div className="bg-indigo-50/50 p-4 rounded-2xl space-y-3 border border-indigo-100">
-                                            <p className="text-xs font-black text-indigo-500 mb-2">정규직 설정</p>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-bold text-slate-400 ml-1">기본급 (원)</label>
-                                                    <input type="number" className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100 font-bold text-sm" value={formData.base_salary || 0} onChange={e => setFormData({ ...formData, base_salary: parseInt(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-bold text-slate-400 ml-1">필수 회기 (Target)</label>
-                                                    <input type="number" className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100 font-bold text-sm" value={formData.required_sessions || 0} onChange={e => setFormData({ ...formData, required_sessions: parseInt(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-2 col-span-2">
-                                                    <label className="text-[10px] font-bold text-slate-400 ml-1">초과 인센티브 (회당)</label>
-                                                    <input type="number" className="w-full px-4 py-3 bg-white rounded-xl border border-indigo-100 font-bold text-sm" placeholder="기본 24000" value={formData.incentive_price || 0} onChange={e => setFormData({ ...formData, incentive_price: parseInt(e.target.value) || 0 })} />
-                                                </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-600 ml-1">고용 형태</label>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+                                                value={formData.hire_type}
+                                                onChange={e => setFormData({ ...formData, hire_type: e.target.value })}
+                                            >
+                                                <option value="fulltime">💼 정규직 (Full-Time)</option>
+                                                <option value="freelancer">🦄 프리랜서 (Freelancer)</option>
+                                                <option value="parttime">⏱️ 파트타임 (Part-Time)</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
+                                </div>
 
-                                    {/* Freelancer: Ratio */}
-                                    {(formData.hire_type === 'freelancer' || formData.hire_type === 'parttime') && (
-                                        <div className="bg-emerald-50/50 p-4 rounded-2xl space-y-3 border border-emerald-100">
-                                            <p className="text-xs font-black text-emerald-500 mb-2">프리랜서 단가 설정</p>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-bold text-slate-400 ml-1">평일 단가 (회당)</label>
-                                                    <input type="number" className="w-full px-4 py-3 bg-white rounded-xl border border-emerald-100 font-bold text-sm" value={formData.session_price_weekday || 0} onChange={e => setFormData({ ...formData, session_price_weekday: parseInt(e.target.value) || 0 })} />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-bold text-slate-400 ml-1">주말 단가 (회당)</label>
-                                                    <input type="number" className="w-full px-4 py-3 bg-white rounded-xl border border-emerald-100 font-bold text-sm" value={formData.session_price_weekend || 0} onChange={e => setFormData({ ...formData, session_price_weekend: parseInt(e.target.value) || 0 })} />
-                                                </div>
-                                            </div>
+                                {/* Color Picker */}
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-600 ml-1">프로필 색상</label>
+                                    <div className="flex flex-wrap gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl justify-center">
+                                        {COLORS.map(c => (
+                                            <button
+                                                key={c}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, color: c })}
+                                                className={cn(
+                                                    "w-9 h-9 rounded-full transition-all hover:scale-110",
+                                                    formData.color === c && "scale-110 ring-4 ring-slate-200 shadow-xl"
+                                                )}
+                                                style={{ backgroundColor: c }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Settlement Info Box */}
+                                <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                                            <span className="text-lg">💰</span>
                                         </div>
-                                    )}
+                                        <h3 className="text-sm font-black text-slate-700">정산 계좌 정보</h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-bold text-slate-400 ml-1">은행명</label>
+                                            <input
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                                                placeholder="예: 국민"
+                                                value={formData.bank_name || ''}
+                                                onChange={e => setFormData({ ...formData, bank_name: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <label className="text-[11px] font-bold text-slate-400 ml-1">계좌번호</label>
+                                            <input
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono"
+                                                placeholder="000-0000-0000"
+                                                value={formData.account_number || ''}
+                                                onChange={e => setFormData({ ...formData, account_number: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 md:col-span-3">
+                                            <label className="text-[11px] font-bold text-slate-400 ml-1">예금주</label>
+                                            <input
+                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                                                placeholder="본인 명의가 아닐 경우 입력"
+                                                value={formData.account_holder || ''}
+                                                onChange={e => setFormData({ ...formData, account_holder: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

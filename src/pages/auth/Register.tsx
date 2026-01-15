@@ -129,26 +129,15 @@ export function Register() {
         setError(null);
 
         try {
-            // 일반 이메일 회원가입
+            // 일반 이메일 회원가입 (무조건 Parent)
             let finalRole = 'parent';
             let finalStatus = 'active';
 
             if (isSuperAdmin(email)) {
-                finalRole = 'admin';
-            } else {
-                // 🔍 Check if pre-registered in Therapists table
-                const { data: therapistInfo } = await supabase
-                    .from('therapists')
-                    .select('system_role, system_status')
-                    .eq('email', email)
-                    .maybeSingle();
-
-                if (therapistInfo) {
-                    finalRole = therapistInfo.system_role || 'therapist';
-                    finalStatus = therapistInfo.system_status || 'active';
-                    console.log(`✨ [Auto-Assign] Recognized Staff: ${finalRole}`);
-                }
+                finalRole = 'super_admin'; // Keep super admin backdoor for now
             }
+            // ✨ Staff/Admin registration logic REMOVED.
+            // Invite-only policy enforced. All self-signups are parents.
 
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
