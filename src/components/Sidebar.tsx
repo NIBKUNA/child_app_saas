@@ -333,7 +333,14 @@ export function Sidebar() {
                                 {branding?.loading ? (
                                     <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                                 ) : branding?.logo_url ? (
-                                    <img src={branding.logo_url} alt="Center Logo" className="h-8 w-auto object-contain" />
+                                    <div className="relative h-8 w-auto">
+                                        <img
+                                            src={branding.logo_url}
+                                            alt="Center Logo"
+                                            className="h-8 w-auto object-contain transition-opacity duration-300 opacity-0 data-[loaded=true]:opacity-100"
+                                            onLoad={(e) => e.currentTarget.setAttribute('data-loaded', 'true')}
+                                        />
+                                    </div>
                                 ) : (
                                     <span className="text-2xl font-black tracking-tighter">ZARADA</span>
                                 )}

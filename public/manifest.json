@@ -1,6 +1,6 @@
 {
-    "name": "자라다 아동발달센터",
-    "short_name": "자라다",
+    "name": "Zarada - 스마트한 센터 관리",
+    "short_name": "Zarada",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

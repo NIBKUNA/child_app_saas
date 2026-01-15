@@ -83,11 +83,27 @@ export function AppLayout() {
         const channel = supabase
             .channel('global_consultation_alerts')
             .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'consultations' },
+                { event: '*', schema: 'public', table: 'consultations' },
                 (payload) => {
-                    const newItem = payload.new;
-                    const title = '🚀 새로운 상담 신청!';
-                    const body = `${newItem.child_name || '아동'} (${newItem.guardian_name}) 님이 상담을 요청했습니다.`;
+                    const eventType = payload.eventType;
+                    // DELETE 이벤트일 경우 payload.new가 없을 수 있으므로 old를 참조하거나 기본값 처리 필요
+                    const newItem = payload.new as any || {};
+
+                    let title = '';
+                    let body = '';
+
+                    if (eventType === 'INSERT') {
+                        title = '🚀 새로운 상담 신청!';
+                        body = `${newItem.child_name || '아동'} (${newItem.guardian_name}) 님이 상담을 요청했습니다.`;
+                    } else if (eventType === 'UPDATE') {
+                        title = '🔄 상담 신청 수정';
+                        body = `${newItem.child_name || '아동'} 님의 상담 신청 내역이 변경되었습니다.`;
+                    } else if (eventType === 'DELETE') {
+                        title = '🗑️ 상담 신청 취소/삭제';
+                        body = '상담 신청 내역이 삭제되었습니다.';
+                    }
+
+                    if (!title) return;
 
                     // 1. In-App Toast
                     setNotif({
@@ -98,7 +114,6 @@ export function AppLayout() {
 
                     // 2. Browser Notification (System Level)
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        // Use Service Worker if available for better background handling
                         if (navigator.serviceWorker.controller) {
                             navigator.serviceWorker.controller.postMessage({
                                 type: 'SHOW_NOTIFICATION',
@@ -106,10 +121,9 @@ export function AppLayout() {
                                 body
                             });
                         } else {
-                            // Fallback to main thread notification
                             new Notification(title, {
                                 body: body,
-                                icon: '/pwa-192x192.png', // Ensure this exists or use standard icon
+                                icon: '/pwa-192x192.png',
                                 tag: 'consultation-alert'
                             });
                         }
@@ -132,6 +146,7 @@ export function AppLayout() {
                     const body = '치료 일정이 변경되었습니다. 확인해주세요.';
 
                     setNotif({ title, msg: body, visible: true });
+                    setTimeout(() => setNotif(prev => prev ? { ...prev, visible: false } : null), 6000);
                 }
             )
             .on('postgres_changes',
@@ -142,6 +157,7 @@ export function AppLayout() {
                     const body = '치료 세션 정보가 변경되었습니다.';
 
                     setNotif({ title, msg: body, visible: true });
+                    setTimeout(() => setNotif(prev => prev ? { ...prev, visible: false } : null), 6000);
                 }
             )
             .subscribe();

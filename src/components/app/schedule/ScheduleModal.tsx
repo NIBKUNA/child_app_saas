@@ -50,15 +50,25 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     const loadInitialData = async () => {
         setFetching(true);
         try {
-            const [childRes, progRes, therRes] = await Promise.all([
+            const [childRes, progRes, therRes, profileRes] = await Promise.all([
                 supabase.from('children').select('id, name, credit, guardian_name, contact').order('name'),
                 supabase.from('programs').select('id, name, duration, price').order('name'),
-                supabase.from('therapists').select('id, name').order('name')
+                supabase.from('therapists').select('id, name, email').order('name'),
+                supabase.from('user_profiles').select('email, role')
             ]);
 
             setChildrenList(childRes.data || []);
             setProgramsList(progRes.data || []);
-            setTherapistsList(therRes.data || []);
+
+            // ✨ [Filter] 슈퍼 어드민 제외 로직 적용
+            const profiles = profileRes.data || [];
+            const rawTherapists = therRes.data || [];
+            const filteredTherapists = rawTherapists.filter(t => {
+                const profile = profiles.find(p => p.email === t.email);
+                return profile?.role !== 'super_admin';
+            });
+
+            setTherapistsList(filteredTherapists);
 
             if (scheduleId) {
                 // ✨ [성능 개선] 부모로부터 데이터가 넘어왔다면 DB 조회 스킵

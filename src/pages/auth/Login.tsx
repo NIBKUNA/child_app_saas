@@ -137,7 +137,7 @@ export function Login() {
                 switch (profile.role) {
                     case 'super_admin':
                     case 'admin':
-                        navigate('/app/dashboard');
+                        navigate('/app/schedule');
                         break;
                     case 'employee':
                     case 'therapist':

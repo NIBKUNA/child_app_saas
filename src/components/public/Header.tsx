@@ -88,12 +88,15 @@ export function Header() {
                             {branding.loading ? (
                                 <div className="h-9 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                             ) : branding.logo_url ? (
-                                <img
-                                    src={branding.logo_url}
-                                    alt={branding.name}
-                                    className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
-                                    style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
-                                />
+                                <div className="relative h-9 w-auto">
+                                    <img
+                                        src={branding.logo_url}
+                                        alt={branding.name}
+                                        className="h-9 w-auto object-contain transition-opacity duration-300 opacity-0 data-[loaded=true]:opacity-100 group-hover:scale-105"
+                                        style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
+                                        onLoad={(e) => e.currentTarget.setAttribute('data-loaded', 'true')}
+                                    />
+                                </div>
                             ) : (
                                 <span className={cn("text-2xl font-black tracking-tighter", isDark ? "text-white group-hover:text-indigo-400" : "text-slate-900 group-hover:text-indigo-600", "transition-colors")} style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                                     <span className={isDark ? "text-indigo-400" : "text-indigo-600"}>Z</span>arada

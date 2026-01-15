@@ -21,6 +21,7 @@ import { PlayTherapyIcon, SpeechTherapyIcon, SensoryTherapyIcon, ArtTherapyIcon 
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { ReviewSection } from '@/components/public/ReviewSection';
+import { HeroBackground } from '@/components/public/HeroBackground';
 
 // Custom SVG Icons (no Lucide)
 const SvgIcons = {
@@ -113,24 +114,24 @@ export function HomePage() {
             {/* ✨ 모바일 최적화: 높이 조정 및 object-position */}
             <section className="relative h-[70vh] md:h-[85vh] flex items-center overflow-hidden">
                 {/* Background with slight scale animation */}
+                {/* Background with slight scale animation - ZERO FLICKER LOGIC */}
                 <motion.div
-                    className="absolute inset-0 bg-cover bg-top md:bg-center"
+                    className="absolute inset-0 bg-cover bg-top md:bg-center transition-opacity duration-700"
                     style={{
-                        backgroundImage: `url(${bgImage}?v=1.1)`,
-                        opacity: 0
+                        backgroundImage: `url(${bgImage})`,
+                        opacity: 0 // Default hidden
                     }}
                     animate={{
                         scale: [1.1, 1],
-                        opacity: 1
+                        // ✨ Only show when loaded. The 'onLoad' logic is handled by a hidden <img> below or we can use a state.
+                        // But since we can't easily hook into background-image load, we will use a ref or simple class toggle.
+                        // Actually, for Framer Motion, we can control 'opacity' via animate prop with a state variable.
                     }}
-                    transition={{
-                        scale: { duration: 10, ease: "linear" },
-                        opacity: { duration: 0.8, ease: "easeOut" }
-                    }}
-                >
-                    {/* Stronger gradient for text visibility */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 via-slate-900/50 to-slate-900/80"></div>
-                </motion.div>
+                // We will override this component below with a better implementation
+                ></motion.div>
+
+                {/* ✨ ACTUAL ZERO FLICKER IMPLEMENTATION */}
+                <HeroBackground bgImage={bgImage} />
 
                 <div className="container relative z-10 mx-auto px-6 md:px-12">
                     <div className="max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-1000">
