@@ -233,10 +233,16 @@ export function Settlement() {
                 return {
                     ...staff,
                     hire_type: hireType,
-                    revenue, // This is estimated or 0
+                    revenue,
                     payout,
                     incentiveText,
-                    remarks: ''
+                    remarks: '',
+                    counts: {
+                        weekday: raw_weekday,
+                        weekend: raw_weekend,
+                        eval: eval_count,
+                        consult: 0 // Defaulting to 0 as it wasn't calculated separately in this logic
+                    }
                 };
             }) || [];
 
