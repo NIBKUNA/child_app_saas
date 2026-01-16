@@ -432,33 +432,36 @@ export function ParentHomePage() {
                         isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-slate-200/50"
                     )}>
                         <style>{`
-                            .fc { font-family: 'Pretendard', sans-serif; min-width: 600px; /* Force min-width to prevent squashing */ } 
+                            .fc { font-family: 'Pretendard', sans-serif; } 
                             .fc-header-toolbar { flex-wrap: wrap; gap: 8px; margin-bottom: 24px !important; }
                             .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 800 !important; }
                             .fc-button { border-radius: 12px !important; font-weight: 700 !important; padding: 8px 16px !important; text-transform: capitalize; }
                             
-                            /* ✨ Event Styling - Prevent Overlay/Cutoff */
+                            /* ✨ Event Styling */
                             .fc-event {
                                 cursor: pointer;
                                 border: none !important;
-                                padding: 4px 6px !important;
+                                padding: 2px 3px !important; /* Compact padding */
                                 margin-bottom: 2px !important;
-                                white-space: normal !important; /* Allow text wrap */
-                                height: auto !important; /* Allow height to expand */
+                                white-space: normal !important;
+                                height: auto !important;
                             }
                             .fc-event-main {
                                 font-weight: 700;
-                                font-size: 0.85rem;
-                                line-height: 1.25;
+                                font-size: 0.8rem;
+                                line-height: 1.2;
+                                word-break: break-word; /* Ensure wrapping */
                             }
-                            .fc-daygrid-event-dot { display: none; } /* Hide dot for cleaner look */
+                            .fc-daygrid-event-dot { display: none; }
                             
                             /* Mobile Optimization */
                             @media (max-width: 768px) {
-                                .fc-header-toolbar { flex-direction: column; align-items: flex-start; }
-                                .fc-toolbar-title { font-size: 1.1rem !important; margin-bottom: 0.5rem; }
-                                .fc-event-main { font-size: 0.75rem; }
-                                .fc-daygrid-day-number { font-size: 0.8rem; padding: 4px !important; }
+                                .fc-header-toolbar { flex-direction: column; align-items: flex-start; gap: 12px; }
+                                .fc-toolbar-title { font-size: 1.1rem !important; }
+                                .fc-event-main { font-size: 0.65rem !important; padding: 1px !important; } /* Tiny font for mobile */
+                                .fc-event { padding: 1px 2px !important; }
+                                .fc-daygrid-day-number { font-size: 0.75rem; padding: 2px !important; }
+                                .fc .fc-toolbar { display: flex; flex-direction: column; align-items: flex-start; }
                             }
 
                             ${isDark ? `
@@ -473,37 +476,35 @@ export function ParentHomePage() {
                             .fc-button { background-color: #ffffff !important; border: 1px solid #e2e8f0 !important; color: #64748b !important; box-shadow: none !important; }
                             .fc-button-active { background-color: #f1f5f9 !important; color: #0f172a !important; }
                             .fc-day-today { background-color: #fff7ed !important; }
-                            .fc-col-header-cell-cushion { color: #64748b; font-weight: 800; font-size: 0.9rem; padding: 12px 0 !important; }
+                            .fc-col-header-cell-cushion { color: #64748b; font-weight: 800; font-size: 0.8rem; padding: 8px 0 !important; }
                             .fc-daygrid-day-number { color: #334155; font-weight: 600; }
                             `}
                         `}</style>
-                        <div className="overflow-x-auto -mx-4 px-4 md:overflow-visible md:mx-0 md:px-0">
-                            <FullCalendar
-                                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                                initialView="dayGridMonth"
-                                locale={koLocale}
-                                headerToolbar={{
-                                    left: 'prev,next today',
-                                    center: 'title',
-                                    right: ''
-                                }}
-                                buttonText={{ today: '오늘' }}
-                                events={calendarEvents}
-                                height="auto"
-                                contentHeight="auto"
-                                dayMaxEvents={2}
-                                moreLinkClick="popover"
-                                editable={false}
-                                selectable={false}
-                                eventContent={(eventInfo) => (
-                                    <div className="flex flex-col h-auto">
-                                        <span className="break-words leading-tight">{eventInfo.event.title}</span>
-                                    </div>
-                                )}
-                                eventClick={(info) => alert(`${info.event.title}\n시간: ${info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
-                                noEventsContent="예정된 수업이 없습니다."
-                            />
-                        </div>
+                        <FullCalendar
+                            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                            initialView="dayGridMonth"
+                            locale={koLocale}
+                            headerToolbar={{
+                                left: 'prev,next today',
+                                center: 'title',
+                                right: ''
+                            }}
+                            buttonText={{ today: '오늘' }}
+                            events={calendarEvents}
+                            height="auto"
+                            contentHeight="auto"
+                            dayMaxEvents={true}
+                            moreLinkClick="popover"
+                            editable={false}
+                            selectable={false}
+                            eventContent={(eventInfo) => (
+                                <div className="flex flex-col h-auto">
+                                    <span className="break-words leading-tight">{eventInfo.event.title}</span>
+                                </div>
+                            )}
+                            eventClick={(info) => alert(`${info.event.title}\n시간: ${info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
+                            noEventsContent="예정된 수업이 없습니다."
+                        />
                     </div>
                 </section>
 
