@@ -209,11 +209,11 @@ export function Header() {
                 {isMenuOpen && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "100vh" }}
+                        animate={{ opacity: 1, height: "calc(100vh - 64px)" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3, ease: "easeInOut" }}
                         className={cn(
-                            "fixed inset-0 top-[64px] z-40 md:hidden overflow-hidden",
+                            "fixed top-[64px] left-0 right-0 z-40 md:hidden overflow-y-auto",
                             isDark ? "bg-slate-950/95" : "bg-white/95",
                             "backdrop-blur-md"
                         )}
