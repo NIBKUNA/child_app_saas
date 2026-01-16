@@ -217,7 +217,7 @@ export function Header() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                             className={cn(
-                                "fixed inset-0 top-[64px] z-[9999] md:hidden overflow-hidden",
+                                "fixed top-[64px] left-0 right-0 h-[calc(100dvh-64px)] z-[9999] md:hidden overflow-hidden",
                                 isDark ? "bg-slate-950/98" : "bg-white/98",
                                 "backdrop-blur-xl"
                             )}
