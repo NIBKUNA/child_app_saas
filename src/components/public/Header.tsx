@@ -208,14 +208,14 @@ export function Header() {
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "calc(100vh - 64px)" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        key="mobile-menu"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
                         className={cn(
-                            "fixed top-[64px] left-0 right-0 z-40 md:hidden overflow-y-auto",
-                            isDark ? "bg-slate-950/95" : "bg-white/95",
-                            "backdrop-blur-md"
+                            "fixed inset-0 top-[64px] z-50 md:hidden overflow-y-auto",
+                            isDark ? "bg-slate-950" : "bg-white"
                         )}
                     >
                         <div className="container mx-auto px-6 py-8 flex flex-col gap-6">
