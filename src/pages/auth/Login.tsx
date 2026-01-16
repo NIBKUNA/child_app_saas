@@ -72,6 +72,14 @@ export function Login() {
 
             if (!isOAuthCallback) return;
 
+            // 🚨 [Invite/Recovery Check] 초대 또는 비밀번호 재설정 링크인 경우
+            // 즉시 비밀번호 변경 페이지로 이동시켜야 함 (대시보드 납치 방지)
+            if (hash.includes('type=invite') || hash.includes('type=recovery') || params.get('type') === 'invite' || params.get('type') === 'recovery') {
+                console.log('🔗 Invite/Recovery Link Detected in Login.tsx - Redirecting to UpdatePassword');
+                navigate('/auth/update-password');
+                return;
+            }
+
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 // 🛡️ Super Admin Whitelist (Bypass Consent)
@@ -88,7 +96,7 @@ export function Login() {
 
                 if (profile?.center_id && profile?.status === 'active') {
                     // 이미 가입 완료 -> 홈으로
-                    if (profile.role === 'admin' || profile.role === 'super_admin') navigate('/app/dashboard');
+                    if (profile.role === 'admin' || profile.role === 'super_admin') navigate('/app/schedule'); // ✨ Default to schedule for admins
                     else if (profile.role === 'therapist') navigate('/app/schedule');
                     else navigate('/parent/home');
                 } else {
