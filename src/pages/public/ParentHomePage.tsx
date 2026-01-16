@@ -441,16 +441,15 @@ export function ParentHomePage() {
                             .fc-event {
                                 cursor: pointer;
                                 border: none !important;
-                                padding: 2px 4px !important;
+                                padding: 4px 6px !important;
                                 margin-bottom: 2px !important;
                                 white-space: normal !important; /* Allow text wrap */
-                                overflow: hidden;
+                                height: auto !important; /* Allow height to expand */
                             }
                             .fc-event-main {
                                 font-weight: 700;
                                 font-size: 0.85rem;
-                                line-height: 1.2;
-                                padding: 2px;
+                                line-height: 1.25;
                             }
                             .fc-daygrid-event-dot { display: none; } /* Hide dot for cleaner look */
                             
@@ -496,7 +495,7 @@ export function ParentHomePage() {
                             editable={false}
                             selectable={false}
                             eventContent={(eventInfo) => (
-                                <div className="flex flex-col overflow-hidden">
+                                <div className="flex flex-col h-auto">
                                     <span className="break-words leading-tight">{eventInfo.event.title}</span>
                                 </div>
                             )}
