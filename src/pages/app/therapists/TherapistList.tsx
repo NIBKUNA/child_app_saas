@@ -249,20 +249,20 @@ export function TherapistList() {
     const isSuper = user?.email === 'anukbin@gmail.com';  // Fortress Check
 
     return (
-        <div className="space-y-6 pb-20 p-8 bg-slate-50/50 min-h-screen">
+        <div className="space-y-6 pb-20 p-8 bg-slate-50/50 dark:bg-slate-950 min-h-screen">
             <Helmet><title>직원 관리 - 자라다</title></Helmet>
 
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900">직원 및 권한 관리</h1>
-                    <p className="text-slate-500 font-bold mt-1">
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white">직원 및 권한 관리</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-bold mt-1">
                         {viewMode === 'active' ? '현재 근무 중인 직원 목록입니다.' : '퇴사 처리된 직원 보관소입니다.'}
                     </p>
                 </div>
 
                 <div className="flex gap-2">
                     {/* View Mode Toggle */}
-                    <div className="bg-white p-1 rounded-xl border border-slate-200 flex shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 flex shadow-sm">
                         <button
                             onClick={() => setViewMode('active')}
                             className={cn(
@@ -331,8 +331,8 @@ export function TherapistList() {
 
                 {filteredStaffs.map((staff) => (
                     <div key={staff.id} className={cn(
-                        "bg-white p-6 rounded-[32px] border transition-all hover:shadow-xl group",
-                        staff.system_status === 'retired' ? "border-rose-100 bg-rose-50/30" : "border-slate-100 shadow-sm"
+                        "bg-white dark:bg-slate-900 p-6 rounded-[32px] border transition-all hover:shadow-xl group",
+                        staff.system_status === 'retired' ? "border-rose-100 bg-rose-50/30 dark:bg-rose-900/10 dark:border-rose-900/50" : "border-slate-100 dark:border-slate-800 shadow-sm"
                     )}>
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-4">
@@ -340,7 +340,7 @@ export function TherapistList() {
                                     {staff.name?.[0] || '?'}
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-slate-900 flex items-center gap-2 text-lg">
+                                    <h3 className="font-black text-slate-900 dark:text-white flex items-center gap-2 text-lg">
                                         {staff.name}
                                         <span className={cn(
                                             "text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider border",
@@ -351,13 +351,13 @@ export function TherapistList() {
                                             {staff.system_status === 'retired' ? 'RETIRED' : (staff.system_role === 'admin' ? 'ADMIN' : 'THERAPIST')}
                                         </span>
                                     </h3>
-                                    <p className="text-xs text-slate-400 font-bold flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" /> {staff.email}</p>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 font-bold flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" /> {staff.email}</p>
                                 </div>
                             </div>
 
                             <div className="flex gap-1">
                                 {staff.system_status !== 'retired' && (
-                                    <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors"><Edit2 className="w-4 h-4 text-slate-500" /></button>
+                                    <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"><Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" /></button>
                                 )}
 
                                 {/* Status Toggle Button */}
@@ -385,14 +385,14 @@ export function TherapistList() {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-lg p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
                         <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-2xl font-black text-slate-900">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                                 {editingId
                                     ? (formData.system_role === 'admin' ? '관리자 정보 수정' : '치료사 정보 수정')
                                     : (formData.system_role === 'admin' ? '새 관리자 등록' : '새 치료사 등록')}
                             </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
+                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-5">
@@ -400,9 +400,9 @@ export function TherapistList() {
                                 {/* Basic Info Group */}
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-600 ml-1">이름</label>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">이름</label>
                                         <input required
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                                            className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
                                             placeholder="실명 입력"
                                             value={formData.name}
                                             onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -410,9 +410,9 @@ export function TherapistList() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-600 ml-1">이메일 (계정 연동)</label>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">이메일 (계정 연동)</label>
                                         <input type="email" required
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all disabled:opacity-50"
+                                            className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all disabled:opacity-50 text-slate-900 dark:text-white placeholder:text-slate-400"
                                             placeholder="sample@email.com"
                                             value={formData.email}
                                             onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -422,10 +422,10 @@ export function TherapistList() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-600 ml-1">고용 형태</label>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">고용 형태</label>
                                         <div className="relative">
                                             <select
-                                                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+                                                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 dark:text-white"
                                                 value={formData.hire_type}
                                                 onChange={e => setFormData({ ...formData, hire_type: e.target.value })}
                                             >
@@ -440,14 +440,14 @@ export function TherapistList() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-600 ml-1">부여 권한 (System Role)</label>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">부여 권한 (System Role)</label>
                                         <input
                                             readOnly
                                             className={cn(
                                                 "w-full px-5 py-3.5 border rounded-2xl font-black outline-none transition-all cursor-not-allowed",
                                                 formData.system_role === 'admin'
-                                                    ? "bg-rose-50 border-rose-200 text-rose-600"
-                                                    : "bg-indigo-50 border-indigo-200 text-indigo-600"
+                                                    ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-900/50 dark:text-rose-400"
+                                                    : "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-900/50 dark:text-indigo-400"
                                             )}
                                             value={formData.system_role === 'admin' ? '🛡️ 관리자 (Admin)' : '🩺 치료사 (Therapist)'}
                                         />
@@ -459,8 +459,8 @@ export function TherapistList() {
 
                                 {/* Color Picker */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-600 ml-1">프로필 색상</label>
-                                    <div className="flex flex-wrap gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl justify-center">
+                                    <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">프로필 색상</label>
+                                    <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl justify-center">
                                         {COLORS.map(c => (
                                             <button
                                                 key={c}
@@ -477,19 +477,19 @@ export function TherapistList() {
                                 </div>
 
                                 {/* Settlement Info Box */}
-                                <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-4">
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                                        <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
                                             <span className="text-lg">💰</span>
                                         </div>
-                                        <h3 className="text-sm font-black text-slate-700">정산 계좌 정보</h3>
+                                        <h3 className="text-sm font-black text-slate-700 dark:text-slate-300">정산 계좌 정보</h3>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[11px] font-bold text-slate-400 ml-1">은행명</label>
                                             <input
-                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
                                                 placeholder="예: 국민"
                                                 value={formData.bank_name || ''}
                                                 onChange={e => setFormData({ ...formData, bank_name: e.target.value })}
@@ -498,7 +498,7 @@ export function TherapistList() {
                                         <div className="space-y-1.5 md:col-span-2">
                                             <label className="text-[11px] font-bold text-slate-400 ml-1">계좌번호</label>
                                             <input
-                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all font-mono text-slate-900 dark:text-white placeholder:text-slate-400"
                                                 placeholder="000-0000-0000"
                                                 value={formData.account_number || ''}
                                                 onChange={e => setFormData({ ...formData, account_number: e.target.value })}
@@ -507,7 +507,7 @@ export function TherapistList() {
                                         <div className="space-y-1.5 md:col-span-3">
                                             <label className="text-[11px] font-bold text-slate-400 ml-1">예금주</label>
                                             <input
-                                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all"
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
                                                 placeholder="본인 명의가 아닐 경우 입력"
                                                 value={formData.account_holder || ''}
                                                 onChange={e => setFormData({ ...formData, account_holder: e.target.value })}
@@ -517,7 +517,7 @@ export function TherapistList() {
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black text-lg shadow-xl hover:scale-[1.02] transition-all mt-4">
+                            <button type="submit" className="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[24px] font-black text-lg shadow-xl hover:scale-[1.02] transition-all mt-4">
                                 {editingId ? '변경사항 저장하기' : '직원 등록 완료'}
                             </button>
                         </form>

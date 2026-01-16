@@ -114,17 +114,33 @@ export function SettingsPage() {
             <Helmet><title>사이트 관리</title></Helmet>
 
             <div className="flex flex-col gap-1 text-left">
-                <h1 className="text-2xl font-black text-slate-900 text-left">사이트 콘텐츠 관리</h1>
-                <p className="text-slate-500 text-sm font-bold text-left">콘텐츠 수정 후 저장 시 즉시 반영됩니다.</p>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white text-left">사이트 콘텐츠 관리</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-bold text-left">콘텐츠 수정 후 저장 시 즉시 반영됩니다.</p>
             </div>
 
-            <div className="flex space-x-2 border-b border-slate-200 overflow-x-auto custom-scrollbar scrollbar-hide">
-                <TabButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<LayoutTemplate className="w-4 h-4" />} label="홈" />
-                <TabButton active={activeTab === 'about'} onClick={() => setActiveTab('about')} icon={<Info className="w-4 h-4" />} label="소개" />
-                <TabButton active={activeTab === 'programs'} onClick={() => setActiveTab('programs')} icon={<BookOpen className="w-4 h-4" />} label="프로그램" />
-                <TabButton active={activeTab === 'branding'} onClick={() => setActiveTab('branding')} icon={<Palette className="w-4 h-4" />} label="로고" />
-                <TabButton active={activeTab === 'center_info'} onClick={() => setActiveTab('center_info')} icon={<Info className="w-4 h-4" />} label="정보/운영" />
-                <TabButton active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<UserX className="w-4 h-4" />} label="계정" />
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl overflow-x-auto gap-1 no-scrollbar">
+                {[
+                    { id: 'home', label: '홈', icon: <LayoutTemplate className="w-4 h-4" /> },
+                    { id: 'about', label: '소개', icon: <Info className="w-4 h-4" /> },
+                    { id: 'programs', label: '프로그램', icon: <BookOpen className="w-4 h-4" /> },
+                    { id: 'branding', label: '로고', icon: <Palette className="w-4 h-4" /> },
+                    { id: 'center_info', label: '정보/운영', icon: <Info className="w-4 h-4" /> },
+                    { id: 'account', label: '계정', icon: <UserX className="w-4 h-4" /> },
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as TabType)}
+                        className={cn(
+                            "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex-1 hover:bg-white/50 dark:hover:bg-slate-700/50",
+                            activeTab === tab.id
+                                ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                                : "text-slate-500 dark:text-slate-400"
+                        )}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             <div className="space-y-10 pt-4 text-left">
@@ -178,18 +194,18 @@ export function SettingsPage() {
                     <>
                         <SectionCard title="계정 정보" icon={<UserX className="text-rose-500" />}>
                             <div className="space-y-4">
-                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">로그인 이메일</p>
-                                    <p className="font-bold text-slate-900">{user?.email}</p>
+                                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                    <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">로그인 이메일</p>
+                                    <p className="font-bold text-slate-900 dark:text-white">{user?.email}</p>
                                 </div>
                             </div>
                         </SectionCard>
 
                         <SectionCard title="회원 탈퇴" icon={<UserX className="text-rose-500" />}>
                             <div className="space-y-4">
-                                <div className="bg-rose-50 p-6 rounded-2xl border border-rose-100">
-                                    <p className="text-sm font-bold text-rose-700 mb-2">⚠️ 주의: 회원 탈퇴 시 모든 데이터가 삭제됩니다.</p>
-                                    <ul className="text-xs text-rose-600 space-y-1 list-disc list-inside">
+                                <div className="bg-rose-50 dark:bg-rose-900/20 p-6 rounded-2xl border border-rose-100 dark:border-rose-900/50">
+                                    <p className="text-sm font-bold text-rose-700 dark:text-rose-400 mb-2">⚠️ 주의: 회원 탈퇴 시 모든 데이터가 삭제됩니다.</p>
+                                    <ul className="text-xs text-rose-600 dark:text-rose-400/80 space-y-1 list-disc list-inside">
                                         <li>개인정보 및 계정 정보가 삭제됩니다.</li>
                                         <li>연결된 자녀 정보와의 연결이 해제됩니다.</li>
                                         <li>이 작업은 되돌릴 수 없습니다.</li>
@@ -348,7 +364,7 @@ function SnsLinksSection() {
 
     return (
         <SectionCard title="SNS 링크 (푸터 아이콘 연동)" icon={<Share2 className="text-pink-500" />}>
-            <p className="text-xs text-slate-400 mb-6">입력한 URL이 있는 SNS만 푸터에 아이콘이 표시됩니다.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mb-6">입력한 URL이 있는 SNS만 푸터에 아이콘이 표시됩니다.</p>
             <div className="space-y-6">
                 <SaveableInput
                     label="인스타그램 URL"
@@ -386,28 +402,17 @@ function SnsLinksSection() {
 function SectionCard({ icon, title, children }) {
     return (
         <section
-            className="bg-white/70 backdrop-blur-xl rounded-[32px] p-8 border border-white/50 shadow-xl shadow-slate-200/30 
-                       transition-all duration-300 ease-out hover:shadow-2xl hover:-translate-y-1 hover:bg-white/90 text-left"
-            style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 100%)'
-            }}
+            className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[32px] p-8 border border-white/50 dark:border-slate-800/50 shadow-xl shadow-slate-200/30 dark:shadow-black/30
+                       transition-all duration-300 ease-out hover:shadow-2xl hover:-translate-y-1 hover:bg-white/90 dark:hover:bg-slate-900/90 text-left"
         >
             <div className="flex items-center gap-3 mb-8 text-left">
-                <div className="p-3 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/50">
+                <div className="p-3 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-800 rounded-2xl border border-indigo-100/50 dark:border-slate-700">
                     {icon}
                 </div>
-                <h2 className="text-xl font-black text-slate-800 tracking-tight text-left">{title}</h2>
+                <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight text-left">{title}</h2>
             </div>
             {children}
         </section>
-    );
-}
-
-function TabButton({ active, onClick, icon, label }) {
-    return (
-        <button onClick={onClick} className={cn("flex items-center gap-2 px-6 py-5 font-bold text-sm transition-all border-b-4 whitespace-nowrap", active ? "border-blue-600 text-blue-600" : "border-transparent text-slate-400 hover:text-slate-600")}>
-            {icon} {label}
-        </button>
     );
 }
 
@@ -417,10 +422,10 @@ function SaveableInput({ label, initialValue, onSave, saving, placeholder }) {
     const isChanged = value !== (initialValue || '');
     return (
         <div className="w-full text-left">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 text-left">{label}</label>
+            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1 text-left">{label}</label>
             <div className="flex gap-3">
-                <input type="text" value={value} onChange={e => setValue(e.target.value)} placeholder={placeholder} className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700 transition-all" />
-                <button onClick={() => onSave(value)} disabled={!isChanged || saving} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm disabled:opacity-20 flex items-center gap-2 active:scale-95 transition-all">
+                <input type="text" value={value} onChange={e => setValue(e.target.value)} placeholder={placeholder} className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none font-bold text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all" />
+                <button onClick={() => onSave(value)} disabled={!isChanged || saving} className="px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-sm disabled:opacity-20 flex items-center gap-2 active:scale-95 transition-all shadow-lg dark:shadow-indigo-500/20">
                     {saving ? <Loader2 className="animate-spin w-4 h-4" /> : '저장'}
                 </button>
             </div>
@@ -434,11 +439,11 @@ function SaveableTextArea({ label, initialValue, onSave, saving, placeholder, ro
     const isChanged = value !== (initialValue || '');
     return (
         <div className="w-full text-left">
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 text-left">{label}</label>
+            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1 text-left">{label}</label>
             <div className="space-y-4 text-left">
-                <textarea value={value} onChange={e => setValue(e.target.value)} rows={rows} placeholder={placeholder} className="w-full p-5 bg-slate-50 border border-slate-200 rounded-[28px] focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700 transition-all resize-none" />
+                <textarea value={value} onChange={e => setValue(e.target.value)} rows={rows} placeholder={placeholder} className="w-full p-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[28px] focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none font-bold text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all resize-none" />
                 <div className="flex justify-end mt-4">
-                    <button onClick={() => onSave(value)} disabled={!isChanged || saving} className="px-10 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-sm disabled:opacity-20 flex items-center gap-2 active:scale-95 transition-all">
+                    <button onClick={() => onSave(value)} disabled={!isChanged || saving} className="px-10 py-3.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-sm disabled:opacity-20 flex items-center gap-2 active:scale-95 transition-all shadow-lg dark:shadow-indigo-500/20">
                         {saving ? <Loader2 className="animate-spin w-4 h-4" /> : '변경사항 저장'}
                     </button>
                 </div>

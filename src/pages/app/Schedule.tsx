@@ -206,7 +206,53 @@ export function Schedule() {
                 `}
                 .fc-timegrid-now-indicator-line { border-color: #ef4444; border-width: 2px; }
                 .fc-timegrid-now-indicator-arrow { border-color: #ef4444; border-width: 6px; }
+                .fc-event { cursor: pointer; border: none; }
+                .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 800 !important; }
+                .fc-button { font-weight: 700 !important; border-radius: 8px !important; text-transform: capitalize; }
                 .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
+                
+                /* ✨ Mobile Calendar Optimization */
+                .fc-view-harness {
+                    overflow-x: auto; /* Allow grid to scroll horizontally */
+                    -webkit-overflow-scrolling: touch;
+                }
+                .fc-scrollgrid {
+                    min-width: 800px; /* Force grid to be wide enough */
+                }
+                .fc-header-toolbar {
+                    flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+                    gap: 0.5rem;
+                }
+                
+                /* 📱 Mobile Toolbar Optimization */
+                @media (max-width: 640px) {
+                    .fc-header-toolbar {
+                        flex-direction: column;
+                        align-items: stretch;
+                        gap: 12px;
+                    }
+                    .fc-toolbar-chunk {
+                        display: flex;
+                        justify-content: space-between; /* Spread buttons */
+                        width: 100%;
+                    }
+                    /* Reset Title Chunk to center */
+                    .fc-toolbar-chunk:nth-child(2) {
+                        justify-content: center;
+                    }
+                    .fc-toolbar-title {
+                        font-size: 1.25rem !important;
+                    }
+                    .fc-button {
+                        padding: 8px 16px !important;
+                        font-size: 0.9rem !important;
+                        flex: 1; /* Make buttons touch-friendly */
+                    }
+                    .fc-button-group {
+                        width: 100%; /* Full width groups */
+                        display: flex;
+                    }
+                }
             `}</style>
 
             <div className={cn("gap-6 h-full flex flex-col pb-6 relative", isDark && "bg-slate-900")}>
@@ -271,8 +317,8 @@ export function Schedule() {
                 </div>
 
                 <div className={cn("flex-1 p-2 md:p-6 rounded-3xl shadow-sm border relative z-0 flex flex-col overflow-hidden", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100")}>
-                    <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                        <div className="min-w-[800px] h-full pb-4" style={{ maxWidth: 'none' }}>
+                    <div className="flex-1 overflow-hidden relative">
+                        <div className="w-full h-full">
                             <FullCalendar
                                 ref={calendarRef}
                                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

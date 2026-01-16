@@ -170,7 +170,7 @@ export function AppLayout() {
 
     // 정상 권한(관리자, 치료사, 일반직원)일 경우의 기본 레이아웃
     return (
-        <div className={`flex h-screen ${mainBg} font-sans gpu-layer relative`}>
+        <div className={`flex h-screen ${mainBg} font-sans relative`}>
             {/* 🔔 Notification Popup */}
             {notif && notif.visible && (
                 <div className="fixed top-6 right-6 z-[9999] animate-in slide-in-from-top-4 fade-in duration-500 cursor-pointer" onClick={() => window.location.href = '/app/consultations'}>
@@ -191,7 +191,7 @@ export function AppLayout() {
             <Sidebar />
 
             <div className="flex-1 flex flex-col overflow-hidden ml-0 md:ml-64">
-                <main className={`flex-1 overflow-x-hidden overflow-y-auto ${mainBg} p-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
+                <main className={`flex-1 overflow-y-auto ${mainBg} px-4 pb-4 pt-20 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
                     {/* 개별 페이지 렌더링 (Framer Motion Transition) */}
                     <AnimatePresence mode="wait">
                         <motion.div

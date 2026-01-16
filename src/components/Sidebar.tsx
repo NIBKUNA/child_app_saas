@@ -309,13 +309,23 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Mobile Menu Button */}
-            <button
-                className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-slate-900 rounded-lg shadow-md gpu-accelerate border border-slate-200 dark:border-slate-700"
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                {isOpen ? Icons.close("w-6 h-6 text-slate-900 dark:text-white") : Icons.menu("w-6 h-6 text-slate-900 dark:text-white")}
-            </button>
+            {/* ✨ [Mobile Header] Sticky Top Bar for Admin Mobile */}
+            <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shadow-sm transition-all">
+                <div className="flex items-center gap-3">
+                    <button
+                        className="p-2 -ml-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        onClick={() => setIsOpen(!isOpen)}
+                    >
+                        {isOpen ? Icons.close("w-6 h-6") : Icons.menu("w-6 h-6")}
+                    </button>
+                    <Link to="/" className="flex items-center gap-2 group">
+                        <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                            <span className="text-indigo-600 dark:text-indigo-400 mr-0.5">Z</span>arada
+                        </span>
+                    </Link>
+                </div>
+                <ThemeToggle />
+            </div>
 
             {/* Sidebar */}
             <aside className={cn(
@@ -327,30 +337,18 @@ export function Sidebar() {
                     {/* Header */}
                     <div className="p-6 mb-2 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between">
-                            <h1 className={cn(
-                                "flex items-center gap-2",
-                                "text-indigo-600 dark:text-yellow-400"
-                            )}>
-                                {branding?.loading ? (
-                                    <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
-                                ) : branding?.logo_url ? (
-                                    <div className="relative h-8 w-auto">
-                                        <img
-                                            src={branding.logo_url}
-                                            alt="Center Logo"
-                                            className="h-8 w-auto object-contain transition-opacity duration-300 opacity-0 data-[loaded=true]:opacity-100"
-                                            onLoad={(e) => e.currentTarget.setAttribute('data-loaded', 'true')}
-                                        />
-                                    </div>
-                                ) : (
-                                    <span className="text-2xl font-black tracking-tighter">ZARADA</span>
-                                )}
+                            <div className="flex flex-col items-start gap-1">
+                                <Link to="/" className="flex items-center gap-2 group">
+                                    <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                                        <span className="text-indigo-600 dark:text-indigo-400 mr-0.5">Z</span>arada
+                                    </span>
+                                </Link>
                                 {isSuperAdmin && (
-                                    <span className="text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider ml-1">
-                                        Super
+                                    <span className="text-[10px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-sm">
+                                        SUPER ADMIN
                                     </span>
                                 )}
-                            </h1>
+                            </div>
                             <ThemeToggle />
                         </div>
                         {/* ✨ [Super Admin] 일반 등급 배지 대신 전용 UI */}

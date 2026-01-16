@@ -78,10 +78,10 @@ export function Header() {
 
     return (
         <header className={cn(
-            "sticky top-0 z-50 w-full border-b backdrop-blur-md shadow-sm transition-colors",
+            "fixed top-0 left-0 right-0 z-50 w-full border-b backdrop-blur-md shadow-sm transition-colors",
             isDark
-                ? "border-slate-800 bg-slate-950/70 supports-[backdrop-filter]:bg-slate-950/60"
-                : "border-white/20 bg-white/70 supports-[backdrop-filter]:bg-white/60"
+                ? "border-slate-800 bg-slate-950/90"
+                : "border-white/20 bg-white/90"
         )}>
             <div className="container mx-auto px-4 md:px-6">
                 <div className="flex h-16 items-center justify-between">
@@ -217,8 +217,8 @@ export function Header() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                             className={cn(
-                                "fixed top-[64px] left-0 right-0 h-[calc(100dvh-64px)] z-[9999] md:hidden overflow-hidden",
-                                isDark ? "bg-slate-950/98" : "bg-white/98",
+                                "fixed top-[64px] left-0 right-0 bottom-0 z-[9999] md:hidden overflow-hidden",
+                                isDark ? "bg-slate-950/95" : "bg-white/95",
                                 "backdrop-blur-xl"
                             )}
                         >

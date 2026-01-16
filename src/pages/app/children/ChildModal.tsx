@@ -173,12 +173,12 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h2 className="text-xl font-black text-slate-900">아동 정보 설정</h2>
-                    <button type="button" onClick={onClose} className="p-2 hover:bg-white hover:shadow-md rounded-full transition-all">
-                        <X className="w-5 h-5 text-slate-500" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white">아동 정보 설정</h2>
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-slate-700/50 hover:shadow-md rounded-full transition-all">
+                        <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                     </button>
                 </div>
 
@@ -188,48 +188,48 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 mb-2 block ml-1">아동 이름</label>
-                                <input type="text" required className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">아동 이름</label>
+                                <input type="text" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-500 mb-2 block ml-1">생년월일</label>
-                                <input type="date" className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200" value={formData.birth_date} onChange={e => setFormData({ ...formData, birth_date: e.target.value })} />
+                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">생년월일</label>
+                                <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white dark:[color-scheme:dark]" value={formData.birth_date} onChange={e => setFormData({ ...formData, birth_date: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 mb-2 block ml-1">성별</label>
-                                <select className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">성별</label>
+                                <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
                                     <option value="남">남성</option>
                                     <option value="여">여성</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-500 mb-2 block ml-1">진단명</label>
-                                <input type="text" className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200" value={formData.diagnosis} onChange={e => setFormData({ ...formData, diagnosis: e.target.value })} />
+                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">진단명</label>
+                                <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.diagnosis} onChange={e => setFormData({ ...formData, diagnosis: e.target.value })} />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 mb-2 block ml-1">보호자 성함 (수동)</label>
-                                <input type="text" className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200" value={formData.guardian_name} onChange={e => setFormData({ ...formData, guardian_name: e.target.value })} />
+                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">보호자 성함 (수동)</label>
+                                <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.guardian_name} onChange={e => setFormData({ ...formData, guardian_name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-500 mb-2 block ml-1">연락처 (수동)</label>
-                                <input type="text" className="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
+                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">연락처 (수동)</label>
+                                <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
                             </div>
                         </div>
                     </div>
 
                     <div className="pt-4 flex gap-3">
                         {childId && (
-                            <button type="button" onClick={handleDelete} className="p-4 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-colors">
+                            <button type="button" onClick={handleDelete} className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors">
                                 <Trash2 className="w-6 h-6" />
                             </button>
                         )}
-                        <button type="submit" disabled={loading} className="flex-1 bg-slate-900 text-white font-black py-5 rounded-[20px] flex justify-center items-center gap-2 shadow-xl hover:bg-slate-800 transition-all">
+                        <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-black py-5 rounded-[20px] flex justify-center items-center gap-2 shadow-xl hover:bg-slate-800 dark:hover:bg-indigo-500 transition-all">
                             {loading ? <Loader2 className="animate-spin w-6 h-6" /> : <Save className="w-6 h-6" />} 정보 저장하기
                         </button>
                     </div>

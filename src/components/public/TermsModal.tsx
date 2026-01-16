@@ -8,7 +8,7 @@ export function TermsModal({ isOpen, onClose, type = 'terms' }: { isOpen: boolea
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-white p-8 rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="bg-white p-8 rounded-3xl w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-black">{type === 'terms' ? '이용약관' : '개인정보 처리방침'}</h2>
                     <button onClick={onClose}><X className="w-6 h-6" /></button>
