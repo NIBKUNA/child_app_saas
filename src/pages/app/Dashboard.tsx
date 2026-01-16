@@ -322,8 +322,10 @@ export function Dashboard() {
 
             // Demographics (from existingChildren)
             existingChildren?.forEach(c => {
-                if (c.gender === '남아') mCount++;
-                else fCount++;
+                // ✨ [FIX] Match actual DB values: '남' or '여' (not '남아'/'여아')
+                if (c.gender === '남' || c.gender === '남아') mCount++;
+                else if (c.gender === '여' || c.gender === '여아') fCount++;
+                // else: unknown gender, skip count
 
                 if (c.birth_date) {
                     const year = parseInt(c.birth_date.split('-')[0]);
