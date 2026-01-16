@@ -90,7 +90,7 @@ serve(async (req: any) => {
         // 1. Send Invitation Email
         const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
             data: { name, role, full_name: name },
-            redirectTo: 'https://child-app-nibkuna.vercel.app/auth/update-password',
+            redirectTo: 'https://zaradacenter.co.kr/auth/update-password', // ✨ Correct Production URL
         });
 
         if (inviteError) {
