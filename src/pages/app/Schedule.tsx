@@ -209,7 +209,7 @@ export function Schedule() {
                 .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
             `}</style>
 
-            <div className={cn("space-y-6 h-full flex flex-col pb-6 relative", isDark && "bg-slate-950")}>
+            <div className={cn("gap-6 h-full flex flex-col pb-6 relative", isDark && "bg-slate-900")}>
                 <div className="flex justify-between items-end">
                     <div>
                         <h1 className={cn("text-3xl font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>치료 일정 관리</h1>
@@ -272,7 +272,7 @@ export function Schedule() {
 
                 <div className={cn("flex-1 p-2 md:p-6 rounded-3xl shadow-sm border relative z-0 flex flex-col overflow-hidden", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100")}>
                     <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                        <div className="min-w-[700px] h-full" style={{ maxWidth: 'none' }}>
+                        <div className="min-w-[800px] h-full pb-4" style={{ maxWidth: 'none' }}>
                             <FullCalendar
                                 ref={calendarRef}
                                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
