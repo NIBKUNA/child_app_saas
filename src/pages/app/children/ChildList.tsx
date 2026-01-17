@@ -100,8 +100,8 @@ export function ChildList() {
             <div className="space-y-6 p-2">
                 <div className="flex flex-col md:flex-row justify-between items-end gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">아동 관리</h1>
-                        <p className="text-slate-500 font-medium">센터 이용 아동 및 보호자 계정 연결을 관리합니다.</p>
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">아동 관리</h1>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">센터 이용 아동 및 보호자 계정 연결을 관리합니다.</p>
                     </div>
                     <div className="flex gap-2">
                         {/* ✨ [Export] Excel Download Button */}
@@ -121,15 +121,15 @@ export function ChildList() {
                         />
                         <button
                             onClick={handleRegister}
-                            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                            className="flex items-center gap-2 bg-slate-900 dark:bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-lg shadow-slate-200 dark:shadow-indigo-900/30"
                         >
                             <UserPlus className="w-5 h-5" /> 신규 아동 등록
                         </button>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 bg-slate-50/30">
+                <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/50">
                         <div className="relative max-w-sm">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
@@ -137,14 +137,14 @@ export function ChildList() {
                                 placeholder="아동 또는 보호자 이름 검색..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all"
+                                className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-slate-100 dark:focus:ring-indigo-500/20 transition-all"
                             />
                         </div>
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50/50 text-slate-400 font-black uppercase text-[11px] tracking-wider">
+                            <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 font-black uppercase text-[11px] tracking-wider">
                                 <tr>
                                     <th className="px-6 py-5">기본 정보</th>
                                     <th className="px-6 py-5">생년월일/성별</th>
@@ -154,19 +154,19 @@ export function ChildList() {
                                     <th className="px-6 py-5 text-center">관리</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                 {filteredChildren.length === 0 ? (
-                                    <tr><td colSpan={6} className="p-20 text-center text-slate-400 font-bold">등록된 아동 정보가 없습니다.</td></tr>
+                                    <tr><td colSpan={6} className="p-20 text-center text-slate-400 dark:text-slate-500 font-bold">등록된 아동 정보가 없습니다.</td></tr>
                                 ) : (
                                     filteredChildren.map((child) => (
-                                        <tr key={child.id} className="hover:bg-slate-50/80 transition-colors group">
+                                        <tr key={child.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors group">
                                             <td className="px-6 py-5">
-                                                <div className="font-black text-slate-900 text-base">{child.name}</div>
-                                                <div className="text-[11px] text-slate-400 font-bold mt-0.5">{child.contact}</div>
+                                                <div className="font-black text-slate-900 dark:text-white text-base">{child.name}</div>
+                                                <div className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">{child.contact}</div>
                                             </td>
-                                            <td className="px-6 py-5 text-slate-600 font-bold">
+                                            <td className="px-6 py-5 text-slate-600 dark:text-slate-300 font-bold">
                                                 {child.birth_date || '-'}
-                                                <span className="ml-2 text-slate-300 text-xs">{child.gender}</span>
+                                                <span className="ml-2 text-slate-300 dark:text-slate-500 text-xs">{child.gender}</span>
                                             </td>
                                             <td className="px-6 py-5">
                                                 {child.invitation_code ? (
@@ -202,18 +202,18 @@ export function ChildList() {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-5 text-slate-600 font-bold">{child.guardian_name || '-'}</td>
+                                            <td className="px-6 py-5 text-slate-600 dark:text-slate-300 font-bold">{child.guardian_name || '-'}</td>
                                             <td className="px-6 py-5 text-center flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => handleOpenDetail(child)}
-                                                    className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all hover:shadow-md"
+                                                    className="p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-600 transition-all hover:shadow-md"
                                                     title="상세 정보 및 관찰일기 보기"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleEdit(child.id)}
-                                                    className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all hover:shadow-md"
+                                                    className="p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-900 dark:hover:border-slate-400 transition-all hover:shadow-md"
                                                     title="아동 정보 수정"
                                                 >
                                                     <Pencil className="w-4 h-4" />

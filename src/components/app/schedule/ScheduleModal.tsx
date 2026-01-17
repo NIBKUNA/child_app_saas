@@ -286,10 +286,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-                <div className="p-5 border-b flex justify-between items-center bg-slate-50">
-                    <h2 className="text-lg font-black text-slate-800">{scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full"><X className="w-5 h-5 text-slate-500" /></button>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                <div className="p-5 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white">{scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><X className="w-5 h-5 text-slate-500 dark:text-slate-400" /></button>
                 </div>
                 {fetching ? (
                     <div className="p-10 flex flex-col items-center justify-center min-h-[300px]">
@@ -299,33 +299,33 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 ) : (
                     <form onSubmit={handleSubmit} className="p-6 space-y-5">
                         <div>
-                            <label className="text-xs font-bold text-slate-500">아동 선택</label>
-                            <select required className="w-full p-3 border rounded-xl font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.child_id} onChange={e => setFormData({ ...formData, child_id: e.target.value })}>
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">아동 선택</label>
+                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.child_id} onChange={e => setFormData({ ...formData, child_id: e.target.value })}>
                                 <option value="">아동을 선택하세요</option>
                                 {childrenList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500">담당 선생님</label>
-                            <select required className="w-full p-3 border rounded-xl font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.therapist_id} onChange={e => setFormData({ ...formData, therapist_id: e.target.value })}>
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">담당 선생님</label>
+                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.therapist_id} onChange={e => setFormData({ ...formData, therapist_id: e.target.value })}>
                                 <option value="">선생님을 선택하세요</option>
                                 {therapistsList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500">프로그램</label>
-                            <select required className="w-full p-3 border rounded-xl font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
+                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
                                 <option value="">프로그램을 선택하세요</option>
                                 {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500">일시</label>
-                            <input type="date" required className="w-full p-3 border rounded-xl font-bold mb-2 bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">일시</label>
+                            <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                             <div className="flex gap-2">
-                                <input type="time" required className="flex-1 p-3 border rounded-xl font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.start_time} onChange={e => setFormData({ ...formData, start_time: e.target.value })} />
+                                <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.start_time} onChange={e => setFormData({ ...formData, start_time: e.target.value })} />
                                 <span className="self-center text-slate-400">~</span>
-                                <input type="time" required className="flex-1 p-3 border rounded-xl font-bold bg-white text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
+                                <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
                             </div>
                         </div>
                         <div className="grid grid-cols-4 gap-2">
@@ -336,8 +336,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             ))}
                         </div>
                         <div className="flex gap-2 pt-4">
-                            {scheduleId && <button type="button" onClick={handleDelete} className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 border border-rose-100"><Trash2 className="w-5" /></button>}
-                            <button type="submit" disabled={loading} className="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 shadow-md">
+                            {scheduleId && <button type="button" onClick={handleDelete} className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"><Trash2 className="w-5" /></button>}
+                            <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-md">
                                 {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
                             </button>
                         </div>

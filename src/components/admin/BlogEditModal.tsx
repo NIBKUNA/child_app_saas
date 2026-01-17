@@ -75,14 +75,14 @@ export function BlogEditModal({ isOpen, onClose, post, onUpdate }: BlogEditModal
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                         블로그 글 수정
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-slate-500" />
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                        <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                     </button>
                 </div>
 
@@ -90,23 +90,23 @@ export function BlogEditModal({ isOpen, onClose, post, onUpdate }: BlogEditModal
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     {/* Title */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-500">제목</label>
+                        <label className="text-sm font-bold text-slate-500 dark:text-slate-400">제목</label>
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full text-xl font-bold px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            className="w-full text-xl font-bold px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
                         />
                     </div>
 
                     {/* Cover Image */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                        <label className="text-sm font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
                             <ImageIcon className="w-4 h-4" /> 커버 이미지
                         </label>
                         <div className="flex gap-4 items-start">
                             {coverImage && (
-                                <img src={coverImage} alt="Cover" className="w-32 h-20 object-cover rounded-lg border border-slate-200" />
+                                <img src={coverImage} alt="Cover" className="w-32 h-20 object-cover rounded-lg border border-slate-200 dark:border-slate-700" />
                             )}
                             <div className="flex-1">
                                 <ImageUploader
@@ -121,44 +121,44 @@ export function BlogEditModal({ isOpen, onClose, post, onUpdate }: BlogEditModal
 
                     {/* Excerpt */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-500">핵심 요약 (오늘의 핵심 요약)</label>
+                        <label className="text-sm font-bold text-slate-500 dark:text-slate-400">핵심 요약 (오늘의 핵심 요약)</label>
                         <textarea
                             value={excerpt}
                             onChange={(e) => setExcerpt(e.target.value)}
                             rows={3}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none"
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                     </div>
 
                     {/* Content (HTML) - Simple Textarea for now but ideally WYSIWYG */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-500">본문 (HTML)</label>
-                        <div className="bg-yellow-50 p-4 rounded-xl text-xs text-yellow-700 mb-2">
+                        <label className="text-sm font-bold text-slate-500 dark:text-slate-400">본문 (HTML)</label>
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl text-xs text-yellow-700 dark:text-yellow-300 mb-2">
                             <b>주의:</b> HTML 태그를 직접 수정할 수 있습니다. `&lt;h2&gt;`, `&lt;p&gt;` 등의 태그를 유지해주세요.
                         </div>
                         <textarea
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
                             rows={15}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
                             spellCheck={false}
                         />
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-3xl">
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-3xl">
                     <button
                         onClick={onClose}
                         disabled={saving}
-                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-all"
+                        className="px-6 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition-all"
                     >
                         취소
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2"
+                        className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 transition-all flex items-center gap-2"
                     >
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         저장하기

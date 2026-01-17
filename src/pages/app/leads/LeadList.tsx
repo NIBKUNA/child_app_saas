@@ -90,8 +90,8 @@ export function LeadList() {
         <div className="space-y-6 text-left">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900">상담 문의 관리</h1>
-                    <p className="text-slate-500 font-medium mt-1">마케팅 유입 경로와 상담 상태를 실시간으로 확인합니다.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">상담 문의 관리</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">마케팅 유입 경로와 상담 상태를 실시간으로 확인합니다.</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -102,11 +102,11 @@ export function LeadList() {
                             placeholder="이름, 연락처 검색..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-indigo-50 outline-none w-64 transition-all"
+                            className="pl-10 pr-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/20 outline-none w-64 transition-all"
                         />
                     </div>
                     <select
-                        className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold bg-white shadow-sm outline-none focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer"
+                        className="rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2 text-sm font-bold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm outline-none focus:ring-4 focus:ring-indigo-50 dark:focus:ring-indigo-500/20 transition-all cursor-pointer"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
@@ -120,9 +120,9 @@ export function LeadList() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[32px] border border-slate-200 shadow-xl overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
                 {/* 헤더: 가로형 레이아웃 최적화 */}
-                <div className="p-6 border-b bg-slate-50/50 font-black grid grid-cols-12 gap-4 text-[11px] text-slate-400 uppercase tracking-widest">
+                <div className="p-6 border-b bg-slate-50/50 dark:bg-slate-800/50 font-black grid grid-cols-12 gap-4 text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     <div className="col-span-1">신청일</div>
                     <div className="col-span-2">보호자 / 연락처</div>
                     <div className="col-span-1">아동 정보</div>
@@ -132,26 +132,26 @@ export function LeadList() {
                     <div className="col-span-1 text-center">관리</div>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
                     {filteredLeads.length === 0 ? (
-                        <div className="p-20 text-center text-slate-400 font-bold text-lg">
+                        <div className="p-20 text-center text-slate-400 dark:text-slate-500 font-bold text-lg">
                             문의 내역이 없습니다.
                         </div>
                     ) : (
                         filteredLeads.map((lead) => (
-                            <div key={lead.id} className="p-6 grid grid-cols-12 gap-4 items-center text-sm hover:bg-indigo-50/30 transition-all group">
-                                <div className="col-span-1 text-slate-400 font-medium tabular-nums">
+                            <div key={lead.id} className="p-6 grid grid-cols-12 gap-4 items-center text-sm hover:bg-indigo-50/30 dark:hover:bg-slate-700/50 transition-all group">
+                                <div className="col-span-1 text-slate-400 dark:text-slate-500 font-medium tabular-nums">
                                     {new Date(lead.created_at).toLocaleDateString().slice(2)}
                                 </div>
                                 <div className="col-span-2">
-                                    <div className="font-black text-slate-900 text-base">{lead.parent_name}</div>
-                                    <div className="text-xs text-indigo-500 font-bold flex items-center mt-1">
+                                    <div className="font-black text-slate-900 dark:text-white text-base">{lead.parent_name}</div>
+                                    <div className="text-xs text-indigo-500 dark:text-indigo-400 font-bold flex items-center mt-1">
                                         <Phone className="w-3 h-3 mr-1" /> {lead.phone}
                                     </div>
                                 </div>
                                 <div className="col-span-1">
-                                    <div className="font-bold text-slate-700">{lead.child_name || '-'}</div>
-                                    <div className="text-[10px] text-slate-400 mt-0.5">
+                                    <div className="font-bold text-slate-700 dark:text-slate-300">{lead.child_name || '-'}</div>
+                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                                         {lead.child_birth_year ? `${lead.child_birth_year}년` : ''}
                                         {lead.child_gender === 'male' ? ' 남' : lead.child_gender === 'female' ? ' 여' : ''}
                                     </div>
@@ -168,12 +168,12 @@ export function LeadList() {
                                 <div className="col-span-3">
                                     <div className="flex flex-wrap gap-1 mb-2">
                                         {lead.preferred_service?.slice(0, 2).map((service, i) => (
-                                            <span key={i} className="px-1.5 py-0.5 rounded-lg bg-slate-100 text-slate-600 text-[9px] font-bold border border-slate-200">
+                                            <span key={i} className="px-1.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-600">
                                                 {service}
                                             </span>
                                         ))}
                                     </div>
-                                    <div className="text-xs text-slate-500 line-clamp-1 italic" title={lead.concern || ''}>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 italic" title={lead.concern || ''}>
                                         {lead.concern || '내용 없음'}
                                     </div>
                                 </div>
@@ -181,9 +181,9 @@ export function LeadList() {
                                 <div className="col-span-2">
                                     <select
                                         className={`w-full rounded-2xl border px-3 py-2.5 text-xs font-black outline-none transition-all shadow-sm cursor-pointer ${lead.status === 'new' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                                                lead.status === 'contacted' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                    lead.status === 'converted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                        'bg-slate-50 text-slate-600 border-slate-200'
+                                            lead.status === 'contacted' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                lead.status === 'converted' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                    'bg-slate-50 text-slate-600 border-slate-200'
                                             }`}
                                         value={lead.status}
                                         onChange={(e) => handleStatusChange(lead.id, e.target.value as any)}
@@ -199,7 +199,7 @@ export function LeadList() {
                                 <div className="col-span-1 flex justify-center items-center gap-2">
                                     <button
                                         onClick={() => handleDelete(lead.id)}
-                                        className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                        className="p-2.5 text-slate-300 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
                                         title="삭제"
                                     >
                                         <Trash2 className="w-4 h-4" />

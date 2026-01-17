@@ -209,21 +209,21 @@ export function ConsultationList() {
         return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
     };
 
-    if (loading) return <div className="p-20 text-center font-black text-slate-300 animate-pulse">데이터 동기화 중...</div>;
+    if (loading) return <div className="p-20 text-center font-black text-slate-300 dark:text-slate-500 animate-pulse">데이터 동기화 중...</div>;
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-12 selection:bg-primary/10">
-            <header className="flex justify-between items-end bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
+            <header className="flex justify-between items-end bg-white dark:bg-slate-800 p-10 rounded-[48px] border border-slate-100 dark:border-slate-700 shadow-sm">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">발달 평가 및 상담 관리</h1>
-                    <p className="text-slate-500 font-bold mt-3 text-sm">
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">발달 평가 및 상담 관리</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-bold mt-3 text-sm">
                         {userRole === 'admin' || userRole === 'super_admin'
                             ? '센터 전체 발달 평가 현황을 실시간으로 확인합니다.'
                             : '수업 완료 후 아동의 발달 상태를 평가해 주세요.'}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="bg-slate-50 text-slate-400 px-6 py-3 rounded-3xl text-xs font-black uppercase">
+                    <div className="bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-300 px-6 py-3 rounded-3xl text-xs font-black uppercase">
                         {userRole === 'super_admin' ? 'SUPER ADMIN' : userRole === 'admin' ? 'ADMIN MODE' : 'THERAPIST'}
                     </div>
                 </div>
@@ -232,26 +232,26 @@ export function ConsultationList() {
             {/* 작성 대기 목록 */}
             <section>
                 <div className="flex items-center justify-between mb-8 px-4">
-                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                        <div className="p-2 bg-rose-100 rounded-2xl"><Clock className="w-6 h-6 text-rose-500" /></div>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+                        <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-2xl"><Clock className="w-6 h-6 text-rose-500" /></div>
                         평가 대기 목록
-                        <span className="ml-2 text-rose-500 bg-rose-50 px-3 py-1 rounded-xl text-lg">{todoChildren.length}</span>
+                        <span className="ml-2 text-rose-500 bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded-xl text-lg">{todoChildren.length}</span>
                     </h2>
                 </div>
 
                 {todoChildren.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {todoChildren.map((session) => (
-                            <div key={session.id} className="bg-white p-10 rounded-[48px] border-2 border-slate-50 shadow-sm hover:border-primary/20 transition-all group relative overflow-hidden">
+                            <div key={session.id} className="bg-white dark:bg-slate-800 p-10 rounded-[48px] border-2 border-slate-50 dark:border-slate-700 shadow-sm hover:border-primary/20 dark:hover:border-indigo-500/30 transition-all group relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-8">
-                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{session.start_time.split('T')[0]}</span>
+                                    <span className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{session.start_time.split('T')[0]}</span>
                                 </div>
                                 <div className="mb-8">
                                     <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-[28px] flex items-center justify-center text-3xl font-black text-indigo-400 group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all shadow-inner mb-6">
                                         {session.children?.name[0]}
                                     </div>
-                                    <h3 className="text-2xl font-black text-slate-900">{session.children?.name} 아동</h3>
-                                    <p className="text-primary text-xs font-black mt-2">{session.programs?.name}</p>
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{session.children?.name} 아동</h3>
+                                    <p className="text-primary dark:text-indigo-400 text-xs font-black mt-2">{session.programs?.name}</p>
                                 </div>
                                 <button
                                     onClick={() => handleOpenAssessment(session)}
@@ -264,39 +264,39 @@ export function ConsultationList() {
                         ))}
                     </div>
                 ) : (
-                    <div className="col-span-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-[56px] p-24 text-center">
-                        <CheckCircle2 className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                        <p className="text-slate-400 font-black text-lg">모든 발달 평가 작성을 완료했습니다!</p>
+                    <div className="col-span-full bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[56px] p-24 text-center">
+                        <CheckCircle2 className="w-12 h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4" />
+                        <p className="text-slate-400 dark:text-slate-500 font-black text-lg">모든 발달 평가 작성을 완료했습니다!</p>
                     </div>
                 )}
             </section>
 
             {/* 최근 작성 내역 */}
             <section>
-                <h2 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3 px-4">
-                    <div className="p-2 bg-emerald-100 rounded-2xl"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-8 flex items-center gap-3 px-4">
+                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
                     최근 평가 내역
                 </h2>
-                <div className="bg-white rounded-[48px] border border-slate-100 overflow-hidden shadow-sm">
+                <div className="bg-white dark:bg-slate-800 rounded-[48px] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
                     <table className="w-full text-left">
-                        <thead className="bg-slate-50/50 border-b border-slate-100">
+                        <thead className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
-                                <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                                <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest">Child Name</th>
-                                <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Avg Score</th>
-                                <th className="p-8 text-[11px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Date</th>
+                                <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Child Name</th>
+                                <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Avg Score</th>
+                                <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
                             {recentAssessments.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="p-12 text-center text-slate-400 font-bold">아직 작성된 발달 평가가 없습니다.</td>
+                                    <td colSpan={4} className="p-12 text-center text-slate-400 dark:text-slate-500 font-bold">아직 작성된 발달 평가가 없습니다.</td>
                                 </tr>
                             ) : (
                                 recentAssessments.map((assess) => (
-                                    <tr key={assess.id} className="hover:bg-slate-50/30 transition-colors">
-                                        <td className="p-8 text-sm font-bold text-slate-500">{assess.evaluation_date || assess.created_at?.split('T')[0]}</td>
-                                        <td className="p-8 text-base font-black text-slate-900">{assess.children?.name || '아동'}</td>
+                                    <tr key={assess.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-700/30 transition-colors">
+                                        <td className="p-8 text-sm font-bold text-slate-500 dark:text-slate-400">{assess.evaluation_date || assess.created_at?.split('T')[0]}</td>
+                                        <td className="p-8 text-base font-black text-slate-900 dark:text-white">{assess.children?.name || '아동'}</td>
                                         <td className="p-8 text-center">
                                             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl font-black text-indigo-700 text-xs">
                                                 <BarChart3 className="w-3 h-3" />
@@ -307,14 +307,14 @@ export function ConsultationList() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleEdit(assess)}
-                                                    className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
+                                                    className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-2xl transition-all"
                                                     title="수정"
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(assess.id)}
-                                                    className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
+                                                    className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-2xl transition-all"
                                                     title="삭제"
                                                 >
                                                     <Trash2 className="w-4 h-4" />

@@ -232,14 +232,14 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                 {/* Header */}
-                <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+                <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-800">발달 평가 작성</h2>
-                        <p className="text-sm font-bold text-slate-500 mt-1">{childName} 아동 • 영역별 체크리스트 기반 평가</p>
+                        <h2 className="text-2xl font-black text-slate-800 dark:text-white">발달 평가 작성</h2>
+                        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1">{childName} 아동 • 영역별 체크리스트 기반 평가</p>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -277,8 +277,8 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                                     {/* Expanded Detail Section */}
                                     {isExpanded && (
                                         <div className="px-5 pb-5 pt-0 animate-in slide-in-from-top-2">
-                                            <div className="bg-slate-50/50 rounded-2xl p-4 space-y-3">
-                                                <p className="text-xs font-black text-slate-400 mb-2 uppercase tracking-wider">평가 체크리스트 (자동 점수 계산)</p>
+                                            <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl p-4 space-y-3">
+                                                <p className="text-xs font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">평가 체크리스트 (자동 점수 계산)</p>
                                                 {CHECKLIST_ITEMS[domain.key].map((item: any) => {
                                                     const isChecked = details[domain.key].includes(item.id);
                                                     return (
@@ -287,13 +287,13 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                                                             onClick={() => toggleCheck(domain.key, item.id)}
                                                             className={cn(
                                                                 "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border",
-                                                                isChecked ? "bg-white border-indigo-200 shadow-sm" : "bg-transparent border-transparent hover:bg-white hover:border-slate-100"
+                                                                isChecked ? "bg-white dark:bg-slate-700 border-indigo-200 dark:border-indigo-500/50 shadow-sm" : "bg-transparent border-transparent hover:bg-white dark:hover:bg-slate-700 hover:border-slate-100 dark:hover:border-slate-600"
                                                             )}
                                                         >
-                                                            <div className={cn("w-5 h-5 rounded-md flex items-center justify-center transition-colors", isChecked ? "bg-indigo-500 text-white" : "bg-slate-200 text-slate-400")}>
+                                                            <div className={cn("w-5 h-5 rounded-md flex items-center justify-center transition-colors", isChecked ? "bg-indigo-500 text-white" : "bg-slate-200 dark:bg-slate-600 text-slate-400")}>
                                                                 {isChecked ? <CheckSquare className="w-3.5 h-3.5" /> : <div className="w-3.5 h-3.5" />}
                                                             </div>
-                                                            <span className={cn("text-sm font-bold transition-colors", isChecked ? "text-slate-900" : "text-slate-500")}>{item.label}</span>
+                                                            <span className={cn("text-sm font-bold transition-colors", isChecked ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400")}>{item.label}</span>
                                                         </div>
                                                     );
                                                 })}
@@ -302,14 +302,14 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                                             {/* Manual Adjustment */}
                                             <div className="mt-4 px-2">
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <label className="text-xs font-bold text-slate-400">점수 수동 보정 (필요시)</label>
-                                                    <span className="text-sm font-black text-slate-900">{sc[domain.key]} / 5</span>
+                                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500">점수 수동 보정 (필요시)</label>
+                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{sc[domain.key]} / 5</span>
                                                 </div>
                                                 <input
                                                     type="range" min="1" max="5" step="1"
                                                     value={sc[domain.key]}
                                                     onChange={(e) => handleSliderChange(domain.key, Number(e.target.value))}
-                                                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                                 />
                                             </div>
                                         </div>
@@ -321,39 +321,39 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
 
                     {/* Summary */}
                     <div className="space-y-2">
-                        <label className="text-sm font-black text-slate-700 ml-1">종합 소견 (부모 공개)</label>
+                        <label className="text-sm font-black text-slate-700 dark:text-slate-300 ml-1">종합 소견 (부모 공개)</label>
                         <textarea
                             value={summary}
                             onChange={(e) => setSummary(e.target.value)}
                             placeholder="이번 달 발달 변화나 특이사항을 자유롭게 작성해주세요... (평가 근거 요약 포함)"
-                            className="w-full h-32 p-4 rounded-2xl border border-slate-200 bg-slate-50 font-medium text-sm focus:outline-none focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-200 resize-none"
+                            className="w-full h-32 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-medium text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-indigo-50/50 dark:focus:ring-indigo-500/20 focus:border-indigo-200 dark:focus:border-indigo-500 resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         />
                     </div>
 
                     {/* ✨ [치료사 전용] 비공개 메모 - 부모에게 안보임 */}
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 ml-1">
-                            <label className="text-sm font-black text-rose-600">치료사 메모 (비공개)</label>
-                            <span className="text-[10px] bg-rose-100 text-rose-500 px-2 py-0.5 rounded-full font-bold">부모 앱 미노출</span>
+                            <label className="text-sm font-black text-rose-600 dark:text-rose-400">치료사 메모 (비공개)</label>
+                            <span className="text-[10px] bg-rose-100 dark:bg-rose-900/50 text-rose-500 dark:text-rose-400 px-2 py-0.5 rounded-full font-bold">부모 앱 미노출</span>
                         </div>
                         <textarea
                             value={therapistNotes}
                             onChange={(e) => setTherapistNotes(e.target.value)}
                             placeholder="부모에게 공개되지 않는 내부 기록입니다. (행동 패턴, 주의사항, 다음 치료사에게 전달 사항 등)"
-                            className="w-full h-24 p-4 rounded-2xl border-2 border-rose-100 bg-rose-50/30 font-medium text-sm focus:outline-none focus:ring-4 focus:ring-rose-50 focus:border-rose-200 resize-none text-rose-900 placeholder:text-rose-300"
+                            className="w-full h-24 p-4 rounded-2xl border-2 border-rose-100 dark:border-rose-900/50 bg-rose-50/30 dark:bg-rose-900/20 font-medium text-sm focus:outline-none focus:ring-4 focus:ring-rose-50 dark:focus:ring-rose-500/20 focus:border-rose-200 dark:focus:border-rose-500 resize-none text-rose-900 dark:text-rose-100 placeholder:text-rose-300 dark:placeholder:text-rose-400/50"
                         />
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
-                    <button onClick={onClose} className="px-6 py-3 rounded-2xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end gap-3 shrink-0">
+                    <button onClick={onClose} className="px-6 py-3 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         취소
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-200 flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
+                        className="px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 flex items-center gap-2 disabled:opacity-50 transition-all active:scale-95"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         평가 저장하기

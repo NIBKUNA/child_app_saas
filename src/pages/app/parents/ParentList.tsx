@@ -136,8 +136,8 @@ export function ParentList() {
 
             <div className="flex flex-col md:flex-row justify-between items-end gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">부모님 계정 관리</h1>
-                    <p className="text-slate-500 font-medium">가입된 학부모 계정 목록 및 상태를 관리합니다.</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">부모님 계정 관리</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">가입된 학부모 계정 목록 및 상태를 관리합니다.</p>
                 </div>
                 <div>
                     <ExcelExportButton
@@ -158,14 +158,14 @@ export function ParentList() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                 {/* ✨ NEW: Filter Tabs */}
-                <div className="flex gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex gap-2 p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                     <button
                         onClick={() => setActiveTab('active')}
                         className={cn(
                             "px-4 py-2 rounded-xl font-bold text-sm transition-all",
-                            activeTab === 'active' ? "bg-emerald-600 text-white shadow-md" : "bg-white text-slate-500 hover:bg-slate-100"
+                            activeTab === 'active' ? "bg-emerald-600 text-white shadow-md" : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600"
                         )}
                     >
                         ✅ 활성 계정
@@ -174,7 +174,7 @@ export function ParentList() {
                         onClick={() => setActiveTab('blocked')}
                         className={cn(
                             "px-4 py-2 rounded-xl font-bold text-sm transition-all",
-                            activeTab === 'blocked' ? "bg-rose-600 text-white shadow-md" : "bg-white text-slate-500 hover:bg-slate-100"
+                            activeTab === 'blocked' ? "bg-rose-600 text-white shadow-md" : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600"
                         )}
                     >
                         🚫 차단 목록
@@ -183,14 +183,14 @@ export function ParentList() {
                         onClick={() => setActiveTab('all')}
                         className={cn(
                             "px-4 py-2 rounded-xl font-bold text-sm transition-all",
-                            activeTab === 'all' ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 hover:bg-slate-100"
+                            activeTab === 'all' ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-md" : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600"
                         )}
                     >
                         📋 전체 보기
                     </button>
                 </div>
 
-                <div className="p-6 border-b border-slate-100 bg-slate-50/30">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/50">
                     <div className="relative max-w-sm">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
@@ -198,14 +198,14 @@ export function ParentList() {
                             placeholder="이름 또는 이메일 검색..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all"
+                            className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-slate-100 dark:focus:ring-indigo-500/20 transition-all"
                         />
                     </div>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50/50 text-slate-400 font-black uppercase text-[11px] tracking-wider">
+                        <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 font-black uppercase text-[11px] tracking-wider">
                             <tr>
                                 <th className="px-6 py-5">프로필 정보</th>
                                 <th className="px-6 py-5">이메일 (ID)</th>
@@ -214,26 +214,26 @@ export function ParentList() {
                                 <th className="px-6 py-5 text-center">관리</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {filteredParents.length === 0 ? (
-                                <tr><td colSpan={5} className="p-20 text-center text-slate-400 font-bold">
+                                <tr><td colSpan={5} className="p-20 text-center text-slate-400 dark:text-slate-500 font-bold">
                                     {activeTab === 'blocked' ? '차단된 계정이 없습니다.' : '검색 결과가 없습니다.'}
                                 </td></tr>
                             ) : (
                                 filteredParents.map((parent) => (
-                                    <tr key={parent.id} className="hover:bg-slate-50/80 transition-colors">
+                                    <tr key={parent.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors">
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400">
                                                     <User className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-black text-slate-900">{parent.name}</div>
-                                                    <div className="text-[10px] text-slate-400">가입: {parent.created_at ? new Date(parent.created_at).toLocaleDateString() : '-'}</div>
+                                                    <div className="font-black text-slate-900 dark:text-white">{parent.name}</div>
+                                                    <div className="text-[10px] text-slate-400 dark:text-slate-500">가입: {parent.created_at ? new Date(parent.created_at).toLocaleDateString() : '-'}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 text-slate-600 font-bold font-mono text-xs">
+                                        <td className="px-6 py-5 text-slate-600 dark:text-slate-300 font-bold font-mono text-xs">
                                             {parent.email}
                                         </td>
                                         <td className="px-6 py-5">
@@ -263,7 +263,7 @@ export function ParentList() {
                                         <td className="px-6 py-5 text-center flex items-center justify-center gap-2">
                                             <button
                                                 onClick={() => handleResetPasswordEmail(parent.email)}
-                                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                                 title="비밀번호 재설정 메일 발송"
                                             >
                                                 <Mail className="w-4 h-4" />
@@ -273,8 +273,8 @@ export function ParentList() {
                                                 className={cn(
                                                     "p-2 rounded-lg transition-colors",
                                                     parent.status === 'active'
-                                                        ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                                                        : "text-emerald-500 hover:bg-emerald-50"
+                                                        ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30"
+                                                        : "text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
                                                 )}
                                                 title={parent.status === 'active' ? "계정 차단" : "차단 해제"}
                                             >
@@ -283,7 +283,7 @@ export function ParentList() {
                                             {/* ✨ NEW: Delete Button */}
                                             <button
                                                 onClick={() => handleDeleteParent(parent)}
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                                                 title="계정 삭제 (재가입 가능)"
                                             >
                                                 <Trash2 className="w-4 h-4" />
