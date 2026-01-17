@@ -9,7 +9,7 @@ export function SEOHead() {
     const location = useLocation();
 
     // ✨ Keywords Injection
-    const keywords = "자라다발달센터, 잠실 아동발달센터, 언어치료, 감각통합치료, 미술치료, 놀이치료, 인지치료, 사회성그룹치료, 아동발달검사, 송파 발달센터";
+    const keywords = "자라다발달센터, 잠실 아동발달센터, 언어치료, 감각통합치료, 미술치료, 놀이치료, 인지치료, 사회성그룹치료, 아동발달검사, 송파 발달센터, 송파구, 송파구 아동발달센터";
     const canonicalUrl = `https://zaradacenter.co.kr${location.pathname}`;
 
     // 🏗️ Structured Data (JSON-LD)

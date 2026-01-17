@@ -54,7 +54,7 @@ const DEFAULT_CONTENT = {
         titlePoint: "아이의 언어·감각",
         titleLast: "이\n자라나는 특별한 공간",
         description: "언어치료, 감각통합, 미술/놀이치료 전문 기관.\n잠실 최고의 치료사진과 함께 우리 아이의 잠재력을 키워주세요.",
-        ctaText: "잠실 센터 무료 상담",
+        ctaText: "상단 문의하기",
         defaultBgImage: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?auto=format&fit=crop&q=80&w=2000"
     },
     values: [
