@@ -51,10 +51,10 @@ const DEFAULT_CONTENT = {
     brandName: import.meta.env.VITE_CENTER_NAME || "아동발달센터",
     hero: {
         titleFirst: "잠실 아동발달의 중심,",
-        titlePoint: "아이의 언어·감각",
+        titlePoint: "아이의 행복",
         titleLast: "이\n자라나는 특별한 공간",
         description: "언어치료, 감각통합, 미술/놀이치료 전문 기관.\n잠실 최고의 치료사진과 함께 우리 아이의 잠재력을 키워주세요.",
-        ctaText: "상단 문의하기",
+        ctaText: "상담 문의하기",
         defaultBgImage: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?auto=format&fit=crop&q=80&w=2000"
     },
     values: [
