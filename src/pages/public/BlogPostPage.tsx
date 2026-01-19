@@ -329,7 +329,7 @@ export function BlogPostPage() {
                     {/* Featured Image - Full Width within container */}
                     {post.cover_image_url && (
                         <div className="rounded-xl overflow-hidden aspect-[16/9] mb-16 shadow-sm">
-                            <img src={post.cover_image_url} alt={post.title} className="w-full h-full object-cover transition-transform hover:scale-105 duration-700" />
+                            <img src={post.cover_image_url} alt={`${post.title} - ${centerName}`} className="w-full h-full object-cover transition-transform hover:scale-105 duration-700" />
                         </div>
                     )}
 
