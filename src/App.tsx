@@ -110,7 +110,12 @@ function App() {
   };
 
   if (showSplash) {
-    return <SplashScreen onComplete={handleSplashComplete} />;
+    return (
+      <HelmetProvider>
+        <SEOHead />
+        <SplashScreen onComplete={handleSplashComplete} />
+      </HelmetProvider>
+    );
   }
 
   return (

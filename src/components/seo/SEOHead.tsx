@@ -71,6 +71,7 @@ export function SEOHead() {
             <title>{displayTitle}</title>
             <meta name="description" content={description} />
             <meta name="keywords" content={keywords} />
+            <meta name="naver-site-verification" content="b03c0f83417e4e2cd4cb9309f6d8afb77a8d6bb0" />
             <link rel="canonical" href={canonicalUrl} />
 
             {/* Open Graph */}
