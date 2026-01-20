@@ -1,8 +1,7 @@
 
-// ⚡ [NUCLEAR FIX] Hardcoded ID to bypass Environment Variable Check Failure
-export const JAMSIL_CENTER_ID = "59d09adf-4c98-4013-a198-d7b26018fd29";
-
-// export const JAMSIL_CENTER_ID = import.meta.env.VITE_CENTER_ID;
+// ✨ [Sovereign Configuration] Center Identification
+// Priority: Environment Variable -> Hardcoded Fallback
+export const JAMSIL_CENTER_ID = import.meta.env.VITE_CENTER_ID || "59d09adf-4c98-4013-a198-d7b26018fd29";
 
 
 export const CENTER_DEFAULTS = {

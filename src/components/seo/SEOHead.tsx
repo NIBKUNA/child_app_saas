@@ -3,14 +3,22 @@ import { useLocation } from 'react-router-dom';
 import { seoConfig } from '@/config/seo';
 
 export function SEOHead() {
-    // 👑 [Sovereign SEO] Environment Variable Driven
-    // DB 조회가 아닌, 배포 시 설정된 환경변수를 최우선으로 따릅니다.
-    const { title, description, ogImage } = seoConfig;
-    const location = useLocation();
+    // 👑 [Sovereign SEO] Fully Environment Variable Driven
+    const {
+        title,
+        description,
+        ogImage,
+        keywords,
+        canonicalUrl: baseUrl,
+        naverVerification,
+        phone,
+        address,
+        geo,
+        businessName
+    } = seoConfig;
 
-    // ✨ Keywords Injection
-    const keywords = "자라다발달센터, 잠실 아동발달센터, 언어치료, 감각통합치료, 미술치료, 놀이치료, 인지치료, 사회성그룹치료, 아동발달검사, 송파 발달센터, 송파구, 송파구 아동발달센터";
-    const canonicalUrl = `https://zaradacenter.co.kr${location.pathname}`;
+    const location = useLocation();
+    const canonicalUrl = `${baseUrl}${location.pathname}`;
 
     // 🏗️ Structured Data (JSON-LD)
     const jsonLd = {
@@ -18,23 +26,23 @@ export function SEOHead() {
         "@graph": [
             {
                 "@type": "LocalBusiness",
-                "@id": "https://zaradacenter.co.kr",
-                "name": "자라다 아동심리발달센터 잠실점",
+                "@id": baseUrl,
+                "name": businessName,
                 "image": ogImage,
-                "url": "https://zaradacenter.co.kr",
-                "telephone": "02-416-2213",
+                "url": baseUrl,
+                "telephone": phone,
                 "address": {
                     "@type": "PostalAddress",
-                    "streetAddress": "서울 송파구 석촌호수로 12길", /* 실제 상세 주소 확인 필요 */
-                    "addressLocality": "Songpa-gu",
+                    "streetAddress": address,
+                    "addressLocality": "Songpa-gu", // 필요시 이것도 환경변수화 가능
                     "addressRegion": "Seoul",
                     "postalCode": "05540",
                     "addressCountry": "KR"
                 },
                 "geo": {
                     "@type": "GeoCoordinates",
-                    "latitude": 37.5113,
-                    "longitude": 127.0982
+                    "latitude": geo.lat,
+                    "longitude": geo.lng
                 },
                 "openingHoursSpecification": {
                     "@type": "OpeningHoursSpecification",
@@ -46,7 +54,7 @@ export function SEOHead() {
             },
             {
                 "@type": "SoftwareApplication",
-                "name": "Zarada ERP - 자라다 컨설팅",
+                "name": `Zarada ERP - ${businessName}`,
                 "operatingSystem": "Web",
                 "applicationCategory": "BusinessApplication",
                 "offers": {
@@ -71,7 +79,9 @@ export function SEOHead() {
             <title>{displayTitle}</title>
             <meta name="description" content={description} />
             <meta name="keywords" content={keywords} />
-            <meta name="naver-site-verification" content="b03c0f83417e4e2cd4cb9309f6d8afb77a8d6bb0" />
+            {naverVerification && (
+                <meta name="naver-site-verification" content={naverVerification} />
+            )}
             <link rel="canonical" href={canonicalUrl} />
 
             {/* Open Graph */}
@@ -80,7 +90,7 @@ export function SEOHead() {
             <meta property="og:image" content={ogImage} />
             <meta property="og:url" content={canonicalUrl} />
             <meta property="og:type" content="website" />
-            <meta property="og:site_name" content="자라다 아동발달센터" />
+            <meta property="og:site_name" content={businessName} />
 
             {/* Twitter */}
             <meta name="twitter:card" content="summary_large_image" />
