@@ -34,16 +34,33 @@ export function ParentList() {
 
             if (error) throw error;
 
-            const parentIds = profiles.map(p => p.id);
+            // ✨ [FIX] 정확한 부모-자녀 연결 로직
+            const profileIds = profiles.map(p => p.id);
+
+            // 2. 부모(parents) 테이블에서 프로필과 매칭되는 ID 가져오기
+            const { data: parentsData } = await supabase
+                .from('parents')
+                .select('id, profile_id')
+                .in('profile_id', profileIds);
+
+            // 3. 해당 부모 ID를 가진 자녀(children)들 가져오기
+            const parentIds = parentsData?.map(p => p.id) || [];
             const { data: childrenData } = await supabase
                 .from('children')
                 .select('id, name, parent_id')
                 .in('parent_id', parentIds);
 
-            const merged = profiles.map(p => ({
-                ...p,
-                children: childrenData?.filter(c => c.parent_id === p.id) || []
-            }));
+            // 4. 프로필 -> 부모 -> 자녀 순으로 데이터 병합
+            const merged = profiles.map(p => {
+                const parentInfo = parentsData?.find(pd => pd.profile_id === p.id);
+                const parentChildren = parentInfo
+                    ? (childrenData?.filter(c => c.parent_id === parentInfo.id) || [])
+                    : [];
+                return {
+                    ...p,
+                    children: parentChildren
+                };
+            });
 
             setParents(merged);
         } catch (error) {

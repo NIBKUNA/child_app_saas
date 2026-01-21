@@ -513,7 +513,7 @@ export function Dashboard() {
             // ✨ [LEADS CONVERSION ANALYSIS] Fetch LEADS data (from 'consultations' table)
             const { data: allLeads } = await (supabase as any)
                 .from('consultations')
-                .select('id, inflow_source, status, created_at')
+                .select('id, inflow_source, status, created_at, child_id')
                 .eq('center_id', JAMSIL_CENTER_ID)
                 .gte('created_at', monthsToShow[0] + '-01')
                 .lte('created_at', selectedMonth + '-31');
@@ -532,7 +532,8 @@ export function Dashboard() {
                     // Monthly Trend Data
                     if (monthlyLeadsMap[m]) {
                         monthlyLeadsMap[m].consults++;
-                        if (lead.status === 'completed') {
+                        // ✨ [운영지표] '최종 등록'은 상담 문의가 실제 아동 데이터와 연결되었을 때만 집계
+                        if (lead.child_id) {
                             monthlyLeadsMap[m].converted++;
                         }
                     }
@@ -783,61 +784,7 @@ export function Dashboard() {
                         </div>
                     </div>
 
-                    {/* ✨ [#2] Blog Sections - BOTTOM, 2-COLUMN GRID, SMALLER */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Blog Traffic Sources */}
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                {SvgIcons.trendingUp("w-4 h-4 text-emerald-600 dark:text-emerald-400")}
-                                블로그 유입 경로 분석
-                            </h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">어떤 플랫폼에서 블로그를 보러 들어왔는지</p>
-                            {Object.keys(blogTrafficTotals).length > 0 ? (
-                                <div className="space-y-2">
-                                    {Object.entries(blogTrafficTotals)
-                                        .filter(([source]) => source !== 'Direct' && source !== 'Direct/Other')
-                                        .sort(([, a], [, b]) => b - a)
-                                        .slice(0, 5)
-                                        .map(([source, count]) => {
-                                            const total = Object.values(blogTrafficTotals).reduce((a, b) => a + b, 0);
-                                            const percent = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
-                                            return (
-                                                <div key={source} className="flex items-center gap-3">
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{source}</span>
-                                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{count}건 ({percent}%)</span>
-                                                        </div>
-                                                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    {Object.entries(blogTrafficTotals).filter(([source]) => source !== 'Direct' && source !== 'Direct/Other').length === 0 && (
-                                        <p className="text-sm text-slate-400 dark:text-slate-500">플랫폼 유입 데이터 없음</p>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-400 dark:text-slate-500">데이터 없음</p>
-                            )}
-                        </div>
-
-                        {/* Popular Content Chart */}
-                        <ChartContainer title="인기 콘텐츠 분석" icon={SvgIcons.bookOpen} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={topPosts} layout="vertical" margin={{ top: 60, right: 30, left: 20 }}>
-                                    <XAxis type="number" hide />
-                                    <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} barSize={10} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </div>
-
-                    {/* ✨ [#3] Channel Conversion Rate Analysis - NEW SECTION */}
+                    {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED UP */}
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
                         <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
                             {SvgIcons.trendingUp("w-6 h-6 text-emerald-600 dark:text-emerald-400")}
@@ -929,6 +876,60 @@ export function Dashboard() {
                                 <p className="text-sm mt-1">예약이 접수되면 채널별 현황이 표시됩니다</p>
                             </div>
                         )}
+                    </div>
+
+                    {/* ✨ [#2] Blog Sections - BOTTOM, 2-COLUMN GRID, SMALLER */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Blog Traffic Sources */}
+                        <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                {SvgIcons.trendingUp("w-4 h-4 text-emerald-600 dark:text-emerald-400")}
+                                블로그 유입 경로 분석
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">어떤 플랫폼에서 블로그를 보러 들어왔는지</p>
+                            {Object.keys(blogTrafficTotals).length > 0 ? (
+                                <div className="space-y-2">
+                                    {Object.entries(blogTrafficTotals)
+                                        .filter(([source]) => source !== 'Direct' && source !== 'Direct/Other')
+                                        .sort(([, a], [, b]) => b - a)
+                                        .slice(0, 5)
+                                        .map(([source, count]) => {
+                                            const total = Object.values(blogTrafficTotals).reduce((a, b) => a + b, 0);
+                                            const percent = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+                                            return (
+                                                <div key={source} className="flex items-center gap-3">
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{source}</span>
+                                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{count}건 ({percent}%)</span>
+                                                        </div>
+                                                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    {Object.entries(blogTrafficTotals).filter(([source]) => source !== 'Direct' && source !== 'Direct/Other').length === 0 && (
+                                        <p className="text-sm text-slate-400 dark:text-slate-500">플랫폼 유입 데이터 없음</p>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-slate-400 dark:text-slate-500">데이터 없음</p>
+                            )}
+                        </div>
+
+                        {/* Popular Content Chart */}
+                        <ChartContainer title="인기 콘텐츠 분석" icon={SvgIcons.bookOpen} innerHeight="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={topPosts} layout="vertical" margin={{ top: 60, right: 30, left: 20 }}>
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} barSize={10} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
                     </div>
                 </div>
             )}
