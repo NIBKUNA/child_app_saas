@@ -126,37 +126,13 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     };
 
     const handleDelete = async () => {
-        if (!confirm('🚨 정말 삭제하시겠습니까?\n\n이 아동과 관련된 모든 데이터(수업 일정, 수납 내역, 상담 일지, 알림장)가 영구적으로 삭제됩니다.\n\n삭제된 데이터는 복구할 수 없습니다.')) return;
+        if (!confirm('🚨 정말 삭제하시겠습니까?\n\n이 아동과 관련된 모든 데이터(수업 일정, 수납 내역, 상담 일지, 알림장, 발달 평가)가 영구적으로 삭제됩니다.\n\n삭제된 데이터는 복구할 수 없습니다.')) return;
 
         setLoading(true);
         try {
-            const { data: userPayments } = await supabase.from('payments').select('id').eq('child_id', childId);
-            const paymentIds = userPayments?.map(p => p.id) || [];
-
-            if (paymentIds.length > 0) {
-                await supabase.from('payment_items').delete().in('payment_id', paymentIds);
-                await supabase.from('payments').delete().in('id', paymentIds);
-            }
-
-            const { data: userSchedules } = await supabase.from('schedules').select('id').eq('child_id', childId);
-            const scheduleIds = userSchedules?.map(s => s.id) || [];
-
-            if (scheduleIds.length > 0) {
-                await supabase.from('counseling_logs').delete().in('schedule_id', scheduleIds);
-                await supabase.from('daily_notes').delete().in('schedule_id', scheduleIds);
-                await supabase.from('payment_items').delete().in('schedule_id', scheduleIds);
-                await supabase.from('consultations').delete().in('schedule_id', scheduleIds);
-                await supabase.from('schedules').delete().in('id', scheduleIds);
-            }
-
-            await supabase.from('counseling_logs').delete().eq('child_id', childId);
-            await supabase.from('daily_notes').delete().eq('child_id', childId);
-            await supabase.from('consultations').delete().eq('child_id', childId);
-            await supabase.from('child_therapist').delete().eq('child_id', childId);
-            await supabase.from('vouchers').delete().eq('child_id', childId);
-
-            await supabase.from('leads').update({ converted_child_id: null }).eq('converted_child_id', childId);
-
+            // ✨ [Cleanup] 
+            // DB 스키마에 ON DELETE CASCADE가 설정되어 있어, 
+            // children 테이블에서 삭제하면 연결된 모든 데이터(일정, 일지, 결제 등)가 자동 삭제됩니다.
             const { error } = await supabase.from('children').delete().eq('id', childId);
             if (error) throw error;
 
