@@ -79,7 +79,7 @@ CREATE TABLE user_profiles (
 -- 치료사 상세 정보
 CREATE TABLE therapists (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  profile_id UUID UNIQUE REFERENCES user_profiles(id) ON DELETE SET NULL, -- Nullable
+  profile_id UUID UNIQUE REFERENCES user_profiles(id) ON DELETE CASCADE, -- ✨ Updated to CASCADE
   center_id UUID REFERENCES centers(id),
   name VARCHAR(100) NOT NULL,          -- Added
   email VARCHAR(100),                  -- Added
@@ -98,7 +98,7 @@ CREATE TABLE therapists (
 -- 부모/보호자 상세 정보
 CREATE TABLE parents (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  profile_id UUID UNIQUE REFERENCES user_profiles(id) ON DELETE SET NULL, -- Nullable for data-only registration
+  profile_id UUID UNIQUE REFERENCES user_profiles(id) ON DELETE CASCADE, -- ✨ Updated to CASCADE
   center_id UUID REFERENCES centers(id),
   name VARCHAR(100) NOT NULL,          -- Added for direct registration
   phone VARCHAR(20) NOT NULL,          -- Added for direct registration
@@ -131,6 +131,16 @@ CREATE TABLE children (
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ✨ [New Import] Family Relationships (Parent-Child Junction for App Logic)
+CREATE TABLE family_relationships (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  parent_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE, -- Links to Profile (Auth User)
+  child_id UUID REFERENCES children(id) ON DELETE CASCADE,
+  relationship VARCHAR(50) DEFAULT 'parent',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(parent_id, child_id)
 );
 
 -- 초기 상담 신청서 (상담 예약)
@@ -226,7 +236,7 @@ CREATE TABLE leads (
   
   -- 관리자 메모
   admin_notes TEXT,
-  assigned_to UUID REFERENCES profiles(id),
+  assigned_to UUID REFERENCES user_profiles(id),
   
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -262,7 +272,7 @@ CREATE TABLE schedules (
   makeup_for_id UUID REFERENCES schedules(id), -- 보강 대상 일정
   
   notes TEXT,
-  created_by UUID REFERENCES profiles(id),
+  created_by UUID REFERENCES user_profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -403,7 +413,7 @@ CREATE TABLE payments (
   receipt_number VARCHAR(50),          -- 영수증 번호
   notes TEXT,
   
-  created_by UUID REFERENCES profiles(id),
+  created_by UUID REFERENCES user_profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -431,7 +441,7 @@ CREATE TABLE payment_items (
 CREATE TABLE blog_posts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   center_id UUID REFERENCES centers(id),
-  author_id UUID REFERENCES profiles(id),
+  author_id UUID REFERENCES user_profiles(id),
   
   title VARCHAR(200) NOT NULL,
   slug VARCHAR(250) NOT NULL,          -- URL-friendly ID (e.g., my-first-post)
@@ -470,7 +480,7 @@ ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 CREATE TABLE notices (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   center_id UUID REFERENCES centers(id),
-  author_id UUID REFERENCES profiles(id),
+  author_id UUID REFERENCES user_profiles(id),
   
   title VARCHAR(200) NOT NULL,
   content TEXT NOT NULL,
@@ -517,7 +527,7 @@ CREATE TABLE daily_notes (
 -- 시스템 알림
 CREATE TABLE notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
   
   type VARCHAR(50),                    -- schedule, payment, notice, message
   title VARCHAR(200),
@@ -537,7 +547,7 @@ CREATE TABLE notifications (
 -- 활동 로그 (감사 추적)
 CREATE TABLE activity_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES profiles(id),
+  user_id UUID REFERENCES user_profiles(id),
   center_id UUID REFERENCES centers(id),
   
   action VARCHAR(50),                  -- create, update, delete, view
@@ -559,7 +569,7 @@ CREATE TABLE activity_logs (
 
 -- Enable RLS on all tables
 ALTER TABLE centers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE therapists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE children ENABLE ROW LEVEL SECURITY;
@@ -568,13 +578,14 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE family_relationships ENABLE ROW LEVEL SECURITY; -- ✨ Enabled
 
 -- 예시 정책: 같은 센터 사용자만 데이터 접근 가능
-CREATE POLICY "Users can view their center data" ON profiles
+CREATE POLICY "Users can view their center data" ON user_profiles
   FOR SELECT
   USING (
     center_id IN (
-      SELECT center_id FROM profiles WHERE id = auth.uid()
+      SELECT center_id FROM user_profiles WHERE id = auth.uid()
     )
   );
 
@@ -594,8 +605,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 각 테이블에 트리거 적용
-CREATE TRIGGER update_profiles_updated_at
-  BEFORE UPDATE ON profiles
+CREATE TRIGGER update_user_profiles_updated_at
+  BEFORE UPDATE ON user_profiles
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TRIGGER update_children_updated_at
@@ -637,3 +648,123 @@ INSERT INTO centers (name, address, phone, email) VALUES
 ('행복아동발달센터', '서울시 강남구 테헤란로 123', '02-1234-5678', 'happy@center.com');
 
 -- 추가 샘플 데이터는 seed.sql 파일로 분리
+
+-- ============================================
+-- 11. Additional Features (Admin, Assessments, Reviews, Home Care)
+-- ============================================
+
+-- Admin Settings
+CREATE TABLE IF NOT EXISTS admin_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by UUID REFERENCES user_profiles(id)
+);
+ALTER TABLE admin_settings ENABLE ROW LEVEL SECURITY;
+
+-- Seed Admin Data
+INSERT INTO admin_settings (key, value)
+VALUES 
+    ('kakao_url', 'https://pf.kakao.com/_example'),
+    ('main_banner_url', 'https://images.unsplash.com/photo-1566438480900-0609be27a4be?auto=format&fit=crop&q=80&w=2000'),
+    ('notice_text', '센터 소식: 3월 신규 아동 모집 중입니다. (선착순 마감)')
+ON CONFLICT (key) DO NOTHING;
+
+-- Development Assessments
+CREATE TABLE IF NOT EXISTS development_assessments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    child_id UUID NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    therapist_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+    evaluation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    score_communication INTEGER CHECK (score_communication >= 0),
+    score_social INTEGER CHECK (score_social >= 0),
+    score_cognitive INTEGER CHECK (score_cognitive >= 0),
+    score_motor INTEGER CHECK (score_motor >= 0),
+    score_adaptive INTEGER CHECK (score_adaptive >= 0),
+    evaluation_content TEXT,
+    summary TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE development_assessments ENABLE ROW LEVEL SECURITY;
+
+-- Reviews
+CREATE TABLE IF NOT EXISTS reviews (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    center_id UUID NOT NULL REFERENCES centers(id) ON DELETE CASCADE,
+    parent_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    content TEXT NOT NULL,
+    parent_name TEXT,
+    is_visible BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+-- Home Care Tips
+CREATE TABLE IF NOT EXISTS home_care_tips (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    age_group VARCHAR(20) DEFAULT 'all',
+    min_score DECIMAL(3, 1) DEFAULT 0,
+    max_score DECIMAL(3, 1) DEFAULT 5,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE home_care_tips ENABLE ROW LEVEL SECURITY;
+
+-- Seed Home Care Tips
+INSERT INTO home_care_tips (category, title, content, min_score, max_score) VALUES
+('communication', '눈 맞춤 놀이', '아이와 눈높이를 맞추고 "까꿍" 놀이를 하며 눈이 마주칠 때 크게 웃어주세요. 하루 5분씩 반복하면 상호작용 의도가 높아집니다.', 0, 2.5),
+('communication', '단어 확장하기', '아이가 "물"이라고 하면 "차가운 물 줄까?"라고 문장을 확장해서 들려주세요. 아이가 단어를 연결하는 데 도움이 됩니다.', 2.6, 5),
+('social', '감정 읽어주기', '아이가 떼를 쓸 때 "지금 화가 났구나"라고 감정을 읽어주세요. 자신의 감정을 인식하는 것이 사회성의 첫걸음입니다.', 0, 3.0),
+('social', '순서 지키기 놀이', '블록 쌓기를 할 때 "내 차례, 네 차례"를 말하며 턴테이킹(Turn-taking) 연습을 해보세요.', 2.0, 5),
+('cognitive', '숨바꼭질 놀이', '좋아하는 장난감을 수건 아래 숨기고 찾아보게 하세요. 대상 영속성 개념 발달에 좋습니다.', 0, 3.0),
+('cognitive', '색깔 분류하기', '빨간 공은 빨간 바구니에, 파란 공은 파란 바구니에 넣는 분류 놀이를 함께 해보세요.', 3.0, 5),
+('motor', '선 따라 걷기', '바닥에 테이프를 붙이고 그 위를 벗어나지 않고 걷는 연습을 하면 균형 감각이 좋아집니다.', 0, 4.0),
+('motor', '빨래집게 놀이', '소근육 발달을 위해 빨래집게를 옷이나 종이에 꽂는 놀이를 해보세요. 손가락 힘 조절에 탁월합니다.', 0, 5),
+('adaptive', '스스로 숟가락질', '흘리더라도 스스로 숟가락으로 밥을 먹도록 격려해주세요. 성취감이 자조 기술 발달의 원동력입니다.', 0, 3.0),
+('adaptive', '옷 입기 도와주기', '바지 입을 때 발을 넣는 것만 아이가 하게 하고, 점차 아이가 하는 비중을 늘려가세요.', 2.0, 5);
+
+-- Parent Observations
+CREATE TABLE IF NOT EXISTS parent_observations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    parent_id UUID REFERENCES auth.users(id),
+    child_id UUID REFERENCES children(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    observation_date DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE parent_observations ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- 12. Essential Security & Automation
+-- ============================================
+
+-- A. User Profile Creation Policy
+-- Allow new authenticated users to insert their *own* profile.
+CREATE POLICY "Users can create own profile" ON user_profiles
+FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- B. Super Admin Automation
+-- Ensure 'anukbin@gmail.com' is always admin/active.
+CREATE OR REPLACE FUNCTION public.enforce_super_admin()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF LOWER(NEW.email) = 'anukbin@gmail.com' THEN
+        NEW.role := 'admin';
+        NEW.status := 'active';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS enforce_super_admin_trigger ON user_profiles;
+CREATE TRIGGER enforce_super_admin_trigger
+    BEFORE INSERT OR UPDATE ON user_profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION public.enforce_super_admin();
