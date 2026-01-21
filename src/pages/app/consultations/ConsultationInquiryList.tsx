@@ -26,6 +26,7 @@ export default function ConsultationInquiryList() {
     const [inquiries, setInquiries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [memoValues, setMemoValues] = useState({}); // 각 문의별 메모 임시 상태
+    const [viewMode, setViewMode] = useState<'pending' | 'archived'>('pending'); // ✨ Tab State
 
     useEffect(() => { fetchData(); }, []);
 
@@ -71,15 +72,23 @@ export default function ConsultationInquiryList() {
     };
 
     const updateStatus = async (id, nextStatus) => {
-        const { error } = await supabase
-            .from('consultations')
-            .update({ status: nextStatus })
-            .eq('id', id);
+        try {
+            const { error } = await supabase
+                .from('consultations')
+                .update({ status: nextStatus })
+                .eq('id', id);
 
-        if (!error) {
+            if (error) throw error;
+
+            // ✨ UI Update & Feedback
             setInquiries(prev => prev.map(item =>
                 item.id === id ? { ...item, status: nextStatus } : item
             ));
+            alert(`상태가 '${nextStatus === 'pending' ? '대기' : nextStatus === 'completed' ? '완료' : '취소'}'(으)로 변경되었습니다.`);
+
+        } catch (err) {
+            console.error("Status Update Failed:", err);
+            alert("상태 변경에 실패했습니다. 다시 시도해주세요.");
         }
     };
 
@@ -125,74 +134,114 @@ export default function ConsultationInquiryList() {
                 </div>
             </header>
 
+            {/* ✨ Tab Navigation */}
+            <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700 pb-1">
+                <button
+                    onClick={() => setViewMode('pending')}
+                    className={cn(
+                        "pb-4 px-4 text-base font-bold transition-all relative",
+                        viewMode === 'pending'
+                            ? "text-indigo-600 dark:text-indigo-400"
+                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    )}
+                >
+                    상담 대기
+                    {viewMode === 'pending' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-t-full" />}
+                </button>
+                <button
+                    onClick={() => setViewMode('archived')}
+                    className={cn(
+                        "pb-4 px-4 text-base font-bold transition-all relative",
+                        viewMode === 'archived'
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    )}
+                >
+                    상담 보관함 (완료/취소)
+                    {viewMode === 'archived' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-900 dark:bg-white rounded-t-full" />}
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 gap-8">
-                {inquiries.length === 0 ? (
-                    <div className="p-20 text-center bg-white dark:bg-slate-800 rounded-[40px] border-2 border-dashed border-slate-100 dark:border-slate-700 text-slate-300 dark:text-slate-500 font-black">새로운 문의가 없습니다.</div>
-                ) : inquiries.map((inq) => (
-                    <div key={inq.id} className="bg-white dark:bg-slate-800 p-10 rounded-[48px] border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
-                        <div className="flex justify-between items-start mb-6">
-                            <div className="flex items-center gap-3">
-                                {inq.child_id ? (
-                                    <span className="px-4 py-1.5 rounded-2xl text-[10px] font-black bg-emerald-50 text-emerald-600">정회원</span>
-                                ) : (
-                                    <span className="px-4 py-1.5 rounded-2xl text-[10px] font-black bg-amber-50 text-amber-600">신규/비회원</span>
-                                )}
-                                <span className="text-[10px] font-bold text-slate-300">{inq.created_at?.slice(0, 10)} 접수</span>
-                            </div>
-                            <button onClick={() => deleteInquiry(inq.id)} className="p-3 text-slate-200 dark:text-slate-500 hover:text-rose-500 transition-all"><Trash2 className="w-5 h-5" /></button>
-                        </div>
-
-                        <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-8">{inq.child_name} 아동 <span className="text-slate-300 dark:text-slate-500 text-lg">({inq.child_gender})</span></h3>
-
-                        {/* 부모님 작성 내용 */}
-                        <div className="bg-slate-50 dark:bg-slate-700/50 p-8 rounded-[32px] mb-6 border border-slate-100 dark:border-slate-600">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm mb-6 pb-6 border-b border-slate-200/50 dark:border-slate-600">
-                                <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Phone className="w-5 h-5 text-indigo-400" /> {inq.guardian_phone} ({inq.guardian_name})</p>
-                                <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Clock className="w-5 h-5 text-indigo-400" /> {inq.preferred_consult_schedule}</p>
-                            </div>
-                            <div className="space-y-2">
-                                <p className="text-[11px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">부모님 고민사항</p>
-                                <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.primary_concerns}</p>
-                            </div>
-                        </div>
-
-                        {/* [추가] 상담사 메모란 */}
-                        <div className="mb-8 p-8 bg-indigo-50/30 dark:bg-indigo-900/20 rounded-[32px] border border-indigo-100/50 dark:border-indigo-800/50 space-y-4">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                    <StickyNote className="w-4 h-4" />
-                                    <span className="text-xs font-black uppercase">상담사 관리 메모</span>
+                {inquiries
+                    .filter(inq => {
+                        if (viewMode === 'pending') return inq.status === 'pending' || inq.status === 'new' || !inq.status;
+                        return inq.status === 'completed' || inq.status === 'canceled';
+                    })
+                    .length === 0 ? (
+                    <div className="p-20 text-center bg-white dark:bg-slate-800 rounded-[40px] border-2 border-dashed border-slate-100 dark:border-slate-700 text-slate-300 dark:text-slate-500 font-black">
+                        {viewMode === 'pending' ? '대기 중인 문의가 없습니다.' : '보관된 상담 내역이 없습니다.'}
+                    </div>
+                ) : inquiries
+                    .filter(inq => {
+                        if (viewMode === 'pending') return inq.status === 'pending' || inq.status === 'new' || !inq.status;
+                        return inq.status === 'completed' || inq.status === 'canceled';
+                    })
+                    .map((inq) => (
+                        <div key={inq.id} className="bg-white dark:bg-slate-800 p-10 rounded-[48px] border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-3">
+                                    {inq.child_id ? (
+                                        <span className="px-4 py-1.5 rounded-2xl text-[10px] font-black bg-emerald-50 text-emerald-600">정회원</span>
+                                    ) : (
+                                        <span className="px-4 py-1.5 rounded-2xl text-[10px] font-black bg-amber-50 text-amber-600">신규/비회원</span>
+                                    )}
+                                    <span className="text-[10px] font-bold text-slate-300">{inq.created_at?.slice(0, 10)} 접수</span>
                                 </div>
-                                <button
-                                    onClick={() => saveMemo(inq.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-bold hover:bg-indigo-700 transition-all"
-                                >
-                                    <Save className="w-3 h-3" /> 메모 저장
+                                <button onClick={() => deleteInquiry(inq.id)} className="p-3 text-slate-200 dark:text-slate-500 hover:text-rose-500 transition-all"><Trash2 className="w-5 h-5" /></button>
+                            </div>
+
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-8">{inq.child_name} 아동 <span className="text-slate-300 dark:text-slate-500 text-lg">({inq.child_gender})</span></h3>
+
+                            {/* 부모님 작성 내용 */}
+                            <div className="bg-slate-50 dark:bg-slate-700/50 p-8 rounded-[32px] mb-6 border border-slate-100 dark:border-slate-600">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm mb-6 pb-6 border-b border-slate-200/50 dark:border-slate-600">
+                                    <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Phone className="w-5 h-5 text-indigo-400" /> {inq.guardian_phone} ({inq.guardian_name})</p>
+                                    <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Clock className="w-5 h-5 text-indigo-400" /> {inq.preferred_consult_schedule}</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-[11px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">부모님 고민사항</p>
+                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.primary_concerns}</p>
+                                </div>
+                            </div>
+
+                            {/* [추가] 상담사 메모란 */}
+                            <div className="mb-8 p-8 bg-indigo-50/30 dark:bg-indigo-900/20 rounded-[32px] border border-indigo-100/50 dark:border-indigo-800/50 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                        <StickyNote className="w-4 h-4" />
+                                        <span className="text-xs font-black uppercase">상담사 관리 메모</span>
+                                    </div>
+                                    <button
+                                        onClick={() => saveMemo(inq.id)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-bold hover:bg-indigo-700 transition-all"
+                                    >
+                                        <Save className="w-3 h-3" /> 메모 저장
+                                    </button>
+                                </div>
+                                <textarea
+                                    value={memoValues[inq.id] || ''}
+                                    onChange={(e) => setMemoValues({ ...memoValues, [inq.id]: e.target.value })}
+                                    placeholder="상담 진행 내용이나 예약 확정 일자 등을 기록하세요..."
+                                    className="w-full h-24 bg-white dark:bg-slate-700 border border-indigo-100 dark:border-slate-600 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none placeholder:text-slate-300 dark:placeholder:text-slate-500"
+                                />
+                            </div>
+
+                            {/* 상태 변경 버튼 */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <button onClick={() => updateStatus(inq.id, 'pending')} className={cn("py-4 rounded-2xl font-black text-[11px] flex items-center justify-center gap-2", inq.status === 'pending' ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-indigo-900/30" : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-400")}>
+                                    <Hourglass className="w-4 h-4" /> 상담대기
+                                </button>
+                                <button onClick={() => updateStatus(inq.id, 'completed')} className={cn("py-4 rounded-2xl font-black text-[11px] flex items-center justify-center gap-2", inq.status === 'completed' ? "bg-emerald-600 text-white shadow-lg shadow-emerald-100 dark:shadow-emerald-900/30" : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-400")}>
+                                    <CheckCircle2 className="w-4 h-4" /> 상담완료
+                                </button>
+                                <button onClick={() => updateStatus(inq.id, 'canceled')} className={cn("py-4 rounded-2xl font-black text-[11px] flex items-center justify-center gap-2", inq.status === 'canceled' ? "bg-rose-600 text-white shadow-lg shadow-rose-100 dark:shadow-rose-900/30" : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-400")}>
+                                    <XCircle className="w-4 h-4" /> 상담취소
                                 </button>
                             </div>
-                            <textarea
-                                value={memoValues[inq.id] || ''}
-                                onChange={(e) => setMemoValues({ ...memoValues, [inq.id]: e.target.value })}
-                                placeholder="상담 진행 내용이나 예약 확정 일자 등을 기록하세요..."
-                                className="w-full h-24 bg-white dark:bg-slate-700 border border-indigo-100 dark:border-slate-600 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none placeholder:text-slate-300 dark:placeholder:text-slate-500"
-                            />
                         </div>
-
-                        {/* 상태 변경 버튼 */}
-                        <div className="grid grid-cols-3 gap-3">
-                            <button onClick={() => updateStatus(inq.id, 'pending')} className={cn("py-4 rounded-2xl font-black text-[11px] flex items-center justify-center gap-2", inq.status === 'pending' ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-indigo-900/30" : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-400")}>
-                                <Hourglass className="w-4 h-4" /> 상담대기
-                            </button>
-                            <button onClick={() => updateStatus(inq.id, 'completed')} className={cn("py-4 rounded-2xl font-black text-[11px] flex items-center justify-center gap-2", inq.status === 'completed' ? "bg-emerald-600 text-white shadow-lg shadow-emerald-100 dark:shadow-emerald-900/30" : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-400")}>
-                                <CheckCircle2 className="w-4 h-4" /> 상담완료
-                            </button>
-                            <button onClick={() => updateStatus(inq.id, 'canceled')} className={cn("py-4 rounded-2xl font-black text-[11px] flex items-center justify-center gap-2", inq.status === 'canceled' ? "bg-rose-600 text-white shadow-lg shadow-rose-100 dark:shadow-rose-900/30" : "bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 text-slate-400")}>
-                                <XCircle className="w-4 h-4" /> 상담취소
-                            </button>
-                        </div>
-                    </div>
-                ))}
+                    ))}
             </div>
-        </div>
+        </div >
     );
 }

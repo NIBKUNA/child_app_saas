@@ -847,9 +847,10 @@ export function Dashboard() {
 
                         {channelConversionData.length > 0 ? (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Chart */}
-                                <div className="h-[350px]">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                {/* Chart 1: Conversion Rate (Main) */}
+                                <div className="h-[400px]">
+                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 전환 성과</h4>
+                                    <ResponsiveContainer width="100%" height="90%">
                                         <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                                             <CartesianGrid stroke="#f1f5f9" vertical={false} />
                                             <XAxis
@@ -865,43 +866,61 @@ export function Dashboard() {
                                             <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
                                             <RechartsTooltip {...tooltipProps} />
                                             <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                            <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#e2e8f0" barSize={35} radius={[6, 6, 0, 0]} />
+                                            <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={35} radius={[6, 6, 0, 0]} />
                                             <Bar yAxisId="left" dataKey="converted" name="등록 완료" fill="#10b981" barSize={35} radius={[6, 6, 0, 0]} />
                                             <Line yAxisId="right" type="monotone" dataKey="rate" name="전환율(%)" stroke="#f59e0b" strokeWidth={4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 6 }} />
                                         </ComposedChart>
                                     </ResponsiveContainer>
                                 </div>
 
-                                {/* Stats Cards */}
-                                <div className="space-y-3">
-                                    {channelConversionData.slice(0, 6).map((channel, idx) => (
-                                        <div key={channel.name} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                            <div
-                                                className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-black shadow-md"
-                                                style={{ backgroundColor: channel.color }}
-                                            >
-                                                {idx + 1}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-slate-900 dark:text-white text-sm">{channel.name}</h4>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                        문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}</span>건
-                                                    </span>
-                                                    <span className="text-xs text-slate-400">→</span>
-                                                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                                                        등록 {channel.converted}건
-                                                    </span>
+                                {/* Right Column: Volume Chart + Stats */}
+                                <div className="space-y-8">
+                                    {/* Chart 2: Inquiry Volume (New) */}
+                                    <div className="h-[200px]">
+                                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 규모 (상담 문의)</h4>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={channelConversionData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                                <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                                <Bar dataKey="total" name="문의 건수" fill="#818cf8" barSize={20} radius={[0, 4, 4, 0]}>
+                                                    <LabelList dataKey="total" position="right" style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    {/* Stats Cards (Scrollable if too many) */}
+                                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {channelConversionData.map((channel, idx) => (
+                                            <div key={channel.name} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                                <div
+                                                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md shrink-0"
+                                                    style={{ backgroundColor: channel.color }}
+                                                >
+                                                    {idx + 1}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{channel.name}</h4>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                            문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}</span>
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-300">|</span>
+                                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                                                            등록 {channel.converted}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className={`px-3 py-1.5 rounded-lg font-black text-sm shrink-0 ${channel.rate >= 50 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' :
+                                                    channel.rate >= 25 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400' :
+                                                        'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                                    }`}>
+                                                    {channel.rate}%
                                                 </div>
                                             </div>
-                                            <div className={`px-4 py-2 rounded-xl font-black text-lg ${channel.rate >= 50 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' :
-                                                channel.rate >= 25 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400' :
-                                                    'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                                                }`}>
-                                                {channel.rate}%
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         ) : (
