@@ -12,5 +12,5 @@ export const seoConfig = {
         lat: import.meta.env.VITE_CENTER_LAT || '37.5113',
         lng: import.meta.env.VITE_CENTER_LNG || '127.0982'
     },
-    businessName: import.meta.env.VITE_BUSINESS_NAME || '자라다 아동심리발달센터 잠실점'
+    businessName: import.meta.env.VITE_BUSINESS_NAME || '아동발달센터'
 };

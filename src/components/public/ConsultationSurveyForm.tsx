@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTrafficSource } from '@/hooks/useTrafficSource';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 import { cn } from '@/lib/utils';
 
 // Custom SVG Icons (no Lucide)
@@ -138,7 +138,7 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
 
             // ✨ [FIX] Submit to 'consultations' table
             const { error } = await supabase.from('consultations').insert([{
-                center_id: centerId || JAMSIL_CENTER_ID, // ✨ Fallback to Default
+                center_id: centerId || CURRENT_CENTER_ID, // ✨ Fallback to Default
                 child_id: initialData?.childId, // ✨ Link to Child ID if available
                 guardian_name: formData.parent_name, // Mapped
                 guardian_phone: formData.phone, // Mapped

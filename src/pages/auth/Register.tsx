@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { TermsModal } from '@/components/public/TermsModal';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 // Custom SVG Icons
 const Icons = {
@@ -40,7 +41,7 @@ export function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [centerId, setCenterId] = useState(import.meta.env.VITE_CENTER_ID || ''); // ✨ Auto Assign
+    const [centerId, setCenterId] = useState(CURRENT_CENTER_ID); // ✨ Auto Assign
 
     const [centers, setCenters] = useState([]);
     const [loading, setLoading] = useState(false);

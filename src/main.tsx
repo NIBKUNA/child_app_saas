@@ -18,10 +18,10 @@ import { ThemeProvider } from '@/contexts/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
 
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 // ✨ [Logo Preload] 센터별 로고 구분 (Flicker 방지)
-const LOGO_CACHE_KEY = `cached_center_logo_${JAMSIL_CENTER_ID}`;
+const LOGO_CACHE_KEY = `cached_center_logo_${CURRENT_CENTER_ID}`;
 const cachedLogoUrl = localStorage.getItem(LOGO_CACHE_KEY);
 if (cachedLogoUrl) {
   const preloadImg = new Image();
@@ -29,7 +29,7 @@ if (cachedLogoUrl) {
 }
 
 // ✨ [Instant Title] 센터 이름을 즉시 적용 (Flash 방지)
-const TITLE_CACHE_KEY = `cached_center_name_${JAMSIL_CENTER_ID}`;
+const TITLE_CACHE_KEY = `cached_center_name_${CURRENT_CENTER_ID}`;
 const cachedName = localStorage.getItem(TITLE_CACHE_KEY);
 const envName = import.meta.env.VITE_SITE_TITLE; // VITE_CENTER_NAME -> VITE_SITE_TITLE 로 통일
 const defaultName = '아동발달센터';

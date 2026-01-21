@@ -9,7 +9,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 // ✨ UserRole 타입 유지 (retired 포함)
 export type UserRole = 'super_admin' | 'admin' | 'staff' | 'therapist' | 'parent' | 'retired' | null;
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [role, setRole] = useState<UserRole>(null);
     const [profile, setProfile] = useState<any>(null);
     const [therapistId, setTherapistId] = useState<string | null>(null);
-    const [centerId, setCenterId] = useState<string | null>(JAMSIL_CENTER_ID);
+    const [centerId, setCenterId] = useState<string | null>(CURRENT_CENTER_ID);
     const [loading, setLoading] = useState(true);
 
     const initialLoadComplete = useRef(false);
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (session?.user?.email?.toLowerCase() === 'anukbin@gmail.com') {
                     console.log('👑 Sovereign Alert: Immediate Super Admin Recognition in Auth Change');
                     setRole('super_admin');
-                    setCenterId(JAMSIL_CENTER_ID);
+                    setCenterId(CURRENT_CENTER_ID);
                     setLoading(false);
                     initialLoadComplete.current = true;
                     return; // DB check skipped for speed and stability
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (user.email?.toLowerCase() === 'anukbin@gmail.com') {
             console.log('👑 Sovereign Alert: GOD MODE ACTIVATED (anukbin@gmail.com)');
             setRole('super_admin');
-            setCenterId(JAMSIL_CENTER_ID); // 환경변수에서 로드된 센터 ID
+            setCenterId(CURRENT_CENTER_ID); // 환경변수에서 로드된 센터 ID
 
             // 프로필 데이터가 없어도 무방하나, 있으면 로드. (비동기 병렬 처리로 UI 블로킹 방지)
             supabase.from('user_profiles').select('*').eq('id', user.id).maybeSingle()
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Sovereign Template: 앱은 오직 하나의 센터(환경변수)만 바라본다.
                 // 유저가 다른 center_id를 가지고 있어도, 이 앱의 주인은 VITE_CENTER_ID이다.
                 // 만약 멀티센터 유저라면? 그래도 현재 앱의 Context는 VITE_CENTER_ID여야 한다.
-                setCenterId(JAMSIL_CENTER_ID);
+                setCenterId(CURRENT_CENTER_ID);
 
                 // 치료사 전용 ID 세팅
                 if (dbRole === 'therapist') {

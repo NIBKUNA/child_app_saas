@@ -36,8 +36,8 @@ export function useCenterSEO() {
                 if (!profile?.center_id) {
                     console.log('No center assigned for this user, using default SEO.');
                     setSeoData({
-                        name: '자라다 아동심리발달센터 잠실점',
-                        seo_description: '잠실 아동발달센터 - 언어치료, 감각통합, 미술치료, 놀이치료, 인지치료 전문'
+                        name: '발달센터',
+                        seo_description: '아동발달전문센터 - 언어치료, 감각통합, 미술치료, 놀이치료, 인지치료 전문'
                     });
                     return;
                 }
@@ -61,8 +61,8 @@ export function useCenterSEO() {
                 console.warn('SEO Info Fetch Error:', error);
                 // Fallback
                 setSeoData({
-                    name: '자라다 아동심리발달센터 잠실점',
-                    seo_description: '잠실 아동발달센터 - 언어치료, 감각통합, 미술치료, 놀이치료, 인지치료 전문'
+                    name: '발달센터',
+                    seo_description: '아동발달전문센터 - 언어치료, 감각통합, 미술치료, 놀이치료, 인지치료 전문'
                 });
             } finally {
                 setLoading(false);

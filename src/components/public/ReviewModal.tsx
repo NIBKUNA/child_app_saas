@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Star, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 interface ReviewModalProps {
     isOpen: boolean;
@@ -24,7 +24,7 @@ export function ReviewModal({ isOpen, onClose, onSuccess, userId }: ReviewModalP
         setSubmitting(true);
         try {
             const { error } = await (supabase.from('reviews') as any).insert({
-                center_id: JAMSIL_CENTER_ID,
+                center_id: CURRENT_CENTER_ID,
                 parent_id: userId,
                 rating,
                 content: content.trim(),

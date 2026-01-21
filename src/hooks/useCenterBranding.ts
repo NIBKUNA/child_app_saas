@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { JAMSIL_CENTER_ID, CENTER_DEFAULTS } from '@/config/center';
+import { CURRENT_CENTER_ID, CENTER_DEFAULTS } from '@/config/center';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 
 export interface CenterBranding {
@@ -17,7 +17,7 @@ export interface CenterBranding {
 }
 
 const DEFAULT_BRANDING: CenterBranding = {
-    id: JAMSIL_CENTER_ID,
+    id: CURRENT_CENTER_ID,
     name: CENTER_DEFAULTS.name || '자라다 아동발달센터',
     logo_url: null,
     phone: '',
@@ -39,11 +39,11 @@ export function useCenterBranding() {
     // ✨ [Instant Render] Try LocalStorage First -> Then Default -> Then Async Update
     const [branding, setBranding] = useState<CenterBranding>(() => {
         try {
-            const cacheKey = `cached_branding_v3_${JAMSIL_CENTER_ID}`;
+            const cacheKey = `cached_branding_v3_${CURRENT_CENTER_ID}`;
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 const parsed = JSON.parse(cached);
-                if (parsed.id === JAMSIL_CENTER_ID) return parsed;
+                if (parsed.id === CURRENT_CENTER_ID) return parsed;
             }
         } catch (e) { }
         return DEFAULT_BRANDING;
@@ -58,7 +58,7 @@ export function useCenterBranding() {
                 const { data: centerData } = await supabase
                     .from('centers')
                     .select('*')
-                    .eq('id', JAMSIL_CENTER_ID)
+                    .eq('id', CURRENT_CENTER_ID)
                     .maybeSingle();
 
                 if (centerData) {
@@ -78,7 +78,7 @@ export function useCenterBranding() {
 
                     setBranding(newBranding);
                     // ✨ Cache Immediately with specific key
-                    localStorage.setItem(`cached_branding_v3_${JAMSIL_CENTER_ID}`, JSON.stringify(newBranding));
+                    localStorage.setItem(`cached_branding_v3_${CURRENT_CENTER_ID}`, JSON.stringify(newBranding));
                 }
             } catch (err) {
                 console.error("Failed to fetch center info:", err);

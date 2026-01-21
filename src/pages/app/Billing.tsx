@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     ChevronLeft, ChevronRight, Search, CreditCard, Banknote, Receipt,
@@ -40,7 +40,7 @@ export function Billing() {
             const { data: sData } = await supabase
                 .from('schedules')
                 .select(`*, children!inner (*), programs (*)`)
-                .eq('children.center_id', JAMSIL_CENTER_ID)
+                .eq('children.center_id', CURRENT_CENTER_ID)
                 .order('start_time', { ascending: false });
 
             // ✨ [SECURITY] Enforce Center ID Filter via Inner Join on Payments
@@ -48,7 +48,7 @@ export function Billing() {
                 .from('payments')
                 .select(`*, payment_items(*), children!inner(center_id)`)
                 .eq('payment_month', selectedMonth)
-                .eq('children.center_id', JAMSIL_CENTER_ID);
+                .eq('children.center_id', CURRENT_CENTER_ID);
 
             setSchedules(sData || []);
             setPayments(pData || []);

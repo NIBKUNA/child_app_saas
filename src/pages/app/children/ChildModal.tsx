@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Loader2, Save, Trash2, UserCheck, AlertCircle, Mail } from 'lucide-react';
 import { InvitationCodeAlert } from '@/components/InvitationCodeAlert';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     const [loading, setLoading] = useState(false);
@@ -30,8 +30,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
         diagnosis: '',
         guardian_name: '',
         contact: '',
-        parent_id: '',
-        center_id: JAMSIL_CENTER_ID
+        center_id: CURRENT_CENTER_ID
     });
 
     useEffect(() => {
@@ -41,8 +40,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
             } else {
                 setFormData({
                     name: '', registration_number: '', birth_date: '', gender: '남',
-                    diagnosis: '', guardian_name: '', contact: '',
-                    center_id: JAMSIL_CENTER_ID
+                    center_id: CURRENT_CENTER_ID
                 });
             }
         }
@@ -78,9 +76,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                 gender: formData.gender,
                 diagnosis: formData.diagnosis || null,
                 guardian_name: formData.guardian_name || null,
-                contact: formData.contact || null,
-                // ✨ [Removed] parent_id (Managed via Invitation Code only)
-                center_id: JAMSIL_CENTER_ID
+                center_id: CURRENT_CENTER_ID
             };
 
             let result;

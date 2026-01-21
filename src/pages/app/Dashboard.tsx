@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import * as XLSX from 'xlsx';
 import { generateIntegratedReport } from '@/utils/reportGenerator';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 import {
     Users, Calendar, TrendingUp, DollarSign,
     ArrowUpRight, ArrowDownRight, Activity, PieChart as PieIcon,
@@ -276,14 +276,14 @@ export function Dashboard() {
             const { data: allSchedules } = await supabase
                 .from('schedules')
                 .select(`id, date, status, child_id, children!inner(id, name, gender, birth_date, center_id), therapists (name), programs (name, category, price)`)
-                .eq('children.center_id', JAMSIL_CENTER_ID) // 🔒 Security Filter
+                .eq('children.center_id', CURRENT_CENTER_ID) // 🔒 Security Filter
                 .order('date', { ascending: true });
 
             // ✨ [SECURITY] Fetch Children only for this center
             const { data: existingChildren } = await supabase
                 .from('children')
                 .select('id, name, gender, birth_date, created_at')
-                .eq('center_id', JAMSIL_CENTER_ID); // 🔒 Security Filter
+                .eq('center_id', CURRENT_CENTER_ID); // 🔒 Security Filter
 
             const validChildIds = new Set(existingChildren?.map(c => c.id) || []);
 
@@ -517,7 +517,7 @@ export function Dashboard() {
             const { data: allLeads } = await (supabase as any)
                 .from('consultations')
                 .select('id, inflow_source, status, created_at, child_id')
-                .eq('center_id', JAMSIL_CENTER_ID)
+                .eq('center_id', CURRENT_CENTER_ID)
                 .gte('created_at', monthsToShow[0] + '-01')
                 .lte('created_at', selectedMonth + '-31');
 

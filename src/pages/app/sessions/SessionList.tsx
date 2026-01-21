@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
 import { FileText, CheckCircle, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 import { Skeleton } from '@/components/common/Skeleton';
 
 type Schedule = Database['public']['Tables']['schedules']['Row'] & {
@@ -61,7 +61,7 @@ export default function SessionList() {
                 therapists ( name ),
                 counseling_logs ( created_at, session_date )
             `)
-            .eq('center_id', JAMSIL_CENTER_ID) // ✨ Data Isolation: Strict Filter
+            .eq('center_id', CURRENT_CENTER_ID) // ✨ Data Isolation: Strict Filter
             .order('start_time', { ascending: false });
 
         if (error) {

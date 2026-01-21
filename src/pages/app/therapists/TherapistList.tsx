@@ -16,7 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { Helmet } from 'react-helmet-async';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 const COLORS = [
     '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
@@ -103,7 +103,7 @@ export function TherapistList() {
                         account_number: formData.account_number,
                         account_holder: formData.account_holder,
                         // account_holder: formData.account_holder, // Duplicate removed
-                        center_id: import.meta.env.VITE_CENTER_ID || JAMSIL_CENTER_ID,
+                        center_id: import.meta.env.VITE_CENTER_ID || CURRENT_CENTER_ID,
                     }
                 });
 

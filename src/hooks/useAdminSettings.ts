@@ -10,10 +10,10 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 // ✨ [Logo Cache] localStorage 키 - 센터 아이디별로 구분하여 Flicker 방지
-const BRAND_CACHE_KEY = `brand_cache_${JAMSIL_CENTER_ID}`;
+const BRAND_CACHE_KEY = `brand_cache_${CURRENT_CENTER_ID}`;
 
 // Define the keys we expect to use
 export type AdminSettingKey =
@@ -60,7 +60,7 @@ function getCachedBrand(): Record<string, string | null> {
         if (cached) {
             const parsed = JSON.parse(cached);
             // 해당 캐시가 현재 센터의 것인지 확인 (추가 검증 단계)
-            if (parsed.cid === JAMSIL_CENTER_ID) return parsed.data || {};
+            if (parsed.cid === CURRENT_CENTER_ID) return parsed.data || {};
         }
     } catch (e) { }
     return {};
@@ -70,7 +70,7 @@ function getCachedBrand(): Record<string, string | null> {
 function setCachedBrand(settings: Record<string, string | null>) {
     try {
         const brandData = {
-            cid: JAMSIL_CENTER_ID, // 센터 아이디 저장
+            cid: CURRENT_CENTER_ID, // 센터 아이디 저장
             data: {
                 center_logo: settings['center_logo'] || null,
                 center_name: settings['center_name'] || null,

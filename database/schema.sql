@@ -62,7 +62,7 @@ CREATE TABLE centers (
 );
 
 -- 사용자 프로필 (Supabase Auth 확장)
-CREATE TABLE profiles (
+CREATE TABLE user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   center_id UUID REFERENCES centers(id),
   email VARCHAR(255) NOT NULL,
@@ -71,6 +71,7 @@ CREATE TABLE profiles (
   role user_role NOT NULL DEFAULT 'parent',
   avatar_url TEXT,
   is_active BOOLEAN DEFAULT TRUE,
+  status VARCHAR(20) DEFAULT 'active', -- Added for approval system compatibility
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -78,7 +79,7 @@ CREATE TABLE profiles (
 -- 치료사 상세 정보
 CREATE TABLE therapists (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  profile_id UUID UNIQUE REFERENCES profiles(id) ON DELETE SET NULL, -- Nullable
+  profile_id UUID UNIQUE REFERENCES user_profiles(id) ON DELETE SET NULL, -- Nullable
   center_id UUID REFERENCES centers(id),
   name VARCHAR(100) NOT NULL,          -- Added
   email VARCHAR(100),                  -- Added
@@ -97,7 +98,7 @@ CREATE TABLE therapists (
 -- 부모/보호자 상세 정보
 CREATE TABLE parents (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  profile_id UUID UNIQUE REFERENCES profiles(id) ON DELETE SET NULL, -- Nullable for data-only registration
+  profile_id UUID UNIQUE REFERENCES user_profiles(id) ON DELETE SET NULL, -- Nullable for data-only registration
   center_id UUID REFERENCES centers(id),
   name VARCHAR(100) NOT NULL,          -- Added for direct registration
   phone VARCHAR(20) NOT NULL,          -- Added for direct registration

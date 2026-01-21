@@ -12,7 +12,7 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     MessageCircle, Phone, Clock, FileText, UserPlus,
@@ -37,7 +37,7 @@ export default function ConsultationInquiryList() {
                 .from('consultations')
                 .select('*')
                 .is('schedule_id', null)
-                .eq('center_id', JAMSIL_CENTER_ID) // ✨ [SECURITY] Enforce Center ID Filter
+                .eq('center_id', CURRENT_CENTER_ID) // ✨ [SECURITY] Enforce Center ID Filter
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

@@ -17,7 +17,7 @@ import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check, Eye } fr
 import { ChildModal } from './ChildModal';
 import { ChildDetailModal } from '@/components/app/children/ChildDetailModal';
 import { cn } from '@/lib/utils';
-import { JAMSIL_CENTER_ID } from '@/config/center';
+import { CURRENT_CENTER_ID } from '@/config/center';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 
 export function ChildList() {
@@ -60,7 +60,7 @@ export function ChildList() {
                     *,
                     parent:user_profiles!children_parent_id_fkey(*)
                 `)
-                .eq('center_id', JAMSIL_CENTER_ID) // ✨ [SECURITY] Enforce Center ID Filter
+                .eq('center_id', CURRENT_CENTER_ID) // ✨ [SECURITY] Enforce Center ID Filter
                 .order('name');
 
             if (error) throw error;
