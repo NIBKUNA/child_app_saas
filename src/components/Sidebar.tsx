@@ -264,14 +264,21 @@ export function Sidebar() {
     const handleMenuClick = async (itemName: string) => {
         setIsOpen(false);
         try {
-            if (itemName === '치료 일정' && user) {
-                // 치료 일정 알림은 DB에서 읽음 처리 (개인화)
-                await supabase
-                    .from('admin_notifications')
-                    .update({ is_read: true })
-                    .eq('user_id', user.id)
-                    .eq('type', 'schedule');
+            if (itemName === '치료 일정') {
+                // 1. 로컬 상태 즉시 해제 및 마지막 확인 시간 저장
+                const now = new Date().toISOString();
+                localStorage.setItem(`last_schedule_check_${CURRENT_CENTER_ID}`, now);
                 setHasUnreadSchedule(false);
+
+                // 2. DB 읽음 처리 (백그라운드)
+                if (user) {
+                    supabase
+                        .from('admin_notifications')
+                        .update({ is_read: true })
+                        .eq('user_id', user.id)
+                        .eq('type', 'schedule')
+                        .then(() => { });
+                }
             }
 
             if (itemName === '상담문의') {
@@ -309,12 +316,20 @@ export function Sidebar() {
 
                 // 2. 치료 일정 (치료사 개인에게 등록된 알림 중 'schedule' 타입만)
                 if (user) {
-                    const { count: notificationCount } = await supabase
+                    const lastScheduleCheck = localStorage.getItem(`last_schedule_check_${CURRENT_CENTER_ID}`);
+
+                    let q = supabase
                         .from('admin_notifications')
                         .select('id', { count: 'exact', head: true })
                         .eq('user_id', user.id)
                         .eq('type', 'schedule')
                         .eq('is_read', false);
+
+                    if (lastScheduleCheck) {
+                        q = q.gt('created_at', lastScheduleCheck);
+                    }
+
+                    const { count: notificationCount } = await q;
                     setHasUnreadSchedule((notificationCount || 0) > 0);
                 }
             } catch (err) {
