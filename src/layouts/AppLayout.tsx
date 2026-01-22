@@ -20,7 +20,7 @@ import { Lock, LogOut, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export function AppLayout() {
-    const { profile, loading } = useAuth();
+    const { profile, loading, role } = useAuth();
     const { theme } = useTheme();
 
     // 로딩 중일 때는 아무것도 보여주지 않거나 로딩 스피너를 보여줍니다.
@@ -104,6 +104,10 @@ export function AppLayout() {
                     }
 
                     if (!title) return;
+
+                    // ✨ [Correction] Only show for Admin/SuperAdmin
+                    const isAdmin = role === 'admin' || profile?.role === 'super_admin' || profile?.email === 'anukbin@gmail.com';
+                    if (!isAdmin) return;
 
                     // 1. In-App Toast
                     setNotif({

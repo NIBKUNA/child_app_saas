@@ -343,9 +343,15 @@ export function Schedule() {
                                 selectMirror={window.innerWidth >= 768}
                                 select={(info) => { handleDateClick({ date: info.start }); info.view.calendar.unselect(); }}
                                 eventContent={(arg) => (
-                                    <div className="flex items-center gap-1 overflow-hidden w-full">
-                                        <div className="truncate w-full text-xs font-bold leading-tight">
-                                            {arg.event.title}
+                                    <div className="flex items-center gap-1.5 overflow-hidden w-full px-1 py-0.5">
+                                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: arg.event.extendedProps.color }} />
+                                        <div className="flex items-center gap-1 truncate min-w-0">
+                                            <span className={cn("text-[11px] font-black truncate", (arg.event.extendedProps.status === 'canceled' || arg.event.extendedProps.status === 'cancelled') && "line-through opacity-70")}>
+                                                {arg.event.extendedProps.childName}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-500 truncate hidden sm:inline">
+                                                ({arg.event.extendedProps.programName})
+                                            </span>
                                         </div>
                                     </div>
                                 )}

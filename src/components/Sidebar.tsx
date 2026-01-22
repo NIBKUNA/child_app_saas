@@ -23,6 +23,8 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useState, useEffect, useCallback } from 'react';
 import { cn } from "@/lib/utils";
+import { supabase } from '@/lib/supabase';
+import { CURRENT_CENTER_ID } from '@/config/center';
 
 // ============================================
 // 🔐 SIDEBAR STATE PERSISTENCE KEY
@@ -249,10 +251,81 @@ function ThemeToggle() {
 
 export function Sidebar() {
     const location = useLocation();
-    const { role, signOut } = useAuth();
+    const { role, user, signOut } = useAuth();
     const { theme, isSuperAdmin } = useTheme();
     const { branding } = useCenterBranding();
     const [isOpen, setIsOpen] = useState(false);
+
+    // ✨ [Notification] 알림 표시 상태
+    const [hasUnreadInquiry, setHasUnreadInquiry] = useState(false);
+    const [hasUnreadSchedule, setHasUnreadSchedule] = useState(false);
+
+    // ✨ [Dismiss Logic] 메뉴 클릭 시 알림 숨기기 처리
+    const handleMenuClick = async (itemName: string) => {
+        setIsOpen(false);
+        try {
+            if (itemName === '치료 일정' && user) {
+                // 치료 일정 알림은 DB에서 읽음 처리 (개인화)
+                await supabase
+                    .from('admin_notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', user.id)
+                    .eq('type', 'schedule');
+                setHasUnreadSchedule(false);
+            }
+
+            if (itemName === '상담문의') {
+                // 상담문의는 로컬 스토리지에 마지막 확인 일시 저장
+                localStorage.setItem(`last_inquiry_check_${CURRENT_CENTER_ID}`, new Date().toISOString());
+                setHasUnreadInquiry(false);
+            }
+        } catch (err) {
+            console.error("Dismiss Notification Error:", err);
+        }
+    };
+
+    useEffect(() => {
+        const checkNotifications = async () => {
+            try {
+                // 1. 상담문의 (어드민/슈퍼어드민만 표시)
+                if (isSuperAdmin || role === 'admin') {
+                    const lastCheck = localStorage.getItem(`last_inquiry_check_${CURRENT_CENTER_ID}`);
+
+                    let query = supabase
+                        .from('consultations')
+                        .select('created_at', { count: 'exact', head: true })
+                        .is('schedule_id', null)
+                        .in('status', ['pending', 'new', '']);
+
+                    if (lastCheck) {
+                        query = query.gt('created_at', lastCheck);
+                    }
+
+                    const { count: inquiryCount } = await query;
+                    setHasUnreadInquiry((inquiryCount || 0) > 0);
+                } else {
+                    setHasUnreadInquiry(false);
+                }
+
+                // 2. 치료 일정 (치료사 개인에게 등록된 알림)
+                if (user) {
+                    const { count: notificationCount } = await supabase
+                        .from('admin_notifications')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', user.id)
+                        .eq('is_read', false);
+                    setHasUnreadSchedule((notificationCount || 0) > 0);
+                }
+            } catch (err) {
+                console.error("Sidebar Notification Check Error:", err);
+            }
+        };
+
+        checkNotifications();
+        // 1분마다 주기적 체크 (데스크톱 최적화)
+        const timer = setInterval(checkNotifications, 60000);
+        return () => clearInterval(timer);
+    }, [user, role, isSuperAdmin]);
 
     // 🔐 Initialize openGroups from localStorage or default to empty (all closed)
     const [openGroups, setOpenGroups] = useState<string[]>(() => {
@@ -415,10 +488,15 @@ export function Sidebar() {
                                                                 ? "bg-indigo-600 dark:bg-yellow-400 text-white dark:text-slate-900 shadow-lg"
                                                                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white"
                                                         )}
-                                                        onClick={() => setIsOpen(false)}
+                                                        onClick={() => handleMenuClick(item.name)}
                                                     >
                                                         {item.icon(cn("w-4 h-4", isActive ? "text-white dark:text-slate-900" : "text-slate-400 dark:text-slate-500"))}
                                                         {item.name}
+
+                                                        {/* ✨ [Notification Dot] 노란색 알림 표시 */}
+                                                        {((item.name === '상담문의' && hasUnreadInquiry) || (item.name === '치료 일정' && hasUnreadSchedule)) && (
+                                                            <span className="absolute right-3 w-2 h-2 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.6)] animate-pulse" />
+                                                        )}
                                                     </Link>
                                                 );
                                             })}

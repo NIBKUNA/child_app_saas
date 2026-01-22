@@ -14,8 +14,88 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
     X, Loader2, Save, Trash2, Calendar, Clock, User,
-    CheckCircle2, XCircle, ArrowRightCircle, CalendarClock, Repeat
+    CheckCircle2, XCircle, ArrowRightCircle, CalendarClock, Repeat, Search, ChevronDown
 } from 'lucide-react';
+import { cn } from "@/lib/utils";
+
+// ✨ [Searchable Select Component]
+function SearchableSelect({ label, placeholder, options, value, onChange, required }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const selectedOption = options.find(opt => opt.id === value);
+
+    const filteredOptions = options.filter(opt =>
+        opt.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div className="relative">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">{label}</label>
+            <div
+                className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-blue-500/20"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center gap-2 truncate">
+                    {selectedOption ? (
+                        <>
+                            {selectedOption.color && (
+                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: selectedOption.color }} />
+                            )}
+                            <span>{selectedOption.name}</span>
+                        </>
+                    ) : (
+                        <span className="text-slate-400 font-medium">{placeholder}</span>
+                    )}
+                </div>
+                <ChevronDown className={cn("w-4 h-4 transition-transform", isOpen && "rotate-180")} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-[60] mt-1 w-full bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1">
+                    <div className="p-2 border-b dark:border-slate-700">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            <input
+                                autoFocus
+                                className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border-none rounded-lg focus:ring-0 font-bold"
+                                placeholder="검색..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                        {filteredOptions.length > 0 ? (
+                            filteredOptions.map(opt => (
+                                <div
+                                    key={opt.id}
+                                    className={cn(
+                                        "px-4 py-2.5 text-sm font-bold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2",
+                                        value === opt.id && "bg-blue-50 dark:bg-blue-900/20 text-blue-600"
+                                    )}
+                                    onClick={() => {
+                                        onChange(opt.id);
+                                        setIsOpen(false);
+                                        setSearchTerm('');
+                                    }}
+                                >
+                                    {opt.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: opt.color }} />}
+                                    {opt.name}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="px-4 py-3 text-xs text-slate-400 text-center font-bold">검색 결과가 없습니다.</div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Click outside to close */}
+            {isOpen && <div className="fixed inset-0 z-[55] cursor-default" onClick={() => setIsOpen(false)} />}
+        </div>
+    );
+}
 
 export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }) {
     const [loading, setLoading] = useState(false);
@@ -53,7 +133,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             const [childRes, progRes, therRes, profileRes] = await Promise.all([
                 supabase.from('children').select('id, name, credit, guardian_name, contact').order('name'),
                 supabase.from('programs').select('id, name, duration, price').order('name'),
-                supabase.from('therapists').select('id, name, email, profile_id').order('name'),
+                supabase.from('therapists').select('id, name, email, profile_id, color').order('name'),
                 supabase.from('user_profiles').select('id, email, role')
             ]);
 
@@ -196,7 +276,23 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         end_time: makeIsoString(nextDateStr, formData.end_time)
                     });
                 }
-                await supabase.from('schedules').insert(schedulesToInsert);
+                const { data: insertedData, error } = await supabase.from('schedules').insert(schedulesToInsert).select();
+                if (error) throw error;
+
+                // ✨ [Notification] 치료사에게 알림 생성
+                const targetTherapist = therapistsList.find(t => t.id === formData.therapist_id);
+                const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+                if (targetTherapist?.profile_id && targetTherapist.profile_id !== currentUser?.id) {
+                    await supabase.from('admin_notifications').insert([{
+                        user_id: targetTherapist.profile_id,
+                        type: 'schedule',
+                        title: '🚀 새로운 일정 등록',
+                        message: `${formData.date}부터 시작되는 ${repeatWeeks}주 반복 일정이 등록되었습니다.`,
+                        is_read: false
+                    }]);
+                }
+
                 alert(`${repeatWeeks}주 반복 일정이 등록되었습니다.`);
             } else {
                 const payload = {
@@ -206,62 +302,97 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     end_time: makeIsoString(formData.date, formData.end_time)
                 };
 
-                if (scheduleId) await supabase.from('schedules').update(payload).eq('id', scheduleId);
-                else await supabase.from('schedules').insert([payload]);
+                if (scheduleId) {
+                    await supabase.from('schedules').update(payload).eq('id', scheduleId);
+                } else {
+                    const { data: inserted, error } = await supabase.from('schedules').insert([payload]).select().single();
+                    if (error) throw error;
+
+                    // ✨ [Notification] 치료사에게 알림 생성
+                    const targetTherapist = therapistsList.find(t => t.id === formData.therapist_id);
+                    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+                    if (targetTherapist?.profile_id && targetTherapist.profile_id !== currentUser?.id) {
+                        await supabase.from('admin_notifications').insert([{
+                            user_id: targetTherapist.profile_id,
+                            type: 'schedule',
+                            title: '📅 새 일정이 등록되었습니다',
+                            message: `${formData.date} ${formData.start_time} 일정을 확인해주세요.`,
+                            is_read: false
+                        }]);
+                    }
+                }
             }
             onSuccess();
         } catch (error) {
             console.error(error);
-            alert('저장 실패');
+            alert('저장 실패: ' + (error.message || '알 수 없는 오류'));
         } finally {
             setLoading(false);
         }
     };
 
-    // UI 및 기능 유지
-    // UI 및 기능 유지
-    const handleDelete = async () => {
+    const handleDelete = async (forceFuture = false) => {
         setLoading(true);
         try {
-            // 0. 결제 여부 확인 (Ghost Credit 방지)
+            // ✨ [Request #1] 뒷일정 삭제 기능 포함 확인창
+            let deleteFuture = forceFuture;
+
+            // 결제 여부 확인 (Ghost Credit 방지)
             const { data: payItems } = await supabase.from('payment_items').select('id, payment_id').eq('schedule_id', scheduleId);
 
             if (payItems && payItems.length > 0) {
-                // 이미 결제된 건이 존재하는 경우 경고
                 if (!confirm(
                     '⚠️ 경고: 이 일정은 이미 수납(결제) 처리가 되었습니다.\n\n' +
                     '일정을 삭제하면 결제 내역은 남지만, 연결된 수업이 사라져 "잔액(Credit)"으로 잡히게 됩니다.\n' +
-                    '(-110,000원과 같은 과납 상태가 될 수 있습니다.)\n\n' +
-                    '정말 삭제하시겠습니까? (삭제 후 수납 관리에서 별도 정산이 필요합니다.)'
+                    '정말 삭제하시겠습니까?'
                 )) {
                     setLoading(false);
                     return;
                 }
             } else {
-                // 결제 내역이 없더라도 일반 삭제 확인
-                if (!confirm('정말 삭제하시겠습니까? \n(관련된 상담일지, 알림장이 함께 삭제됩니다.)')) {
+                if (!confirm(deleteFuture ? '이 일정과 이후 모든 반복 일정을 삭제하시겠습니까?' : '이 일정만 삭제하시겠습니까?')) {
                     setLoading(false);
                     return;
                 }
             }
 
-            // 1. 참조 데이터 수동 삭제 (Foreign Key 제약 조건 해결)
-            // 에러: violates foreign key constraint 'consultations_schedule_id_fkey'
-            const { error: consultError } = await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
-            if (consultError) console.error('상담 신청서(consultations) 삭제 실패:', consultError);
+            if (deleteFuture) {
+                // 1. 이후 일정 목록 조회 (참조 데이터 삭제를 위해)
+                const { data: futureSchedules } = await supabase
+                    .from('schedules')
+                    .select('id')
+                    .eq('child_id', formData.child_id)
+                    .eq('program_id', formData.program_id)
+                    .eq('therapist_id', formData.therapist_id)
+                    .gte('date', formData.date);
 
-            const { error: pError } = await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
-            if (pError) console.error('수납 상세 삭제 실패:', pError);
+                if (futureSchedules && futureSchedules.length > 0) {
+                    const ids = futureSchedules.map(s => s.id);
 
-            const { error: cError } = await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
-            if (cError) console.error('상담일지 삭제 실패:', cError);
+                    // 참조 데이터 일괄 삭제
+                    await supabase.from('consultations').delete().in('schedule_id', ids);
+                    await supabase.from('payment_items').delete().in('schedule_id', ids);
+                    await supabase.from('counseling_logs').delete().in('schedule_id', ids);
+                    await supabase.from('daily_notes').delete().in('schedule_id', ids);
 
-            const { error: dError } = await supabase.from('daily_notes').delete().eq('schedule_id', scheduleId);
-            if (dError) console.error('알림장 삭제 실패:', dError);
+                    // 본 일정 일괄 삭제
+                    const { error } = await supabase.from('schedules').delete().in('id', ids);
+                    if (error) throw error;
+                    alert('해당 일자 이후의 모든 관련 일정이 삭제되었습니다.');
+                }
+            } else {
+                // 기존 단일 삭제 로직
+                // 1. 참조 데이터 수동 삭제
+                const { error: consultError } = await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
+                const { error: pError } = await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
+                const { error: cError } = await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
+                const { error: dError } = await supabase.from('daily_notes').delete().eq('schedule_id', scheduleId);
 
-            // 2. 본 일정 삭제
-            const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
-            if (error) throw error;
+                // 2. 본 일정 삭제
+                const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
+                if (error) throw error;
+            }
 
             onSuccess();
         } catch (error) {
@@ -298,20 +429,20 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">아동 선택</label>
-                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.child_id} onChange={e => setFormData({ ...formData, child_id: e.target.value })}>
-                                <option value="">아동을 선택하세요</option>
-                                {childrenList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">담당 선생님</label>
-                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.therapist_id} onChange={e => setFormData({ ...formData, therapist_id: e.target.value })}>
-                                <option value="">선생님을 선택하세요</option>
-                                {therapistsList.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                            </select>
-                        </div>
+                        <SearchableSelect
+                            label="아동 선택"
+                            placeholder="아동을 선택하세요"
+                            options={childrenList}
+                            value={formData.child_id}
+                            onChange={val => setFormData({ ...formData, child_id: val })}
+                        />
+                        <SearchableSelect
+                            label="담당 선생님"
+                            placeholder="선생님을 선택하세요"
+                            options={therapistsList}
+                            value={formData.therapist_id}
+                            onChange={val => setFormData({ ...formData, therapist_id: val })}
+                        />
                         <div>
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
                             <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
@@ -322,11 +453,41 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         <div>
                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400">일시</label>
                             <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 mb-3">
                                 <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.start_time} onChange={e => setFormData({ ...formData, start_time: e.target.value })} />
                                 <span className="self-center text-slate-400">~</span>
                                 <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
                             </div>
+
+                            {!scheduleId && (
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
+                                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
+                                            checked={isRecurring}
+                                            onChange={e => setIsRecurring(e.target.checked)}
+                                        />
+                                    </div>
+                                    {isRecurring && (
+                                        <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                                            <input
+                                                type="number"
+                                                min="2"
+                                                max="52"
+                                                className="w-20 p-2 border dark:border-slate-600 rounded-lg text-sm font-bold bg-white dark:bg-slate-900"
+                                                value={repeatWeeks}
+                                                onChange={e => setRepeatWeeks(parseInt(e.target.value) || 0)}
+                                            />
+                                            <span className="text-xs font-bold text-slate-500">주 동안 반복 등록합니다.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="grid grid-cols-4 gap-2">
                             {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
@@ -336,7 +497,26 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             ))}
                         </div>
                         <div className="flex gap-2 pt-4">
-                            {scheduleId && <button type="button" onClick={handleDelete} className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"><Trash2 className="w-5" /></button>}
+                            {scheduleId && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(false)}
+                                        className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"
+                                        title="이 일정만 삭제"
+                                    >
+                                        <Trash2 className="w-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(true)}
+                                        className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-100 dark:border-amber-900/50 flex items-center gap-2 text-xs font-black"
+                                        title="이후 모든 일정 삭제"
+                                    >
+                                        <CalendarClock className="w-5" /> 이후 삭제
+                                    </button>
+                                </>
+                            )}
                             <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-md">
                                 {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
                             </button>

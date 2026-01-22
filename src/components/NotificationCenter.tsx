@@ -15,6 +15,7 @@ import { Bell, Check, User, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Notification {
     id: string;
@@ -32,16 +33,19 @@ export function NotificationCenter() {
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
     // 알림 목록 가져오기
     const fetchNotifications = async () => {
+        if (!user) return;
         setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('admin_notifications')
                 .select('*')
+                .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
                 .limit(20);
 
