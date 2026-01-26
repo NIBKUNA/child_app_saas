@@ -593,23 +593,31 @@ function HomeSettingsTab({ getSetting, handleSave, saving }) {
                 <SectionCard icon={<Bell className="text-blue-500" />} title="메인 상단 공지">
                     <SaveableTextArea label="공지가 필요한 경우 입력하세요." initialValue={getSetting('notice_text')} onSave={(v) => handleSave('notice_text', v)} saving={saving} rows={2} />
                 </SectionCard>
+
+                <SectionCard icon={<LayoutTemplate className="text-purple-500" />} title="메인 배너 이미지">
+                    <ImageUploader bucketName="images" currentImage={getSetting('main_banner_url')} onUploadComplete={(url) => handleSave('main_banner_url', url)} />
+                </SectionCard>
             </div>
 
             <div className="space-y-6">
-                <div className="flex items-center justify-between px-4">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">실시간 프리뷰 (Hero UI)</h3>
-                    <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded animate-pulse">LIVE</span>
-                </div>
-                <div className="sticky top-24">
+                <div className="sticky top-24 space-y-6">
+                    <div className="flex items-center justify-between px-4">
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Visual Preview</h3>
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        </div>
+                        <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">21:9 WIDE</span>
+                    </div>
                     <HeroPreview
                         title={pTitle}
                         subtitle={pSubtitle}
                         bgUrl={getSetting('main_banner_url')}
                     />
-                    <div className="mt-8">
-                        <SectionCard icon={<LayoutTemplate className="text-purple-500" />} title="메인 배너 이미지">
-                            <ImageUploader bucketName="images" currentImage={getSetting('main_banner_url')} onUploadComplete={(url) => handleSave('main_banner_url', url)} />
-                        </SectionCard>
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-700">
+                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                            💡 **팁**: 실제 홈페이지의 히어로 섹션과 동일한 비율(21:9)입니다.
+                            좌측 정렬 레이아웃에 맞춰 문구의 줄바꿈을 조정해보세요.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -686,67 +694,67 @@ function SaveableTextArea({ label, initialValue, onSave, saving, placeholder, ro
 
 function HeroPreview({ title, subtitle, bgUrl }) {
     return (
-        <div className="relative w-full aspect-[21/9] min-h-[300px] rounded-[32px] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 group">
-            {/* Background Image Layer */}
-            <div className="absolute inset-0">
-                <img
-                    src={bgUrl || "https://images.unsplash.com/photo-1502086223501-7ea24ecb4545?auto=format&fit=crop&q=80"}
-                    className="w-full h-full object-cover"
-                    alt="Preview BG"
-                />
-                {/* Gradient Overlay for Text Readability */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+        <div className="relative w-full aspect-[21/9] min-h-[280px] rounded-[32px] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-slate-100">
+            {/* 1. Background Layer */}
+            <div className="absolute inset-0 z-0">
+                {bgUrl ? (
+                    <img src={bgUrl} className="w-full h-full object-cover" alt="Preview Background" />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300" />
+                )}
+                {/* Real Site Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
             </div>
 
-            {/* Content Mockup - Exactly matching HomePage.tsx layout */}
-            <div className="absolute inset-0 flex flex-col justify-center px-10 md:px-16 text-left">
-                <div className="max-w-[75%] space-y-4">
-                    {/* Top Badge Mockup */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30 mb-2">
+            {/* 2. Content Layer (Left Aligned) */}
+            <div className="absolute inset-0 z-10 flex flex-col justify-center px-10 md:px-14 text-left">
+                <div className="max-w-[80%] space-y-4">
+                    {/* Badge */}
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/20 mb-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                        <div className="w-12 h-2 bg-white/60 rounded-full" />
+                        <div className="w-16 h-1.5 bg-white/40 rounded-full" />
                     </div>
 
-                    {/* Main Title - Mirroring HomePage font logic */}
+                    {/* Title */}
                     <h1
                         className="text-white font-black leading-[1.1] tracking-tighter whitespace-pre-line"
                         style={{
-                            fontSize: 'clamp(1rem, 3.5vw, 2.8rem)',
-                            textShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                            fontSize: 'clamp(1rem, 3.2vw, 2.6rem)',
+                            textShadow: '0 4px 24px rgba(0,0,0,0.5)',
                             wordBreak: 'keep-all'
                         }}
                     >
-                        {title || "여기에 타이틀이 표시됩니다"}
+                        {title || "여기에 메인 타이틀이\n표시됩니다."}
                     </h1>
 
-                    {/* Subtitle */}
+                    {/* Description */}
                     <p
-                        className="text-white/90 font-medium leading-relaxed whitespace-pre-line max-w-sm"
-                        style={{ fontSize: 'clamp(0.6rem, 1.2vw, 0.9rem)' }}
+                        className="text-white/80 font-medium leading-relaxed whitespace-pre-line max-w-sm"
+                        style={{ fontSize: 'clamp(0.6rem, 1.1vw, 0.85rem)' }}
                     >
-                        {subtitle || "여기에 상세 설명이 들어갑니다."}
+                        {subtitle || "여기에 상세 설명 문구가 들어갑니다.\n실제 홈페이지의 폰트 비율과 동일합니다."}
                     </p>
 
-                    {/* Action Button Mockup */}
-                    <div className="pt-6">
+                    {/* Button Mockup */}
+                    <div className="pt-4">
                         <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white text-slate-900 rounded-full shadow-xl">
-                            <div className="w-16 h-2 bg-slate-900/20 rounded-full" />
+                            <div className="w-16 h-2 bg-slate-900/10 rounded-full" />
                             <div className="w-5 h-5 bg-slate-900 rounded-full flex items-center justify-center">
-                                <span className="text-[10px] text-white">→</span>
+                                <ChevronRight className="w-3 h-3 text-white" />
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Browser Header Mockup */}
-            <div className="absolute top-0 left-0 right-0 h-10 bg-white/10 backdrop-blur-md flex items-center px-6 gap-2 border-b border-white/10 z-20">
+            {/* 3. Browser Header UI */}
+            <div className="absolute top-0 left-0 right-0 h-10 bg-black/10 backdrop-blur-md flex items-center px-6 gap-2 border-b border-white/5 z-20">
                 <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400 opacity-80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 opacity-80" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-400 opacity-80" />
                 </div>
-                <div className="flex-1 max-w-[120px] h-4 bg-white/10 rounded-full mx-auto" />
+                <div className="flex-1 max-w-[140px] h-4 bg-white/5 rounded-full mx-auto" />
             </div>
         </div>
     );
