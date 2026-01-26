@@ -31,6 +31,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     useEffect(() => {
         const fetchBranding = async () => {
             try {
+                // 마스터 앱(/master)이나 메인 랜딩에 있을 때는 '(주)자라다' 고정
+                const isMasterPath = window.location.pathname.startsWith('/master') || window.location.pathname === '/';
+                if (isMasterPath) {
+                    setCenterName('(주)자라다');
+                    return;
+                }
+
                 const { data: settings } = await supabase
                     .from('admin_settings')
                     .select('*')
@@ -85,7 +92,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                         </h1>
                         {/* ✨ Center Name Integration */}
                         <p className="mt-4 text-sm font-bold text-slate-400 tracking-widest uppercase opacity-80">
-                            {centerName || import.meta.env.VITE_CENTER_NAME}
+                            {centerName || import.meta.env.VITE_CENTER_NAME || '(주)자라다'}
                         </p>
                     </motion.div>
                 </motion.div>
