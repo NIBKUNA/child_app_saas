@@ -57,6 +57,10 @@ CREATE TABLE centers (
   business_number VARCHAR(20),        -- 사업자등록번호
   representative VARCHAR(50),          -- 대표자명
   logo_url TEXT,
+  weekday_hours VARCHAR(100),         -- 평일 운영 시간
+  saturday_hours VARCHAR(100),        -- 토요일 운영 시간
+  holiday_text VARCHAR(100),           -- 휴무 안내 문구
+  naver_map_url TEXT,                 -- 네이버 지도 공유 URL
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

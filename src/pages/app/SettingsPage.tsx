@@ -391,46 +391,59 @@ function CenterInfoSection() {
     const handleInfoSave = async (key: string, value: string) => {
         if (!info?.id) return;
         setSaving(true);
-        {/* ✨ [Sync] Update both 'centers' and 'admin_settings' tables */ }
         try {
             const finalValue = value === "" ? null : value;
+            let centersUpdateSuccess = false;
 
-            // 1. Update 'centers' table
-            const { data, error } = await supabase.from('centers').update({ [key]: finalValue }).eq('id', info.id).select();
+            // 1. Update 'centers' table (Main Schema)
+            const { error: centersError } = await supabase
+                .from('centers')
+                .update({ [key]: finalValue })
+                .eq('id', info.id);
 
-            if (error) throw error;
-            if (data) setInfo(data[0]);
+            if (!centersError) {
+                centersUpdateSuccess = true;
+            } else {
+                console.warn(`Centers table update skipped/failed for ${key}:`, centersError.message);
+                // Column not found (PGRST301) is expected if migration hasn't run yet
+            }
 
-            // 2. Update 'admin_settings' table (Forcing sync as requested)
-            // Map 'centers' keys to 'admin_settings' keys
+            // 2. Update 'admin_settings' table (Fallback & Global Sync)
             const settingKeyMap: Record<string, string> = {
                 'name': 'center_name',
                 'phone': 'center_phone',
                 'address': 'center_address',
                 'email': 'center_email',
                 'naver_map_url': 'center_map_url',
-                'weekday_hours': 'center_weekday_hours', // New key if needed, or just rely on centers for this? User specifically mentioned address/email.
+                'weekday_hours': 'center_weekday_hours',
                 'saturday_hours': 'center_saturday_hours',
                 'holiday_text': 'center_holiday_text'
             };
 
             const settingKey = settingKeyMap[key];
             if (settingKey) {
-                await supabase.from('admin_settings').upsert({
+                const { error: settingsError } = await supabase.from('admin_settings').upsert({
                     center_id: info.id,
                     key: settingKey,
                     value: finalValue,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'center_id, key' });
+
+                if (settingsError) throw settingsError;
             }
 
-            // ✨ [Global Sync] Notify all listeners (e.g., useCenterBranding) to refetch
+            // ✨ [Refresh UI]
+            await fetchCenter();
             window.dispatchEvent(new Event('settings-updated'));
 
-            alert('변경사항이 저장되었습니다.');
+            if (centersUpdateSuccess) {
+                alert('변경사항이 데이터베이스에 안전하게 저장되었습니다.');
+            } else {
+                alert('사이트 설정은 반영되었으나, 센터 기본 정보 동기화를 위해 마이그레이션이 필요할 수 있습니다.');
+            }
         } catch (e) {
             console.error(e);
-            alert('저장 실패: DB 컬럼 정보를 확인해주세요.');
+            alert('저장 중 오류가 발생했습니다: ' + e.message);
         } finally {
             setSaving(false);
         }

@@ -298,13 +298,13 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                 const cid = centerId || 'global';
 
                 // 1. 상담문의 (어드민/슈퍼어드민만 표시)
-                if (isSuperAdmin || role === 'admin') {
+                if (isSuperAdmin || role === 'admin' || role === 'staff') {
                     const lastCheck = localStorage.getItem(`last_inquiry_check_${cid}`);
 
                     let query = supabase
-                        .from('leads')
+                        .from('consultations')
                         .select('created_at', { count: 'exact', head: true })
-                        .eq('status', 'new');
+                        .is('schedule_id', null);
 
                     if (centerId) {
                         query = query.eq('center_id', centerId);
