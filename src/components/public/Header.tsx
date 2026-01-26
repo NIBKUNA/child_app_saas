@@ -111,7 +111,7 @@ export function Header() {
                                 <img
                                     src={branding.logo_url}
                                     alt={branding.name}
-                                    className="h-8 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                                    className="h-10 md:h-11 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                                     style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
                                 />
                             ) : (
