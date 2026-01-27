@@ -90,6 +90,8 @@ export function HomePage() {
     const brandName = centerInfo?.name || getSetting('center_name') || DEFAULT_CONTENT.brandName;
     const canonicalUrl = `${window.location.origin}/centers/${centerInfo?.slug || centerInfo?.id || 'main'}`;
 
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950" />;
+
     return (
         <div className={`min-h-screen font-sans overflow-x-hidden transition-colors ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
             <Helmet>

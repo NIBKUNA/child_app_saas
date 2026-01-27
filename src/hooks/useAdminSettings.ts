@@ -83,11 +83,11 @@ export const useAdminSettings = () => {
     const { center } = useCenter();
 
     // ✨ [Flash Prevention] 캐시된 브랜드 데이터로 초기화
-    const [settings, setSettings] = useState<Record<string, string | null>>(() => {
-        if (!center?.id) return {};
-        return getCachedBrand(center.id);
-    });
-    const [loading, setLoading] = useState(true);
+    const cachedData = center?.id ? getCachedBrand(center.id) : {};
+    const [settings, setSettings] = useState<Record<string, string | null>>(cachedData);
+
+    // 캐시가 있으면 로딩을 false로 시작하여 즉시 렌더링 허용
+    const [loading, setLoading] = useState(!Object.keys(cachedData).length);
     const [error, setError] = useState<string | null>(null);
 
     // Fetch all settings

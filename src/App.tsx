@@ -12,6 +12,7 @@
  */
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { CenterProvider } from '@/contexts/CenterContext';
 import { CenterGuard } from '@/components/auth/CenterGuard';
 
@@ -145,6 +146,7 @@ function App() {
 
   return (
     <CenterProvider>
+      <ScrollToTop />
       <SEOHead />
       {showSplash ? (
         <SplashScreen onComplete={handleSplashComplete} />

@@ -294,19 +294,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [user?.id, role]);
 
     const signOut = async () => {
-        try {
-            await supabase.auth.signOut();
-        } catch (e) {
-            console.error('Logout error:', e);
-        } finally {
-            // ✨ [Security Nuclear Option] 모든 저장소 초토화
-            console.log('☢️ NUCLEAR SIGN-OUT INITIATED');
+        console.log('☢️ NUCLEAR SIGN-OUT INITIATED');
 
-            // 1. Local/Session Storage Wipe
+        try {
+            // ✨ [Fix] 세션이 있는 경우에만 서버 로그아웃 요청 (403 에러 방지)
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession) {
+                await supabase.auth.signOut();
+            }
+        } catch (e) {
+            console.warn('Supabase signout request failed (possibly already expired):', e);
+        } finally {
+            // ✨ [Security Nuclear Option] 서버 결과와 관계없이 모든 로컬 데이터 파괴
             localStorage.clear();
             sessionStorage.clear();
 
-            // 2. Browser Cache Storage Wipe (Service Workers, etc.)
             if ('caches' in window) {
                 try {
                     const cacheNames = await caches.keys();
@@ -326,7 +328,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCenterId(null);
             initialLoadComplete.current = false;
 
-            // 페이지 강제 리로드로 메모리 상의 잔여 데이터까지 제거하여 상태값 초기화 보장
+            // 깔끔한 상태를 위해 홈으로 이동 (필요 시 reload)
+            window.location.href = '/';
         }
     };
 

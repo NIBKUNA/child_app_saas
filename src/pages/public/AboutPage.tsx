@@ -52,8 +52,11 @@ export function AboutPage() {
     const { getSetting } = useAdminSettings();
     const { center } = useCenter();
     const { theme } = useTheme();
-    const { branding } = useCenterBranding();
+    const { branding, loading } = useCenterBranding();
     const isDark = theme === 'dark';
+
+    // ✨ [Anti-Flicker] Prevent showing hardcoded defaults before branding/settings are ready
+    if (loading) return null;
 
     const centerName = branding.name || center?.name || '아동발달센터';
 

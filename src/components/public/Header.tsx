@@ -72,8 +72,11 @@ export function Header() {
     const { user, role, signOut } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
-    const { branding } = useCenterBranding();
+    // ✨ [Fix] Unconditional Hook Call - Always fetch branding
+    const { branding, loading } = useCenterBranding();
     const { center } = useCenter();
+
+    if (loading) return null;
 
     const handleLogout = async () => {
         await signOut();

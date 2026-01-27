@@ -42,8 +42,10 @@ function SnsIcon({ href, children, label }: { href: string; children: React.Reac
 
 export function Footer() {
     // ✨ [Fix] Unconditional Hook Call - Always fetch branding
-    const { branding } = useCenterBranding();
+    const { branding, loading } = useCenterBranding();
     const { user } = useAuth();
+
+    if (loading) return null;
     // branding.settings has the raw row from admin_settings
     const { settings } = branding;
 

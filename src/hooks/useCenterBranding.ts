@@ -40,20 +40,20 @@ export function useCenterBranding() {
     const { settings: adminSettings, loading: adminLoading } = useAdminSettings();
 
     // ✨ [Instant Render] Try LocalStorage First -> Then Default -> Then Async Update
-    const [branding, setBranding] = useState<CenterBranding>(() => {
-        if (!center?.id) return DEFAULT_BRANDING;
+    const cacheKey = center?.id ? `cached_branding_v3_${center.id}` : null;
+    const cachedBrandingStr = cacheKey ? localStorage.getItem(cacheKey) : null;
+    const initialBranding = (() => {
         try {
-            const cacheKey = `cached_branding_v3_${center.id}`;
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed.id === center.id) return parsed;
+            if (cachedBrandingStr) {
+                const parsed = JSON.parse(cachedBrandingStr);
+                if (parsed.id === center?.id) return parsed;
             }
         } catch (e) { }
-        return { ...DEFAULT_BRANDING, id: center.id, name: center.name };
-    });
+        return center?.id ? { ...DEFAULT_BRANDING, id: center.id, name: center.name } : DEFAULT_BRANDING;
+    })();
 
-    const [centerLoading, setCenterLoading] = useState(true);
+    const [branding, setBranding] = useState<CenterBranding>(initialBranding);
+    const [centerLoading, setCenterLoading] = useState(!cachedBrandingStr);
 
     useEffect(() => {
         if (!center?.id) {

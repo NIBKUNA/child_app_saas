@@ -45,10 +45,12 @@ const Icons = {
 };
 
 export function ContactPage() {
-    const { branding } = useCenterBranding();
+    const { branding, loading } = useCenterBranding();
     const { getSetting } = useAdminSettings();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+
+    if (loading) return null;
 
     const weekdayHours = getSetting('center_weekday_hours') || branding?.weekday_hours || '09:00 - 19:00';
     const saturdayHours = getSetting('center_saturday_hours') || branding?.saturday_hours || '09:00 - 16:00';
@@ -62,33 +64,20 @@ export function ContactPage() {
                 <meta name="description" content="센터 위치 안내, 운영 시간, 상담 예약 문의 방법을 안내해드립니다." />
             </Helmet>
 
-            {/* ✨ Premium Header Section */}
-            <section className="relative py-28 overflow-hidden">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20" style={{ backgroundColor: brandColor }}></div>
-                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full blur-[100px] opacity-10" style={{ backgroundColor: brandColor }}></div>
+            {/* ✨ Premium Hero Section (Uniform Branding) */}
+            <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: brandColor }}>
+                <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
 
-                <div className="container mx-auto px-6 relative z-10 text-center">
+                <div className="container mx-auto max-w-4xl relative z-10 text-center text-white">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
+                        transition={{ duration: 0.6 }}
                     >
-                        <span
-                            className="inline-block px-5 py-2 rounded-full text-[10px] font-black tracking-[0.3em] uppercase mb-8 border"
-                            style={{ backgroundColor: brandColor + '15', color: brandColor, borderColor: brandColor + '30' }}
-                        >
-                            Get In Touch
-                        </span>
-                        <h1 className={cn(
-                            "text-4xl md:text-6xl font-black tracking-tighter mb-8 leading-tight",
-                            isDark ? "text-white" : "text-slate-900"
-                        )}>
-                            문의 및 오시는 길
-                        </h1>
-                        <p className={cn(
-                            "mx-auto max-w-2xl text-lg md:text-xl font-medium leading-relaxed opacity-60",
-                            isDark ? "text-slate-300" : "text-slate-600"
-                        )}>
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-black tracking-wider uppercase mb-6">Get In Touch</span>
+                        <h1 className="text-4xl md:text-5xl font-black tracking-[-0.05em] mb-6">문의 및 오시는 길</h1>
+                        <p className="text-lg text-white/80 font-medium max-w-xl mx-auto leading-relaxed whitespace-pre-line leading-relaxed">
                             아이의 밝은 내일을 위한 첫 걸음,<br />
                             자라다가 가장 따뜻한 목소리로 답하겠습니다.
                         </p>
@@ -96,124 +85,100 @@ export function ContactPage() {
                 </div>
             </section>
 
-            <section className="container mx-auto px-6 pb-32">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-
-                    {/* 📍 Info Column (Left) */}
-                    <div className="lg:col-span-5 space-y-8">
-
-                        {/* Center Info Card */}
-                        <motion.div
-                            className={cn(
-                                "p-10 rounded-[50px] border shadow-2xl relative overflow-hidden group",
-                                isDark ? "bg-[#141620] border-white/5" : "bg-white border-slate-100 shadow-slate-200/50"
-                            )}
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                        >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-
-                            <h2 className={cn("text-2xl font-black mb-10 flex items-center gap-3", isDark ? "text-white" : "text-slate-900")}>
-                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10" style={{ color: brandColor }}>
-                                    {Icons.mapPin("w-6 h-6")}
-                                </div>
-                                센터 정보
-                            </h2>
-
-                            <div className="space-y-8">
-                                {[
-                                    { label: '주소', value: branding?.address || '정보를 불러오는 중...', icon: Icons.mapPin },
-                                    { label: '전화', value: branding?.phone || '정보를 불러오는 중...', icon: null, large: true },
-                                    { label: '이메일', value: branding?.email || '정보를 불러오는 중...', icon: null }
-                                ].map((item, idx) => (
-                                    <div key={idx} className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">{item.label}</span>
-                                        <span className={cn(
-                                            "font-bold leading-relaxed",
-                                            item.large ? "text-2xl md:text-3xl tracking-tighter" : "text-lg",
-                                            isDark ? "text-white" : "text-slate-900"
-                                        )} style={item.large ? { color: brandColor } : {}}>
-                                            {item.value}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.div>
-
-                        {/* Hours Card */}
-                        <motion.div
-                            className={cn(
-                                "p-10 rounded-[50px] border shadow-2xl relative overflow-hidden",
-                                isDark ? "bg-[#141620] border-white/5" : "bg-white border-slate-100 shadow-slate-200/50"
-                            )}
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            <h2 className={cn("text-2xl font-black mb-10 flex items-center gap-3", isDark ? "text-white" : "text-slate-900")}>
-                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10" style={{ color: brandColor }}>
-                                    {Icons.clock("w-6 h-6")}
-                                </div>
-                                운영 시간
-                            </h2>
-
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center py-4 border-b border-white/5">
-                                    <span className="font-bold opacity-60">평일 (월-금)</span>
-                                    <span className="text-xl font-black tracking-tight" style={{ color: brandColor }}>{weekdayHours}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-4 border-b border-white/5">
-                                    <span className="font-bold opacity-60">토요일</span>
-                                    <span className="text-xl font-black tracking-tight">{saturdayHours}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-4">
-                                    <span className="font-bold text-rose-500">일요일/공휴일</span>
-                                    <span className="font-black text-rose-500">{holidayText}</span>
-                                </div>
-                            </div>
-
-                            <div
-                                className="mt-10 p-5 rounded-[30px] border border-dashed text-xs font-bold leading-relaxed opacity-80"
-                                style={{ backgroundColor: brandColor + '05', borderColor: brandColor + '30', color: brandColor }}
+            <div className={cn("relative -mt-12 z-20 rounded-t-[50px] px-4 pt-24 transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
+                <section className="container mx-auto px-6 pb-32">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+                        {/* 1. Left Contact & Map Column */}
+                        <div className="lg:col-span-12 xl:col-span-5 space-y-8">
+                            {/* Contact Info Card */}
+                            <motion.div
+                                className={cn(
+                                    "p-10 rounded-[50px] border shadow-2xl",
+                                    isDark ? "bg-[#141620] border-white/5" : "bg-white border-slate-100"
+                                )}
+                                initial={{ opacity: 0, x: -30 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
                             >
-                                * 모든 상담 및 치료는 100% 예약제로 운영됩니다.<br />
-                                * 방문 전 반드시 예약 부탁드립니다.
+                                <div className="space-y-10">
+                                    <h3 className={cn("text-2xl font-black mb-10 flex items-center gap-4", isDark ? "text-white" : "text-slate-900")}>
+                                        <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500">
+                                            {Icons.mapPin("w-6 h-6")}
+                                        </div>
+                                        센터 정보
+                                    </h3>
+
+                                    <div className="space-y-8">
+                                        <div className="group">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400">주소</p>
+                                            <p className={cn("text-lg font-bold leading-relaxed", isDark ? "text-slate-300" : "text-slate-700")}>
+                                                {branding?.address || '서울특별시 송파구 위례로...'}
+                                            </p>
+                                        </div>
+
+                                        <div className="group">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400">전화</p>
+                                            <p className="text-3xl font-black tracking-tight" style={{ color: brandColor }}>
+                                                {branding?.phone || '02-000-0000'}
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-8 border-t border-slate-100 dark:border-white/5 space-y-6">
+                                            <div className="flex items-center gap-4 group">
+                                                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 text-slate-400 group-hover:text-amber-500 transition-colors">
+                                                    {Icons.clock("w-5 h-5")}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">평일</p>
+                                                    <p className={cn("text-sm font-black", isDark ? "text-slate-200" : "text-slate-600")}>{weekdayHours}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 group">
+                                                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 text-slate-400 group-hover:text-emerald-500 transition-colors">
+                                                    {Icons.calendar("w-5 h-5")}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">토요일</p>
+                                                    <p className={cn("text-sm font-black", isDark ? "text-slate-200" : "text-slate-600")}>{saturdayHours}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        {/* 📝 Request Form Column (Right) */}
+                        <motion.div
+                            className="lg:col-span-7"
+                            initial={{ opacity: 0, y: 50 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                        >
+                            <div className={cn(
+                                "p-10 md:p-14 rounded-[60px] border shadow-[0_40px_100px_rgba(0,0,0,0.1)] relative overflow-hidden",
+                                isDark ? "bg-[#141620] border-white/5" : "bg-white border-slate-200"
+                            )}>
+                                {/* Decorative background gradient for form */}
+                                <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-[100px] opacity-10 pointer-events-none" style={{ backgroundColor: brandColor }}></div>
+
+                                <div className="relative z-10">
+                                    <h2 className={cn("text-3xl font-black mb-10 tracking-tight", isDark ? "text-white" : "text-slate-900")}>
+                                        상담 예약 신청
+                                    </h2>
+                                    <p className="mb-12 text-sm font-bold opacity-50 leading-relaxed">
+                                        아래 양식을 작성해 주시면 확인 후 전문 치료사가 직접 연락드려<br />
+                                        아이에게 가장 필요한 상담 일정을 잡아드리겠습니다.
+                                    </p>
+
+                                    <ConsultationSurveyForm centerId={branding?.id} />
+                                </div>
                             </div>
                         </motion.div>
+
                     </div>
-
-                    {/* 📝 Request Form Column (Right) */}
-                    <motion.div
-                        className="lg:col-span-7"
-                        initial={{ opacity: 0, y: 50 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                    >
-                        <div className={cn(
-                            "p-10 md:p-14 rounded-[60px] border shadow-[0_40px_100px_rgba(0,0,0,0.1)] relative overflow-hidden",
-                            isDark ? "bg-[#141620] border-white/5" : "bg-white border-slate-200"
-                        )}>
-                            {/* Decorative background gradient for form */}
-                            <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-[100px] opacity-10 pointer-events-none" style={{ backgroundColor: brandColor }}></div>
-
-                            <div className="relative z-10">
-                                <h2 className={cn("text-3xl font-black mb-10 tracking-tight", isDark ? "text-white" : "text-slate-900")}>
-                                    상담 예약 신청
-                                </h2>
-                                <p className="mb-12 text-sm font-bold opacity-50 leading-relaxed">
-                                    아래 양식을 작성해 주시면 확인 후 전문 치료사가 직접 연락드려<br />
-                                    아이에게 가장 필요한 상담 일정을 잡아드리겠습니다.
-                                </p>
-
-                                <ConsultationSurveyForm centerId={branding?.id} />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                </div>
-            </section>
+                </section>
+            </div>
         </div>
     );
 }

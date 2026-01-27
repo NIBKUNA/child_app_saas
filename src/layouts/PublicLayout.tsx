@@ -14,16 +14,24 @@ import { useTrafficSource } from '@/hooks/useTrafficSource';
 import { Header } from '@/components/public/Header';
 import { Footer } from '@/components/public/Footer';
 import { useTheme } from '@/contexts/ThemeProvider';
-
-// Theme toggle icons removed - now handled in Header component
-
-
+import { useCenterBranding } from '@/hooks/useCenterBranding';
 
 export function PublicLayout() {
     const { theme } = useTheme();
+    const { loading } = useCenterBranding();
     const isDark = theme === 'dark';
 
     useTrafficSource();
+
+    // ✨ [Anti-Flicker] Prevent showing default header/footer before branding is ready
+    // If we have cache, loading will be false instantly. If not, show skeleton/minimal bg.
+    if (loading) return (
+        <div className={`min-h-screen transition-colors ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+            <div className="flex-1 pt-20 animate-pulse flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full border-2 border-slate-200 border-t-indigo-500 animate-spin" />
+            </div>
+        </div>
+    );
 
     return (
         <div className={`min-h-screen flex flex-col transition-colors ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
