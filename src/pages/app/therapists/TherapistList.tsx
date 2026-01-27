@@ -111,6 +111,7 @@ export function TherapistList() {
                         account_holder: formData.account_holder,
                         // account_holder: formData.account_holder, // Duplicate removed
                         center_id: centerId,
+                        redirectTo: `${window.location.origin}/auth/update-password`
                     }
                 });
 

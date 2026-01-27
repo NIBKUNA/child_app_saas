@@ -30,30 +30,31 @@ serve(async (req: any) => {
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
         if (authError || !user) throw new Error("Unauthorized: Invalid session");
 
-        // Fetch profile to check role and center_id
-        const { data: callerProfile, error: profileCheckError } = await supabaseClient
+        // 2. [Admin] Service Role Client for high-privilege operations
+        const supabaseAdmin = createClient(
+            Deno.env.get("SUPABASE_URL") ?? "",
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "",
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        );
+
+        // Fetch profile using Admin Client to bypass RLS for the check itself
+        const { data: callerProfile } = await supabaseAdmin
             .from("user_profiles")
             .select("role, center_id")
             .eq("id", user.id)
-            .single();
+            .maybeSingle();
 
-        if (profileCheckError || !callerProfile) throw new Error("Unauthorized: Profile not found");
-
-        const isSuperAdmin = user.email === 'anukbin@gmail.com';
-        const isAdmin = callerProfile.role === 'admin';
+        const SUPER_ADMINS = ['anukbin@gmail.com', 'zaradajoo@gmail.com'];
+        const isSuperAdmin = SUPER_ADMINS.includes(user.email || '');
+        const isAdmin = callerProfile?.role === 'admin';
 
         if (!isSuperAdmin && !isAdmin) {
             throw new Error("Unauthorized: Only admins can invite users");
         }
 
-        // 2. [Admin] Service Role Client for high-privilege operations
-        const supabaseAdmin = createClient(
-            Deno.env.get("SUPABASE_URL") ?? "",
-            Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "",
-            { auth: { autoRefreshToken: false, persistSession: false } }
-        );
-
-        const { email, name, role, center_id, ...details } = await req.json();
+        const { email, name, role, center_id, redirectTo: clientRedirectTo, ...details } = await req.json();
+        const origin = req.headers.get("origin") || "https://app.myparents.co.kr";
+        const finalRedirectTo = clientRedirectTo || `${origin}/auth/update-password`;
 
         if (!email) throw new Error("Email is required");
 
@@ -62,12 +63,12 @@ serve(async (req: any) => {
         if (!targetCenterId) throw new Error("Center identification failed");
 
         console.log(`📧 Inviting user: ${email} as ${role} for center: ${targetCenterId}`);
+        console.log(`🔗 Redirecting to: ${finalRedirectTo}`);
 
         // 3. Send Invitation Email
-        const origin = req.headers.get("origin") || "https://app.myparents.co.kr";
         const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
             data: { name, role, full_name: name, center_id: targetCenterId },
-            redirectTo: `${origin}/auth/update-password`,
+            redirectTo: finalRedirectTo,
         });
 
         if (inviteError) {
