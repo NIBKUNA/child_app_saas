@@ -1,78 +1,96 @@
-import { serve } from "std/http/server.ts"
-import { createClient } from "@supabase/supabase-js"
+// @ts-ignore
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @ts-ignore
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.10";
+
+declare const Deno: any;
 
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 serve(async (req: Request) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
+    console.log(`\n--- 🚀 [APPROVE-USER] START ---`);
+
+    if (req.method === "OPTIONS") {
+        return new Response("ok", { headers: corsHeaders });
     }
 
     try {
-        const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-        )
+        // 1. [Env Variables Check]
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseServiceKey =
+            Deno.env.get("PRIVATE_SERVICE_ROLE_KEY") ??
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+            Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
 
-        // 1. 요청자(관리자) 확인
-        const {
-            data: { user },
-        } = await supabaseClient.auth.getUser()
-
-        if (!user) throw new Error('No user found')
-
-        // 2. 관리자 권한 체크 (user_profiles 조회)
-        const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SB_SERVICE_ROLE_KEY') ?? ''
-        )
-
-        const { data: adminProfile } = await supabaseAdmin
-            .from('user_profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        if (!adminProfile || (adminProfile.role !== 'admin' && adminProfile.role !== 'super_admin')) {
-            throw new Error('Unauthorized: 관리자 권한이 필요합니다.')
+        if (!supabaseUrl || !supabaseServiceKey) {
+            console.error("❌ Critical: Environment variables missing.");
+            return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: corsHeaders });
         }
 
-        // 3. 대상 유저 ID 받기
-        const { target_user_id } = await req.json()
-        if (!target_user_id) throw new Error('Target user ID is required')
+        // 2. [Auth] Identify Caller
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) throw new Error("Unauthorized: Missing token");
 
-        // 4. 승인 처리 (Service Role 사용 -> RLS 우회)
+        const supabaseClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
+            global: { headers: { Authorization: authHeader } }
+        });
+
+        const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+        if (authError || !user) throw new Error("Unauthorized: Invalid session");
+
+        // 3. [Admin Check] Use Service Role to bypass RLS
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        });
+
+        const { data: callerProfile } = await supabaseAdmin
+            .from("user_profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+        const SUPER_ADMINS = ['anukbin@gmail.com', 'zaradajoo@gmail.com'];
+        const isSuperAdmin = SUPER_ADMINS.includes(user.email || '');
+        const isAdmin = callerProfile?.role === 'admin';
+
+        if (!isSuperAdmin && !isAdmin) {
+            console.error("❌ Permission Denied.");
+            return new Response(JSON.stringify({ error: "Unauthorized: Admin only." }), { status: 403, headers: corsHeaders });
+        }
+
+        // 4. [Target Info]
+        const { target_user_id } = await req.json();
+        if (!target_user_id) throw new Error("Target user ID is required");
+
+        console.log(`👤 Approving User ID: ${target_user_id}`);
+
+        // 5. [Approve]
         const { error: updateError } = await supabaseAdmin
-            .from('user_profiles')
-            .update({ role: 'therapist', status: 'active' })
-            .eq('id', target_user_id)
+            .from("user_profiles")
+            .update({
+                role: 'therapist',
+                status: 'active'
+            })
+            .eq("id", target_user_id);
 
-        if (updateError) throw updateError
+        if (updateError) throw updateError;
 
-        // Therapists 테이블도 업데이트 (선택)
-        await supabaseAdmin
-            .from('therapists')
-            .update({ color: '#3b82f6' })
-            .eq('id', target_user_id)
+        console.log(`✅ SUCCESS: User ${target_user_id} approved.`);
 
         return new Response(
-            JSON.stringify({ success: true, message: '승인되었습니다.' }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-            }
-        )
+            JSON.stringify({ success: true, message: "승인되었습니다." }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+
     } catch (error: any) {
-        return new Response(
-            JSON.stringify({ success: false, error: error.message }),
-            {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 400,
-            }
-        )
+        console.error(`🔴 EXCEPTION: ${error.message}`);
+        return new Response(JSON.stringify({ error: error.message }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+        });
     }
-})
+});
