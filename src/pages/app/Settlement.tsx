@@ -183,10 +183,16 @@ export function Settlement() {
 
                 const hireType = staff.hire_type || 'freelancer';
                 const evalPrice = staff.evaluation_price || 50000;
+                const baseSalary = staff.base_salary || 0;
 
-                if (hireType === 'fulltime' || hireType === 'regular') {
-                    // Case A: Regular (Base + Incentive + Eval)
-                    const baseSalary = staff.base_salary || 0;
+                // 🏗️ 2. Apply Formula based on Role and Hire Type
+                if (staff.system_role === 'staff') {
+                    // Case A: Administrative Staff (Fixed Salary only)
+                    payout = baseSalary;
+                    revenue = payout; // Admin staff is overhead
+                    incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정직원)`;
+                } else if (hireType === 'fulltime' || hireType === 'regular' || staff.system_role === 'admin') {
+                    // Case B: Regular Staff/Admin (Base + Incentive + Eval)
                     const required = staff.required_sessions || 0;
                     const incentivePrice = staff.incentive_price || 24000;
 
@@ -202,26 +208,20 @@ export function Settlement() {
                     const evalPay = eval_count * evalPrice;
 
                     payout = baseSalary + incentive + evalPay;
-                    revenue = payout / 0.6; // Estimate revenue back from payout? Or just 0.
+                    revenue = payout / 0.6;
                     incentiveText = `기본급 ${baseSalary.toLocaleString()} + 인센티브 ${incentive.toLocaleString()} (초과 ${excess.toFixed(1)}회) + 평가 ${evalPay.toLocaleString()}`;
 
                 } else {
-                    // Case B: Freelancer (Ratio-based)
+                    // Case C: Freelancer Therapist (Ratio-based)
                     const weekdayPrice = staff.session_price_weekday || 0;
                     const weekendPrice = staff.session_price_weekend || 0;
 
                     const weekdayPay = raw_weekday * weekdayPrice;
                     const weekendPay = raw_weekend * weekendPrice;
-                    // Note: User prompt implied "Final Pay" formula. 
-                    // If Eval is separate, it should be added.
-                    // Assuming Eval is paid at 'evalPrice' for freelancers too?
-                    // User prompt ONLY said: (raw_weekday * session_price_weekday) + (raw_weekend * session_price_weekend)
-                    // But Logic A had eval variable. logic B Logic didn't mentioned Eval pay.
-                    // I will add Eval Pay to be safe, labeled clearly.
                     const evalPay = eval_count * evalPrice;
 
                     payout = weekdayPay + weekendPay + evalPay;
-                    revenue = payout / 0.6; // Rough estimate
+                    revenue = payout / 0.6;
                     incentiveText = `평일(${raw_weekday}) ${weekdayPay.toLocaleString()} + 주말(${raw_weekend}) ${weekendPay.toLocaleString()} + 평가(${eval_count}) ${evalPay.toLocaleString()}`;
                 }
 
@@ -325,41 +325,52 @@ export function Settlement() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
-                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">고용 형태</label>
-                                            <select className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.hire_type} onChange={e => setEditForm({ ...editForm, hire_type: e.target.value })}>
-                                                <option value="freelancer">프리랜서</option>
-                                                <option value="fulltime">정규직</option>
-                                            </select>
-                                            {(editForm.hire_type === 'regular' || editForm.hire_type === 'fulltime') && (
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">고용 및 급여 형태</label>
+                                            {t.system_role === 'staff' ? (
+                                                <div className="p-2 bg-white dark:bg-slate-900 rounded-lg border dark:border-slate-700 font-bold text-slate-700 dark:text-white">
+                                                    행정직원 (고정급 정산)
+                                                </div>
+                                            ) : (
+                                                <select className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.hire_type} onChange={e => setEditForm({ ...editForm, hire_type: e.target.value })}>
+                                                    <option value="freelancer">프리랜서</option>
+                                                    <option value="fulltime">정규직</option>
+                                                </select>
+                                            )}
+
+                                            {(editForm.hire_type === 'fulltime' || t.system_role === 'staff' || t.system_role === 'admin') && (
                                                 <>
-                                                    <div><span className="text-xs text-slate-400">기본급 (예: 1900000)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_salary} onChange={e => setEditForm({ ...editForm, base_salary: Number(e.target.value) })} /></div>
-                                                    <div><span className="text-xs text-slate-400">기본 회기 (예: 90)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_session_count} onChange={e => setEditForm({ ...editForm, base_session_count: Number(e.target.value) })} /></div>
-                                                    <div className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-900/20 p-1 rounded">ℹ️ 평일 1회, 주말 1.5회로 자동 계산</div>
+                                                    <div><span className="text-xs text-slate-400">월 고정 급여 (원)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_salary} onChange={e => setEditForm({ ...editForm, base_salary: Number(e.target.value) })} /></div>
+                                                    {t.system_role !== 'staff' && (
+                                                        <div><span className="text-xs text-slate-400">기본 의무 회기 (회)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_session_count} onChange={e => setEditForm({ ...editForm, base_session_count: Number(e.target.value) })} /></div>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
-                                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="col-span-1">
-                                                    <span className="text-xs text-slate-400">{editForm.hire_type === 'regular' ? '인센 단가' : '평일 단가'}</span>
-                                                    <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekday} onChange={e => setEditForm({ ...editForm, weekday: Number(e.target.value) })} />
+
+                                        {t.system_role !== 'staff' && (
+                                            <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="col-span-1">
+                                                        <span className="text-xs text-slate-400">{editForm.hire_type === 'fulltime' ? '초과 인센 단가' : '평일 수업 단가'}</span>
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekday} onChange={e => setEditForm({ ...editForm, weekday: Number(e.target.value) })} />
+                                                    </div>
+                                                    <div className="col-span-1">
+                                                        <span className="text-xs text-slate-400">주말 수업 단가</span>
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekend} onChange={e => setEditForm({ ...editForm, weekend: Number(e.target.value) })} />
+                                                    </div>
                                                 </div>
-                                                <div className="col-span-1">
-                                                    <span className="text-xs text-slate-400">주말 단가</span>
-                                                    <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekend} onChange={e => setEditForm({ ...editForm, weekend: Number(e.target.value) })} placeholder={editForm.hire_type === 'regular' ? '계산 미사용' : ''} />
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="col-span-1">
+                                                        <span className="text-xs text-slate-400">평가 수당</span>
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.eval} onChange={e => setEditForm({ ...editForm, eval: Number(e.target.value) })} />
+                                                    </div>
+                                                    <div className="col-span-1">
+                                                        <span className="text-xs text-slate-400">상담 수당</span>
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.consult} onChange={e => setEditForm({ ...editForm, consult: Number(e.target.value) })} />
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="col-span-1">
-                                                    <span className="text-xs text-slate-400">평가 수당</span>
-                                                    <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.eval} onChange={e => setEditForm({ ...editForm, eval: Number(e.target.value) })} />
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <span className="text-xs text-slate-400">상담 수당</span>
-                                                    <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.consult} onChange={e => setEditForm({ ...editForm, consult: Number(e.target.value) })} />
-                                                </div>
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
