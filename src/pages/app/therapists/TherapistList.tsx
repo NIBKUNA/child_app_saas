@@ -68,11 +68,11 @@ export function TherapistList() {
                 const detail = therapistData?.find(t => t.email === p.email);
 
                 return {
-                    ...detail, // 상세 정보 (없을 수 있음)
-                    id: detail?.id || p.id, // ID 우선순위
                     userId: p.id,
-                    name: p.name || detail?.name,
+                    id: detail?.id || p.id,
                     email: p.email,
+                    ...detail, // 최신 상세 정보(색상 등)를 뒤에 배치하여 덮어씌우기
+                    name: p.name || detail?.name, // 프로필 이름 우선
                     system_role: p.role,
                     system_status: p.status,
                     center_id: p.center_id,
@@ -127,6 +127,7 @@ export function TherapistList() {
                 alert(`✅ [초대 발송 성공] ${formData.name}님에게 이메일이 발송되었습니다.`);
             } else {
                 // ✨ [Edit Mode] Direct Update (As Admin)
+                // 1. Update Therapists Table (Detail info like Color, Account)
                 const { error: therapistError } = await supabase
                     .from('therapists')
                     .update({
@@ -137,16 +138,21 @@ export function TherapistList() {
                         account_number: formData.account_number,
                         account_holder: formData.account_holder,
                         system_role: formData.system_role,
-                        // Note: Email is not editable in simple mode usually, or carefully
                     })
-                    .eq('id', editingId);
+                    .eq('email', formData.email); // ID 대신 이메일로 매칭하는 것이 더 안전함
 
                 if (therapistError) throw therapistError;
 
-                // Also sync Profile if exists
-                if (formData.userId) {
-                    await supabase.from('user_profiles').update({ name: formData.name }).eq('id', formData.userId);
-                }
+                // 2. Update User Profiles (Core info like Name, Role)
+                const { error: profileError } = await supabase
+                    .from('user_profiles')
+                    .update({
+                        name: formData.name,
+                        role: formData.system_role
+                    })
+                    .eq('email', formData.email);
+
+                if (profileError) throw profileError;
 
                 alert(`✅ [수정 완료] 정보가 업데이트되었습니다.`);
             }
