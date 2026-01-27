@@ -169,6 +169,8 @@ function App() {
           <Route path="/centers/:slug/login" element={<CenterGuard><Login /></CenterGuard>} />
           <Route path="/register" element={<Register />} />
           <Route path="/centers/:slug/register" element={<CenterGuard><Register /></CenterGuard>} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/centers/:slug/forgot-password" element={<CenterGuard><ForgotPassword /></CenterGuard>} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/update-password" element={<UpdatePassword />} />
           <Route path="/update-password" element={<Navigate to="/auth/update-password" replace />} />

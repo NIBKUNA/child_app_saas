@@ -326,8 +326,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCenterId(null);
             initialLoadComplete.current = false;
 
-            // 페이지 강제 리로드로 메모리 상의 잔여 데이터까지 제거
-            window.location.href = '/';
+            // 페이지 강제 리로드로 메모리 상의 잔여 데이터까지 제거하여 상태값 초기화 보장
         }
     };
 

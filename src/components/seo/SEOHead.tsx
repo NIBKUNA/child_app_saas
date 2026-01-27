@@ -24,7 +24,7 @@ export function SEOHead() {
     // 🏗️ Determine Meta Data (Center Override vs Default)
     const title = center ? center.name : defaultTitle;
     const description = center?.name
-        ? `${center.name} - 전문 아동 발달 센터. ${defaultDescription}`
+        ? `${center.name} - 전문 아동발달센터. ${defaultDescription}`
         : defaultDescription;
     const ogImage = center?.logo_url || defaultOgImage;
     const businessName = center?.name || defaultBusinessName;
@@ -89,7 +89,7 @@ export function SEOHead() {
         else if (location.pathname.includes('/centers')) pageSuffix = " - 전체 센터 관리";
         else pageSuffix = " - 마스터";
     } else {
-        if (location.pathname === '/') pageSuffix = ""; // 메인 홈은 'Zarada'만 표시
+        if (location.pathname === '/') pageSuffix = " | 아동발달센터 통합 관리 솔루션"; // 메인 홈 부제 추가
         else if (location.pathname.includes('/about')) pageSuffix = " - 소개";
         else if (location.pathname.includes('/programs')) pageSuffix = " - 프로그램";
         else if (location.pathname.includes('/contact')) pageSuffix = " - 오시는길";

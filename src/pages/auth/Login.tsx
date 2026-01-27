@@ -346,7 +346,15 @@ export function Login() {
                                     )}>
                                         비밀번호
                                     </label>
-                                    {/* 비밀번호를 잊으셨나요? 링크 제거 */}
+                                    <Link
+                                        to={slug ? `/centers/${slug}/forgot-password` : "/forgot-password"}
+                                        className={cn(
+                                            "text-xs font-bold hover:underline opacity-80",
+                                            isDark ? "text-slate-500" : "text-slate-400"
+                                        )}
+                                    >
+                                        비밀번호 변경(분실)
+                                    </Link>
                                 </div>
                                 <input
                                     id="password"
@@ -412,7 +420,35 @@ export function Login() {
                             ) : '이메일로 로그인'}
                         </button>
                     </form>
-                    {/* 계정 없으신가요? 및 다른 센터 찾기 섹션 제거 */}
+                    {/* Sign Up Section */}
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 text-center space-y-4">
+                        <p className={cn(
+                            "text-xs font-bold",
+                            isDark ? "text-slate-500" : "text-slate-400"
+                        )}>
+                            Zarada가 처음이신가요?
+                        </p>
+                        <Link
+                            to={slug ? `/centers/${slug}/register` : "/register"}
+                            className={cn(
+                                "flex w-full justify-center items-center py-4 px-4 text-sm font-black rounded-2xl border transition-all hover:scale-[1.02] active:scale-95",
+                                isDark
+                                    ? "border-slate-800 text-slate-300 hover:bg-slate-800"
+                                    : "border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
+                            )}
+                        >
+                            회원가입하고 시작하기
+                        </Link>
+
+                        {!slug && (
+                            <Link
+                                to="/"
+                                className="inline-block text-[11px] font-black uppercase tracking-widest text-indigo-500/50 hover:text-indigo-500 transition-colors"
+                            >
+                                통합 센터 검색으로 돌아가기
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
 

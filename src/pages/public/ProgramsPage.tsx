@@ -105,7 +105,7 @@ export function ProgramsPage() {
                             <motion.div
                                 key={idx}
                                 className={cn(
-                                    "group relative rounded-[50px] p-10 border transition-all duration-500 hover:-translate-y-3",
+                                    "group relative rounded-[50px] p-10 border transition-all duration-500 hover:-translate-y-3 flex flex-col h-full",
                                     isDark ? "bg-[#141620] border-white/5 hover:border-white/10" : "bg-white border-slate-100 shadow-2xl shadow-slate-200/50"
                                 )}
                                 initial={{ opacity: 0, y: 50 }}
@@ -117,12 +117,10 @@ export function ProgramsPage() {
                                 <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent group-hover:from-white/[0.02] transition-all rounded-[50px]"></div>
 
                                 <div
-                                    className="w-24 h-24 rounded-full flex items-center justify-center mb-10 transition-transform duration-500 group-hover:scale-110 relative"
+                                    className="w-24 h-24 rounded-full flex items-center justify-center mb-10 transition-transform duration-500 group-hover:scale-110 relative shrink-0"
                                     style={{ backgroundColor: brandColor + '10', color: brandColor }}
                                 >
                                     <IconComponent className="w-12 h-12" />
-                                    {/* Small floating pulse effect */}
-                                    <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: brandColor }}></div>
                                 </div>
 
                                 <h3 className={cn("text-2xl font-black mb-2 tracking-tight", isDark ? "text-white" : "text-slate-900")}>
@@ -131,14 +129,14 @@ export function ProgramsPage() {
                                 <p className="text-xs font-black uppercase tracking-widest opacity-30 mb-6">{program.eng}</p>
 
                                 <p className={cn(
-                                    "text-base font-medium leading-relaxed mb-10 opacity-60",
+                                    "text-base font-medium leading-relaxed mb-10 opacity-60 flex-1",
                                     isDark ? "text-slate-400" : "text-slate-500"
                                 )} style={{ wordBreak: 'keep-all' }}>
                                     {program.desc}
                                 </p>
 
                                 <div className={cn(
-                                    "p-6 rounded-[32px] border transition-colors",
+                                    "p-6 rounded-[32px] border transition-colors mt-auto",
                                     isDark ? "bg-white/5 border-white/5 group-hover:bg-white/10" : "bg-slate-50 border-slate-100"
                                 )}>
                                     <h4 className={cn("font-black text-[10px] mb-4 uppercase tracking-[0.2em] opacity-40", isDark ? "text-white" : "text-slate-900")}>추천 대상</h4>

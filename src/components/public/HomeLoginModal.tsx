@@ -236,15 +236,47 @@ export function HomeLoginModal({ isOpen, onClose, centerName = "아동발달센�
                                     type="submit"
                                     disabled={loading}
                                     className={cn(
-                                        "w-full py-4 rounded-2xl font-black text-white text-sm shadow-lg transition-all",
+                                        "w-full py-4 rounded-2xl font-black text-white text-sm shadow-lg transition-all mb-4",
                                         "bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98]",
                                         loading && "opacity-70 cursor-wait"
                                     )}
                                 >
                                     {loading ? '로그인 중...' : '로그인'}
                                 </button>
+
+                                <div className="flex flex-col gap-3 pt-2">
+                                    <div className="flex items-center justify-between px-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const slug = window.location.pathname.split('/')[2];
+                                                navigate(slug ? `/centers/${slug}/forgot-password` : '/forgot-password');
+                                                onClose();
+                                            }}
+                                            className={cn("text-xs font-bold hover:underline", isDark ? "text-slate-500" : "text-slate-400")}
+                                        >
+                                            비밀번호 변경(분실)
+                                        </button>
+                                        <span className={cn("text-[10px] font-black uppercase tracking-widest", isDark ? "text-slate-700" : "text-slate-200")}>Security</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const slug = window.location.pathname.split('/')[2];
+                                            navigate(slug ? `/centers/${slug}/register` : '/register');
+                                            onClose();
+                                        }}
+                                        className={cn(
+                                            "w-full py-3.5 rounded-2xl font-black text-xs border transition-all",
+                                            isDark
+                                                ? "border-slate-800 text-slate-300 hover:bg-slate-800"
+                                                : "border-slate-100 text-slate-600 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        처음이신가요? 회원가입하기
+                                    </button>
+                                </div>
                             </form>
-                            {/* 계정 안내 섹션 제거 */}
                         </motion.div>
                     </div>
                 </>

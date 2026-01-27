@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -70,7 +68,20 @@ export function ForgotPassword() {
                     </form>
 
                     <div className="mt-6 text-center">
-                        <Link to="/login" className={cn("text-xs font-bold hover:underline", isDark ? "text-slate-400" : "text-slate-500")}>로그인 페이지로 돌아가기</Link>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const slug = window.location.pathname.split('/')[2];
+                                if (slug && window.location.pathname.includes('/centers/')) {
+                                    window.history.back();
+                                } else {
+                                    window.location.href = '/login';
+                                }
+                            }}
+                            className={cn("text-xs font-bold hover:underline", isDark ? "text-slate-400" : "text-slate-500")}
+                        >
+                            로그인 페이지로 돌아가기
+                        </button>
                     </div>
                 </div>
             </div>

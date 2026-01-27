@@ -299,23 +299,94 @@ export const GlobalLanding = () => {
                 </div>
             </main>
 
-            {/* ✨ Clean Footer */}
-            <footer className="py-24 px-8 text-center bg-white border-t border-slate-50">
-                <div className="max-w-4xl mx-auto space-y-10">
-                    <div className="flex justify-center items-center gap-16 grayscale opacity-25 select-none">
-                        <div className="text-slate-400 font-black text-3xl tracking-tighter">NAVER</div>
-                        <div className="text-slate-400 font-black text-3xl tracking-tighter">GOOGLE</div>
+            {/* 🤝 Partners Section (White Area) */}
+            <div className="py-24 bg-white">
+                <div className="flex justify-center items-center gap-16 grayscale opacity-30 select-none">
+                    <div className="text-slate-300 font-black text-3xl tracking-tighter">NAVER</div>
+                    <div className="text-slate-300 font-black text-3xl tracking-tighter">GOOGLE</div>
+                </div>
+            </div>
+
+            {/* 🏗️ Corporate Footer */}
+            <footer className="py-24 px-8 bg-[#1B1D25] text-white relative">
+                <div className="max-w-6xl mx-auto">
+                    {/* Main Content Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 pb-16 border-b border-white/5 items-start">
+
+                        {/* 1. Brand Section */}
+                        <div className="md:col-span-4 space-y-8">
+                            <a
+                                href="https://zarada.co.kr/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 group w-fit"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white transition-all group-hover:scale-110 shadow-lg shadow-indigo-500/20">
+                                    <LayoutGrid size={22} />
+                                </div>
+                                <span className="text-2xl font-black tracking-tighter group-hover:text-indigo-400 transition-colors">Zarada</span>
+                            </a>
+                            <p className="text-sm text-slate-400 font-bold leading-relaxed max-w-xs">
+                                아이들의 무한한 가능성을 데이터로 증명하는<br />
+                                차세대 아동발달센터 솔루션 Zarada입니다.
+                            </p>
+                        </div>
+
+                        {/* 2. Info Section (Separated by border) */}
+                        <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-10 gap-12 md:pl-16 md:border-l md:border-white/5">
+
+                            {/* OFFICE */}
+                            <div className="sm:col-span-5 space-y-6">
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-indigo-400/80">Office</h4>
+                                <ul className="space-y-4 text-[13px] text-slate-300 font-bold leading-relaxed">
+                                    <li className="grid grid-cols-[60px,1fr] gap-2">
+                                        <span className="text-slate-500">본사</span>
+                                        <span className="break-keep">경기도 성남시 수정구 청계산로4길 17, 4F</span>
+                                    </li>
+                                    <li className="grid grid-cols-[60px,1fr] gap-2">
+                                        <span className="text-slate-500">연구소</span>
+                                        <span className="break-keep">서울 송파구 석촌호수로12길 51 201호</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* CORP NO. */}
+                            <div className="sm:col-span-2 space-y-6">
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-indigo-400/80">Corp No.</h4>
+                                <p className="text-[13px] text-slate-300 font-bold tracking-wider">188 - 87 - 02240</p>
+                            </div>
+
+                            {/* CONTACT */}
+                            <div className="sm:col-span-3 space-y-6">
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-indigo-400/80">Contact</h4>
+                                <div className="space-y-4 text-[13px] text-slate-300 font-bold">
+                                    <div className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-3">
+                                        <div className="flex gap-2">
+                                            <span className="text-slate-500 w-4">T.</span>
+                                            <span className="whitespace-nowrap">02-2039-1167</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <span className="text-slate-500 w-4">F.</span>
+                                            <span className="whitespace-nowrap">070-7547-1177</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-indigo-400 font-black pt-1 hover:text-indigo-300 transition-colors cursor-pointer">office@zarada.co.kr</div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
+                </div>
 
-                    <div className="w-20 h-1 bg-indigo-50 mx-auto rounded-full" />
-
-                    <p className="text-sm font-bold text-slate-400">© 2026 Zarada Ltd. <span className="text-slate-300">Modern Infrastructure for Growth.</span></p>
-                    <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-4">
-                        <Link to="/policy/privacy" className="text-xs font-black text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-[0.2em]">Privacy Policy</Link>
-                        <Link to="/policy/terms" className="text-xs font-black text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-[0.2em]">Terms of Service</Link>
-                        <Link to="/login" className="flex items-center gap-2 text-xs font-black text-indigo-400/30 hover:text-indigo-600 transition-colors uppercase tracking-[0.2em]">
-                            Partner Admin
-                        </Link>
+                {/* Bottom Bar Container */}
+                <div className="max-w-6xl mx-auto pt-12 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <p className="text-xs font-black text-slate-500 tracking-tight">
+                        © Zarada Co., Ltd. All Rights Reserved.
+                    </p>
+                    <div className="flex items-center gap-8">
+                        <Link to="/policy/privacy" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Privacy Policy</Link>
+                        <Link to="/policy/terms" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Terms of Service</Link>
+                        <Link to="/login" className="px-4 py-1.5 rounded-full border border-white/5 text-[10px] font-black text-slate-500 hover:bg-white/5 hover:text-white transition-all uppercase tracking-widest">Partner Portal</Link>
                     </div>
                 </div>
             </footer>

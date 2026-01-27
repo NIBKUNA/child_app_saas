@@ -209,11 +209,9 @@ export function Register() {
                 {/* Close Button */}
                 <button
                     onClick={() => {
-                        // ✨ Intelligent Back Navigation
-                        // If we have history, go back (likely to Center Home).
-                        // If not, fallback to root.
-                        if (window.history.length > 1) {
-                            navigate(-1);
+                        const slug = window.location.pathname.split('/')[2];
+                        if (slug && window.location.pathname.includes('/centers/')) {
+                            navigate(`/centers/${slug}`);
                         } else {
                             navigate('/');
                         }
@@ -353,15 +351,23 @@ export function Register() {
                                 로그인
                             </Link>
                         </div>
-                        <Link
-                            to="/"
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const slug = window.location.pathname.split('/')[2];
+                                if (slug && window.location.pathname.includes('/centers/')) {
+                                    navigate(`/centers/${slug}`);
+                                } else {
+                                    navigate('/');
+                                }
+                            }}
                             className={cn(
-                                "block text-xs font-bold transition-colors",
+                                "block w-full text-xs font-bold transition-colors",
                                 isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600"
                             )}
                         >
-                            ← 홈으로 돌아가기
-                        </Link>
+                            ← 센터 홈으로 돌아가기
+                        </button>
                     </div>
                 </form>
             </div>
