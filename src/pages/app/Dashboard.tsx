@@ -242,16 +242,16 @@ export function Dashboard() {
     const [statusData, setStatusData] = useState([]);
     const [therapistData, setTherapistData] = useState([]);
     const [conversionData, setConversionData] = useState([]);
-    const [topPosts, setTopPosts] = useState([]);
     const [marketingData, setMarketingData] = useState([]);
     const [totalInflow, setTotalInflow] = useState(0);
     const [bestChannel, setBestChannel] = useState({ name: '-', value: 0 });
-    const [blogTrafficTotals, setBlogTrafficTotals] = useState<Record<string, number>>({}); // ✨ Blog traffic by source
     const [programData, setProgramData] = useState([]);
     const [ageData, setAgeData] = useState([]);
     const [genderData, setGenderData] = useState([]);
     const [topChildren, setTopChildren] = useState([]);
     const [channelConversionData, setChannelConversionData] = useState<{ name: string; total: number; converted: number; rate: number; color: string }[]>([]);
+    const [campaignData, setCampaignData] = useState<{ name: string; value: number }[]>([]); // ✨ Campaign Performance
+    const [avgLeadTime, setAvgLeadTime] = useState(0); // ✨ Lead Velocity (Days)
 
     const [exporting, setExporting] = useState(false);
 
@@ -401,8 +401,9 @@ export function Dashboard() {
             // Process site_visits for traffic source statistics
             // ✨ SNS 세분화: 개별 플랫폼으로 초기화
             const trafficMap: Record<string, number> = {
-                'Naver': 0, 'Google': 0, 'Youtube': 0,
-                'Instagram': 0, 'Facebook': 0, 'KakaoTalk': 0, 'Twitter/X': 0,
+                'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0,
+                'Instagram': 0, 'Youtube': 0, 'Facebook': 0, 'KakaoTalk': 0,
+                'Referral': 0, 'Signage': 0, 'Flyer': 0, 'Hospital': 0, 'Partnership': 0,
                 'Direct': 0, 'Others': 0
             };
             const blogTrafficMap: Record<string, Record<string, number>> = {}; // ✨ Blog Traffic Aggregation
@@ -471,15 +472,20 @@ export function Dashboard() {
 
             // ✨ SNS 세분화: 개별 플랫폼 색상 매핑
             const channelColors: Record<string, string> = {
-                'Naver': '#03C75A',
-                'Google': '#4285F4',
+                'Naver Blog': '#03C75A',
+                'Naver Place': '#00d2d2',
+                'Google Search': '#4285F4',
                 'Youtube': '#FF0000',
                 'Instagram': '#E1306C',
                 'Facebook': '#1877F2',
                 'KakaoTalk': '#FEE500',
-                'Twitter/X': '#1DA1F2',
+                'Referral': '#ec4899',
+                'Signage': '#8b5cf6',
+                'Flyer': '#f59e0b',
+                'Hospital': '#ef4444',
+                'Partnership': '#10b981',
                 'Direct': '#6366f1',
-                'Others': '#f59e0b'
+                'Others': '#94a3b8'
             };
 
             const marketingArr = Object.entries(trafficMap)
@@ -502,33 +508,6 @@ export function Dashboard() {
 
             if (marketingArr.length > 0) setBestChannel(marketingArr[0]);
 
-            // ✨ [POPULAR CONTENT] Fetch top blog posts by view count
-            const { data: topBlogPosts } = await (supabase as any)
-                .from('blog_posts')
-                .select('title, view_count, slug')
-                .eq('is_published', true)
-                .order('view_count', { ascending: false })
-                .limit(10);
-
-            setTopPosts(
-                topBlogPosts?.map((p: any) => ({
-                    name: p.title.length > 25 ? p.title.slice(0, 25) + '...' : p.title,
-                    value: p.view_count || 0,
-                    fullName: p.title, // ✨ For tooltip
-                    slug: p.slug,
-                    sources: blogTrafficMap[p.slug] || {} // ✨ Attach traffic sources
-                })) || []
-            );
-
-            // ✨ [Blog Traffic Totals] Aggregate all blog traffic by source
-            const blogTotals: Record<string, number> = {};
-            Object.values(blogTrafficMap).forEach((sources: Record<string, number>) => {
-                Object.entries(sources).forEach(([src, cnt]) => {
-                    blogTotals[src] = (blogTotals[src] || 0) + cnt;
-                });
-            });
-            setBlogTrafficTotals(blogTotals);
-
             // ✨ [LEADS CONVERSION ANALYSIS] Fetch LEADS data (from 'consultations' table)
             const { data: allLeads } = await (supabase as any)
                 .from('consultations')
@@ -537,12 +516,14 @@ export function Dashboard() {
                 .gte('created_at', monthsToShow[0] + '-01')
                 .lte('created_at', selectedMonth + '-31');
 
-            // ✨ [MONTHLY CONVERSION] Calculate conversion by month
+            // ✨ [HQ INTELLIGENCE] Lead Velocity & Campaign Deep Dive
             const monthlyLeadsMap: Record<string, { consults: number; converted: number }> = {};
             monthsToShow.forEach(m => monthlyLeadsMap[m] = { consults: 0, converted: 0 });
 
-            // ✨ [CHANNEL CONVERSION] Calculate conversion by marketing channel
             const channelLeadsMap: Record<string, { total: number; converted: number }> = {};
+            const campaignMap: Record<string, number> = {};
+            let leadTimeTotal = 0;
+            let leadTimeCount = 0;
 
             allLeads?.forEach((lead: any) => {
                 if (lead.created_at) {
@@ -551,25 +532,65 @@ export function Dashboard() {
                     // Monthly Trend Data
                     if (monthlyLeadsMap[m]) {
                         monthlyLeadsMap[m].consults++;
-                        // ✨ [운영지표] '최종 등록'은 상담 문의가 실제 아동 데이터와 연결되었을 때만 집계
-                        if (lead.child_id) {
-                            monthlyLeadsMap[m].converted++;
+                        if (lead.child_id) monthlyLeadsMap[m].converted++;
+                    }
+
+                    // ✨ [Campaign Analytics] Extract Campaign Name if available
+                    if (lead.marketing_source && lead.marketing_source.includes('Campaign: ')) {
+                        const campMatch = lead.marketing_source.match(/Campaign: ([^/|]*)/);
+                        if (campMatch && campMatch[1]) {
+                            const campName = campMatch[1].trim();
+                            campaignMap[campName] = (campaignMap[campName] || 0) + 1;
                         }
                     }
 
-                    // ✨ [FIX] Channel Conversion Data (Strictly Filtered by Selected Month)
-                    if (m === selectedMonth) {
-                        const channel = lead.marketing_source || lead.inflow_source || 'Direct';
-                        if (!channelLeadsMap[channel]) {
-                            channelLeadsMap[channel] = { total: 0, converted: 0 };
+                    // ✨ [Lead Velocity] Calculate days from Lead to Consultation Schedule
+                    // This requires finding a schedule for the same child_id or name
+                    // (Simplified logic: time to first schedule after lead date)
+                    if (lead.child_id && lead.created_at) {
+                        const firstSchedule = allSchedules?.find(s =>
+                            s.child_id === lead.child_id &&
+                            new Date(s.start_time) > new Date(lead.created_at)
+                        );
+                        if (firstSchedule) {
+                            const diffDays = Math.ceil((new Date(firstSchedule.start_time).getTime() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24));
+                            if (diffDays > 0 && diffDays < 100) { // Exclude outliers
+                                leadTimeTotal += diffDays;
+                                leadTimeCount++;
+                            }
                         }
+                    }
+
+                    // ✨ [CHANNEL CONVERSION] Handle Formatted Strings (Extract Main Channel)
+                    if (m === selectedMonth) {
+                        let channel = lead.inflow_source || 'Direct';
+
+                        // If marketing_source has standard formatting, extract main source
+                        if (lead.marketing_source && lead.marketing_source.includes('Source: ')) {
+                            const srcMatch = lead.marketing_source.match(/Source: ([^/|]*)/);
+                            if (srcMatch && srcMatch[1]) channel = srcMatch[1].trim();
+                        }
+
+                        if (!channelLeadsMap[channel]) channelLeadsMap[channel] = { total: 0, converted: 0 };
                         channelLeadsMap[channel].total++;
-                        if (lead.status === 'completed') {
+
+                        // Converted = became a child or status confirmed
+                        if (lead.child_id || lead.status === 'completed' || lead.status === 'converted') {
                             channelLeadsMap[channel].converted++;
                         }
                     }
                 }
             });
+
+            // Set HQ Lead Time
+            setAvgLeadTime(leadTimeCount > 0 ? Math.round(leadTimeTotal / leadTimeCount) : 0);
+
+            // Set Campaign Data
+            const campArr = Object.entries(campaignMap)
+                .map(([name, value]) => ({ name, value }))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10);
+            setCampaignData(campArr);
 
             // ✨ Set monthly conversion data for existing chart
             const conversionArr = monthsToShow.map(m => ({
@@ -783,50 +804,24 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                     </div>
-                </div>
-            )}
 
-            {slide === 1 && (
-                <div ref={marketingRef} className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                    <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl flex justify-between items-center relative overflow-hidden text-left">
-                        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-20 -mt-20" />
-                        <div className="relative z-10">
-                            <h3 className="text-3xl font-black mb-2 flex items-center gap-3">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
-                            <p className="text-indigo-200 font-bold text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
+                    {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED FROM MARKETING TO OPERATIONS */}
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-8">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
+                                    {SvgIcons.trendingUp("w-6 h-6 text-emerald-600 dark:text-emerald-400")}
+                                    채널별 유입 및 성과 분석
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">마케팅 채널별 유입 규모와 실제 상담 예약 전환 성과</p>
+                            </div>
                         </div>
-                        <div className="hidden lg:block relative z-10 bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/10 min-w-[280px]">
-                            <span className="block text-xs font-black mb-1 opacity-60 uppercase tracking-widest">DOMINANT SOURCE</span>
-                            <span className="block text-3xl font-black text-yellow-300">{bestChannel.name}</span>
-                        </div>
-                    </div>
-
-                    {/* ✨ [#1] Channel Leads Analysis - TOP, FULL WIDTH */}
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
-                            {SvgIcons.share("w-6 h-6 text-indigo-600 dark:text-indigo-400")}
-                            채널별 상세 유입 분석 (Leads)
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">우리 앱에 들어온 경로</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {marketingData.map((item, idx) => (
-                                <ChannelGridCard key={idx} channel={item} totalInflow={totalInflow} />
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED UP */}
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
-                            {SvgIcons.trendingUp("w-6 h-6 text-emerald-600 dark:text-emerald-400")}
-                            채널별 상담 예약 현황
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">마케팅 채널별 유입 → 상담 예약 접수 및 확정 성과</p>
 
                         {channelConversionData.length > 0 ? (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Chart 1: Conversion Rate (Main) */}
                                 <div className="h-[400px]">
-                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 현황</h4>
+                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 추이 및 전환율</h4>
                                     <ResponsiveContainer width="100%" height="90%">
                                         <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                                             <CartesianGrid stroke="#f1f5f9" vertical={false} />
@@ -853,17 +848,31 @@ export function Dashboard() {
                                 {/* Right Column: Volume Chart + Stats */}
                                 <div className="space-y-8">
                                     {/* Chart 2: Inquiry Volume (New) */}
-                                    <div className="h-[200px]">
-                                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 규모 (상담 문의)</h4>
+                                    <div className="h-[250px]">
+                                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중 분석 (Inflow)</h4>
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={channelConversionData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                                                <XAxis type="number" hide />
-                                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                                <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                                <Bar dataKey="total" name="문의 건수" fill="#818cf8" barSize={20} radius={[0, 4, 4, 0]}>
-                                                    <LabelList dataKey="total" position="right" style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} />
-                                                </Bar>
-                                            </BarChart>
+                                            <PieChart>
+                                                <Pie
+                                                    data={channelConversionData}
+                                                    dataKey="total"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={45}
+                                                    outerRadius={75}
+                                                    paddingAngle={5}
+                                                    stroke="none"
+                                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                                                >
+                                                    {channelConversionData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <RechartsTooltip
+                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                                                    itemStyle={{ fontWeight: '800', fontSize: '12px' }}
+                                                />
+                                            </PieChart>
                                         </ResponsiveContainer>
                                     </div>
 
@@ -881,7 +890,7 @@ export function Dashboard() {
                                                     <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{channel.name}</h4>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                            문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}</span>
+                                                            문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}건</span>
                                                         </span>
                                                         <span className="text-[10px] text-slate-300">|</span>
                                                         <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
@@ -903,63 +912,119 @@ export function Dashboard() {
                         ) : (
                             <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500">
                                 <p className="font-bold text-lg">상담 예약 데이터가 없습니다</p>
-                                <p className="text-sm mt-1">예약이 접수되면 채널별 현황이 표시됩니다</p>
+                                <p className="text-sm mt-1">문의가 접수되면 채널별 현황이 표시됩니다</p>
                             </div>
                         )}
                     </div>
+                </div>
+            )}
 
-                    {/* ✨ [#2] Blog Sections - BOTTOM, 2-COLUMN GRID, SMALLER */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Blog Traffic Sources */}
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                {SvgIcons.trendingUp("w-4 h-4 text-emerald-600 dark:text-emerald-400")}
-                                블로그 유입 경로 분석
+            {slide === 1 && (
+                <div ref={marketingRef} className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                    <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl flex justify-between items-center relative overflow-hidden text-left">
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-20 -mt-20" />
+                        <div className="relative z-10 space-y-4">
+                            <div>
+                                <h3 className="text-3xl font-black mb-2 flex items-center gap-3">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
+                                <p className="text-indigo-200 font-bold text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
+                            </div>
+                            <div className="flex gap-10 pt-6 border-t border-white/10">
+                                <div className="group relative">
+                                    <span className="flex items-center gap-1.5 text-[10px] font-black opacity-50 uppercase tracking-widest mb-1.5 cursor-help">
+                                        Lead Velocity
+                                        <div className={cn("w-3 h-3 rounded-full border border-current flex items-center justify-center text-[8px] opacity-70")}>i</div>
+                                    </span>
+                                    <span className="text-3xl font-black text-emerald-400 leading-none">{avgLeadTime}일</span>
+                                    {/* ✨ Tooltip Position Fixed: bottom-full to avoid clipping */}
+                                    <div className="absolute bottom-full left-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none transform translate-y-2 group-hover:translate-y-0">
+                                        <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 rotate-45"></div>
+                                        <p className="text-[11px] text-emerald-400 font-black mb-1.5 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            리드 처리 속되 (민첩성)
+                                        </p>
+                                        <p className="text-[10px] text-slate-300 leading-relaxed font-bold">문의 접수부터 첫 방문까지의 평균 시간입니다. 고객의 관심이 높을 때 얼마나 빠르게 응대했는지를 나타내며, 본사의 운영 관리 효율을 상징합니다.</p>
+                                    </div>
+                                </div>
+                                <div className="group relative">
+                                    <span className="flex items-center gap-1.5 text-[10px] font-black opacity-50 uppercase tracking-widest mb-1.5 cursor-help">
+                                        Active Campaigns
+                                        <div className={cn("w-3 h-3 rounded-full border border-current flex items-center justify-center text-[8px] opacity-70")}>i</div>
+                                    </span>
+                                    <span className="text-3xl font-black text-amber-400 leading-none">{campaignData.length}개</span>
+                                    {/* ✨ Tooltip Position Fixed: bottom-full to avoid clipping */}
+                                    <div className="absolute bottom-full left-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none transform translate-y-2 group-hover:translate-y-0">
+                                        <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 rotate-45"></div>
+                                        <p className="text-[11px] text-amber-400 font-black mb-1.5 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                            마케팅 캠페인 믹스
+                                        </p>
+                                        <p className="text-[10px] text-slate-300 leading-relaxed font-bold">현재 작동 중인 광고 프로모션의 개수입니다. 네이버 파워링크, 블로그 이벤트 등 활성화된 캠페인별 유입을 자동 추적합니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="hidden lg:block relative z-10 bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/10 min-w-[280px]">
+                            <span className="block text-xs font-black mb-1 opacity-60 uppercase tracking-widest">DOMINANT SOURCE</span>
+                            <span className="block text-3xl font-black text-yellow-300">{bestChannel.name}</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* ✨ [HQ] Deep Dive: Channel Breakdown (SUPER ADMIN ONLY) */}
+                        {isSuperAdmin && (
+                            <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                                <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
+                                    {SvgIcons.share("w-6 h-6 text-indigo-600 dark:text-indigo-400")}
+                                    채널별 유입 상세 데이터 (Intelligence)
+                                </h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {marketingData.map((item, idx) => (
+                                        <ChannelGridCard key={idx} channel={item} totalInflow={totalInflow} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
+                                {SvgIcons.trendingUp("w-6 h-6 text-amber-500")}
+                                캠페인 성과 믹스
                             </h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">어떤 플랫폼에서 블로그를 보러 들어왔는지</p>
-                            {Object.keys(blogTrafficTotals).length > 0 ? (
-                                <div className="space-y-2">
-                                    {Object.entries(blogTrafficTotals)
-                                        .filter(([source]) => source !== 'Direct' && source !== 'Direct/Other')
-                                        .sort(([, a], [, b]) => b - a)
-                                        .slice(0, 5)
-                                        .map(([source, count]) => {
-                                            const total = Object.values(blogTrafficTotals).reduce((a, b) => a + b, 0);
-                                            const percent = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
-                                            return (
-                                                <div key={source} className="flex items-center gap-3">
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{source}</span>
-                                                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{count}건 ({percent}%)</span>
-                                                        </div>
-                                                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                                            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${percent}%` }} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    {Object.entries(blogTrafficTotals).filter(([source]) => source !== 'Direct' && source !== 'Direct/Other').length === 0 && (
-                                        <p className="text-sm text-slate-400 dark:text-slate-500">플랫폼 유입 데이터 없음</p>
-                                    )}
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">진행 중인 광고 캠페인별 문의 기여도</p>
+
+                            {campaignData.length > 0 ? (
+                                <div className="space-y-4">
+                                    <div className="h-[200px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={campaignData} layout="vertical" margin={{ left: 0, right: 30 }}>
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                                <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={12}>
+                                                    <LabelList dataKey="value" position="right" style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+                                            <p className="text-[11px] font-bold text-slate-500 leading-relaxed">
+                                                💡 <span className="text-indigo-600 dark:text-indigo-400">캠페인 지능:</span> 수집된 UTM 파라미터를 기반으로 특정 홍보 이벤트의 문의 기여도를 추적합니다. '기타' 채널에서도 캠페인 태그가 있다면 이곳에 합산됩니다.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
-                                <p className="text-sm text-slate-400 dark:text-slate-500">데이터 없음</p>
+                                <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 space-y-2">
+                                    <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                                        <svg className="w-6 h-6 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <path d="M9 12l2 2 4-4" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-xs font-bold italic">활성 캠페인 데이터 없음</p>
+                                </div>
                             )}
                         </div>
-
-                        {/* Popular Content Chart */}
-                        <ChartContainer title="인기 콘텐츠 분석" icon={SvgIcons.bookOpen} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={topPosts} layout="vertical" margin={{ top: 60, right: 30, left: 20 }}>
-                                    <XAxis type="number" hide />
-                                    <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                    <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 6, 6, 0]} barSize={10} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
                     </div>
                 </div>
             )}

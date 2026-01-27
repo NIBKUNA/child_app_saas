@@ -21,17 +21,48 @@ export function SEOHead() {
     const location = useLocation();
     const { center } = useCenter(); // ✨ SaaS Context
 
+    const canonicalUrl = `${baseUrl}${location.pathname}`;
+
+    // 📍 [Local SEO] Extract Region from Address
+    const extractRegion = (addr: string) => {
+        if (!addr) return '';
+        const parts = addr.split(' ');
+        // 보통 '송파구', '성남시 수정구 위례동' 등에서 핵심 지역 키워드 추출
+        // 2~3번째 단어가 보통 구/동 단위 지역명
+        if (addr.includes('위례')) return '위례';
+        if (parts.length >= 2) return parts[1].replace(/[시군구]$/, '');
+        return '';
+    };
+
+    const region = center?.address ? extractRegion(center.address) : '';
+    const serviceKeywords = [
+        '아동발달센터',
+        '언어치료',
+        '감각통합치료',
+        '놀이치료',
+        '그룹치료',
+        '사회성수업',
+        '미술치료'
+    ];
+
+    // ✨ Dynamic Local Keywords (Region + Core Service)
+    const localKeywords = center ? serviceKeywords.map(k => `${region} ${k}`).join(', ') : '';
+
     // 🏗️ Determine Meta Data (Center Override vs Default)
-    const title = center ? center.name : defaultTitle;
-    const description = center?.name
-        ? `${center.name} - 전문 아동발달센터. ${defaultDescription}`
+    const title = center ? `${center.name}` : defaultTitle;
+
+    const description = center
+        ? `${region} ${center.name} - 전문 아동발달센터. ${serviceKeywords.slice(0, 3).join(', ')} 전문.`
         : defaultDescription;
+
+    const keywords = center
+        ? `${localKeywords}, ${defaultKeywords}`
+        : defaultKeywords;
+
     const ogImage = center?.logo_url || defaultOgImage;
     const businessName = center?.name || defaultBusinessName;
     const phone = center?.phone || defaultPhone;
     const address = center?.address || defaultAddress;
-
-    const canonicalUrl = `${baseUrl}${location.pathname}`;
 
     // 🏗️ Structured Data (JSON-LD)
     const jsonLd = {
@@ -104,7 +135,7 @@ export function SEOHead() {
         <Helmet>
             <title>{displayTitle}</title>
             <meta name="description" content={description} />
-            <meta name="keywords" content={defaultKeywords} />
+            <meta name="keywords" content={keywords} />
             {naverVerification && (
                 <meta name="naver-site-verification" content={naverVerification} />
             )}

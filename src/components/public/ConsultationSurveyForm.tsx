@@ -104,7 +104,8 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
         preferred_service: [],
         parent_name: initialData?.guardianName || '',
         phone: initialData?.guardianPhone || '',
-        relation: ''
+        relation: '',
+        discovery_path: '' // ✨ New Field
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -145,7 +146,7 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                 guardian_phone: formData.phone,
                 concern: `${formData.concern}\n\n[관리자 참고] 관계: ${formData.relation} / 장애진단: ${formData.diagnosis}`,
                 preferred_consult_schedule: formData.preferred_service.join(', '),
-                inflow_source: getSource() || 'Direct', // useTrafficSource hook result
+                inflow_source: formData.discovery_path || getSource() || 'Direct', // ✨ Priority: User Selection > Auto Detection
                 marketing_source: marketingInfo || null, // ✨ UTM Data Binding
                 status: 'pending',
                 created_at: new Date().toISOString()
@@ -370,6 +371,50 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                     className={inputClass}
                     onChange={e => setFormData({ ...formData, relation: e.target.value })}
                 />
+            </section>
+
+            {/* 4. 방문 경로 (Marketing Insight) */}
+            <section className="space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className={cn("p-2 rounded-xl", isDark ? "bg-indigo-900/30 text-indigo-400" : "bg-indigo-50 text-indigo-600")}>
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" />
+                            <circle cx="9" cy="7" r="4" stroke="currentColor" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" />
+                        </svg>
+                    </div>
+                    <h3 className={cn("text-xl font-black", isDark ? "text-white" : "text-slate-900")}>방문 경로</h3>
+                </div>
+                <div className="space-y-2">
+                    <label className={cn("text-sm font-black ml-1 block", isDark ? "text-slate-400" : "text-slate-400")}>
+                        저희 센터를 어떻게 알고 오셨나요? *
+                    </label>
+                    <select
+                        required
+                        className={selectClass}
+                        value={formData.discovery_path}
+                        onChange={e => setFormData({ ...formData, discovery_path: e.target.value })}
+                    >
+                        <option value="">방문 경로 선택</option>
+                        <optgroup label="온라인 채널">
+                            <option value="Naver Blog">네이버 블로그 / 포스트</option>
+                            <option value="Naver Place">네이버 지도 (플레이스)</option>
+                            <option value="Google Search">구글 검색</option>
+                            <option value="Instagram">인스타그램 / SNS</option>
+                        </optgroup>
+                        <optgroup label="오프라인 채널">
+                            <option value="Referral">지인 소개</option>
+                            <option value="Signage">센터 건물 간판 보고</option>
+                            <option value="Flyer">전단지 / 홍보물</option>
+                            <option value="Hospital">병원 연계 / 추천</option>
+                            <option value="Partnership">협약기관 / MOU</option>
+                        </optgroup>
+                        <optgroup label="기타">
+                            <option value="Others">기타</option>
+                        </optgroup>
+                    </select>
+                </div>
             </section>
 
             <button
