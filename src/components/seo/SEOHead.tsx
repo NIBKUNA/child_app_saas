@@ -12,6 +12,7 @@ export function SEOHead() {
         keywords: defaultKeywords,
         canonicalUrl: baseUrl,
         naverVerification,
+        googleVerification,
         phone: defaultPhone,
         address: defaultAddress,
         geo,
@@ -78,9 +79,9 @@ export function SEOHead() {
                 "address": {
                     "@type": "PostalAddress",
                     "streetAddress": address,
-                    "addressLocality": "Songpa-gu", // 필요시 이것도 환경변수화 가능
-                    "addressRegion": "Seoul",
-                    "postalCode": "05540",
+                    "addressLocality": region || "Seoul",
+                    "addressRegion": address.split(' ')[0] || "Seoul",
+                    "postalCode": "00000", // 우편번호 컬럼 추가 전까지 기본값 유지
                     "addressCountry": "KR"
                 },
                 "geo": {
@@ -138,6 +139,9 @@ export function SEOHead() {
             <meta name="keywords" content={keywords} />
             {naverVerification && (
                 <meta name="naver-site-verification" content={naverVerification} />
+            )}
+            {googleVerification && (
+                <meta name="google-site-verification" content={googleVerification} />
             )}
             <link rel="canonical" href={canonicalUrl} />
 
