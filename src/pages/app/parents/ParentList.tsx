@@ -7,7 +7,8 @@
  * 🖋️ Description: "부모님 계정(User Profiles) 전체 관리 페이지"
  */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { Helmet } from 'react-helmet-async';
 import { Search, User, Shield, Ban, CheckCircle, Mail, RotateCcw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,52 +18,50 @@ export function ParentList() {
     const [parents, setParents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('active'); // ✨ NEW: Filter Tab State
+    const [activeTab, setActiveTab] = useState('active');
+    const { center } = useCenter(); // ✨ SaaS: Center Context
 
     useEffect(() => {
-        fetchParents();
-    }, []);
+        if (center?.id) fetchParents();
+    }, [center?.id]);
 
     const fetchParents = async () => {
         setLoading(true);
         try {
-            const { data: profiles, error } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('role', 'parent')
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-
-            // ✨ [FIX] 정확한 부모-자녀 연결 로직
-            const profileIds = profiles.map(p => p.id);
-
-            // 2. 부모(parents) 테이블에서 프로필과 매칭되는 ID 가져오기
-            const { data: parentsData } = await supabase
-                .from('parents')
-                .select('id, profile_id')
-                .in('profile_id', profileIds);
-
-            // 3. 해당 부모 ID를 가진 자녀(children)들 가져오기
-            const parentIds = parentsData?.map(p => p.id) || [];
-            const { data: childrenData } = await supabase
+            // 1. Get Children in this Center first (SaaS Logic)
+            const { data: centerChildren } = await supabase
                 .from('children')
                 .select('id, name, parent_id')
-                .in('parent_id', parentIds);
+                .eq('center_id', center.id) // ✨ Filter by Center
+                .not('parent_id', 'is', null);
 
-            // 4. 프로필 -> 부모 -> 자녀 순으로 데이터 병합
-            const merged = profiles.map(p => {
-                const parentInfo = parentsData?.find(pd => pd.profile_id === p.id);
-                const parentChildren = parentInfo
-                    ? (childrenData?.filter(c => c.parent_id === parentInfo.id) || [])
-                    : [];
-                return {
-                    ...p,
-                    children: parentChildren
-                };
-            });
+            const parentIds = centerChildren?.map(c => c.parent_id) || [];
 
-            setParents(merged);
+            // 2. Fetch Profiles matching these parents (Only parents linked to this center's children)
+            // Or if we want ALL parents registered via this center (needs center_id on user_profiles too)
+            // For now, "Parents of children in this center" is the safest approach.
+            if (parentIds.length > 0) {
+                const { data: profiles, error } = await supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .in('id', parentIds)
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+
+                // Merge Children info
+                const merged = profiles.map(p => {
+                    const myChildren = centerChildren.filter(c => c.parent_id === p.id);
+                    return {
+                        ...p,
+                        children: myChildren
+                    };
+                });
+                setParents(merged);
+            } else {
+                setParents([]);
+            }
+
         } catch (error) {
             console.error('부모 목록 로딩 실패:', error);
         } finally {

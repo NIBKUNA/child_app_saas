@@ -14,9 +14,12 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, ArrowLeft, Save, ClipboardCheck, MessageSquare } from 'lucide-react';
 import { AssessmentFormModal } from '@/pages/app/children/AssessmentFormModal';
 
+import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+
 export default function SessionNote() {
     const { scheduleId } = useParams();
     const navigate = useNavigate();
+    const { center } = useCenter(); // ✨ Use Context
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -90,10 +93,30 @@ export default function SessionNote() {
         if (!sessionInfo) return null;
         setSaving(true);
         try {
+            // ✨ [Safety] Ensure Therapist ID exists. If missing in schedule, find mine.
+            let effectiveTherapistId = sessionInfo.therapist_id;
+
+            if (!effectiveTherapistId) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: myTherapist } = await supabase
+                        .from('therapists')
+                        .select('id')
+                        .eq('profile_id', user.id)
+                        .maybeSingle();
+
+                    if (myTherapist) {
+                        effectiveTherapistId = myTherapist.id;
+                        console.log('🩹 Fixed missing therapist_id with current user:', effectiveTherapistId);
+                    }
+                }
+            }
+
             const payload = {
+                center_id: center?.id, // ✨ Inject Center ID context
                 schedule_id: sessionInfo.id,
                 child_id: sessionInfo.child_id,
-                therapist_id: sessionInfo.therapist_id,
+                therapist_id: effectiveTherapistId, // Validated ID
                 session_date: sessionDate,
                 activities,
                 child_response: childResponse,
@@ -113,7 +136,7 @@ export default function SessionNote() {
             } else {
                 result = await (supabase.from('counseling_logs') as any)
                     .insert([payload])
-                    .select() // ✨ Important: Return the inserted row to get ID
+                    .select()
                     .single();
             }
 
@@ -121,7 +144,7 @@ export default function SessionNote() {
 
             if (result.data) {
                 savedId = result.data.id;
-                setNoteId(savedId); // Update state
+                setNoteId(savedId);
             }
 
             // Update Schedule Status to completed

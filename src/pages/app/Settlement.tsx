@@ -34,14 +34,15 @@ export function Settlement() {
 
     // ✨ [Fix] Missing State Definitions
     const [editingId, setEditingId] = useState<string | null>(null);
+    // ✨ [Fix] Use string for inputs to prevent "0" locking
     const [editForm, setEditForm] = useState({
         hire_type: 'freelancer',
-        base_salary: 0,
-        base_session_count: 0,
-        weekday: 0,
-        weekend: 0,
-        eval: 0,
-        consult: 0,
+        base_salary: '',
+        base_session_count: '',
+        weekday: '',
+        weekend: '',
+        eval: '',
+        consult: '',
         remarks: ''
     });
 
@@ -49,12 +50,12 @@ export function Settlement() {
         setEditingId(t.id);
         setEditForm({
             hire_type: t.hire_type || 'freelancer',
-            base_salary: t.base_salary || 0,
-            base_session_count: t.required_sessions || 0,
-            weekday: t.session_price_weekday || 0,
-            weekend: t.session_price_weekend || 0,
-            eval: t.evaluation_price || 0,
-            consult: t.incentive_price || 0,
+            base_salary: t.base_salary || '',
+            base_session_count: t.required_sessions || '',
+            weekday: t.session_price_weekday || '',
+            weekend: t.session_price_weekend || '',
+            eval: t.evaluation_price || '',
+            consult: t.incentive_price || '',
             remarks: t.remarks || ''
         });
     };
@@ -64,12 +65,12 @@ export function Settlement() {
         try {
             await supabase.from('therapists').update({
                 hire_type: editForm.hire_type,
-                base_salary: editForm.base_salary,
-                required_sessions: editForm.base_session_count,
-                session_price_weekday: editForm.weekday,
-                session_price_weekend: editForm.weekend,
-                evaluation_price: editForm.eval,
-                incentive_price: editForm.consult,
+                base_salary: Number(editForm.base_salary) || 0,
+                required_sessions: Number(editForm.base_session_count) || 0,
+                session_price_weekday: Number(editForm.weekday) || 0,
+                session_price_weekend: Number(editForm.weekend) || 0,
+                evaluation_price: Number(editForm.eval) || 0,
+                incentive_price: Number(editForm.consult) || 0,
                 remarks: editForm.remarks
             }).eq('id', id);
 
@@ -339,9 +340,9 @@ export function Settlement() {
 
                                             {(editForm.hire_type === 'fulltime' || t.system_role === 'staff' || t.system_role === 'admin') && (
                                                 <>
-                                                    <div><span className="text-xs text-slate-400">월 고정 급여 (원)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_salary} onChange={e => setEditForm({ ...editForm, base_salary: Number(e.target.value) })} /></div>
+                                                    <div><span className="text-xs text-slate-400">월 고정 급여 (원)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_salary} onChange={e => setEditForm({ ...editForm, base_salary: e.target.value })} placeholder="0" /></div>
                                                     {t.system_role !== 'staff' && (
-                                                        <div><span className="text-xs text-slate-400">기본 의무 회기 (회)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_session_count} onChange={e => setEditForm({ ...editForm, base_session_count: Number(e.target.value) })} /></div>
+                                                        <div><span className="text-xs text-slate-400">기본 의무 회기 (회)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_session_count} onChange={e => setEditForm({ ...editForm, base_session_count: e.target.value })} placeholder="0" /></div>
                                                     )}
                                                 </>
                                             )}
@@ -352,21 +353,21 @@ export function Settlement() {
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div className="col-span-1">
                                                         <span className="text-xs text-slate-400">{editForm.hire_type === 'fulltime' ? '초과 인센 단가' : '평일 수업 단가'}</span>
-                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekday} onChange={e => setEditForm({ ...editForm, weekday: Number(e.target.value) })} />
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekday} onChange={e => setEditForm({ ...editForm, weekday: e.target.value })} placeholder="0" />
                                                     </div>
                                                     <div className="col-span-1">
                                                         <span className="text-xs text-slate-400">주말 수업 단가</span>
-                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekend} onChange={e => setEditForm({ ...editForm, weekend: Number(e.target.value) })} />
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekend} onChange={e => setEditForm({ ...editForm, weekend: e.target.value })} placeholder="0" />
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div className="col-span-1">
                                                         <span className="text-xs text-slate-400">평가 수당</span>
-                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.eval} onChange={e => setEditForm({ ...editForm, eval: Number(e.target.value) })} />
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.eval} onChange={e => setEditForm({ ...editForm, eval: e.target.value })} placeholder="0" />
                                                     </div>
                                                     <div className="col-span-1">
                                                         <span className="text-xs text-slate-400">상담 수당</span>
-                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.consult} onChange={e => setEditForm({ ...editForm, consult: Number(e.target.value) })} />
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.consult} onChange={e => setEditForm({ ...editForm, consult: e.target.value })} placeholder="0" />
                                                     </div>
                                                 </div>
                                             </div>

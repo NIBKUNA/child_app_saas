@@ -329,7 +329,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             initialLoadComplete.current = false;
 
             // 깔끔한 상태를 위해 홈으로 이동 (필요 시 reload)
-            window.location.href = '/';
+            const currentSlug = localStorage.getItem('zarada_center_slug');
+            if (currentSlug) {
+                window.location.href = `/centers/${currentSlug}/login`;
+            } else {
+                window.location.href = '/';
+            }
         }
     };
 
