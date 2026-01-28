@@ -152,7 +152,8 @@ export function ConsultationList() {
 
             // 2. 일지가 없다면? -> 자동 생성 후 진행 (평가를 위해서는 일지 데이터가 부모여야 함)
             if (!targetLogId) {
-                if (!confirm(`해당 수업의 '[상담 일지]'가 아직 작성되지 않았습니다.\n\n빈 일지를 먼저 생성하고 평가를 작성하시겠습니까?`)) return;
+                const sessionDate = session.start_time.split('T')[0];
+                if (!confirm(`[${sessionDate}] 수업의 상담 일지가 아직 작성되지 않았습니다.\n\n해당 날짜로 빈 일지를 먼저 생성하고 평가를 작성하시겠습니까?`)) return;
 
                 const { data: newLog, error } = await supabase
                     .from('counseling_logs')

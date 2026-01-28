@@ -83,9 +83,10 @@ export function ParentLogsPage() {
                 .from('counseling_logs')
                 .select(`
                     *,
-                    therapists:therapist_id (name)
+                    therapists:therapist_id (name),
+                    development_assessments (summary)
                 `)
-                .order('session_date', { ascending: false }); // 수업 날짜 기준 정렬
+                .order('session_date', { ascending: false });
 
             // 관리자가 아니면 본인 아이 정보만 필터링
             if (profile?.role === 'admin' || profile?.role === 'super_admin') {
@@ -228,9 +229,9 @@ export function ParentLogsPage() {
                                             <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
                                                 <ChevronRight className="w-4 h-4" /> 선생님 소견 및 향후 계획
                                             </h4>
-                                            {latestSummary && (
+                                            {log.development_assessments?.[0]?.summary && (
                                                 <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap pl-1 mb-3 italic bg-indigo-50/50 p-3 rounded-xl">
-                                                    "📝 {latestSummary}"
+                                                    "📝 {log.development_assessments[0].summary}"
                                                 </p>
                                             )}
                                             {log.next_plan && (
