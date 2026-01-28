@@ -13,7 +13,7 @@
 // 이 파일은 시스템의 최상위 관리자 계정을 정의합니다.
 // 이 계정은 어떤 상황에서도 자동으로 admin 권한과 active 상태가 부여됩니다.
 
-export const SUPER_ADMIN_EMAILS = ['anukbin@gmail.com', 'zaradajoo@gmail.com'];
+export const SUPER_ADMIN_EMAILS = ['anukbin@gmail.com'];
 
 // Super Admin 여부 확인 함수
 export const isSuperAdmin = (email: string | null | undefined): boolean => {

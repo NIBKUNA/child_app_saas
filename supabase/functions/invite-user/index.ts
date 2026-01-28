@@ -12,35 +12,41 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-    console.log(`\n--- 🚀 [INVITE-USER] START ---`);
+    const logTag = `[INVITE-USER-${Math.random().toString(36).substring(7)}]`;
+    console.log(`\n--- 🚀 ${logTag} START ---`);
     console.log(`Method: ${req.method} | Time: ${new Date().toISOString()}`);
 
     if (req.method === "OPTIONS") {
+        console.log(`${logTag} 🛠️ [CORS] Handling OPTIONS request.`);
         return new Response("ok", { headers: corsHeaders });
     }
 
     try {
-        // 1. [Env Variables Check]
+        // 1. [Headers Logging]
+        const authHeader = req.headers.get('Authorization');
+        const originHeader = req.headers.get('origin');
+        console.log(`${logTag} 🌐 Origin: ${originHeader}`);
+        console.log(`${logTag} 🔑 Auth Header Present: ${!!authHeader} (${authHeader?.substring(0, 20)}...)`);
+
+        // 2. [Env Variables Check]
         const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-        // 🔑 최신 수동 시크릿(PRIVATE_SERVICE_ROLE_KEY)을 최우선으로 참조
         const supabaseServiceKey =
             Deno.env.get("PRIVATE_SERVICE_ROLE_KEY") ??
             Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
             Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
 
         if (!supabaseUrl || !supabaseServiceKey) {
-            console.error("❌ Critical: Environment variables missing.");
+            console.error(`${logTag} ❌ Critical: Environment variables missing.`);
             return new Response(JSON.stringify({
                 error: "Server configuration error",
                 details: "Missing SERVICE_ROLE_KEY. Please set PRIVATE_SERVICE_ROLE_KEY in secrets."
             }), { status: 500, headers: corsHeaders });
         }
 
-        // 2. [Auth] Identify Caller
-        const authHeader = req.headers.get('Authorization');
+        // 3. [Auth] Identify Caller
         if (!authHeader) {
-            console.error("❌ No Authorization header provided.");
-            return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), { status: 401, headers: corsHeaders });
+            console.error(`${logTag} ❌ No Authorization header provided.`);
+            return new Response(JSON.stringify({ error: "Unauthorized: Missing token in headers" }), { status: 401, headers: corsHeaders });
         }
 
         const supabaseClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
@@ -49,13 +55,16 @@ serve(async (req: Request) => {
 
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
         if (authError || !user) {
-            console.error("❌ getUser() failed:", authError?.message || "User not found");
-            return new Response(JSON.stringify({ error: "Unauthorized: Invalid or expired session" }), { status: 401, headers: corsHeaders });
+            console.error(`${logTag} ❌ getUser() failed: ${authError?.message || "User not found in session"}`);
+            return new Response(JSON.stringify({
+                error: "Unauthorized: Invalid or expired session",
+                details: authError?.message || "User session invalid"
+            }), { status: 401, headers: corsHeaders });
         }
 
-        console.log(`👤 Caller identified: ${user.email} (${user.id})`);
+        console.log(`${logTag} 👤 Caller identified: ${user.email} (${user.id})`);
 
-        // 3. [Admin Check] Use Service Role to bypass RLS
+        // 4. [Admin Check] Use Service Role to bypass RLS
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
             auth: { autoRefreshToken: false, persistSession: false }
         });
@@ -66,21 +75,21 @@ serve(async (req: Request) => {
             .eq("id", user.id)
             .maybeSingle();
 
-        const SUPER_ADMINS = ['anukbin@gmail.com', 'zaradajoo@gmail.com'];
+        const SUPER_ADMINS = ['anukbin@gmail.com'];
         const isSuperAdmin = SUPER_ADMINS.includes(user.email || '');
         const isAdmin = callerProfile?.role === 'admin';
 
-        console.log(`🔒 Permissions: isSuperAdmin=${isSuperAdmin}, isAdmin=${isAdmin}`);
+        console.log(`${logTag} 🔒 Permissions: isSuperAdmin=${isSuperAdmin}, isAdmin=${isAdmin}`);
 
         if (!isSuperAdmin && !isAdmin) {
-            console.error("❌ Permission Denied: Caller is neither SuperAdmin nor Admin.");
-            return new Response(JSON.stringify({ error: "Unauthorized: Access denied. Admin only." }), { status: 403, headers: corsHeaders });
+            console.error(`${logTag} ❌ Permission Denied: Caller is neither SuperAdmin nor Admin.`);
+            return new Response(JSON.stringify({ error: "Forbidden: Admin access required." }), { status: 403, headers: corsHeaders });
         }
 
-        // 4. [Target Info]
+        // 5. [Target Info Parsing]
         const payload = await req.json();
         const { email, name, role, center_id, redirectTo: clientRedirectTo, ...details } = payload;
-        const origin = req.headers.get("origin") || "https://app.myparents.co.kr";
+        const origin = originHeader || "https://app.myparents.co.kr";
         const finalRedirectTo = clientRedirectTo || `${origin}/auth/update-password`;
 
         if (!email) throw new Error("Target email is required.");
@@ -88,14 +97,14 @@ serve(async (req: Request) => {
         // 🛡️ Multi-Center Safety
         const targetCenterId = isSuperAdmin ? center_id : callerProfile?.center_id;
         if (!targetCenterId) {
-            console.error("❌ Center ID mission: Admin must have a center_id or be SuperAdmin.");
+            console.error(`${logTag} ❌ Center ID mission: Admin must have a center_id or be SuperAdmin.`);
             throw new Error("Target center identification failed.");
         }
 
-        console.log(`📧 Inviting: ${email} | Role: ${role} | Center: ${targetCenterId}`);
+        console.log(`${logTag} 📧 Inviting: ${email} | Role: ${role} | Center: ${targetCenterId}`);
 
-        // 5. [Send Invitation]
-        console.log(`🔎 Attempting to invite user: ${email}...`);
+        // 6. [Send Invitation]
+        console.log(`${logTag} 🔎 Attempting to invite user: ${email}...`);
 
         let finalUserId: string | null = null;
 
@@ -106,51 +115,46 @@ serve(async (req: Request) => {
         });
 
         if (inviteError) {
-            // If already registered, we don't treat it as a terminal error for the edge function
-            // but we need to find the existing User ID to sync the profile.
             if (inviteError.message.toLowerCase().includes("already")) {
-                console.log(`ℹ️ User ${email} already exists in Auth. Syncing profile only...`);
-
+                console.log(`${logTag} ℹ️ User ${email} already exists in Auth. Syncing profile only...`);
                 const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
                 finalUserId = listData?.users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase())?.id || null;
 
                 if (!finalUserId) {
-                    console.error("❌ Failed to find existing user ID after 422 error.");
+                    console.error(`${logTag} ❌ Failed to find existing user ID after 422 error.`);
                     throw new Error("User exists but could not be resolved.");
                 }
             } else {
-                console.error("❌ Supabase Auth Invitation Error:", inviteError.message);
+                console.error(`${logTag} ❌ Supabase Auth Invitation Error:`, inviteError.message);
                 throw inviteError;
             }
         } else {
-            console.log(`📧 Invitation email triggered successfully for: ${email}`);
+            console.log(`${logTag} 📧 Invitation email triggered successfully for: ${email}`);
             finalUserId = authData?.user?.id;
         }
 
         if (!finalUserId) throw new Error("Could not resolve target User ID.");
 
-        // 6. [Sync] Strict profile/center binding
-        console.log(`🔄 Syncing profile for ${finalUserId} to center ${targetCenterId}...`);
+        // 7. [Sync] Strict profile/center binding
+        console.log(`${logTag} 🔄 Syncing profile for ${finalUserId} to center ${targetCenterId}...`);
         const { error: syncError } = await supabaseAdmin
             .from("user_profiles")
             .upsert({
                 id: finalUserId,
                 email,
                 name,
-                role: role || 'therapist', // Fallback to therapist
+                role: role || 'therapist',
                 status: 'active',
                 center_id: targetCenterId
             }, { onConflict: 'id' });
 
         if (syncError) {
-            console.error("❌ Profile Sync Error:", syncError.message);
+            console.error(`${logTag} ❌ Profile Sync Error:`, syncError.message);
             throw syncError;
         }
 
-        // 🩺 Therapist/Staff specific table sync
-        // Sync to 'therapists' table if not a parent, so they show up in UI lists
         if (role !== 'parent') {
-            console.log(`🩺 Syncing to therapists table for role: ${role}`);
+            console.log(`${logTag} 🩺 Syncing to therapists table for role: ${role}`);
             const { error: thError } = await supabaseAdmin
                 .from("therapists")
                 .upsert({
@@ -161,11 +165,11 @@ serve(async (req: Request) => {
                     system_status: 'active',
                     ...details
                 }, { onConflict: 'email' });
-            if (thError) console.warn("⚠️ Staff table sync warning:", thError.message);
+            if (thError) console.warn(`${logTag} ⚠️ Staff table sync warning:`, thError.message);
         }
 
-        console.log(`✅ SUCCESS: ${email} invited to center ${targetCenterId}`);
-        console.log(`--- --- --- --- --- --- ---\n`);
+        console.log(`${logTag} ✅ SUCCESS: ${email} invited to center ${targetCenterId}`);
+        console.log(`--- ${logTag} FINISH ---\n`);
 
         return new Response(
             JSON.stringify({ message: "Success", userId: finalUserId }),
@@ -173,7 +177,7 @@ serve(async (req: Request) => {
         );
 
     } catch (error: any) {
-        console.error(`🔴 EXCEPTION: ${error.message}`);
+        console.error(`${logTag} 🔴 EXCEPTION: ${error.message}`);
         return new Response(JSON.stringify({ error: error.message }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 400,
