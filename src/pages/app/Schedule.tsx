@@ -105,8 +105,9 @@ export function Schedule() {
             let attendedLogIds = new Set();
             if (data && data.length > 0) {
                 // ✨ [Assessment Check] Fetch daily logs only if there are schedules
+                // daily_logs 대신 통합된 counseling_logs를 사용합니다.
                 const { data: logsData } = await supabase
-                    .from('daily_logs')
+                    .from('counseling_logs')
                     .select('schedule_id')
                     .in('schedule_id', data.map(s => s.id));
 
