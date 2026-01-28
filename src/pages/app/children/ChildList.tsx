@@ -28,6 +28,8 @@ export function ChildList() {
     const { center } = useCenter(); // ✨ Use center
     const centerId = center?.id;
 
+    const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
+
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedChildId, setSelectedChildId] = useState(null);
@@ -53,17 +55,22 @@ export function ChildList() {
 
     useEffect(() => {
         if (centerId) fetchChildren();
-    }, [centerId]);
+    }, [centerId, role, authTherapistId]);
 
     const fetchChildren = async () => {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('children')
-                .select(`
-                    *
-                `)
-                .eq('center_id', centerId) // ✨ [SECURITY] Enforce Center ID Filter
+                .select(`*`)
+                .eq('center_id', centerId)
                 .order('name');
+
+            // ✨ [권한 분리] 치료사는 본인이 담당하는 아동만 조회 가능
+            if (role === 'therapist' && authTherapistId) {
+                query = query.eq('therapist_id', authTherapistId);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             setChildren(data || []);

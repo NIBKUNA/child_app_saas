@@ -99,9 +99,14 @@ function SearchableSelect({ label, placeholder, options, value, onChange, requir
     );
 }
 
+import { useAuth } from '@/contexts/AuthContext'; // ✨ Import Auth Context
+
+// ... (SearchableSelect component unchanged)
+
 export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }) {
     const { center } = useCenter();
     const centerId = center?.id;
+    const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
 
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
@@ -150,25 +155,23 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             setChildrenList(childRes.data || []);
             setProgramsList(progRes.data || []);
 
-            // ✨ [Filter] 슈퍼 어드민 제외 로직 강화 (profile_id 연동 + 이메일 차단)
+            // ✨ [Filter] 슈퍼 어드민 제외 및 권한별 치료사 목록 필터링
             const profiles = profileRes.data || [];
             const rawTherapists = therRes.data || [];
 
-            const filteredTherapists = rawTherapists.filter(t => {
-                // 1. Centralized Super Admin Check (Email)
+            let filteredTherapists = rawTherapists.filter(t => {
                 if (isSuperAdmin(t.email)) return false;
-
-                // 2. Role Check via Linked Profile
                 if (t.profile_id) {
                     const profile = profiles.find(p => p.id === t.profile_id);
                     if (profile?.role === 'super_admin') return false;
                 }
-
-                // 3. ✨ [Ghost Record / Name Fix] Centralized check is always better, 
-                // but if email is missing, we still filter strictly if needed.
-                // However, based on the goal of removing hardcoding, we rely on isSuperAdmin.
                 return true;
             });
+
+            // ✨ [권한 분리] 치료사는 본인만 선택 가능하도록 제한
+            if (role === 'therapist' && authTherapistId) {
+                filteredTherapists = filteredTherapists.filter(t => t.id === authTherapistId);
+            }
 
             setTherapistsList(filteredTherapists);
 
@@ -232,7 +235,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 setFormData({
                     child_id: '',
                     program_id: '',
-                    therapist_id: therRes.data?.[0]?.id || '',
+                    therapist_id: (role === 'therapist' && authTherapistId) ? authTherapistId : (therRes.data?.[0]?.id || ''),
                     date: `${year}-${month}-${day}`,
                     start_time: timeStr === '00:00' ? '10:00' : timeStr,
                     end_time: timeStr === '00:00' ? '10:40' : calculateEndTime(timeStr, 40),

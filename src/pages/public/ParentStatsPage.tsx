@@ -28,6 +28,7 @@ export function ParentStatsPage() {
     const [children, setChildren] = useState<any[]>([]);
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     const [selectedChildName, setSelectedChildName] = useState<string>('');
+    const [therapistId, setTherapistId] = useState<string | null>(null);
     const [parentChecks, setParentChecks] = useState<Record<string, string[]>>({
         communication: [], social: [], cognitive: [], motor: [], adaptive: []
     });
@@ -55,11 +56,12 @@ export function ParentStatsPage() {
 
             if (profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'manager') {
                 if (!center?.id) { setLoading(false); return; }
-                const { data: childList } = await supabase.from('children').select('id, name').eq('center_id', center.id);
+                const { data: childList } = await supabase.from('children').select('id, name, therapist_id').eq('center_id', center.id);
                 setChildren(childList || []);
                 if (childList?.[0]) {
                     setSelectedChildId(childList[0].id);
                     setSelectedChildName(childList[0].name);
+                    setTherapistId(childList[0].therapist_id);
                     await loadChildStats(childList[0].id);
                 }
             } else {
@@ -67,17 +69,19 @@ export function ParentStatsPage() {
                 let childId = null;
                 const { data: parentRecord } = await supabase.from('parents').select('id').eq('profile_id', user.id).maybeSingle();
                 if (parentRecord) {
-                    const { data: directChild } = await supabase.from('children').select('id, name').eq('parent_id', (parentRecord as any).id).maybeSingle();
+                    const { data: directChild } = await supabase.from('children').select('id, name, therapist_id').eq('parent_id', (parentRecord as any).id).maybeSingle();
                     if (directChild) {
                         childId = (directChild as any).id;
                         setSelectedChildName((directChild as any).name);
+                        setTherapistId((directChild as any).therapist_id);
                     }
                 }
                 if (!childId) {
-                    const { data: rel } = await supabase.from('family_relationships').select('child_id, children(name)').eq('parent_id', user.id).maybeSingle();
+                    const { data: rel } = await supabase.from('family_relationships').select('child_id, children(name, therapist_id)').eq('parent_id', user.id).maybeSingle();
                     if (rel) {
                         childId = (rel as any).child_id;
                         setSelectedChildName((rel as any).children?.name);
+                        setTherapistId((rel as any).children?.therapist_id);
                     }
                 }
                 if (childId) {
@@ -95,7 +99,7 @@ export function ParentStatsPage() {
         }
     };
 
-    const loadChildStats = async (childId: string) => {
+    const loadChildStats = async (childId: string, shouldInitChecks = true) => {
         if (!childId) return;
         const { data } = await supabase
             .from('development_assessments')
@@ -106,8 +110,12 @@ export function ParentStatsPage() {
 
         setDevData(data || []);
 
+        // 만약 아이 정보를 다시 가져와서 배정 치료사 정보를 갱신해야 할 경우
+        const { data: childInfo } = await supabase.from('children').select('therapist_id').eq('id', childId).single();
+        if (childInfo) setTherapistId(childInfo.therapist_id);
+
         // ✨ 최신 리포트의 체크 항목을 부모 체크 상태로 초기화 (로드 시점)
-        if (data && data[0]) {
+        if (shouldInitChecks && data && data[0]) {
             const latestDetails = data[0].assessment_details || {};
             setParentChecks(latestDetails);
         }
@@ -133,6 +141,7 @@ export function ParentStatsPage() {
             const payload = {
                 center_id: center.id,
                 child_id: selectedChildId,
+                therapist_id: therapistId, // ✨ 배정된 치료사 ID 연동
                 evaluation_date: new Date().toISOString().split('T')[0],
                 score_communication: (parentChecks.communication?.length || 0),
                 score_social: (parentChecks.social?.length || 0),
@@ -148,7 +157,14 @@ export function ParentStatsPage() {
             if (error) throw error;
 
             alert("✅ 자가진단 결과가 성공적으로 저장되었습니다.\n성장 추이 그래프에서 변화를 확인해보세요!");
-            await loadChildStats(selectedChildId);
+
+            // ✨ [유저 요청] 저장 후 체크 리스트 초기화 (다음에 새로 체크할 수 있도록)
+            setParentChecks({
+                communication: [], social: [], cognitive: [], motor: [], adaptive: []
+            });
+
+            // 갱신 시 체크 항목 다시 채우지 않도록 false 전달
+            await loadChildStats(selectedChildId, false);
         } catch (e: any) {
             console.error(e);
             alert("저장 실패: " + e.message);

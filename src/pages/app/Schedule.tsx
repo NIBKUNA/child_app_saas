@@ -44,30 +44,45 @@ export function Schedule() {
     const [selectedTherapistIds, setSelectedTherapistIds] = useState(new Set(['all']));
     const [currentDate, setCurrentDate] = useState(new Date());
 
+    const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
+
     useEffect(() => {
         if (centerId && centerId.length >= 32) {
-            fetchSchedules(centerId);
+            fetchSchedules();
             fetchTherapists(centerId);
         }
-    }, [centerId]);
+    }, [centerId, authTherapistId, role]); // ✨ Added auth deps
 
     // ✨ [Therapist List] 치료사 목록 가져오기
     const fetchTherapists = async (targetId: string) => {
         if (!targetId || targetId.length < 32) return;
         const superAdminList = `("${SUPER_ADMIN_EMAILS.join('","')}")`;
-        const { data } = await supabase
+        let query = supabase
             .from('therapists')
             .select('id, name, color')
             .eq('center_id', targetId)
             .filter('email', 'not.in', superAdminList)
             .order('name');
+
+        // ✨ [권한 분리] 치료사는 카테고리 필터에서 자기 자신만 보거나 필터링 제한
+        if (role === 'therapist' && authTherapistId) {
+            query = query.eq('id', authTherapistId);
+        }
+
+        const { data } = await query;
         setTherapists(data || []);
+
+        // 치료사 권한이면 초기 선택값을 본인 ID로 고정
+        if (role === 'therapist' && authTherapistId) {
+            setSelectedTherapistIds(new Set([authTherapistId]));
+        }
     };
 
-    const fetchSchedules = async (targetId: string) => {
-        if (!targetId || targetId.length < 32) return;
+    const fetchSchedules = async () => {
+        if (!centerId || centerId.length < 32) return;
+        setLoading(true);
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('schedules')
                 .select(`
                     id, date, start_time, end_time, status, notes, service_type,
@@ -76,7 +91,16 @@ export function Schedule() {
                     programs (name),
                     therapists (name, color)
                 `)
-                .eq('center_id', targetId); // ✨ [Fix] 직접 center_id로 필터링 (성능 및 오류 방지)
+                .eq('center_id', centerId);
+
+            // ✨ [권한 분리] 행정직원(admin, manager, staff)은 전체 조회 가능
+            // 치료사(therapist)는 본인의 일정만 조회 가능
+            const isAdminStaff = ['admin', 'super_admin', 'manager', 'staff'].includes(role);
+            if (role === 'therapist' && authTherapistId) {
+                query = query.eq('therapist_id', authTherapistId);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
 

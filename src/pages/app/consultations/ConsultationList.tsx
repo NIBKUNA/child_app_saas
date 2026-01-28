@@ -116,11 +116,13 @@ export function ConsultationList() {
             const pending = sessions?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
             setTodoChildren(pending);
 
-            // 최근 작성된 발달 평가 목록
+            // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)
+            // ✨ [권한 분리] 부모님이 직접 작성한 '자가진단 기록'은 치료사 리스트에서 제외
             let assessQuery = supabase
                 .from('development_assessments')
                 .select('*, children!inner(id, name, center_id)')
-                .eq('children.center_id', centerId) // 🔒 Security Filter
+                .eq('children.center_id', centerId)
+                .not('summary', 'eq', '부모님 자가진단 기록') // ✨ [User Request] 부모 자가진단 제외
                 .order('created_at', { ascending: false })
                 .limit(20);
 
@@ -297,10 +299,14 @@ export function ConsultationList() {
                                         <td className="p-8 text-sm font-bold text-slate-500 dark:text-slate-400">{assess.evaluation_date || assess.created_at?.split('T')[0]}</td>
                                         <td className="p-8 text-base font-black text-slate-900 dark:text-white">{assess.children?.name || '아동'}</td>
                                         <td className="p-8 text-center">
-                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl font-black text-indigo-700 text-xs">
-                                                <BarChart3 className="w-3 h-3" />
-                                                평균 {calcAvg(assess)}점/5
-                                            </div>
+                                            {calcAvg(assess) > 0 ? (
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl font-black text-indigo-700 text-xs">
+                                                    <BarChart3 className="w-3 h-3" />
+                                                    평균 {calcAvg(assess)}점/5
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-300 font-bold italic">정기 상담 일지</span>
+                                            )}
                                         </td>
                                         <td className="p-8 text-right">
                                             <div className="flex items-center justify-end gap-2">
