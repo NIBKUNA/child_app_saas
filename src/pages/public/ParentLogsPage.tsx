@@ -78,13 +78,13 @@ export function ParentLogsPage() {
             }
 
             // 2. 상담 일지 조회 (치료사 이름 포함)
-            // ✨ consultations -> counseling_logs 로 테이블 변경
-            const query = supabase
+            let query = supabase
                 .from('counseling_logs')
                 .select(`
                     *,
                     therapists:therapist_id (name),
-                    development_assessments (summary)
+                    development_assessments (summary),
+                    children!inner(center_id)
                 `)
                 .order('session_date', { ascending: false });
 
@@ -95,20 +95,15 @@ export function ParentLogsPage() {
                     setLoading(false);
                     return;
                 }
-                // ✨ [Admin] Filter by Center using Inner Join
-                query.select(`
-                    *,
-                    therapists:therapist_id (name),
-                    children!inner(center_id)
-                `)
-                    .eq('children.center_id', center.id);
+                // ✨ [Admin] Filter by Center
+                query = query.eq('children.center_id', center.id);
             } else {
                 if (!targetChildId) {
                     setError("연결된 아이 정보가 없습니다.");
                     setLoading(false);
                     return;
                 }
-                query.eq('child_id', targetChildId);
+                query = query.eq('child_id', targetChildId);
             }
 
             const { data, error: fetchError } = await query;
