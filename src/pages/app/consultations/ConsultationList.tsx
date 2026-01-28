@@ -59,14 +59,26 @@ export function ConsultationList() {
             // therapists.profile_id = profiles.id = auth.users.id 이므로 profile_id로 조회
             let currentTherapistId = null;
             if (!isAdmin) {
-                // ✨ [FIX] Search by email because profile_id doesn't exist on therapists table
+                // ✨ [Improved] Search by profile_id (Canonical Link)
+                // 이메일 변경 시에도 연결이 유지되도록 profile_id를 우선 사용합니다.
                 const { data: therapist } = await supabase
                     .from('therapists')
                     .select('id')
-                    .eq('email', user.email)
+                    .eq('profile_id', user.id)
                     .maybeSingle();
 
                 currentTherapistId = therapist?.id;
+
+                // 🛡️ Fallback: 연결이 끊긴 경우 이메일로 재시도 (Legacy/Broken Link Support)
+                if (!currentTherapistId && user.email) {
+                    const { data: legacyTherapist } = await supabase
+                        .from('therapists')
+                        .select('id')
+                        .eq('email', user.email)
+                        .maybeSingle();
+                    currentTherapistId = legacyTherapist?.id;
+                }
+
                 if (!currentTherapistId) {
                     setTodoChildren([]);
                     setRecentAssessments([]);
