@@ -1,52 +1,41 @@
 // @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
- * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
- * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
- * -----------------------------------------------------------
- * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
- * 예술적 영감을 바탕으로 구축되었습니다.
- */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import {
-    ArrowLeft, Loader2, MessageSquare, Calendar,
-    User, Activity, Quote, ChevronRight
+    ChevronLeft, MessageSquare,
+    User, Activity, ChevronRight, X
 } from 'lucide-react';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import {
+    BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList
+} from 'recharts';
+import { useCenter } from '@/contexts/CenterContext';
 
 export function ParentLogsPage() {
     const navigate = useNavigate();
-    const { center } = useCenter(); // ✨ Context
+    const { center } = useCenter();
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [latestSummary, setLatestSummary] = useState<string | null>(null);
-    const [parentObservations, setParentObservations] = useState<any[]>([]);  // ✨ 부모 관찰 일기
+    const [parentObservations, setParentObservations] = useState<any[]>([]);
+    const [selectedLog, setSelectedLog] = useState<any>(null);
+    const [parentChecks, setParentChecks] = useState<Record<string, string[]>>({});
 
     useEffect(() => {
-        if (loading) fetchLogs();
-    }, [center]); // ✨ Refetch on center change if needed, but mainly initial mount
-
-    // Trigger initial fetch
-    useEffect(() => { fetchLogs(); }, []);
+        fetchLogs();
+    }, [center]);
 
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return setError("로그인이 필요합니다.");
+            const { data: authData } = await supabase.auth.getUser();
+            const user = authData?.user;
+            if (!user) return;
 
-            // 1. 프로필 및 아동 ID 확인 로직 (기존 유지)
             const { data: profile } = await supabase
-                .from('user_profiles') // Changed from 'profiles' to 'user_profiles' to match existing code
+                .from('user_profiles')
                 .select('role')
                 .eq('id', user.id)
-                .maybeSingle(); // Changed from .single() to .maybeSingle() for robustness
+                .maybeSingle();
 
             let targetChildId = null;
             const { data: parentRecord } = await supabase
@@ -59,9 +48,9 @@ export function ParentLogsPage() {
                 const { data: directChild } = await supabase
                     .from('children')
                     .select('id')
-                    .eq('parent_id', parentRecord.id)
+                    .eq('parent_id', (parentRecord as any).id)
                     .maybeSingle();
-                targetChildId = directChild?.id;
+                targetChildId = (directChild as any)?.id;
             }
 
             if (!targetChildId) {
@@ -70,16 +59,14 @@ export function ParentLogsPage() {
                     .select('child_id')
                     .eq('parent_id', user.id)
                     .maybeSingle();
-                targetChildId = rel?.child_id;
+                targetChildId = (rel as any)?.child_id;
             }
 
             if (!targetChildId) {
-                setError("연결된 아이 정보가 없습니다.");
                 setLoading(false);
                 return;
             }
 
-            // [핵심 변경] counseling_logs가 아닌 development_assessments를 직접 조회
             let query = supabase
                 .from('development_assessments')
                 .select(`
@@ -90,33 +77,23 @@ export function ParentLogsPage() {
                 .eq('child_id', targetChildId)
                 .order('evaluation_date', { ascending: false });
 
-            // 관리자 필터링 (기존 유지)
-            if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+            if ((profile as any)?.role === 'admin' || (profile as any)?.role === 'super_admin') {
                 if (center?.id) {
                     query = query.eq('children.center_id', center.id);
-                } else {
-                    setError("센터 정보가 없습니다.");
-                    setLoading(false);
-                    return;
                 }
             }
 
             const { data, error: fetchError } = await query;
             if (fetchError) throw fetchError;
 
-            // 데이터 변환 (UI 호환성 유지)
-            const formattedLogs = data?.map(assessment => ({
-                id: assessment.id,
+            const formattedLogs = (data as any[])?.map(assessment => ({
+                ...assessment,
                 session_date: assessment.evaluation_date,
-                created_at: assessment.created_at,
-                content: assessment.summary, // ✨ 이제 summary가 곧 일지 내용입니다.
-                therapists: assessment.therapists,
-                development_assessments: [assessment] // 하위 호환성 위해 배열로 감쌈
+                content: assessment.summary,
             }));
 
             setLogs(formattedLogs || []);
 
-            // ✨ 부모 관찰 일기 가져오기
             if (targetChildId) {
                 const { data: observations } = await supabase
                     .from('parent_observations')
@@ -129,114 +106,241 @@ export function ParentLogsPage() {
 
         } catch (e: any) {
             console.error("Logs fetch error:", e);
-            setError("기록을 불러오는 중 오류가 발생했습니다.");
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <div className="min-h-screen bg-[#FDFCFB] p-6 pb-20 font-sans">
-            <div className="max-w-2xl mx-auto">
-                {/* 상단 네비게이션 */}
-                <button
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 mb-8 font-black text-slate-400 hover:text-primary transition-all group"
-                >
-                    <div className="p-2 bg-white rounded-full shadow-sm group-hover:shadow-md transition-all">
-                        <ArrowLeft className="w-4 h-4" />
-                    </div>
-                    뒤로가기
-                </button>
+    const toggleParentCheck = (assessmentId: string, itemId: string) => {
+        setParentChecks(prev => {
+            const current = prev[assessmentId] || [];
+            const next = current.includes(itemId)
+                ? current.filter(id => id !== itemId)
+                : [...current, itemId];
+            return { ...prev, [assessmentId]: next };
+        });
+    };
 
-                <div className="flex items-center justify-between mb-10 px-2">
-                    <div className="flex items-center gap-4">
-                        <div className="p-4 bg-primary/10 rounded-[24px]">
-                            <MessageSquare className="w-7 h-7 text-primary" />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">성장 기록 일지</h2>
-                            <p className="text-sm text-slate-500 font-bold mt-1 uppercase tracking-widest">Growth Diary</p>
-                        </div>
-                    </div>
+    // 월별 그룹화
+    const groupedLogs = logs.reduce((acc: any, log) => {
+        const month = new Date(log.session_date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+        if (!acc[month]) acc[month] = [];
+        acc[month].push(log);
+        return acc;
+    }, {});
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#FDFCFB] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    <p className="text-slate-400 font-black animate-pulse">아이의 성장을 정리 중...</p>
                 </div>
+            </div>
+        );
+    }
 
+    return (
+        <div className="min-h-screen bg-[#FDFCFB] pb-32 font-sans overflow-x-hidden">
+            {/* Header */}
+            <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-5 flex justify-between items-center shadow-sm">
+                <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-all">
+                    <ChevronLeft className="w-6 h-6 text-slate-900" />
+                </button>
+                <h1 className="text-lg font-black text-slate-900 tracking-tight text-center flex-1">성장 기록 갤러리</h1>
+                <div className="w-10"></div>
+            </header>
 
-
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center p-20 gap-4">
-                        <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                        <p className="text-slate-400 font-black">아이의 소중한 시간을 찾는 중...</p>
-                    </div>
-                ) : logs.length > 0 ? (
-                    <div className="space-y-10">
-                        {logs.map((log) => (
-                            <div key={log.id} className="bg-white rounded-[48px] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-slate-50 overflow-hidden group hover:border-primary/20 transition-all duration-500">
-                                {/* 카드 헤더 */}
-                                <div className="p-8 bg-slate-50/50 flex justify-between items-center border-b border-slate-50">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                                            <Calendar className="w-5 h-5 text-primary" />
-                                        </div>
-                                        {/* ✨ 수업 일자 표시 */}
-                                        <span className="font-black text-slate-900 text-lg">
-                                            {log.session_date} 수업 기록
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-2xl shadow-sm border border-slate-100">
-                                        <User className="w-4 h-4 text-slate-400" />
-                                        <span className="text-xs font-black text-slate-600">{log.therapists?.name} 선생님</span>
-                                    </div>
-                                </div>
-
-                                {/* 상세 글 내용 */}
-                                <div className="p-8 space-y-6">
-                                    {/* ✨ 회기 일지 (상담 일지) */}
-                                    <div className="relative">
-                                        <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                                            <ChevronRight className="w-4 h-4" /> 회기 일지
-                                        </h4>
-                                        {log.content ? (
-                                            <div className="bg-indigo-50/50 p-6 rounded-[32px] border border-indigo-100/30">
-                                                <p className="text-slate-700 font-bold leading-relaxed whitespace-pre-wrap text-[16px] tracking-tight">
-                                                    {log.content}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
-                                                <p className="text-slate-400 text-sm italic">작성된 일지 내용이 없습니다.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+            <main className="max-w-4xl mx-auto p-6 space-y-12">
+                {Object.keys(groupedLogs).length > 0 ? (
+                    Object.entries(groupedLogs).map(([month, monthLogs]: [string, any]) => (
+                        <section key={month} className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-xl font-black text-slate-900 whitespace-nowrap">{month}</h2>
+                                <div className="h-px flex-1 bg-slate-100"></div>
                             </div>
-                        ))}
-                    </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {monthLogs.map((log: any) => (
+                                    <div
+                                        key={log.id}
+                                        onClick={() => setSelectedLog(log)}
+                                        className="group bg-white rounded-[40px] p-7 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-slate-100 hover:shadow-2xl hover:border-primary/20 transition-all duration-500 cursor-pointer relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-all duration-700"></div>
+
+                                        <div className="relative z-10 space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <div className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-2xl text-[11px] font-black">
+                                                    {new Date(log.session_date).toLocaleDateString('ko-KR', { day: 'numeric', weekday: 'short' })}
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{log.therapists?.name} 선생님</span>
+                                            </div>
+
+                                            <h3 className="text-slate-900 font-black text-lg line-clamp-1 group-hover:text-primary transition-colors pr-4">
+                                                {log.content || "기록된 일지가 없습니다."}
+                                            </h3>
+
+                                            <p className="text-slate-400 text-xs font-medium leading-relaxed line-clamp-2 italic opacity-80">
+                                                {log.content ? `"${log.content.slice(0, 60)}..."` : '터치하여 상세 내용을 확인하세요.'}
+                                            </p>
+
+                                            <div className="pt-2 flex items-center gap-1 text-primary font-black text-[10px] uppercase tracking-tighter">
+                                                자세히 보기 <ChevronRight className="w-3 h-3" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    ))
                 ) : (
-                    <div className="bg-white rounded-[56px] p-32 text-center border-2 border-dashed border-slate-100 shadow-sm">
-                        <MessageSquare className="w-16 h-16 text-slate-200 mx-auto mb-6" />
-                        <p className="text-slate-400 font-black text-lg italic">기록된 회기 일지가 없습니다.</p>
+                    <div className="py-20 text-center space-y-6">
+                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-4xl">🌱</div>
+                        <p className="text-slate-400 font-black text-lg">아직 기록된 성장의 순간이 없습니다.</p>
                     </div>
                 )}
-            </div>
 
-            {/* ✨ 부모 관찰 일기 기록함 */}
-            {parentObservations.length > 0 && (
-                <div className="max-w-2xl mx-auto mt-12 px-6">
-                    <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
-                        <span>📝</span> 내가 쓴 관찰 일기
-                    </h3>
-                    <div className="space-y-4">
-                        {parentObservations.map((obs) => (
-                            <div key={obs.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                                <p className="text-xs font-bold text-slate-400 mb-2">
-                                    {new Date(obs.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </p>
-                                <p className="text-sm text-slate-700 font-medium leading-relaxed">
-                                    {obs.content}
+                {/* 내가 쓴 관찰 일기 섹션 */}
+                {parentObservations.length > 0 && (
+                    <section className="pt-12 border-t border-slate-100">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-10 h-10 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 text-xl">📝</div>
+                            <h2 className="text-xl font-black text-slate-900">우리 아이 관찰 노트</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {parentObservations.map((obs) => (
+                                <div key={obs.id} className="bg-amber-50/30 p-6 rounded-[32px] border border-amber-100/30">
+                                    <p className="text-[10px] font-black text-amber-400 mb-3 tracking-widest uppercase">
+                                        {new Date(obs.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </p>
+                                    <p className="text-sm font-bold text-slate-600 leading-relaxed">"{obs.content}"</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+            </main>
+
+            {/* --- 상세 로그 & 인터랙티브 발달 리포트 모달 --- */}
+            {selectedLog && (
+                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/40 backdrop-blur-md p-0 md:p-6 animate-in fade-in duration-300">
+                    <div
+                        className="bg-white w-full max-w-2xl h-[92vh] md:h-auto md:max-h-[85vh] rounded-t-[48px] md:rounded-[48px] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-500"
+                    >
+                        {/* Modal Header */}
+                        <div className="px-8 py-7 bg-white border-b border-slate-50 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight">{selectedLog.session_date} 수업 리포트</h2>
+                                <p className="text-[11px] font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+                                    <User className="w-3 h-3" /> {selectedLog.therapists?.name} 선생님의 전문 기록
                                 </p>
                             </div>
-                        ))}
+                            <button onClick={() => setSelectedLog(null)} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-rose-500 transition-all active:scale-90">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto p-8 space-y-12 custom-scrollbar">
+                            {/* 1. 상담 일지 */}
+                            <section className="space-y-5">
+                                <div className="flex items-center gap-2 text-primary font-black text-[11px] uppercase tracking-[0.2em]">
+                                    <MessageSquare className="w-4 h-4" /> 회기 요약 일지
+                                </div>
+                                <div className="bg-primary/5 p-8 rounded-[40px] border border-primary/10">
+                                    <p className="text-slate-800 font-bold leading-relaxed text-[17px] whitespace-pre-wrap tracking-tight">
+                                        {selectedLog.content || '작성된 내용이 없습니다.'}
+                                    </p>
+                                </div>
+                            </section>
+
+                            {/* 2. 발달 체크리스트 (Parent Interactive) */}
+                            <section className="space-y-8 pt-8 border-t border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-indigo-400 font-black text-[11px] uppercase tracking-[0.2em]">
+                                        <Activity className="w-4 h-4" /> 상담 준비 체크리스트
+                                    </div>
+                                    <div className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black rounded-full italic">
+                                        💡 상담 시 궁금한 점을 터치하세요
+                                    </div>
+                                </div>
+
+                                {/* 발달 점수 그래프 */}
+                                <div className="bg-slate-50 rounded-[40px] p-8">
+                                    <div style={{ width: '100%', height: 260 }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                layout="vertical"
+                                                data={[
+                                                    { name: '의사소통', value: selectedLog.score_communication || 0 },
+                                                    { name: '사회성', value: selectedLog.score_social || 0 },
+                                                    { name: '인지', value: selectedLog.score_cognitive || 0 },
+                                                    { name: '운동', value: selectedLog.score_motor || 0 },
+                                                    { name: '적응', value: selectedLog.score_adaptive || 0 }
+                                                ].map((d, i) => ({ ...d, fill: ['#6366f1', '#ec4899', '#8b5cf6', '#f59e0b', '#10b981'][i] }))}
+                                                margin={{ right: 40, left: 10 }}
+                                            >
+                                                <XAxis type="number" domain={[0, 100]} hide />
+                                                <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fontWeight: 800, fill: '#64748b' }} axisLine={false} tickLine={false} width={65} />
+                                                <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={26}>
+                                                    <LabelList dataKey="value" position="right" formatter={(v) => `${v}%`} style={{ fontSize: 11, fontWeight: 900, fill: '#1e293b' }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                {/* 인터랙티브 항목들 */}
+                                <div className="space-y-4">
+                                    {selectedLog.assessment_details &&
+                                        Object.entries(selectedLog.assessment_details).map(([domain, items]: [string, any]) => (
+                                            items.length > 0 && (
+                                                <div key={domain} className="space-y-3">
+                                                    <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">{domain}</h5>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {items.map((item: string, idx: number) => {
+                                                            const itemId = `${domain}-${idx}`;
+                                                            const isChecked = parentChecks[selectedLog.id]?.includes(itemId);
+                                                            return (
+                                                                <button
+                                                                    key={itemId}
+                                                                    onClick={() => toggleParentCheck(selectedLog.id, itemId)}
+                                                                    className={`flex items-center gap-4 p-5 rounded-[28px] border transition-all duration-300 text-left ${isChecked
+                                                                        ? 'bg-primary/5 border-primary ring-4 ring-primary/5'
+                                                                        : 'bg-white border-slate-100'
+                                                                        }`}
+                                                                >
+                                                                    <div className={`w-8 h-8 rounded-2xl flex items-center justify-center transition-all ${isChecked ? 'bg-primary text-white rotate-[360deg]' : 'bg-slate-50 text-slate-300'}`}>
+                                                                        {isChecked ? <Activity className="w-4 h-4" /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />}
+                                                                    </div>
+                                                                    <span className={`text-[14px] font-bold ${isChecked ? 'text-primary' : 'text-slate-700'}`}>{item}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )
+                                        ))}
+                                </div>
+
+                                <div className="bg-indigo-50/50 p-6 rounded-[32px] border border-indigo-100/20 italic">
+                                    <p className="text-[11px] text-slate-500 font-bold leading-relaxed text-center">
+                                        체크하신 항목들은 대면 상담 시 선생님께 질문하실 리스트가 됩니다.
+                                    </p>
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-8 bg-white border-t border-slate-50 shrink-0">
+                            <button
+                                onClick={() => setSelectedLog(null)}
+                                className="w-full py-5 bg-slate-900 text-white rounded-[24px] font-black text-sm active:scale-95 transition-all shadow-xl hover:bg-black"
+                            >
+                                리포트 확인 완료
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
