@@ -156,7 +156,8 @@ export function Register() {
                     data: {
                         full_name: name,
                         role: finalRole,
-                        center_id: centerId
+                        // ✨ [ROBUST] Send null if empty string to avoid UUID cast error
+                        center_id: centerId || null
                     }
                 },
             });
