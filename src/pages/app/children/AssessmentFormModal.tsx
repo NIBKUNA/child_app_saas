@@ -208,14 +208,11 @@ export function AssessmentFormModal({
 
             let activeLogId = currentLogId;
 
-            // ✨ [CRITICAL FIX] Ensure log creation happens WITH schedule_id and linked correctly
+            // ✨ [CRITICAL FIX] Ensure log content is updated with what the therapist wrote
             if (!isEditMode && !activeLogId) {
                 if (!center?.id) throw new Error('센터 정보가 없어 상담 일지를 생성할 수 없습니다.');
 
-                // Use props explicitly: scheduleId, sessionDate
                 const finalDate = sessionDate || new Date().toISOString().split('T')[0];
-                console.log("Saving log for schedule:", scheduleId);
-
                 const { data: newLog, error: logError } = await supabase
                     .from('counseling_logs')
                     .insert({
@@ -224,20 +221,22 @@ export function AssessmentFormModal({
                         child_id: childId,
                         schedule_id: scheduleId,
                         session_date: finalDate,
-                        content: '발달 평가 작성을 위해 자동 생성된 기본 일지입니다.',
-                        activities: '평가 진행',
-                        child_response: '평가 진행'
+                        content: summary || '상담 진행', // ✨ [Change] 작성한 내용을 일지 테이블에 직접 저장
+                        activities: '평가/상담 진행',
+                        child_response: '평가/상담 진행'
                     })
                     .select()
                     .single();
 
-                if (logError) {
-                    console.error("Log Creation Error:", logError);
-                    throw new Error('상담 일지 자동 생성 실패: ' + logError.message);
-                }
-
+                if (logError) throw new Error('상담 일지 자동 생성 실패: ' + logError.message);
                 activeLogId = newLog.id;
-                payload.log_id = activeLogId; // ✨ 중요: 평가 데이터에 일지 ID 연동 보장
+                payload.log_id = activeLogId;
+            } else if (activeLogId) {
+                // ✨ [Update] 기존 일지가 있다면 그 일지의 내용도 현재 작성한 내용으로 동기화
+                await supabase
+                    .from('counseling_logs')
+                    .update({ content: summary })
+                    .eq('id', activeLogId);
             }
 
             let error;

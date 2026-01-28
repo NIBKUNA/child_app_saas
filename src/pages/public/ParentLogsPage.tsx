@@ -191,17 +191,19 @@ export function ParentLogsPage() {
                                         const assessment = Array.isArray(log.development_assessments)
                                             ? log.development_assessments[0]
                                             : log.development_assessments;
-                                        const summary = assessment?.summary;
+
+                                        // ✨ [Fix] 일지 자체의 content(이제 선생님 요약이 들어감)를 최우선으로 보여줌
+                                        const displayContent = log.content || assessment?.summary;
 
                                         return (
                                             <div className="relative">
                                                 <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
                                                     <ChevronRight className="w-4 h-4" /> 상담 일지 (회기 일지)
                                                 </h4>
-                                                {summary ? (
+                                                {displayContent && !displayContent.includes('자동 생성된 기본 일지') ? (
                                                     <div className="bg-indigo-50/50 p-6 rounded-[32px] border border-indigo-100/30">
                                                         <p className="text-slate-700 font-bold leading-relaxed whitespace-pre-wrap text-[16px] tracking-tight">
-                                                            {summary}
+                                                            {displayContent}
                                                         </p>
                                                     </div>
                                                 ) : (
