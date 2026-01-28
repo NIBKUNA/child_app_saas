@@ -9,6 +9,7 @@
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { Shield, Award, BookOpen, Heart, Mail, Phone, Link as LinkIcon, ChevronRight } from 'lucide-react';
 
 export function TherapistsPage() {
+    const navigate = useNavigate();
     const { getSetting } = useAdminSettings();
     const { center } = useCenter();
     const { theme } = useTheme();
