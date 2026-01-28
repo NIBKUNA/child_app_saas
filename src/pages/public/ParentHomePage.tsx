@@ -510,13 +510,17 @@ export function ParentHomePage() {
                             editable={false}
                             selectable={false}
                             eventContent={(eventInfo) => (
-                                <div className="flex items-center gap-1.5 py-1 px-1.5 truncate bg-transparent">
-                                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: eventInfo.backgroundColor }} />
-                                    <span className="text-[11px] font-black text-slate-800 truncate">{eventInfo.event.title.split(' (')[0]}</span>
-                                    <span className="text-[10px] font-bold text-slate-400 truncate">({eventInfo.event.title.split(' (')[1]?.replace(')', '')})</span>
+                                <div className="flex flex-col py-1 px-1.5 bg-transparent overflow-hidden">
+                                    <div className="flex items-center gap-1 mb-0.5">
+                                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: eventInfo.backgroundColor }} />
+                                        <span className="text-[10px] font-black text-slate-500 leading-none">{childInfo?.name}</span>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-slate-800 break-keep leading-tight">
+                                        {eventInfo.event.title}
+                                    </span>
                                 </div>
                             )}
-                            eventClick={(info) => alert(`${info.event.title}\n시간: ${info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
+                            eventClick={(info) => alert(`${childInfo?.name} 아동\n${info.event.title}\n시간: ${info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
                             noEventsContent="예정된 수업이 없습니다."
                         />
                     </div>
