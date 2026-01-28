@@ -56,12 +56,11 @@ export function ParentStatsPage() {
 
             if (profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'manager') {
                 if (!center?.id) { setLoading(false); return; }
-                const { data: childList } = await supabase.from('children').select('id, name, therapist_id').eq('center_id', center.id);
+                const { data: childList } = await supabase.from('children').select('id, name').eq('center_id', center.id);
                 setChildren(childList || []);
                 if (childList?.[0]) {
                     setSelectedChildId(childList[0].id);
                     setSelectedChildName(childList[0].name);
-                    setTherapistId(childList[0].therapist_id);
                     await loadChildStats(childList[0].id);
                 }
             } else {
@@ -69,19 +68,17 @@ export function ParentStatsPage() {
                 let childId = null;
                 const { data: parentRecord } = await supabase.from('parents').select('id').eq('profile_id', user.id).maybeSingle();
                 if (parentRecord) {
-                    const { data: directChild } = await supabase.from('children').select('id, name, therapist_id').eq('parent_id', (parentRecord as any).id).maybeSingle();
+                    const { data: directChild } = await supabase.from('children').select('id, name').eq('parent_id', (parentRecord as any).id).maybeSingle();
                     if (directChild) {
                         childId = (directChild as any).id;
                         setSelectedChildName((directChild as any).name);
-                        setTherapistId((directChild as any).therapist_id);
                     }
                 }
                 if (!childId) {
-                    const { data: rel } = await supabase.from('family_relationships').select('child_id, children(name, therapist_id)').eq('parent_id', user.id).maybeSingle();
+                    const { data: rel } = await supabase.from('family_relationships').select('child_id, children(name)').eq('parent_id', user.id).maybeSingle();
                     if (rel) {
                         childId = (rel as any).child_id;
                         setSelectedChildName((rel as any).children?.name);
-                        setTherapistId((rel as any).children?.therapist_id);
                     }
                 }
                 if (childId) {
@@ -110,9 +107,15 @@ export function ParentStatsPage() {
 
         setDevData(data || []);
 
-        // 만약 아이 정보를 다시 가져와서 배정 치료사 정보를 갱신해야 할 경우
-        const { data: childInfo } = await supabase.from('children').select('therapist_id').eq('id', childId).single();
-        if (childInfo) setTherapistId(childInfo.therapist_id);
+        // ✨ 배정 치료사 정보를 child_therapist 테이블에서 가져오기
+        const { data: ctInfo } = await supabase
+            .from('child_therapist')
+            .select('therapist_id')
+            .eq('child_id', childId)
+            .eq('is_primary', true)
+            .maybeSingle();
+
+        if (ctInfo) setTherapistId(ctInfo.therapist_id);
 
         // ✨ 최신 리포트의 체크 항목을 부모 체크 상태로 초기화 (로드 시점)
         if (shouldInitChecks && data && data[0]) {

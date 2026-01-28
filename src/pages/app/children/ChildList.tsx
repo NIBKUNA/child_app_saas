@@ -62,15 +62,21 @@ export function ChildList() {
             let query = supabase
                 .from('children')
                 .select(`*`)
-                .eq('center_id', centerId)
-                .order('name');
+                .eq('center_id', centerId);
 
             // ✨ [권한 분리] 치료사는 본인이 담당하는 아동만 조회 가능
             if (role === 'therapist' && authTherapistId) {
-                query = query.eq('therapist_id', authTherapistId);
+                // child_therapist 테이블과의 조인을 통해 필터링
+                const { data: assignments } = await supabase
+                    .from('child_therapist')
+                    .select('child_id')
+                    .eq('therapist_id', authTherapistId);
+
+                const assignedChildIds = assignments?.map(a => a.child_id) || [];
+                query = query.in('id', assignedChildIds);
             }
 
-            const { data, error } = await query;
+            const { data, error } = await query.order('name');
 
             if (error) throw error;
             setChildren(data || []);
