@@ -40,9 +40,10 @@ export function Schedule() {
     const [tooltipInfo, setTooltipInfo] = useState(null);
     const calendarRef = useRef(null);
 
-    // ✨ [Therapist Filter] 치료사 필터 상태
+    // ✨ [Therapist Filter] 치료사 필터 상태 (다중 선택 지원)
     const [therapists, setTherapists] = useState([]);
-    const [selectedTherapistId, setSelectedTherapistId] = useState('all');
+    const [selectedTherapistIds, setSelectedTherapistIds] = useState(new Set(['all']));
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     useEffect(() => {
         if (centerId && centerId.length >= 32) {
@@ -71,7 +72,7 @@ export function Schedule() {
             const { data, error } = await supabase
                 .from('schedules')
                 .select(`
-                    id, date, start_time, end_time, status, notes,
+                    id, date, start_time, end_time, status, notes, service_type,
                     child_id, therapist_id, program_id,
                     children!inner (name, center_id),
                     programs (name),
@@ -81,7 +82,36 @@ export function Schedule() {
 
             if (error) throw error;
 
+            // ✨ [Auto-Completion Logic]
+            // Mark past 'scheduled' events as 'completed' automatically
+            const now = new Date();
+            const pastScheduledIds = data
+                ?.filter(s => s.status === 'scheduled' && new Date(s.end_time) < now)
+                .map(s => s.id) || [];
 
+            if (pastScheduledIds.length > 0) {
+                console.log(`✅ [Auto-Sync] Completing ${pastScheduledIds.length} past schedules.`);
+                await supabase
+                    .from('schedules')
+                    .update({ status: 'completed' })
+                    .in('id', pastScheduledIds);
+
+                // Update local data to reflect the change
+                data.forEach(s => {
+                    if (pastScheduledIds.includes(s.id)) s.status = 'completed';
+                });
+            }
+
+            let attendedLogIds = new Set();
+            if (data && data.length > 0) {
+                // ✨ [Assessment Check] Fetch daily logs only if there are schedules
+                const { data: logsData } = await supabase
+                    .from('daily_logs')
+                    .select('schedule_id')
+                    .in('schedule_id', data.map(s => s.id));
+
+                attendedLogIds = new Set(logsData?.map(l => l.schedule_id) || []);
+            }
             if (data) {
                 const formattedEvents = data.map(schedule => {
                     const childName = schedule.children?.name || '미등록';
@@ -160,7 +190,7 @@ export function Schedule() {
         setSelectedScheduleId(null);
         setClickedDate(null);
         if (shouldRefresh) {
-            fetchSchedules();
+            fetchSchedules(centerId);
         }
     };
 
@@ -213,8 +243,36 @@ export function Schedule() {
                 .fc-timegrid-now-indicator-line { border-color: #ef4444; border-width: 2px; }
                 .fc-timegrid-now-indicator-arrow { border-color: #ef4444; border-width: 6px; }
                 .fc-event { cursor: pointer; border: none; }
-                .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 800 !important; }
-                .fc-button { font-weight: 700 !important; border-radius: 8px !important; text-transform: capitalize; }
+                .fc-toolbar-title { font-size: 1.4rem !important; font-weight: 900 !important; color: ${isDark ? '#fff' : '#0f172a'} !important; letter-spacing: -0.02em; }
+                .fc-button { 
+                    font-weight: 800 !important; 
+                    border-radius: 12px !important; 
+                    text-transform: capitalize; 
+                    padding: 8px 16px !important;
+                    transition: all 0.2s !important;
+                }
+                .fc-button-primary {
+                    background-color: ${isDark ? '#1e293b' : '#f8fafc'} !important;
+                    border-color: ${isDark ? '#334155' : '#e2e8f0'} !important;
+                    color: ${isDark ? '#94a3b8' : '#475569'} !important;
+                }
+                .fc-button-primary:hover {
+                    background-color: ${isDark ? '#334155' : '#f1f5f9'} !important;
+                    color: ${isDark ? '#fff' : '#0f172a'} !important;
+                }
+                .fc-button-active {
+                    background-color: #4f46e5 !important;
+                    border-color: #4f46e5 !important;
+                    color: #fff !important;
+                    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+                }
+                .fc-theme-standard .fc-scrollgrid { border-radius: 24px; overflow: hidden; border: 1px solid ${isDark ? '#334155' : '#f1f5f9'}; }
+                .fc-col-header-cell { padding: 12px 0 !important; background: ${isDark ? '#0f172a' : '#fdfdfd'}; text-transform: uppercase; letter-spacing: 1px; }
+                .fc-col-header-cell-cushion { font-size: 11px !important; font-weight: 900 !important; color: ${isDark ? '#64748b' : '#94a3b8'} !important; }
+                
+                .fc-daygrid-day-number { font-size: 13px !important; font-weight: 800 !important; padding: 12px !important; }
+                .fc-daygrid-day:hover { background-color: ${isDark ? '#1e293b' : '#f8fafc'} !important; }
+                
                 .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
                 
                 /* ✨ Mobile Calendar Optimization */
@@ -261,70 +319,97 @@ export function Schedule() {
                 }
             `}</style>
 
-            <div className={cn("gap-6 h-full flex flex-col pb-6 relative", isDark && "bg-slate-900")}>
-                <div className="flex justify-between items-end">
-                    <div>
-                        <h1 className={cn("text-3xl font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>치료 일정 관리</h1>
-                        <p className={cn("font-medium", isDark ? "text-slate-400" : "text-slate-500")}>선생님별 색상으로 일정을 확인하세요.</p>
-                    </div>
-                    <button onClick={handleNewEventClick} className={cn("flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all active:scale-95 shadow-sm", isDark ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-slate-900 text-white hover:bg-slate-800")}>
-                        <Plus className="w-5 h-5 stroke-[2.5]" /> 새 일정 등록
-                    </button>
-                </div>
+            <div className={cn("h-full flex flex-col relative", isDark && "bg-slate-900")}>
+                {/* Header removed and Button relocated to Sidebar for maximum vertical space */}
 
-                {/* ✨ [Therapist Filter] 치료사별 필터 - 드롭다운 */}
-                <div className={cn("flex items-center gap-4", isDark ? "text-slate-300" : "text-slate-600")}>
-                    <div className="flex items-center gap-2 text-sm font-bold">
-                        <Filter className="w-4 h-4" />
-                        <span>치료사 필터:</span>
-                    </div>
-                    <div className="relative">
-                        <select
-                            value={selectedTherapistId}
-                            onChange={(e) => setSelectedTherapistId(e.target.value)}
+                <div className="flex-1 flex gap-4 min-h-0 pt-4 pb-4">
+                    {/* 1. Left Sidebar - Fixed Category Filter + Register Button */}
+                    <aside className={cn(
+                        "w-56 flex flex-col gap-5 p-5 rounded-[32px] border transition-all relative",
+                        isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50"
+                    )}>
+                        {/* New Schedule Button inside Sidebar */}
+                        <button
+                            onClick={handleNewEventClick}
                             className={cn(
-                                "appearance-none pl-4 pr-10 py-2.5 rounded-xl font-bold text-sm border-2 cursor-pointer transition-all min-w-[180px]",
-                                isDark
-                                    ? "bg-slate-800 border-slate-700 text-white hover:border-slate-600 focus:border-indigo-500"
-                                    : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 focus:border-indigo-500"
+                                "flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg hover:-translate-y-0.5",
+                                isDark ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-900/20" : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200"
                             )}
-                            style={{
-                                borderLeftColor: selectedTherapistId !== 'all'
-                                    ? therapists.find(t => t.id === selectedTherapistId)?.color
-                                    : undefined,
-                                borderLeftWidth: selectedTherapistId !== 'all' ? '4px' : undefined
-                            }}
                         >
-                            <option value="all">👥 전체 치료사</option>
-                            {therapists.map(t => (
-                                <option key={t.id} value={t.id}>
-                                    {t.name}
-                                </option>
-                            ))}
-                        </select>
-                        <div className={cn("absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none", isDark ? "text-slate-400" : "text-slate-500")}>
-                            <Users className="w-4 h-4" />
-                        </div>
-                    </div>
-                    {selectedTherapistId !== 'all' && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: therapists.find(t => t.id === selectedTherapistId)?.color + '20' }}>
-                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: therapists.find(t => t.id === selectedTherapistId)?.color }} />
-                            <span className="text-sm font-bold" style={{ color: therapists.find(t => t.id === selectedTherapistId)?.color }}>
-                                {therapists.find(t => t.id === selectedTherapistId)?.name} 선생님
-                            </span>
-                            <button
-                                onClick={() => setSelectedTherapistId('all')}
-                                className="ml-1 text-slate-400 hover:text-slate-600"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                    )}
-                </div>
+                            <Plus className="w-5 h-5 stroke-[3]" /> 일정 등록
+                        </button>
 
-                <div className={cn("flex-1 p-2 md:p-6 rounded-3xl shadow-sm border relative z-0 flex flex-col overflow-hidden", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100")}>
-                    <div className="flex-1 overflow-hidden relative">
-                        <div className="w-full h-full">
+                        <div className="w-full h-px bg-slate-100 dark:bg-slate-800" />
+                        {/* Therapist Selection (Category Filter) */}
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-4 px-1">
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">치료사 카테고리</h3>
+                                <button
+                                    onClick={() => setSelectedTherapistIds(new Set(['all']))}
+                                    className="text-[10px] font-bold text-indigo-500 hover:underline"
+                                >
+                                    전체
+                                </button>
+                            </div>
+
+                            <div className="space-y-1.5 overflow-y-auto pr-1 no-scrollbar">
+                                <button
+                                    onClick={() => setSelectedTherapistIds(new Set(['all']))}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all",
+                                        selectedTherapistIds.has('all')
+                                            ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                                            : "hover:bg-slate-50 text-slate-500"
+                                    )}
+                                >
+                                    <div className={cn("w-2 h-2 rounded-full shrink-0", selectedTherapistIds.has('all') ? "bg-indigo-400" : "bg-slate-300")} />
+                                    <span className="truncate">전체 보기</span>
+                                </button>
+
+                                {therapists.map(t => {
+                                    const isSelected = selectedTherapistIds.has(t.id);
+                                    return (
+                                        <button
+                                            key={t.id}
+                                            onClick={() => {
+                                                const newSet = new Set(selectedTherapistIds);
+                                                if (newSet.has('all')) newSet.delete('all');
+                                                if (newSet.has(t.id)) {
+                                                    newSet.delete(t.id);
+                                                    if (newSet.size === 0) newSet.add('all');
+                                                } else {
+                                                    newSet.add(t.id);
+                                                }
+                                                setSelectedTherapistIds(newSet);
+                                            }}
+                                            className={cn(
+                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all text-left",
+                                                isSelected ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                            )}
+                                        >
+                                            <div
+                                                className="w-3.5 h-3.5 rounded-md border-2 transition-all flex items-center justify-center shrink-0"
+                                                style={{
+                                                    borderColor: t.color,
+                                                    backgroundColor: isSelected ? t.color : 'transparent'
+                                                }}
+                                            >
+                                                {isSelected && <Plus className="w-2 h-2 text-white rotate-45" />}
+                                            </div>
+                                            <span className="truncate">{t.name}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* 2. Main Calendar Content (Canvas Style) */}
+                    <div className={cn(
+                        "flex-1 flex flex-col min-w-0 rounded-[40px] border shadow-2xl relative overflow-hidden transition-all",
+                        isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-50 shadow-slate-200/50"
+                    )}>
+                        <div className="flex-1 p-2 flex flex-col">
                             <FullCalendar
                                 ref={calendarRef}
                                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -334,33 +419,54 @@ export function Schedule() {
                                 headerToolbar={{
                                     left: 'prev,next today',
                                     center: 'title',
-                                    right: window.innerWidth < 768 ? 'dayGridMonth,listWeek' : 'dayGridMonth,timeGridWeek,timeGridDay'
+                                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
                                 }}
-                                buttonText={{ today: '오늘', month: '월간', week: '주간', day: '일간', list: '목록' }}
-                                events={selectedTherapistId === 'all' ? events : events.filter(e => e.extendedProps.therapist_id === selectedTherapistId)}
+                                buttonText={{ today: '오늘', month: '월간', week: '주간', day: '일간' }}
+                                events={selectedTherapistIds.has('all')
+                                    ? events
+                                    : events.filter(e => selectedTherapistIds.has(e.extendedProps.therapist_id))}
                                 height="100%"
-                                dayMaxEvents={2} // ✨ 모바일에서 너무 많이 보이면 안됨
-                                eventClassNames="cursor-pointer hover:brightness-95 transition-all border-l-4 font-bold text-xs py-0.5 px-1 rounded-r-md shadow-sm truncate"
+                                dayMaxEvents={3}
+                                eventClassNames="cursor-pointer hover:brightness-95 transition-all border-0 font-bold text-xs p-0 rounded-lg shadow-sm overflow-hidden"
                                 eventClick={handleEventClick}
                                 dateClick={handleDateClick}
                                 eventMouseEnter={handleEventMouseEnter}
                                 eventMouseLeave={handleEventMouseLeave}
-                                selectable={window.innerWidth >= 768}
-                                selectMirror={window.innerWidth >= 768}
+                                selectable={true}
+                                selectMirror={true}
                                 select={(info) => { handleDateClick({ date: info.start }); info.view.calendar.unselect(); }}
-                                eventContent={(arg) => (
-                                    <div className="flex items-center gap-1.5 overflow-hidden w-full px-1 py-0.5">
-                                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: arg.event.extendedProps.color }} />
-                                        <div className="flex items-center gap-1 truncate min-w-0">
-                                            <span className={cn("text-[11px] font-black truncate", (arg.event.extendedProps.status === 'canceled' || arg.event.extendedProps.status === 'cancelled') && "line-through opacity-70")}>
-                                                {arg.event.extendedProps.childName}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-slate-500 truncate hidden sm:inline">
-                                                ({arg.event.extendedProps.programName})
-                                            </span>
+                                eventContent={(arg) => {
+                                    const isCancelled = arg.event.extendedProps.status === 'canceled' || arg.event.extendedProps.status === 'cancelled';
+                                    const color = arg.event.extendedProps.color;
+
+                                    return (
+                                        <div
+                                            className={cn(
+                                                "flex items-center h-full w-full px-2 py-1 gap-2 border-l-4",
+                                                isCancelled && "opacity-60 grayscale"
+                                            )}
+                                            style={{
+                                                backgroundColor: isDark ? `${color}15` : `${color}10`,
+                                                borderLeftColor: color
+                                            }}
+                                        >
+                                            <div className="flex flex-col min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={cn("text-[11px] font-black truncate", isDark ? "text-white" : "text-slate-800")}>
+                                                        {arg.event.extendedProps.childName}
+                                                    </span>
+                                                    {isCancelled && <span className="text-[9px] font-black text-rose-500">[취소]</span>}
+                                                </div>
+                                                <div className="flex items-center gap-1 opacity-70">
+                                                    <span className="text-[10px] font-bold truncate">
+                                                        {arg.event.extendedProps.programName}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {arg.event.extendedProps.hasNote && <FileText className="w-3 h-3 text-indigo-500 shrink-0" />}
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                }}
                             />
                         </div>
                     </div>

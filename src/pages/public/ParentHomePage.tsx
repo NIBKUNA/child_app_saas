@@ -85,30 +85,33 @@ export function ParentHomePage() {
             // ✨ [자녀 연결 감지] children + family_relationships 체크
             let child = null;
 
-            // 1. children.parent_id로 직접 연결된 자녀 체크
-            const { data: directChild } = await supabase
-                .from('children')
-                .select('*')
-                .eq('parent_id', user.id)
+            // 1. parents 테이블에서 프로필(user.id)에 해당하는 레코드 ID 찾기
+            const { data: parentRecord } = await supabase
+                .from('parents')
+                .select('id')
+                .eq('profile_id', user.id)
                 .maybeSingle();
 
-            if (directChild) {
-                child = directChild;
-            } else {
-                // 2. family_relationships 테이블에서 체크
+            // 2. children.parent_id (Legacy) 또는 family_relationships (New) 체크
+            if (parentRecord) {
+                const { data: directChild } = await supabase
+                    .from('children')
+                    .select('*')
+                    .eq('parent_id', parentRecord.id)
+                    .maybeSingle();
+                if (directChild) child = directChild;
+            }
+
+            if (!child) {
+                // 3. family_relationships 테이블에서 체크 (Junction)
                 const { data: relationship } = await supabase
                     .from('family_relationships')
-                    .select('child_id')
+                    .select('child_id, children(*)')
                     .eq('parent_id', user.id)
                     .maybeSingle();
 
-                if (relationship?.child_id) {
-                    const { data: relatedChild } = await supabase
-                        .from('children')
-                        .select('*')
-                        .eq('id', relationship.child_id)
-                        .maybeSingle();
-                    child = relatedChild;
+                if (relationship?.children) {
+                    child = relationship.children;
                 }
             }
 

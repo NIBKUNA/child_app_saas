@@ -70,31 +70,39 @@ export function ParentStatsPage() {
                     setError("등록된 아동이 없습니다.");
                 }
             } else {
-                // ✨ [FIX] 부모님: family_relationships 통해 연결된 자녀 조회
+                // ✨ [FIX] 부모님: parents 레코드 또는 family_relationships 통해 연결된 자녀 조회
                 let childId = null;
 
-                // 1. children.parent_id로 직접 연결된 자녀 체크
-                const { data: directChild } = await supabase
-                    .from('children')
-                    .select('id, name')
-                    .eq('parent_id', user.id)
+                // 1. parents 테이블에서 실제 ID 찾기
+                const { data: parentRecord } = await supabase
+                    .from('parents')
+                    .select('id')
+                    .eq('profile_id', user.id)
                     .maybeSingle();
 
-                if (directChild) {
-                    childId = directChild.id;
-                    setSelectedChildName(directChild.name || '아동');
-                } else {
+                if (parentRecord) {
+                    const { data: directChild } = await supabase
+                        .from('children')
+                        .select('id, name')
+                        .eq('parent_id', parentRecord.id)
+                        .maybeSingle();
+                    if (directChild) {
+                        childId = directChild.id;
+                        setSelectedChildName(directChild.name || '아동');
+                    }
+                }
+
+                if (!childId) {
                     // 2. family_relationships 테이블에서 체크
                     const { data: relationship } = await supabase
                         .from('family_relationships')
-                        .select('child_id')
+                        .select('child_id, children(name)')
                         .eq('parent_id', user.id)
                         .maybeSingle();
 
                     if (relationship?.child_id) {
-                        const { data: childData } = await supabase.from('children').select('id, name').eq('id', relationship.child_id).single();
-                        childId = childData?.id;
-                        setSelectedChildName(childData?.name || '아동');
+                        childId = relationship.child_id;
+                        setSelectedChildName(relationship.children?.name || '아동');
                     }
                 }
 

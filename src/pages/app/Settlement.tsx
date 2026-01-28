@@ -43,6 +43,7 @@ export function Settlement() {
         weekend: '',
         eval: '',
         consult: '',
+        incentive: '', // ✨ Added
         remarks: ''
     });
 
@@ -55,7 +56,8 @@ export function Settlement() {
             weekday: t.session_price_weekday || '',
             weekend: t.session_price_weekend || '',
             eval: t.evaluation_price || '',
-            consult: t.incentive_price || '',
+            consult: t.consult_price || '',
+            incentive: t.incentive_price || '', // ✨ Added
             remarks: t.remarks || ''
         });
     };
@@ -70,7 +72,8 @@ export function Settlement() {
                 session_price_weekday: Number(editForm.weekday) || 0,
                 session_price_weekend: Number(editForm.weekend) || 0,
                 evaluation_price: Number(editForm.eval) || 0,
-                incentive_price: Number(editForm.consult) || 0,
+                consult_price: Number(editForm.consult) || 0,
+                incentive_price: Number(editForm.incentive) || 0, // ✨ Added
                 remarks: editForm.remarks
             }).eq('id', id);
 
@@ -150,29 +153,50 @@ export function Settlement() {
 
             const { data: sessionData } = await supabase
                 .from('schedules')
-                .select('id, therapist_id, status, start_time, service_type')
+                .select('id, therapist_id, status, start_time, end_time, service_type')
                 .eq('center_id', centerId) // ✨ Security Filter
                 .gte('start_time', startDate)
-                .lt('start_time', endDate)
-                .eq('status', 'completed');
+                .lt('start_time', endDate);
+
+            // ✨ [Auto-Sync] Mark past 'scheduled' sessions as 'completed'
+            const now = new Date();
+            const pastScheduledIds = sessionData
+                ?.filter(s => s.status === 'scheduled' && new Date(s.end_time) < now)
+                .map(s => s.id) || [];
+
+            if (pastScheduledIds.length > 0) {
+                console.log(`💼 [Payroll Sync] Auto-completing ${pastScheduledIds.length} sessions for accurate settlement.`);
+                await supabase.from('schedules').update({ status: 'completed' }).in('id', pastScheduledIds);
+                // Update local status for calculation
+                sessionData.forEach(s => {
+                    if (pastScheduledIds.includes(s.id)) s.status = 'completed';
+                });
+            }
+
+            // Filter for calculation (only completed sessions)
+            const completedSessions = sessionData?.filter(s => s.status === 'completed') || [];
 
             // 3. Calculate (Advanced Engine)
             const calculatedList = staffData?.map(staff => {
-                const mySessions = sessionData?.filter(s => s.therapist_id === staff.id) || [];
+                const mySessions = completedSessions.filter(s => s.therapist_id === staff.id) || [];
 
                 // 📊 1. Count Sessions
                 let raw_weekday = 0;
                 let raw_weekend = 0;
                 let eval_count = 0;
+                let consult_count = 0;
 
                 mySessions.forEach(s => {
                     const date = new Date(s.start_time);
                     const day = date.getDay(); // 0: Sun, 6: Sat
                     const isWeekend = day === 0 || day === 6;
-                    const isEval = s.service_type === 'evaluation' || s.service_type === 'assessment'; // Check service types
+                    const isEval = s.service_type === 'evaluation' || s.service_type === 'assessment';
+                    const isConsult = s.service_type === 'counseling' || s.service_type === 'consultation';
 
                     if (isEval) {
                         eval_count++;
+                    } else if (isConsult) {
+                        consult_count++;
                     } else {
                         if (isWeekend) raw_weekend++;
                         else raw_weekday++;
@@ -180,13 +204,14 @@ export function Settlement() {
                 });
 
                 // 🏗️ 2. Apply Formula based on Hire Type
-                let revenue = 0; // Conceptual revenue (could be just sum of prices, but we calculate 'Payout' mainly)
+                let revenue = 0; // Conceptual revenue
                 let payout = 0;
                 let incentiveText = '';
 
                 const hireType = staff.hire_type || 'freelancer';
-                const evalPrice = staff.evaluation_price || 50000;
                 const baseSalary = staff.base_salary || 0;
+                const evalPrice = staff.evaluation_price || 50000;
+                const consultPrice = staff.consult_price || 0; // ✨ New Column
 
                 // 🏗️ 2. Apply Formula based on Role and Hire Type
                 if (staff.system_role === 'staff') {
@@ -195,34 +220,28 @@ export function Settlement() {
                     revenue = payout; // Admin staff is overhead
                     incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정직원)`;
                 } else if (hireType === 'fulltime' || hireType === 'regular' || staff.system_role === 'admin') {
-                    // Case B: Regular Staff/Admin (Specific Zarada Formula)
-                    // [Rules]
-                    // 1. Goal (required): 90 sessions (weighted)
-                    // 2. Weight: Weekday = 1, Weekend = 1.5
-                    // 3. Eval Weight: If < 90, Eval = 2 Achievement (to fill 1.9M quota)
-                    // 4. If > 90: Payout = 1.9M + (Excess α * 24k) + (Eval Count * 50k)
-
+                    // Case B: Regular Staff/Admin (Zarada Weighted Model)
                     const goal = staff.required_sessions || 90;
                     const incentivePrice = staff.incentive_price || 24000;
-                    const evalPrice = staff.evaluation_price || 50000;
 
-                    const base_weighted = raw_weekday + (raw_weekend * 1.5);
+                    // ✨ [Zarada Weighted Logic]
+                    // Weekday(1) + Weekend(1.5) + Eval(2) + Consult(1)
+                    const base_weighted = raw_weekday + (raw_weekend * 1.5) + (consult_count * 1.0);
                     const total_weighted = base_weighted + (eval_count * 2);
+
+                    const evalBonus = eval_count * evalPrice;
+                    const consultBonus = consult_count * consultPrice; // 상담별 특별 수당 (있을 경우)
 
                     if (total_weighted > goal) {
                         const excess = total_weighted - goal;
                         const incentive = excess * incentivePrice;
-                        const evalBonus = eval_count * evalPrice;
-
-                        payout = baseSalary + incentive + evalBonus;
-                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 인센티브 ${incentive.toLocaleString()} (초과 ${excess.toFixed(1)}회) + 평가수당 ${evalBonus.toLocaleString()}`;
+                        payout = baseSalary + incentive + evalBonus + consultBonus;
+                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 인센티브 ${incentive.toLocaleString()} (초과 ${excess.toFixed(1)}회) + 평가수당 ${evalBonus.toLocaleString()}${consultBonus > 0 ? ` + 상담수당 ${consultBonus.toLocaleString()}` : ''}`;
                     } else {
-                        // Under or Exactly at Goal
-                        payout = baseSalary;
-                        incentiveText = `기본급 ${baseSalary.toLocaleString()} (평일 ${raw_weekday} / 주말 ${raw_weekend} / 평가 ${eval_count})`;
+                        payout = baseSalary + evalBonus + consultBonus; // 목표 미달이어도 평가/상담 수당은 별도 지급 (센터 정책에 따름)
+                        incentiveText = `기본급 ${baseSalary.toLocaleString()} (평일:${raw_weekday}/주말:${raw_weekend}/상담:${consult_count}/평가:${eval_count})`;
                     }
                     revenue = payout / 0.6;
-
                 } else {
                     // Case C: Freelancer Therapist (Ratio-based)
                     const weekdayPrice = staff.session_price_weekday || 0;
@@ -231,10 +250,11 @@ export function Settlement() {
                     const weekdayPay = raw_weekday * weekdayPrice;
                     const weekendPay = raw_weekend * weekendPrice;
                     const evalPay = eval_count * evalPrice;
+                    const consultPay = consult_count * consultPrice;
 
-                    payout = weekdayPay + weekendPay + evalPay;
+                    payout = weekdayPay + weekendPay + evalPay + consultPay;
                     revenue = payout / 0.6;
-                    incentiveText = `평일(${raw_weekday}) ${weekdayPay.toLocaleString()} + 주말(${raw_weekend}) ${weekendPay.toLocaleString()} + 평가(${eval_count}) ${evalPay.toLocaleString()}`;
+                    incentiveText = `평일(${raw_weekday})${weekdayPay.toLocaleString()} + 주말(${raw_weekend})${weekendPay.toLocaleString()} + 평가(${eval_count})${evalPay.toLocaleString()} + 상담(${consult_count})${consultPay.toLocaleString()}`;
                 }
 
                 return {
@@ -248,7 +268,7 @@ export function Settlement() {
                         weekday: raw_weekday,
                         weekend: raw_weekend,
                         eval: eval_count,
-                        consult: 0 // Defaulting to 0 as it wasn't calculated separately in this logic
+                        consult: consult_count
                     }
                 };
             }) || [];
@@ -362,25 +382,31 @@ export function Settlement() {
                                         {t.system_role !== 'staff' && (
                                             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <div className="col-span-1">
-                                                        <span className="text-xs text-slate-400">평일 수업 단가</span>
+                                                    <div>
+                                                        <span className="text-xs text-slate-400 font-bold">평일 수업 단가</span>
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekday} onChange={e => setEditForm({ ...editForm, weekday: e.target.value })} placeholder="0" />
                                                     </div>
-                                                    <div className="col-span-1">
-                                                        <span className="text-xs text-slate-400">주말 수업 단가</span>
+                                                    <div>
+                                                        <span className="text-xs text-slate-400 font-bold">주말 수업 단가</span>
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekend} onChange={e => setEditForm({ ...editForm, weekend: e.target.value })} placeholder="0" />
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
-                                                    <div className="col-span-1">
-                                                        <span className="text-xs text-slate-400">평가 수당</span>
+                                                    <div>
+                                                        <span className="text-xs text-slate-400 font-bold">평가 수당</span>
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.eval} onChange={e => setEditForm({ ...editForm, eval: e.target.value })} placeholder="0" />
                                                     </div>
-                                                    <div className="col-span-1">
-                                                        <span className="text-xs text-slate-400">{editForm.hire_type === 'fulltime' ? '초과 인센티브' : '상담 수당'}</span>
+                                                    <div>
+                                                        <span className="text-xs text-slate-400 font-bold">상담 수당</span>
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.consult} onChange={e => setEditForm({ ...editForm, consult: e.target.value })} placeholder="0" />
                                                     </div>
                                                 </div>
+                                                {(editForm.hire_type === 'fulltime' || editForm.hire_type === 'regular' || t.system_role === 'admin') && (
+                                                    <div>
+                                                        <span className="text-xs text-slate-400 font-bold">초과 인센티브 (회당)</span>
+                                                        <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.incentive} onChange={e => setEditForm({ ...editForm, incentive: e.target.value })} placeholder="0" />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

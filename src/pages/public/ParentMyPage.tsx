@@ -50,17 +50,38 @@ export function ParentMyPage() {
         if (!user) return;
         setLoading(true);
         try {
-            // Fetch connected children via family_relationships
+            // 1. Fetch connected children via family_relationships
             const { data: relationships } = await supabase
                 .from('family_relationships')
                 .select('child_id, children:child_id(name, birth_date)')
                 .eq('parent_id', user.id);
 
-            if (relationships) {
-                // @ts-ignore
-                const flatChildren = relationships.map(r => r.children).flat().filter(Boolean);
-                setChildren(flatChildren);
+            // 2. Fetch connected children via parents table (Legacy)
+            const { data: parentRecord } = await supabase
+                .from('parents')
+                .select('id')
+                .eq('profile_id', user.id)
+                .maybeSingle();
+
+            let legacyChildren: any[] = [];
+            if (parentRecord) {
+                const { data } = await supabase
+                    .from('children')
+                    .select('name, birth_date')
+                    .eq('parent_id', parentRecord.id);
+                legacyChildren = data || [];
             }
+
+            // 3. Merge and deduplicate
+            const relChildren = (relationships || [])
+                .map(r => r.children)
+                .filter(Boolean);
+
+            // Deduplicate by name and birth_date since we don't necessarily have IDs for legacy here
+            const combined = [...relChildren, ...legacyChildren];
+            const uniqueChildren = Array.from(new Map(combined.map(c => [`${c.name}-${c.birth_date}`, c])).values());
+
+            setChildren(uniqueChildren);
         } catch (e) {
             console.error(e);
         } finally {

@@ -729,7 +729,7 @@ function SaveableInput({ label, initialValue, onSave, saving, placeholder, onCha
                         onChange={handleChange}
                         placeholder={placeholder}
                         className={cn(
-                            "w-full p-4.5 bg-slate-50 dark:bg-slate-800/50 border rounded-2xl outline-none font-bold text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all",
+                            "w-full py-6 px-8 bg-slate-50 dark:bg-slate-800/50 border rounded-[28px] outline-none font-bold text-lg text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all",
                             isChanged ? "border-amber-200 dark:border-amber-900/50 ring-4 ring-amber-500/5" : "border-slate-100 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5"
                         )}
                     />

@@ -93,8 +93,6 @@ export function Register() {
                         setEmail(existingProfile.email || session.user.email || '');
                         setName(existingProfile.name || '');
                         setCenterId(existingProfile.center_id);
-                        // 기존 역할을 유지하되, 수정 가능하게 함
-                        setRole(existingProfile.role || 'parent');
                         setError('⚠️ 현재 승인 대기 중인 계정입니다. 가입 유형을 학부모로 변경하면 즉시 이용 가능합니다.');
 
                         // 기존 상태가 pending이면 수정 폼을 보여주기 위해 여기서 return하지 않고 진행

@@ -50,15 +50,25 @@ export function ParentLogsPage() {
 
             // ✨ 본인 자녀 ID 찾기
             let targetChildId = null;
-            const { data: directChild } = await supabase
-                .from('children')
+
+            // 1. parents 테이블에서 실제 ID 찾기
+            const { data: parentRecord } = await supabase
+                .from('parents')
                 .select('id')
-                .eq('parent_id', user.id)
+                .eq('profile_id', user.id)
                 .maybeSingle();
 
-            if (directChild) {
-                targetChildId = directChild.id;
-            } else {
+            if (parentRecord) {
+                const { data: directChild } = await supabase
+                    .from('children')
+                    .select('id')
+                    .eq('parent_id', parentRecord.id)
+                    .maybeSingle();
+                if (directChild) targetChildId = directChild.id;
+            }
+
+            if (!targetChildId) {
+                // 2. family_relationships 테이블에서 체크
                 const { data: rel } = await supabase
                     .from('family_relationships')
                     .select('child_id')

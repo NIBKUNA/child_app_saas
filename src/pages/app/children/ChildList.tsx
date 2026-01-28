@@ -60,8 +60,7 @@ export function ChildList() {
             const { data, error } = await supabase
                 .from('children')
                 .select(`
-                    *,
-                    parent:user_profiles!children_parent_id_fkey(*)
+                    *
                 `)
                 .eq('center_id', centerId) // ✨ [SECURITY] Enforce Center ID Filter
                 .order('name');
@@ -193,10 +192,10 @@ export function ChildList() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-5">
-                                                {child.parent ? (
+                                                {child.parent_id ? (
                                                     <div className="flex items-center gap-2 text-emerald-600 font-black">
                                                         <LinkIcon className="w-3.5 h-3.5" />
-                                                        <span className="text-xs">{child.parent?.name || '보호자'} 계정</span>
+                                                        <span className="text-xs">부모 계정 연결됨</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 text-slate-300 font-bold">

@@ -39,19 +39,48 @@ export function ParentList() {
 
             if (error) throw error;
 
-            // 2. Get Children in this Center (to show links)
-            const { data: centerChildren } = await supabase
+            // 2. [Improved] Get all Parent-Child connections for this center
+            // This includes both direct (children.parent_id -> parents.id) 
+            // and via family_relationships (parent_profile_id -> children.id)
+            const { data: familyLinks } = await supabase
+                .from('family_relationships')
+                .select('parent_id, child_id, children(name)')
+                .in('parent_id', profiles.map(p => p.id));
+
+            // Also get legacy links for compatibility
+            const { data: parentsRecords } = await supabase
+                .from('parents')
+                .select('id, profile_id')
+                .in('profile_id', profiles.map(p => p.id));
+
+            const { data: legacyChildren } = await supabase
                 .from('children')
                 .select('id, name, parent_id')
-                .eq('center_id', center.id)
-                .not('parent_id', 'is', null);
+                .in('parent_id', parentsRecords?.map(pr => pr.id) || []);
 
-            // Merge Children info
+            // 3. [Merge] Combine all sources of truth
             const merged = (profiles || []).map(p => {
-                const myChildren = (centerChildren || []).filter(c => c.parent_id === p.id);
+                const parentRecord = parentsRecords?.find(pr => pr.profile_id === p.id);
+
+                // Children from junction table
+                const junctionChildren = familyLinks
+                    ?.filter(l => l.parent_id === p.id)
+                    ?.map(l => ({ id: l.child_id, name: l.children?.name }));
+
+                // Children from legacy parent_ptr
+                const legacyMatched = parentRecord
+                    ? legacyChildren?.filter(c => c.parent_id === parentRecord.id)
+                    : [];
+
+                // Unique set of children
+                const allChildrenMap = new Map();
+                [...(junctionChildren || []), ...(legacyMatched || [])].forEach(c => {
+                    if (c && c.id) allChildrenMap.set(c.id, c);
+                });
+
                 return {
                     ...p,
-                    children: myChildren
+                    children: Array.from(allChildrenMap.values())
                 };
             });
             setParents(merged);

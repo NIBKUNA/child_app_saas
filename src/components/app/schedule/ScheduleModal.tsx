@@ -263,13 +263,18 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         setLoading(true);
         try {
             // ✨ [STRICT CHECK] 
+            if (!formData.child_id) {
+                alert("아동을 선택해주세요.");
+                setLoading(false);
+                return;
+            }
             if (!centerId) throw new Error("센터 정보가 없습니다. 다시 시도해 주세요.");
 
             const basePayload = {
                 center_id: centerId,
-                child_id: formData.child_id,
-                program_id: formData.program_id,
-                therapist_id: formData.therapist_id,
+                child_id: formData.child_id || null,
+                program_id: formData.program_id || null,
+                therapist_id: formData.therapist_id || null,
                 status: formData.status,
                 service_type: formData.service_type
             };

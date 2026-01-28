@@ -62,7 +62,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                 diagnosis: data.diagnosis || '',
                 guardian_name: data.guardian_name || '',
                 contact: data.contact || '',
-                gender: data.gender || '남' // Ensure gender has a valid value
+                gender: data.gender === 'male' ? '남' : '여' // ✨ [FIX] Map back to UI terms
             });
         }
     };
@@ -77,9 +77,10 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                 name: formData.name,
                 registration_number: formData.registration_number || null,
                 birth_date: formData.birth_date || null,
-                gender: formData.gender,
+                gender: formData.gender === '남' ? 'male' : 'female', // ✨ [FIX] Map to DB Enum
                 diagnosis: formData.diagnosis || null,
                 guardian_name: formData.guardian_name || null,
+                contact: formData.contact || null, // ✨ [FIX] Include contact
                 center_id: centerId
             };
 

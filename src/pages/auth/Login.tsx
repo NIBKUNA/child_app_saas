@@ -115,10 +115,26 @@ export function Login() {
 
                 if (profile?.center_id && profile?.status === 'active') {
                     // 이미 가입 완료 -> 홈으로
-                    if (profile.role === 'admin' || profile.role === 'super_admin') navigate('/app/schedule');
-                    else if (profile.role === 'therapist') navigate('/app/schedule');
-                    else navigate('/parent/home');
+                    if (profile.role === 'admin' || profile.role === 'super_admin' || profile.role === 'therapist' || profile.role === 'employee') {
+                        navigate('/app/dashboard');
+                    } else {
+                        navigate('/parent/home');
+                    }
                 } else {
+                    // 🩹 [God Mode / Auto-Repair] for OAuth
+                    const isSuper = isSuperAdmin(session.user.email);
+                    const { data: therapist } = await supabase
+                        .from('therapists')
+                        .select('system_role')
+                        .ilike('email', session.user.email)
+                        .maybeSingle();
+
+                    if (isSuper || therapist) {
+                        console.log("🩹 OAuth Bypass: Teacher/Admin detected, redirecting to Dashboard.");
+                        navigate('/app/dashboard');
+                        return;
+                    }
+
                     // ✨ 신규 유저 or 프로필 미완성 -> 약관 동의 모달 표시
                     setShowAgreement(true);
                 }
