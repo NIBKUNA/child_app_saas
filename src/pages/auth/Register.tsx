@@ -123,7 +123,18 @@ export function Register() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!centerId) return setError('소속 센터를 선택해 주세요.');
+
+        // ✨ [Safeguard] Resolve Center ID Robustly (Just-In-Time)
+        let effectiveCenterId = centerId;
+        if (!effectiveCenterId && slug) {
+            console.log("🔍 Center context missing, fetching by slug...", slug);
+            const { data } = await supabase.from('centers').select('id').eq('slug', slug).maybeSingle();
+            if (data) effectiveCenterId = data.id;
+        }
+
+        if (!effectiveCenterId) {
+            return setError('소속 센터 정보를 불러오지 못했습니다. 페이지를 새로고침 해보세요.');
+        }
 
         setLoading(true);
         setError(null);
@@ -156,8 +167,8 @@ export function Register() {
                     data: {
                         full_name: name,
                         role: finalRole,
-                        // ✨ [ROBUST] Send null if empty string to avoid UUID cast error
-                        center_id: centerId || null
+                        // ✨ [ROBUST] Use resolved JIT ID
+                        center_id: effectiveCenterId
                     }
                 },
             });
@@ -171,7 +182,7 @@ export function Register() {
                     email: email,
                     name: name,
                     role: finalRole,
-                    center_id: centerId || null, // Robust null
+                    center_id: effectiveCenterId, // Robust JIT ID
                     status: finalStatus,
                 }, { onConflict: 'id' });
 
