@@ -67,17 +67,16 @@ export function Schedule() {
     const fetchSchedules = async (targetId: string) => {
         if (!targetId || targetId.length < 32) return;
         try {
-            // ✨ [Security] Filter via children!inner to handle potential schema variations
             const { data, error } = await supabase
                 .from('schedules')
                 .select(`
                     id, date, start_time, end_time, status, notes, service_type,
                     child_id, therapist_id, program_id,
-                    children!inner (name, center_id),
+                    children (name, center_id),
                     programs (name),
                     therapists (name, color)
                 `)
-                .eq('children.center_id', targetId); // ✨ Filter by Center
+                .eq('center_id', targetId); // ✨ [Fix] 직접 center_id로 필터링 (성능 및 오류 방지)
 
             if (error) throw error;
 

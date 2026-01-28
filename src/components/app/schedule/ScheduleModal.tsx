@@ -383,10 +383,22 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 if (futureSchedules && futureSchedules.length > 0) {
                     const ids = futureSchedules.map(s => s.id);
 
+                    // ✨ [핵심 수정] 하위 참조 데이터(development_assessments) 삭제를 위해 일지 ID 먼저 확보
+                    const { data: logs } = await supabase
+                        .from('counseling_logs')
+                        .select('id')
+                        .in('schedule_id', ids);
+
+                    if (logs && logs.length > 0) {
+                        const logIds = logs.map(l => l.id);
+                        await supabase.from('development_assessments').delete().in('log_id', logIds);
+                    }
+
                     // 참조 데이터 일괄 삭제
                     await supabase.from('consultations').delete().in('schedule_id', ids);
                     await supabase.from('payment_items').delete().in('schedule_id', ids);
                     await supabase.from('counseling_logs').delete().in('schedule_id', ids);
+                    await supabase.from('daily_notes').delete().in('schedule_id', ids); // ✨ daily_notes 누락분 추가
 
                     // 본 일정 일괄 삭제
                     const { error } = await supabase.from('schedules').delete().in('id', ids);
@@ -395,10 +407,22 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 }
             } else {
                 // 기존 단일 삭제 로직
+                // ✨ [핵심 수정] 하위 참조 데이터 먼저 삭제
+                const { data: logs } = await supabase
+                    .from('counseling_logs')
+                    .select('id')
+                    .eq('schedule_id', scheduleId);
+
+                if (logs && logs.length > 0) {
+                    const logIds = logs.map(l => l.id);
+                    await supabase.from('development_assessments').delete().in('log_id', logIds);
+                }
+
                 // 1. 참조 데이터 수동 삭제
-                const { error: consultError } = await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
-                const { error: pError } = await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
-                const { error: cError } = await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
+                await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
+                await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
+                await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
+                await supabase.from('daily_notes').delete().eq('schedule_id', scheduleId); // ✨ daily_notes 누락분 추가
 
                 // 2. 본 일정 삭제
                 const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
