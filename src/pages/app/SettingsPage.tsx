@@ -261,6 +261,12 @@ export function SettingsPage() {
                                         <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
                                             {getSetting('about_desc_body') || "설명 문구를 입력하면 이 곳에 실시간으로 표시됩니다."}
                                         </p>
+                                        <div className="flex items-center gap-2 font-bold text-sm mt-4 text-indigo-600 dark:text-indigo-400">
+                                            {getSetting('about_cta_text') || '상담 예약하기'}
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" />
+                                            </svg>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -291,6 +297,22 @@ export function SettingsPage() {
                                         saving={saving}
                                         rows={5}
                                     />
+                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <SaveableInput
+                                            label="버튼 텍스트 (하단 링크)"
+                                            placeholder="예: 상담 예약하기"
+                                            initialValue={getSetting('about_cta_text')}
+                                            onSave={(v) => handleSave('about_cta_text', v)}
+                                            saving={saving}
+                                        />
+                                        <SaveableInput
+                                            label="버튼 링크 (URL)"
+                                            placeholder="비워두면 기본 '문의하기' 페이지로 이동"
+                                            initialValue={getSetting('about_cta_link')}
+                                            onSave={(v) => handleSave('about_cta_link', v)}
+                                            saving={saving}
+                                        />
+                                    </div>
                                 </div>
                             </SectionCard>
                         </div>

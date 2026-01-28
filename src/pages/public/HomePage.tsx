@@ -236,6 +236,15 @@ export function HomePage() {
                                 <p className={`text-base font-medium leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ wordBreak: 'keep-all', whiteSpace: 'pre-line' }}>
                                     {getSetting('about_desc_body') || DEFAULT_CONTENT.story.description}
                                 </p>
+                                <Link
+                                    to={getSetting('about_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')}
+                                    className={`inline-flex items-center gap-2 font-bold text-sm hover:underline mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}
+                                >
+                                    {getSetting('about_cta_text') || '상담 예약하기'}
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" />
+                                    </svg>
+                                </Link>
                             </div>
                             <div className="relative h-[350px] lg:h-auto">
                                 <img

@@ -117,8 +117,8 @@ export function AboutPage() {
                             <div className="p-10 md:p-16 flex flex-col justify-center space-y-6">
                                 <h2 className={cn("text-3xl font-black tracking-[-0.05em] leading-tight whitespace-pre-line", isDark ? "text-white" : "text-slate-900")}>{descTitle}</h2>
                                 <p className={cn("font-medium leading-relaxed whitespace-pre-line", isDark ? "text-slate-400" : "text-slate-500")}>{descBody}</p>
-                                <Link to={center?.slug ? `/centers/${center.slug}/contact` : '/contact'} className="inline-flex items-center gap-2 font-bold text-sm hover:underline mt-4" style={{ color: branding.brand_color }}>
-                                    상담 예약하기 {Icons.arrowRight("w-4 h-4")}
+                                <Link to={getSetting('about_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')} className="inline-flex items-center gap-2 font-bold text-sm hover:underline mt-4" style={{ color: branding.brand_color }}>
+                                    {getSetting('about_cta_text') || '상담 예약하기'} {Icons.arrowRight("w-4 h-4")}
                                 </Link>
                             </div>
                         </div>

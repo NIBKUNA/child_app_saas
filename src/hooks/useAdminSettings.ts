@@ -24,6 +24,8 @@ export type AdminSettingKey =
     | 'about_desc_title'
     | 'about_desc_body'
     | 'programs_intro_text'
+    | 'about_cta_text'
+    | 'about_cta_link'
     | 'programs_list'
     | 'center_logo'
     | 'center_name'
