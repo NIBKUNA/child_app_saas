@@ -224,14 +224,15 @@ export function ParentLogsPage() {
                                     )}
 
                                     {/* ✨ 선생님 소견 및 향후 계획 (통합) */}
-                                    {(log.next_plan || latestSummary) && (
+                                    {(log.next_plan || log.development_assessments?.[0]?.summary || latestSummary) && (
                                         <div className="relative pt-4 border-t border-slate-100">
                                             <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
                                                 <ChevronRight className="w-4 h-4" /> 선생님 소견 및 향후 계획
                                             </h4>
-                                            {log.development_assessments?.[0]?.summary && (
+                                            {/* ✨ [복구] 연결된 평가가 있으면 그것을, 없으면 최신 평가를 폴백으로 보여줌 */}
+                                            {(log.development_assessments?.[0]?.summary || latestSummary) && (
                                                 <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap pl-1 mb-3 italic bg-indigo-50/50 p-3 rounded-xl">
-                                                    "📝 {log.development_assessments[0].summary}"
+                                                    "📝 {log.development_assessments?.[0]?.summary || latestSummary}"
                                                 </p>
                                             )}
                                             {log.next_plan && (
