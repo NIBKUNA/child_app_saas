@@ -192,10 +192,18 @@ export function Register() {
                 navigate('/parent/home');
             }
         } catch (err: any) {
+            console.error('Registration error details:', err);
             let msg = err.message || '오류가 발생했습니다.';
-            if (msg.includes('User already registered') || msg.includes('unique constraint')) {
-                msg = 'ALREADY_REGISTERED';
+
+            // 한글 오류 메시지 매핑
+            if (msg.includes('Database error') || msg.includes('Internal Server Error')) {
+                msg = '서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+            } else if (msg.includes('User already registered')) {
+                msg = '이미 가입된 유저입니다. 로그인해 주세요.';
+            } else if (msg === 'ALREADY_REGISTERED') {
+                msg = '이미 가입된 이메일입니다.';
             }
+
             setError(msg);
         } finally {
             setLoading(false);
