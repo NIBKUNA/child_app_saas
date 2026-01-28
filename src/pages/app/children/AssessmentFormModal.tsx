@@ -222,12 +222,11 @@ export function AssessmentFormModal({
                         center_id: center.id,
                         therapist_id: effectiveTherapistId,
                         child_id: childId,
-                        schedule_id: scheduleId, // ✨ 핵심: 반드시 박혀야 대기 목록에서 사라짐
+                        schedule_id: scheduleId,
                         session_date: finalDate,
                         content: '발달 평가 작성을 위해 자동 생성된 기본 일지입니다.',
                         activities: '평가 진행',
-                        child_response: '평가 진행',
-                        next_plan: '평가 결과 기반 계획 수립'
+                        child_response: '평가 진행'
                     })
                     .select()
                     .single();

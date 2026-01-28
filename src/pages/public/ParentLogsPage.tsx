@@ -185,54 +185,33 @@ export function ParentLogsPage() {
                                 </div>
 
                                 {/* 상세 글 내용 */}
-                                <div className="p-8 space-y-8">
-                                    {/* Activities */}
-                                    <div className="relative">
-                                        <h4 className="font-bold text-slate-400 text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-                                            <Activity className="w-4 h-4" /> 진행 활동
-                                        </h4>
-                                        <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap pl-1">
-                                            {log.activities || '작성된 활동 내용이 없습니다.'}
-                                        </p>
-                                    </div>
-
-                                    {/* Child Response */}
-                                    {log.child_response && (
-                                        <div className="relative">
-                                            <h4 className="font-bold text-slate-400 text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
-                                                <Quote className="w-4 h-4" /> 아동 반응
-                                            </h4>
-                                            <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap pl-1">
-                                                {log.child_response}
-                                            </p>
-                                        </div>
-                                    )}
-
+                                <div className="p-8 space-y-6">
                                     {/* ✨ 상담 일지 (회기 일지) */}
-                                    {(log.next_plan || log.development_assessments?.[0]?.summary) && (
-                                        <div className="relative pt-4 border-t border-slate-100">
-                                            <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                <ChevronRight className="w-4 h-4" /> 상담 일지 (회기 일지)
-                                            </h4>
-                                            {/* ✨ [정밀 연동] 해당 상담일지와 연결된 평가 소견 표시 */}
-                                            {log.development_assessments?.[0]?.summary ? (
-                                                <p className="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap pl-1 mb-3 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/30">
-                                                    {log.development_assessments[0].summary}
-                                                </p>
-                                            ) : (
-                                                <p className="text-slate-400 text-xs italic mb-3 pl-1">작성된 일지 내용이 없습니다.</p>
-                                            )}
+                                    {(() => {
+                                        const assessment = Array.isArray(log.development_assessments)
+                                            ? log.development_assessments[0]
+                                            : log.development_assessments;
+                                        const summary = assessment?.summary;
 
-                                            {log.next_plan && (
-                                                <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">다음 회기 계획</p>
-                                                    <p className="text-slate-900 font-bold leading-relaxed whitespace-pre-wrap pl-1">
-                                                        📅 {log.next_plan}
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                        return (
+                                            <div className="relative">
+                                                <h4 className="font-bold text-primary text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                    <ChevronRight className="w-4 h-4" /> 상담 일지 (회기 일지)
+                                                </h4>
+                                                {summary ? (
+                                                    <div className="bg-indigo-50/50 p-6 rounded-[32px] border border-indigo-100/30">
+                                                        <p className="text-slate-700 font-bold leading-relaxed whitespace-pre-wrap text-[16px] tracking-tight">
+                                                            {summary}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+                                                        <p className="text-slate-400 text-sm italic">작성된 일지 내용이 없습니다.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         ))}
