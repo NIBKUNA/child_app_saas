@@ -231,12 +231,10 @@ export function HomePage() {
                                     className={`text-3xl md:text-4xl font-black leading-[1.15] tracking-[-0.05em] ${isDark ? 'text-white' : 'text-slate-900'}`}
                                     style={{ wordBreak: 'keep-all' }}
                                 >
-                                    {DEFAULT_CONTENT.story.quote}
+                                    {getSetting('about_desc_title') || DEFAULT_CONTENT.story.quote}
                                 </h3>
-                                <p className={`text-base font-medium leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ wordBreak: 'keep-all' }}>
-                                    {brandName}는 단순한 치료 공간이 아닙니다.
-                                    아이들이 스스로 꽃피울 수 있도록
-                                    <strong className="text-indigo-600 dark:text-indigo-400"> 가장 따뜻한 햇살</strong>이 되어주겠습니다.
+                                <p className={`text-base font-medium leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ wordBreak: 'keep-all', whiteSpace: 'pre-line' }}>
+                                    {getSetting('about_desc_body') || DEFAULT_CONTENT.story.description}
                                 </p>
                             </div>
                             <div className="relative h-[350px] lg:h-auto">

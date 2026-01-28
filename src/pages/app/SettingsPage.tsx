@@ -170,17 +170,86 @@ export function SettingsPage() {
                 )}
 
                 {activeTab === 'about' && (
-                    <SectionCard title="센터 소개 편집">
-                        <SaveableTextArea label="인트로 문구" initialValue={getSetting('about_intro_text')} onSave={(v) => handleSave('about_intro_text', v)} saving={saving} rows={2} />
-                        <div className="pt-6 border-t mt-6 space-y-6">
-                            <ImageUploader bucketName="images" label="메인 이미지" currentImage={getSetting('about_main_image')} onUploadComplete={(url) => handleSave('about_main_image', url)} />
-                            <SaveableInput label="강조 제목" initialValue={getSetting('about_desc_title')} onSave={(v) => handleSave('about_desc_title', v)} saving={saving} />
-                            <SaveableTextArea label="소개 본문" initialValue={getSetting('about_desc_body')} onSave={(v) => handleSave('about_desc_body', v)} saving={saving} rows={5} />
+                    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                        {/* 1. Live Preview Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between px-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Story Section Preview</h3>
+                                </div>
+                            </div>
+
+                            <div className="relative rounded-[40px] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 group">
+                                <div className="grid grid-cols-1 lg:grid-cols-2">
+                                    <div className="p-10 md:p-14 flex flex-col justify-center space-y-6">
+                                        <div className="text-indigo-100 dark:text-slate-800">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M4.583 17.321C3.548 16.227 3 15 3 13.044c0-3.347 2.48-6.332 6.264-8.044L10.5 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105zm10.333 0C13.881 16.227 13.333 15 13.333 13.044c0-3.347 2.48-6.332 6.264-8.044L20.833 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105z" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
+                                            {getSetting('about_desc_title') || "아이들의 웃음이\n자라나는 두 번째 집"}
+                                        </h3>
+                                        <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
+                                            {getSetting('about_desc_body') || "설명 문구를 입력하면 이 곳에 실시간으로 표시됩니다."}
+                                        </p>
+                                    </div>
+                                    <div className="relative h-[300px] lg:h-auto bg-slate-100 dark:bg-slate-800">
+                                        {getSetting('about_main_image') ? (
+                                            <img
+                                                src={getSetting('about_main_image')}
+                                                alt="Preview"
+                                                className="absolute inset-0 w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">이미지가 없습니다</div>
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent lg:bg-gradient-to-l"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="pt-6 border-t mt-6 space-y-6">
-                            <MultiImageUploader label="센터 갤러리 (하단 표시)" currentImages={getSetting('about_gallery')} onUploadComplete={(url) => handleSave('about_gallery', url)} />
+
+                        {/* 2. Editor Section */}
+                        <SectionCard title="센터 스토리 및 이미지 편집" icon={<Info className="text-blue-500" />}>
+                            <div className="space-y-6">
+                                <ImageUploader
+                                    bucketName="images"
+                                    label="스토리 (우측) 이미지"
+                                    currentImage={getSetting('about_main_image')}
+                                    onUploadComplete={(url) => handleSave('about_main_image', url)}
+                                />
+                                <div className="h-px bg-slate-100 dark:bg-slate-800 my-4" />
+                                <SaveableTextArea
+                                    label="강조 제목 (Quote)"
+                                    placeholder="예: 아이들의 웃음이 자라나는 두 번째 집"
+                                    initialValue={getSetting('about_desc_title')}
+                                    onSave={(v) => handleSave('about_desc_title', v)}
+                                    saving={saving}
+                                    rows={2}
+                                />
+                                <SaveableTextArea
+                                    label="본문 설명 (Description)"
+                                    placeholder="예: 우리 센터는 단순한 치료 공간을 넘어..."
+                                    initialValue={getSetting('about_desc_body')}
+                                    onSave={(v) => handleSave('about_desc_body', v)}
+                                    saving={saving}
+                                    rows={5}
+                                />
+                            </div>
+                        </SectionCard>
+
+                        <div className="pt-6">
+                            <SectionCard title="센터 갤러리 (하단)" icon={<Palette className="text-purple-500" />}>
+                                <MultiImageUploader
+                                    label="갤러리 이미지 (여러 장 선택 가능)"
+                                    currentImages={getSetting('about_gallery')}
+                                    onUploadComplete={(url) => handleSave('about_gallery', url)}
+                                />
+                            </SectionCard>
                         </div>
-                    </SectionCard>
+                    </div>
                 )}
 
                 {activeTab === 'programs' && (
