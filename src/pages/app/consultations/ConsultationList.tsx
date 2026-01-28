@@ -201,7 +201,8 @@ export function ConsultationList() {
         // 이미 log_id가 assessment에 들어있으므로 그것을 사용
         setSelectedSession({
             children: assess.children || { id: assess.child_id, name: '아동' },
-            realLogId: assess.log_id
+            realLogId: assess.log_id,
+            therapist_id: assess.therapist_id // ✨ [Fix] 원래 작성자 ID 전달
         });
         setIsAssessModalOpen(true);
     };

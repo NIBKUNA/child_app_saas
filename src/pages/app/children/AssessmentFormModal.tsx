@@ -81,8 +81,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
 
     const [summary, setSummary] = useState('');
     const [therapistNotes, setTherapistNotes] = useState('');  // ✨ [치료사 전용] 부모에게 비공개 메모
-    const [currentLogId, setCurrentLogId] = useState<string | null>(null); // ✨ [Link] DB에 저장된 log_id 보존
-    const [expandedDomain, setExpandedDomain] = useState<string | null>('communication');
+    const [originalTherapistId, setOriginalTherapistId] = useState<string | null>(null); // ✨ [Fix] 수정시 원래 작성자 ID 보존
 
     // ✨ [수정 모드] 기존 데이터 로드
     useEffect(() => {
@@ -95,6 +94,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
             setSummary('');
             setTherapistNotes('');
             setCurrentLogId(logId || null);
+            setOriginalTherapistId(null);
             setIsEditMode(false);
         }
     }, [isOpen, assessmentId, logId]);
@@ -120,6 +120,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                 setSummary(data.summary || '');
                 setTherapistNotes(data.therapist_notes || '');
                 setCurrentLogId(data.log_id || null);
+                setOriginalTherapistId(data.therapist_id || null); // ✨ 원래 작성자 ID 저장
                 setIsEditMode(true);
             }
         } catch (e) {
@@ -160,9 +161,11 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
             if (!user) throw new Error('로그인이 필요합니다.');
 
             // ✨ [FIX] therapist ID 결정 로직 개선
-            // 1. 어드민이 대신 작성시: therapistId prop 사용 (from session.therapist_id)
-            // 2. 본인 작성시: therapists 테이블에서 profile_id로 조회하여 ID 가져오기
-            let effectiveTherapistId = therapistId;
+            // 1. 수정 모드인 경우: 원래 작성자(originalTherapistId) 유지 시도
+            // 2. 신규 작성 OR 어드민 대리 작성 시: props로 전달받은 therapistId 사용
+            // 3. 본인 작성 시: therapists 테이블에서 profile_id로 조회하여 ID 가져오기
+            let effectiveTherapistId = (isEditMode && originalTherapistId) ? originalTherapistId : therapistId;
+
             if (!effectiveTherapistId) {
                 const { data: myTherapist } = await supabase
                     .from('therapists')
@@ -172,17 +175,10 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                 effectiveTherapistId = myTherapist?.id || null;
             }
 
-            // ✨ [Fallback] 치료사 테이블에 없지만 어드민인 경우 본인 ID 사용 (슈퍼 어드민 등)
-            if (!effectiveTherapistId && user) {
-                // 추가 검증: 실제 user_profiles에 존재하는지 체크하면 좋지만, 
-                // 이미 로그인 했다면 권한이 있다고 가정하고 저장 시도. 
-                // (FK 에러나면 그때 처리)
-                console.warn('Therapist not found in table, using User ID as fallback (Admin mode)');
-                effectiveTherapistId = user.id;
-            }
-
+            // ⚠️ 절대 user.id(Auth ID)를 직접 넣으면 안 됨 (FK 제약 조건 위반)
             if (!effectiveTherapistId) {
-                throw new Error('작성자 정보를 확인할 수 없습니다. (치료사 또는 관리자 권한 필요)');
+                console.warn('Therapist ID not resolved. Checking if caller is admin...');
+                throw new Error('작성자(치료사) 정보를 확인할 수 없습니다. 치료사 목록에 해당 계정이 등록되어 있는지 확인해주세요.');
             }
 
             const payload = {
