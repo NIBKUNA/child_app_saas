@@ -13,9 +13,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle, Bell, LayoutTemplate, Info, BookOpen, Palette, CheckCircle2, Brain, Loader2, X, Receipt, Search, ChevronLeft, ChevronRight, Pencil, Clock, Share2, UserX } from 'lucide-react';
+import { MessageCircle, Bell, LayoutTemplate, Info, BookOpen, Palette, CheckCircle2, Brain, Loader2, X, Receipt, Search, ChevronLeft, ChevronRight, Pencil, Clock, Share2, UserX, Heart } from 'lucide-react';
 import { useAdminSettings, type AdminSettingKey, type ProgramItem } from '@/hooks/useAdminSettings';
 import { ImageUploader } from '@/components/common/ImageUploader';
+import { MultiImageUploader } from '@/components/common/MultiImageUploader';
 import { ProgramListEditor } from '@/components/admin/ProgramListEditor';
 import { DEFAULT_PROGRAMS } from '@/constants/defaultPrograms';
 import { supabase } from '@/lib/supabase';
@@ -28,8 +29,8 @@ import { AccountDeletionModal } from '@/components/AccountDeletionModal';
 const AI_GENERATING_KEY = 'ai_blog_generating';
 const AI_GENERATION_START_KEY = 'ai_blog_generation_start';
 
-type TabType = 'home' | 'about' | 'programs' | 'branding' | 'center_info' | 'account';
-const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'branding', 'center_info', 'account'];
+type TabType = 'home' | 'about' | 'programs' | 'therapists' | 'branding' | 'center_info' | 'account';
+const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'therapists', 'branding', 'center_info', 'account'];
 
 export function SettingsPage() {
     const { settings, getSetting, loading: settingsLoading, fetchSettings } = useAdminSettings();
@@ -139,6 +140,7 @@ export function SettingsPage() {
                     { id: 'home', label: '홈', icon: <LayoutTemplate className="w-4 h-4" /> },
                     { id: 'about', label: '소개', icon: <Info className="w-4 h-4" /> },
                     { id: 'programs', label: '프로그램', icon: <BookOpen className="w-4 h-4" /> },
+                    { id: 'therapists', label: '치료사 소개', icon: <Heart className="w-4 h-4" /> },
                     { id: 'branding', label: '로고', icon: <Palette className="w-4 h-4" /> },
                     { id: 'center_info', label: '정보/운영', icon: <Info className="w-4 h-4" /> },
                     { id: 'account', label: '계정', icon: <UserX className="w-4 h-4" /> },
@@ -176,6 +178,9 @@ export function SettingsPage() {
                             <SaveableInput label="강조 제목" initialValue={getSetting('about_desc_title')} onSave={(v) => handleSave('about_desc_title', v)} saving={saving} />
                             <SaveableTextArea label="소개 본문" initialValue={getSetting('about_desc_body')} onSave={(v) => handleSave('about_desc_body', v)} saving={saving} rows={5} />
                         </div>
+                        <div className="pt-6 border-t mt-6 space-y-6">
+                            <MultiImageUploader label="센터 갤러리 (하단 표시)" currentImages={getSetting('about_gallery')} onUploadComplete={(url) => handleSave('about_gallery', url)} />
+                        </div>
                     </SectionCard>
                 )}
 
@@ -184,6 +189,20 @@ export function SettingsPage() {
                         <SaveableTextArea label="페이지 안내" initialValue={getSetting('programs_intro_text')} onSave={(v) => handleSave('programs_intro_text', v)} saving={saving} rows={2} />
                         <div className="mt-8 border-t pt-8">
                             <ProgramListEditor initialList={programsList} onSave={handleSavePrograms} />
+                        </div>
+                    </SectionCard>
+                )}
+
+                {activeTab === 'therapists' && (
+                    <SectionCard title="치료사 소개 관리" icon={<Heart className="text-rose-500" />}>
+                        <SaveableTextArea label="페이지 인트로 문구" initialValue={getSetting('therapists_intro_text')} onSave={(v) => handleSave('therapists_intro_text', v)} saving={saving} rows={2} />
+                        <div className="pt-6 border-t mt-6 space-y-4">
+                            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700">
+                                <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 mb-2">💡 관리 팁</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                                    치료사 개별 프로필(사진, 약력 등)은 <span className="text-indigo-600 font-black">앱 상단 [직원 관리]</span> 메뉴에서 각 직원의 정보를 수정하여 홈페이지에 노출하거나 숨길 수 있습니다.
+                                </p>
+                            </div>
                         </div>
                     </SectionCard>
                 )}
@@ -562,20 +581,37 @@ function SnsLinksSection() {
 }
 
 function HomeSettingsTab({ getSetting, handleSave, saving }) {
-    const [pTitle, setPTitle] = useState(getSetting('home_title') || '');
-    const [pSubtitle, setPSubtitle] = useState(getSetting('home_subtitle') || '');
-
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 animate-in fade-in slide-in-from-bottom-4 duration-500 text-left">
-            <div className="space-y-10">
-                <SectionCard icon={<LayoutTemplate className="text-indigo-500" />} title="홈페이지 메인 문구">
-                    <div className="space-y-8">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700 text-left">
+            {/* 1. Large Immersive Preview (Top) */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Live Website Preview</h3>
+                    </div>
+                    <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-full border border-indigo-100 dark:border-indigo-800">21:9 CINEMATIC VIEW</span>
+                </div>
+
+                <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-600/20 rounded-[50px] blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
+                    <HeroPreview
+                        title={getSetting('home_title')}
+                        subtitle={getSetting('home_subtitle')}
+                        bgUrl={getSetting('main_banner_url')?.split(',')[0]}
+                    />
+                </div>
+            </div>
+
+            {/* 2. Editor Sections (Bottom) */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <SectionCard icon={<LayoutTemplate className="text-indigo-500" />} title="홈페이지 타이틀 및 설명">
+                    <div className="space-y-10">
                         <SaveableTextArea
                             label="메인 타이틀 (강조 문구)"
                             initialValue={getSetting('home_title')}
                             placeholder="여러 줄로 입력하면 실제 화면에서도 줄바꿈이 적용됩니다."
                             onSave={(v) => handleSave('home_title', v)}
-                            onChange={(v) => setPTitle(v)}
                             saving={saving}
                             rows={3}
                         />
@@ -584,44 +620,66 @@ function HomeSettingsTab({ getSetting, handleSave, saving }) {
                             initialValue={getSetting('home_subtitle')}
                             placeholder="예: 우리 아이의 성장을 돕는 치료 프로그램을 확인하세요."
                             onSave={(v) => handleSave('home_subtitle', v)}
-                            onChange={(v) => setPSubtitle(v)}
                             saving={saving}
                             rows={3}
                         />
                     </div>
                 </SectionCard>
-                <SectionCard icon={<Bell className="text-blue-500" />} title="메인 상단 공지">
-                    <SaveableTextArea label="공지가 필요한 경우 입력하세요." initialValue={getSetting('notice_text')} onSave={(v) => handleSave('notice_text', v)} saving={saving} rows={2} />
-                </SectionCard>
 
-                <SectionCard icon={<LayoutTemplate className="text-purple-500" />} title="메인 배너 이미지">
-                    <ImageUploader bucketName="images" currentImage={getSetting('main_banner_url')} onUploadComplete={(url) => handleSave('main_banner_url', url)} />
-                </SectionCard>
-            </div>
+                <div className="space-y-8">
+                    <SectionCard icon={<LayoutTemplate className="text-purple-500" />} title="배너 및 애니메이션">
+                        <div className="space-y-8">
+                            <div className="space-y-4">
+                                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">슬라이더 이미지</label>
+                                <MultiImageUploader currentImages={getSetting('main_banner_url')} onUploadComplete={(url) => handleSave('main_banner_url', url)} />
+                            </div>
 
-            <div className="space-y-6">
-                <div className="sticky top-24 space-y-6">
-                    <div className="flex items-center justify-between px-4">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Live Visual Preview</h3>
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">전환 효과</label>
+                                    <select
+                                        value={getSetting('banner_animation') || 'fade'}
+                                        onChange={(e) => handleSave('banner_animation', e.target.value)}
+                                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all text-slate-700 dark:text-white"
+                                    >
+                                        <option value="fade">페이드 (Fade)</option>
+                                        <option value="zoom">줌 (Zoom)</option>
+                                        <option value="slide">슬라이드 (Slide)</option>
+                                        <option value="kenburns">켄번즈 (Ken Burns)</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">슬라이드 간격</label>
+                                        <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-1 rounded-md">{getSetting('banner_duration') || '6'}s</span>
+                                    </div>
+                                    <div className="pt-2">
+                                        <input
+                                            type="range"
+                                            min="2"
+                                            max="15"
+                                            step="1"
+                                            value={getSetting('banner_duration') || '6'}
+                                            onChange={(e) => handleSave('banner_duration', e.target.value)}
+                                            className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">21:9 WIDE</span>
-                    </div>
-                    <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[40px] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                        <HeroPreview
-                            title={pTitle}
-                            subtitle={pSubtitle}
-                            bgUrl={getSetting('main_banner_url')}
+                    </SectionCard>
+
+                    <SectionCard icon={<Bell className="text-orange-500" />} title="유지보수 및 공지">
+                        <SaveableTextArea
+                            label="상단 알림바 공지 내용"
+                            initialValue={getSetting('notice_text')}
+                            placeholder="공지가 필요한 경우만 입력하세요."
+                            onSave={(v) => handleSave('notice_text', v)}
+                            saving={saving}
+                            rows={1}
                         />
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-700">
-                        <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                            💡 **팁**: 실제 홈페이지의 히어로 섹션과 동일한 비율(21:9)입니다.
-                            좌측 정렬 레이아웃에 맞춰 문구의 줄바꿈을 조정해보세요.
-                        </p>
-                    </div>
+                    </SectionCard>
                 </div>
             </div>
         </div>
@@ -631,14 +689,15 @@ function HomeSettingsTab({ getSetting, handleSave, saving }) {
 function SectionCard({ icon, title, children }) {
     return (
         <section
-            className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[32px] p-8 border border-white/50 dark:border-slate-800/50 shadow-xl shadow-slate-200/30 dark:shadow-black/30
-                       transition-all duration-300 ease-out hover:shadow-2xl hover:-translate-y-1 hover:bg-white/90 dark:hover:bg-slate-900/90 text-left"
+            className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[40px] p-10 border border-white/60 dark:border-slate-800/60 shadow-2xl shadow-slate-200/40 dark:shadow-black/40
+                       transition-all duration-300 ease-out hover:shadow-indigo-500/10 text-left relative overflow-hidden group"
         >
-            <div className="flex items-center gap-3 mb-8 text-left">
-                <div className="p-3 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-800 rounded-2xl border border-indigo-100/50 dark:border-slate-700">
+            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex items-center gap-4 mb-10 text-left">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-[22px] border border-slate-100 dark:border-slate-700 shadow-inner">
                     {icon}
                 </div>
-                <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight text-left">{title}</h2>
+                <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight text-left">{title}</h2>
             </div>
             {children}
         </section>
@@ -657,11 +716,34 @@ function SaveableInput({ label, initialValue, onSave, saving, placeholder, onCha
     };
 
     return (
-        <div className="w-full text-left">
-            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1 text-left">{label}</label>
-            <div className="flex gap-3">
-                <input type="text" value={value} onChange={handleChange} placeholder={placeholder} className="flex-1 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none font-bold text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all" />
-                <button onClick={() => onSave(value)} disabled={!isChanged || saving} className="px-8 py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-sm disabled:opacity-20 flex items-center gap-2 active:scale-95 transition-all shadow-lg dark:shadow-indigo-500/20">
+        <div className="w-full text-left group/input">
+            <div className="flex items-center justify-between mb-3 px-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</label>
+                {isChanged && <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">Unsaved Changes</span>}
+            </div>
+            <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <input
+                        type="text"
+                        value={value}
+                        onChange={handleChange}
+                        placeholder={placeholder}
+                        className={cn(
+                            "w-full p-4.5 bg-slate-50 dark:bg-slate-800/50 border rounded-2xl outline-none font-bold text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all",
+                            isChanged ? "border-amber-200 dark:border-amber-900/50 ring-4 ring-amber-500/5" : "border-slate-100 dark:border-slate-800 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5"
+                        )}
+                    />
+                </div>
+                <button
+                    onClick={() => onSave(value)}
+                    disabled={!isChanged || saving}
+                    className={cn(
+                        "px-6 py-4 rounded-2xl font-black text-xs transition-all flex items-center gap-2 active:scale-95 shadow-lg",
+                        isChanged
+                            ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-indigo-500/20"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-300 shadow-none cursor-not-allowed"
+                    )}
+                >
                     {saving ? <Loader2 className="animate-spin w-4 h-4" /> : '저장'}
                 </button>
             </div>
@@ -681,13 +763,35 @@ function SaveableTextArea({ label, initialValue, onSave, saving, placeholder, ro
     };
 
     return (
-        <div className="w-full text-left">
-            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 ml-1 text-left">{label}</label>
-            <div className="space-y-4 text-left">
-                <textarea value={value} onChange={handleChange} rows={rows} placeholder={placeholder} className="w-full p-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[28px] focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none font-bold text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all resize-none" />
-                <div className="flex justify-end mt-4">
-                    <button onClick={() => onSave(value)} disabled={!isChanged || saving} className="px-10 py-3.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-sm disabled:opacity-20 flex items-center gap-2 active:scale-95 transition-all shadow-lg dark:shadow-indigo-500/20">
-                        {saving ? <Loader2 className="animate-spin w-4 h-4" /> : '변경사항 저장'}
+        <div className="w-full text-left group/input">
+            <div className="flex items-center justify-between mb-3 px-1">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</label>
+                {isChanged && <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">Unsaved Changes</span>}
+            </div>
+            <div className="space-y-3">
+                <textarea
+                    value={value}
+                    onChange={handleChange}
+                    rows={rows}
+                    placeholder={placeholder}
+                    className={cn(
+                        "w-full p-6 bg-slate-50 dark:bg-slate-800/50 border rounded-[32px] outline-none font-bold text-lg text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all resize-none leading-relaxed",
+                        isChanged ? "border-amber-200 dark:border-amber-900/50 ring-8 ring-amber-500/5" : "border-slate-100 dark:border-slate-800 focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/5"
+                    )}
+                />
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => onSave(value)}
+                        disabled={!isChanged || saving}
+                        className={cn(
+                            "px-10 py-4 rounded-2xl font-black text-sm transition-all flex items-center gap-3 active:scale-95 shadow-xl",
+                            isChanged
+                                ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-indigo-500/20"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-300 shadow-none cursor-not-allowed"
+                        )}
+                    >
+                        {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                        {saving ? '저장 중...' : '변경사항 저장'}
                     </button>
                 </div>
             </div>
@@ -697,65 +801,70 @@ function SaveableTextArea({ label, initialValue, onSave, saving, placeholder, ro
 
 function HeroPreview({ title, subtitle, bgUrl }) {
     return (
-        <div className="relative w-full aspect-[21/9] rounded-[40px] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 bg-slate-900 group">
+        <div
+            className="relative w-full aspect-[21/9] rounded-2xl md:rounded-[30px] overflow-hidden shadow-2xl border border-white/10 bg-slate-900 group"
+            style={{ containerType: 'inline-size' }}
+        >
             {/* 1. Immersive Background Layer */}
             <div className="absolute inset-0">
                 {bgUrl ? (
-                    <img src={bgUrl} className="w-full h-full object-cover transition-transform duration-[3s] group-hover:scale-105" alt="Preview Background" />
+                    <img src={bgUrl} className="w-full h-full object-cover transition-transform duration-[3s] group-hover:scale-110" alt="Preview Background" />
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900" />
                 )}
                 {/* Precise Gradient Overlay mimicking HomePage.tsx */}
-                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/30 to-transparent z-10" />
             </div>
 
-            {/* 2. Content Layer - Meticulously scaled for the preview container */}
-            <div className="absolute inset-0 z-20 flex flex-col justify-center px-[8%] text-left">
-                <div className="max-w-[95%] space-y-[4%] text-left">
+            {/* 2. Content Layer - Using cqw for perfect relative scaling */}
+            <div className="absolute inset-0 z-20 flex flex-col justify-center px-[8cqw] text-left">
+                <div className="max-w-[55cqw] space-y-[2.5cqw] text-left">
                     {/* Compact Badge */}
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-1">
-                        <div className="w-1 h-1 rounded-full bg-indigo-400" />
-                        <div className="w-12 h-1 bg-white/30 rounded-full" />
+                    <div className="inline-flex items-center gap-[1cqw] px-[2cqw] py-[0.6cqw] bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+                        <div className="w-[0.8cqw] h-[0.8cqw] rounded-full bg-indigo-400" />
+                        <span className="text-[1.2cqw] font-black text-white/80 uppercase tracking-widest">아동발달의 중심</span>
                     </div>
 
-                    {/* Scaled-down Title - Prevents accidental line breaks in small containers */}
+                    {/* Scaled Title - Matches clamp(2rem, 8vw, 5rem) proportions */}
                     <h1
-                        className="text-white font-black leading-[1.05] tracking-tighter whitespace-pre-line text-left"
+                        className="text-white font-black leading-[1.1] tracking-tighter whitespace-pre-line text-left"
                         style={{
-                            fontSize: 'clamp(0.4rem, 2.2vw, 1.5rem)',
-                            textShadow: '0 4px 30px rgba(0,0,0,0.6)',
+                            fontSize: '4.2cqw',
+                            textShadow: '0 0.5cqw 2cqw rgba(0,0,0,0.4)',
                             wordBreak: 'keep-all',
-                            maxWidth: '90%'
                         }}
                     >
                         {title || "꿈과 희망이\n자라나는 공간"}
                     </h1>
 
-                    {/* Scaled-down Subtitle */}
+                    {/* Scaled Subtitle - Matches md:text-xl proportions */}
                     <p
-                        className="text-white/80 font-bold leading-relaxed whitespace-pre-line max-w-[80%] text-left"
-                        style={{ fontSize: 'clamp(0.35rem, 1vw, 0.7rem)' }}
+                        className="text-white/80 font-medium leading-relaxed whitespace-pre-line text-left opacity-90"
+                        style={{
+                            fontSize: '1.4cqw',
+                            textShadow: '0 0.2cqw 1cqw rgba(0,0,0,0.3)'
+                        }}
                     >
                         {subtitle || "실제 사이트의 웅장한 비율을\n그대로 구현한 실시간 프리뷰입니다."}
                     </p>
 
-                    {/* Compact Button Mockup */}
-                    <div className="pt-[2%]">
-                        <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-white text-slate-900 rounded-full shadow-2xl transition-transform active:scale-95 cursor-pointer">
-                            <div className="w-10 h-1 bg-slate-900/10 rounded-full" />
-                            <div className="w-5 h-5 bg-slate-900 rounded-full flex items-center justify-center">
-                                <ChevronRight className="w-3 h-3 text-white" />
+                    {/* Button Mockup */}
+                    <div className="pt-[1cqw]">
+                        <div className="inline-flex items-center gap-[2cqw] px-[4cqw] py-[1.5cqw] bg-white text-slate-900 rounded-full shadow-2xl">
+                            <span className="text-[1.3cqw] font-black">상담 문의하기</span>
+                            <div className="w-[3cqw] h-[3cqw] bg-slate-900 rounded-full flex items-center justify-center">
+                                <ChevronRight className="w-[1.8cqw] h-[1.8cqw] text-white" />
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* 3. Minimal dots (non-blocking) */}
-            <div className="absolute top-3 left-6 z-30 flex gap-1.5 opacity-50">
-                <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            {/* Browser Dots */}
+            <div className="absolute top-[3cqw] left-[6cqw] z-30 flex gap-[1cqw] opacity-50">
+                <div className="w-[1cqw] h-[1cqw] rounded-full bg-rose-500" />
+                <div className="w-[1cqw] h-[1cqw] rounded-full bg-amber-500" />
+                <div className="w-[1cqw] h-[1cqw] rounded-full bg-emerald-500" />
             </div>
         </div>
     );

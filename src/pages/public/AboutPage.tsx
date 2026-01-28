@@ -65,6 +65,9 @@ export function AboutPage() {
     const descTitle = branding.settings?.about_desc_title || getSetting('about_desc_title') || "따뜻한 시선으로\n아이의 잠재력을 발굴합니다";
     const descBody = branding.settings?.about_desc_body || getSetting('about_desc_body') || `${centerName}는 각 분야별 석/박사 출신의 전문 치료진들이 협력하여 아동 개개인에게 최적화된 맞춤 치료 프로그램을 제공합니다.\n\n단순히 증상을 개선하는 것을 넘어, 아이가 스스로 긍정적인 자아를 형성하고 세상과 소통하며 행복하게 살아갈 수 있도록 돕는 것이 우리의 목표입니다.`;
 
+    const galleryRaw = branding.settings?.about_gallery || getSetting('about_gallery');
+    const galleryImages = galleryRaw ? galleryRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
     const values = [
         { icon: Icons.award, title: "검증된 전문성", desc: "석/박사급 치료진의 체계적 접근", color: isDark ? "bg-slate-800" : "bg-white", brandColor: true },
         { icon: Icons.heart, title: "진정성 있는 치료", desc: "아이 중심의 따뜻한 케어", color: isDark ? "bg-rose-900/50 text-rose-400" : "bg-rose-50 text-rose-600" },
@@ -120,6 +123,39 @@ export function AboutPage() {
                             </div>
                         </div>
                     </motion.div>
+
+                    {/* ✨ Premium Center Gallery Section */}
+                    {galleryImages.length > 0 && (
+                        <div className="mt-32 space-y-12">
+                            <div className="text-center space-y-4">
+                                <h2 className={cn("text-3xl md:text-4xl font-black", isDark ? "text-white" : "text-slate-900")}>센터 둘러보기</h2>
+                                <p className={cn("text-base font-medium opacity-60", isDark ? "text-slate-400" : "text-slate-600")}>우리 아이들이 꿈을 키워나가는 따뜻한 공간입니다.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {galleryImages.map((img, idx) => (
+                                    <motion.div
+                                        key={idx}
+                                        className={cn(
+                                            "relative aspect-[4/3] rounded-[32px] overflow-hidden group border",
+                                            isDark ? "border-white/5 shadow-2xl" : "border-slate-100 shadow-xl shadow-slate-200/50"
+                                        )}
+                                        initial={{ opacity: 0, y: 30 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: idx * 0.1 }}
+                                    >
+                                        <img
+                                            src={img}
+                                            alt={`Center Gallery ${idx + 1}`}
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

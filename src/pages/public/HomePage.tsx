@@ -55,7 +55,7 @@ const DEFAULT_CONTENT = {
         titleLast: "이\n자라나는 특별한 공간",
         description: "언어치료, 감각통합, 미술/놀이치료 전문 기관.\n최고의 치료사진과 함께 우리 아이의 잠재력을 키워주세요.",
         ctaText: "상담 문의하기",
-        defaultBgImage: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?auto=format&fit=crop&q=80&w=2000"
+        defaultBgImage: "https://images.unsplash.com/photo-1566438480900-0609be27a4be?auto=format&fit=crop&q=80&w=2000,https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&q=80&w=2000,https://images.unsplash.com/photo-1596464716127-f2a82984de30?auto=format&fit=crop&q=80&w=2000"
     },
     values: [
         { title: "근거 기반 치료", desc: "검증된 임상 데이터를 바탕으로 아이에게 가장 적합한 프로그램을 제안합니다." },
@@ -114,7 +114,11 @@ export function HomePage() {
 
             {/* ✨ 모바일 최적화: 높이 조정 및 object-position */}
             <section className="relative h-[70vh] md:h-[85vh] flex items-center overflow-hidden">
-                <HeroBackground bgImage={bgImage} />
+                <HeroBackground
+                    bgImage={bgImage}
+                    animationType={getSetting('banner_animation') || 'fade'}
+                    duration={Number(getSetting('banner_duration')) || 6}
+                />
 
                 <div className="container relative z-10 mx-auto px-6 md:px-12">
                     <div className="max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-1000">

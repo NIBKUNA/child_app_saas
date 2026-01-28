@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초대장</title>
+</head>
+
+<body
+    style="margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;">
+
+    <div
+        style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; margin-top: 40px; margin-bottom: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+
+        <!-- 1. Header with Gradient -->
+        <div
+            style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); padding: 60px 40px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Zarada ERP
+            </h1>
+            <p style="color: rgba(255,255,255,0.9); margin-top: 10px; font-size: 16px;">아동발달센터 통합 관리 시스템</p>
+        </div>
+
+        <!-- 2. Main Content -->
+        <div style="padding: 50px 40px; text-align: center;">
+            <h2 style="color: #1e293b; font-size: 24px; font-weight: 700; margin-bottom: 20px;">
+                사용자 초대 안내
+            </h2>
+
+            <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 40px;">
+                안녕하세요! <br>
+                <strong>Zarada ERP</strong> 시스템의 구성원으로 초대되었습니다.<br>
+                아래 버튼을 클릭하여 계정 비밀번호를 설정하고<br>
+                서비스를 시작해 보세요.
+            </p>
+
+            <!-- 3. CTA Button -->
+            <!-- {{ .ConfirmationURL }} is the generic variable. For 'Invite User', it's usually {{ .SiteURL }}/auth/v1/verify?token={{ .Token }}&type=invite&redirect_to={{ .RedirectTo }} -->
+            <!-- But Supabase dashboard provides {{ .ConfirmationURL }} for this specific action. -->
+            <a href="{{ .ConfirmationURL }}"
+                style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 18px 40px; border-radius: 100px; font-weight: bold; font-size: 16px; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);">
+                초대 수락하기
+            </a>
+
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 40px;">
+                본인이 요청하지 않았거나 모르는 내용이라면<br>
+                이 메일을 무시해 주세요.
+            </p>
+        </div>
+
+        <!-- 4. Footer -->
+        <div style="background-color: #f1f5f9; padding: 30px; text-align: center; font-size: 12px; color: #94a3b8;">
+            <p style="margin: 0;">© 2026 Zarada ERP. All rights reserved.</p>
+            <p style="margin: 5px 0 0 0;">This is an automated message.</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

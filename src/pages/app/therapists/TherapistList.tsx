@@ -14,6 +14,7 @@ import {
     Plus, Search, Phone, Mail, Edit2, X, Check,
     Shield, Stethoscope, UserCog, UserCheck, AlertCircle, UserMinus, Lock, RotateCcw, Trash2, Archive, ArchiveRestore
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { isSuperAdmin, SUPER_ADMIN_EMAILS } from '@/config/superAdmin';
 import { Helmet } from 'react-helmet-async';
@@ -38,7 +39,13 @@ export function TherapistList() {
     const [formData, setFormData] = useState({
         name: '', contact: '', email: '', hire_type: 'freelancer',
         system_role: 'therapist', remarks: '', color: '#3b82f6',
-        bank_name: '', account_number: '', account_holder: ''
+        bank_name: '', account_number: '', account_holder: '',
+        bio: '', career: '', specialties: '', profile_image: '', website_visible: true
+    });
+
+    // ✨ [New] Success Modal State
+    const [successModal, setSuccessModal] = useState<{ open: boolean; title: string; message: string }>({
+        open: false, title: '', message: ''
     });
 
     useEffect(() => {
@@ -80,7 +87,6 @@ export function TherapistList() {
                 };
             }).filter(u => u.system_role !== 'parent' && !isSuperAdmin(u.email));
 
-            console.log("✅ Merged Staff Data:", mergedData);
             setStaffs(mergedData || []);
 
         } catch (error) {
@@ -92,43 +98,37 @@ export function TherapistList() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true); // Show global loading or local loading
+        setLoading(true);
 
         try {
             if (!editingId) {
                 // ✨ [New Registration] Use Edge Function for Secure Invitation
-                // ✨ [DEBUG] Inspect Payload
-                console.log("🚀 Inviting User:", {
-                    email: formData.email,
-                    role: formData.system_role,
-                    hire_type: formData.hire_type
-                });
-
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,
                         name: formData.name,
-                        role: formData.system_role, // 'admin' or 'therapist'
+                        role: formData.system_role,
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
                         account_number: formData.account_number,
                         account_holder: formData.account_holder,
-                        // account_holder: formData.account_holder, // Duplicate removed
                         center_id: centerId,
                         redirectTo: `${window.location.origin}/auth/update-password`
                     }
                 });
 
                 if (error) throw error;
-                // If function returns error in body
                 if (data && data.error) throw new Error(data.error);
 
-                alert(`✅ [초대 발송 성공] ${formData.name}님에게 이메일이 발송되었습니다.`);
+                // ✨ Show Custom Success Modal instead of Alert
+                setSuccessModal({
+                    open: true,
+                    title: '초대장 발송 완료!',
+                    message: `${formData.name}님에게 이메일 초대가 발송되었습니다.\n수신함에서 스팸 메일함도 꼭 확인해주세요.`
+                });
             } else {
                 // ✨ [Edit Mode] Direct Update (As Admin)
-                // 1. Upsert Therapists Table (Detail info like Color, Account)
-                // We use upsert with email to ensure even users without therapist rows get one.
                 const { error: therapistError } = await supabase
                     .from('therapists')
                     .upsert({
@@ -137,16 +137,19 @@ export function TherapistList() {
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
-                        account_number: formData.account_number,
                         account_holder: formData.account_holder,
                         system_role: formData.system_role,
                         system_status: 'active', // Ensure they are active
                         center_id: centerId,
+                        bio: formData.bio,
+                        career: formData.career,
+                        specialties: formData.specialties,
+                        profile_image: formData.profile_image,
+                        website_visible: formData.website_visible
                     }, { onConflict: 'email' });
 
                 if (therapistError) throw therapistError;
 
-                // 2. Update User Profiles (Core info like Name, Role)
                 const { error: profileError } = await supabase
                     .from('user_profiles')
                     .update({
@@ -157,8 +160,13 @@ export function TherapistList() {
 
                 if (profileError) throw profileError;
 
-                alert(`✅ [수정 완료] ${formData.name}님의 정보가 업데이트되었습니다.`);
-                fetchStaffs(); // Refresh UI
+                setSuccessModal({
+                    open: true,
+                    title: '정보 수정 완료',
+                    message: `${formData.name}님의 정보가 성공적으로 업데이트되었습니다.`
+                });
+
+                fetchStaffs();
                 setIsModalOpen(false);
             }
 
@@ -180,14 +188,11 @@ export function TherapistList() {
         if (!confirm(message)) return;
 
         try {
-            // 1. Update Profile (if exists)
             const { error: profileError } = await supabase
                 .from('user_profiles')
                 .update({ status: newStatus })
                 .eq('email', staff.email);
 
-            // 2. Update Therapists Table (Source of Truth for Pending)
-            // ✨ This fixes the bug where "Pending" staff wouldn't disappear
             await supabase
                 .from('therapists')
                 .update({ system_status: newStatus })
@@ -218,13 +223,10 @@ export function TherapistList() {
         }
 
         try {
-            // ✨ [Super Admin] Secure Hard Delete via RPC
-            // This deletes Auth User + Profile + Therapist Record + Storage + etc.
             if (staff.userId) {
                 const { error } = await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
                 if (error) throw error;
             } else {
-                // If no linked user (zombie record), just delete the table row
                 await supabase.from('therapists').delete().eq('id', staff.id);
             }
 
@@ -249,25 +251,28 @@ export function TherapistList() {
             bank_name: staff.bank_name || '',
             account_number: staff.account_number || '',
             account_holder: staff.account_holder || '',
-            // ✨ Advanced Mapping
             base_salary: staff.base_salary || 0,
             required_sessions: staff.required_sessions || 0,
             session_price_weekday: staff.session_price_weekday || 0,
             session_price_weekend: staff.session_price_weekend || 0,
             incentive_price: staff.incentive_price || 24000,
-            evaluation_price: staff.evaluation_price || 50000
+            evaluation_price: staff.evaluation_price || 50000,
+            bio: staff.bio || '',
+            career: staff.career || '',
+            specialties: staff.specialties || '',
+            profile_image: staff.profile_image || '',
+            website_visible: staff.website_visible !== false // Default true for active
         });
         setIsModalOpen(true);
     };
 
-    // Filter Logic
     const filteredStaffs = staffs.filter(s => {
         if (viewMode === 'active') return s.system_status !== 'retired' && s.system_status !== 'rejected';
         if (viewMode === 'retired') return s.system_status === 'retired';
         return false;
     }).filter(s => s.name.includes(searchTerm));
 
-    const isSuper = isSuperAdmin(user?.email);  // Fortress Check
+    const isSuper = isSuperAdmin(user?.email);
 
     return (
         <div className="space-y-6 pb-20 p-8 bg-slate-50/50 dark:bg-slate-950 min-h-screen">
@@ -282,7 +287,6 @@ export function TherapistList() {
                 </div>
 
                 <div className="flex gap-2">
-                    {/* View Mode Toggle */}
                     <div className="bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 flex shadow-sm">
                         <button
                             onClick={() => setViewMode('active')}
@@ -314,7 +318,8 @@ export function TherapistList() {
                                 system_status: 'active',
                                 remarks: '', color: '#3b82f6',
                                 bank_name: '', account_number: '', account_holder: '',
-                                base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000
+                                base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000,
+                                bio: '', career: '', specialties: '', profile_image: '', website_visible: true
                             });
                             setIsModalOpen(true);
                         }}
@@ -344,9 +349,9 @@ export function TherapistList() {
                             setEditingId(null);
                             setFormData({
                                 name: '', contact: '', email: '', hire_type: 'parttime',
-                                system_role: 'staff', // ✨ Auto-set Staff
+                                system_role: 'staff',
                                 system_status: 'active',
-                                remarks: '', color: '#f59e0b', // Amber for Staff
+                                remarks: '', color: '#f59e0b',
                                 bank_name: '', account_number: '', account_holder: '',
                                 base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 0, evaluation_price: 0
                             });
@@ -399,15 +404,11 @@ export function TherapistList() {
                                 {staff.system_status !== 'retired' && (
                                     <button onClick={() => handleEdit(staff)} className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"><Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" /></button>
                                 )}
-
-                                {/* Status Toggle Button */}
                                 <button onClick={() => handleToggleStatus(staff)}
                                     className={cn("p-2.5 rounded-xl transition-all shadow-sm hover:scale-105 active:scale-95",
                                         staff.system_status === 'retired' ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-200" : "bg-rose-50 text-rose-400 hover:bg-rose-100")}>
                                     {staff.system_status === 'retired' ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                                 </button>
-
-                                {/* SUPER ADMIN ONLY: Hard Reset */}
                                 {isSuper && staff.system_status === 'retired' && (
                                     <button
                                         onClick={() => handleHardReset(staff)}
@@ -437,7 +438,6 @@ export function TherapistList() {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="space-y-6">
-                                {/* Basic Info Group */}
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">이름</label>
@@ -497,13 +497,9 @@ export function TherapistList() {
                                                 }[formData.system_role] || '🩺 치료사 (Therapist)'
                                             }
                                         />
-                                        <p className="text-[11px] text-slate-400 font-medium px-1">
-                                            * 권한은 '관리자 등록' 또는 '치료사 등록' 버튼에 따라 자동 결정됩니다.
-                                        </p>
                                     </div>
                                 </div>
 
-                                {/* Color Picker */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">프로필 색상</label>
                                     <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl justify-center">
@@ -522,7 +518,6 @@ export function TherapistList() {
                                     </div>
                                 </div>
 
-                                {/* Settlement Info Box */}
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
@@ -561,6 +556,102 @@ export function TherapistList() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* ✨ Public Profile Section */}
+                                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-900/50 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                                <span className="text-lg">🌍</span>
+                                            </div>
+                                            <h3 className="text-sm font-black text-indigo-700 dark:text-indigo-400">웹사이트 프로필 설정</h3>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">홈페이지 노출</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, website_visible: !formData.website_visible })}
+                                                className={cn(
+                                                    "w-10 h-5 rounded-full transition-all relative",
+                                                    formData.website_visible ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-700"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
+                                                    formData.website_visible ? "left-6" : "left-1"
+                                                )} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex gap-4 items-start">
+                                            <div className="shrink-0">
+                                                <div className="w-20 h-28 bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 relative shadow-sm group">
+                                                    {formData.profile_image ? (
+                                                        <img src={formData.profile_image} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Plus className="w-6 h-6 text-slate-300" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 space-y-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[11px] font-bold text-slate-400 ml-1">한줄 프로필 (Bio)</label>
+                                                    <input
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                                                        placeholder="예: 아이들의 꿈을 디자인합니다."
+                                                        value={formData.bio || ''}
+                                                        onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[11px] font-bold text-slate-400 ml-1">전문 분야 (Specialties)</label>
+                                                    <input
+                                                        className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                                                        placeholder="예: 언어치료, 인지치료"
+                                                        value={formData.specialties || ''}
+                                                        onChange={e => setFormData({ ...formData, specialties: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-bold text-slate-400 ml-1">상세 약력 (Career)</label>
+                                            <textarea
+                                                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm outline-none focus:border-indigo-500 transition-all text-slate-900 dark:text-white min-h-[100px] placeholder:text-slate-400"
+                                                placeholder="한 줄에 하나씩 입력해주세요.&#10;- OO대학교 언어치료 전공&#10;- OO센터 수석 연구원"
+                                                value={formData.career || ''}
+                                                onChange={e => setFormData({ ...formData, career: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-bold text-slate-400 ml-1">프로필 이미지 URL</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs outline-none focus:border-indigo-500 transition-all text-slate-500 dark:text-slate-400"
+                                                    placeholder="https://..."
+                                                    value={formData.profile_image || ''}
+                                                    onChange={e => setFormData({ ...formData, profile_image: e.target.value })}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        const url = prompt('이미지 URL을 입력하시거나, 이미지를 업로드 후 URL을 붙여넣어주세요.');
+                                                        if (url) setFormData({ ...formData, profile_image: url });
+                                                    }}
+                                                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-[10px] font-bold"
+                                                >
+                                                    URL 입력
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <button type="submit" className="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-[24px] font-black text-lg shadow-xl hover:scale-[1.02] transition-all mt-4">
@@ -570,6 +661,53 @@ export function TherapistList() {
                     </div>
                 </div>
             )}
+
+            {/* ✨ Success Modal */}
+            <AnimatePresence>
+                {successModal.open && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-sm p-10 shadow-2xl text-center border border-white/20"
+                        >
+                            <div className="w-24 h-24 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-8 relative">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.2, type: "spring" }}
+                                    className="absolute inset-0 bg-emerald-100 dark:bg-emerald-800/20 rounded-full animate-ping"
+                                    style={{ animationDuration: '3s' }}
+                                />
+                                <Check className="w-12 h-12 text-emerald-600 dark:text-emerald-400 relative z-10" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
+                                {successModal.title}
+                            </h3>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold whitespace-pre-line mb-10 leading-relaxed">
+                                {successModal.message}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setSuccessModal({ ...successModal, open: false });
+                                    if (!editingId) setIsModalOpen(false);
+                                    fetchStaffs();
+                                }}
+                                className="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-3xl font-black text-lg hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                확인했습니다
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

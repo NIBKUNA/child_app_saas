@@ -128,7 +128,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         date: '',
         start_time: '10:00',
         end_time: '10:40',
-        status: 'scheduled'
+        status: 'scheduled',
+        service_type: 'therapy'
     });
 
     useEffect(() => {
@@ -194,7 +195,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         date: data.date || (data.start_time ? data.start_time.split('T')[0] : ''),
                         start_time: sTime || '10:00',
                         end_time: eTime || '10:40',
-                        status: data.status
+                        status: data.status,
+                        service_type: data.service_type || 'therapy'
                     });
                 } else {
                     const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
@@ -212,7 +214,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             date: data.date || (data.start_time ? data.start_time.split('T')[0] : ''),
                             start_time: sTime || '10:00',
                             end_time: eTime || '10:40',
-                            status: data.status
+                            status: data.status,
+                            service_type: data.service_type || 'therapy'
                         });
                     }
                 }
@@ -239,7 +242,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     date: `${year}-${month}-${day}`,
                     start_time: timeStr === '00:00' ? '10:00' : timeStr,
                     end_time: timeStr === '00:00' ? '10:40' : calculateEndTime(timeStr, 40),
-                    status: 'scheduled'
+                    status: 'scheduled',
+                    service_type: 'therapy'
                 });
             }
         } finally {
@@ -266,7 +270,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 child_id: formData.child_id,
                 program_id: formData.program_id,
                 therapist_id: formData.therapist_id,
-                status: formData.status
+                status: formData.status,
+                service_type: formData.service_type
             };
 
             // ✨ [핵심 수정] 타임존 계산 없이 문자열 결합 ("2026-01-07" + "T" + "10:00" + ":00")
@@ -413,7 +418,12 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     };
     const handleProgramChange = (pid) => {
         const p = programsList.find(x => x.id === pid);
-        setFormData(prev => ({ ...prev, program_id: pid, end_time: p ? calculateEndTime(prev.start_time, p.duration) : prev.end_time }));
+        setFormData(prev => ({
+            ...prev,
+            program_id: pid,
+            service_type: p?.category || 'therapy',
+            end_time: p ? calculateEndTime(prev.start_time, p.duration) : prev.end_time
+        }));
     };
 
     const handleStartTimeChange = (sTime) => {

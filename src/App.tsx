@@ -31,6 +31,7 @@ import { HomePage } from '@/pages/public/HomePage';
 import { AboutPage } from '@/pages/public/AboutPage';
 import { ProgramsPage } from '@/pages/public/ProgramsPage';
 import { ContactPage } from '@/pages/public/ContactPage';
+import { TherapistsPage } from '@/pages/public/TherapistsPage';
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
@@ -162,6 +163,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="programs" element={<ProgramsPage />} />
+            <Route path="therapists" element={<TherapistsPage />} />
             <Route path="contact" element={<ContactPage />} />
             {/* Blog routes removed */}
           </Route>

@@ -7,6 +7,7 @@
  * 🖋️ Description: "부모님 계정(User Profiles) 전체 관리 페이지"
  */
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { Helmet } from 'react-helmet-async';
@@ -28,40 +29,32 @@ export function ParentList() {
     const fetchParents = async () => {
         setLoading(true);
         try {
-            // 1. Get Children in this Center first (SaaS Logic)
+            // 1. Fetch all parents in this center (SaaS Logic)
+            const { data: profiles, error } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('center_id', center.id)
+                .eq('role', 'parent')
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+
+            // 2. Get Children in this Center (to show links)
             const { data: centerChildren } = await supabase
                 .from('children')
                 .select('id, name, parent_id')
-                .eq('center_id', center.id) // ✨ Filter by Center
+                .eq('center_id', center.id)
                 .not('parent_id', 'is', null);
 
-            const parentIds = centerChildren?.map(c => c.parent_id) || [];
-
-            // 2. Fetch Profiles matching these parents (Only parents linked to this center's children)
-            // Or if we want ALL parents registered via this center (needs center_id on user_profiles too)
-            // For now, "Parents of children in this center" is the safest approach.
-            if (parentIds.length > 0) {
-                const { data: profiles, error } = await supabase
-                    .from('user_profiles')
-                    .select('*')
-                    .in('id', parentIds)
-                    .order('name', { ascending: true });
-
-                if (error) throw error;
-
-                // Merge Children info
-                const merged = profiles.map(p => {
-                    const myChildren = centerChildren.filter(c => c.parent_id === p.id);
-                    return {
-                        ...p,
-                        children: myChildren
-                    };
-                });
-                setParents(merged);
-            } else {
-                setParents([]);
-            }
-
+            // Merge Children info
+            const merged = (profiles || []).map(p => {
+                const myChildren = (centerChildren || []).filter(c => c.parent_id === p.id);
+                return {
+                    ...p,
+                    children: myChildren
+                };
+            });
+            setParents(merged);
         } catch (error) {
             console.error('부모 목록 로딩 실패:', error);
         } finally {

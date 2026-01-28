@@ -63,7 +63,7 @@ export function Settlement() {
     const saveEdit = async (id: string) => {
         if (!window.confirm('저장하시겠습니까?')) return;
         try {
-            await supabase.from('therapists').update({
+            const { error } = await supabase.from('therapists').update({
                 hire_type: editForm.hire_type,
                 base_salary: Number(editForm.base_salary) || 0,
                 required_sessions: Number(editForm.base_session_count) || 0,
@@ -73,6 +73,8 @@ export function Settlement() {
                 incentive_price: Number(editForm.consult) || 0,
                 remarks: editForm.remarks
             }).eq('id', id);
+
+            if (error) throw error;
 
             setEditingId(null);
             fetchSettlements();
@@ -193,24 +195,33 @@ export function Settlement() {
                     revenue = payout; // Admin staff is overhead
                     incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정직원)`;
                 } else if (hireType === 'fulltime' || hireType === 'regular' || staff.system_role === 'admin') {
-                    // Case B: Regular Staff/Admin (Base + Incentive + Eval)
-                    const required = staff.required_sessions || 0;
+                    // Case B: Regular Staff/Admin (Specific Zarada Formula)
+                    // [Rules]
+                    // 1. Goal (required): 90 sessions (weighted)
+                    // 2. Weight: Weekday = 1, Weekend = 1.5
+                    // 3. Eval Weight: If < 90, Eval = 2 Achievement (to fill 1.9M quota)
+                    // 4. If > 90: Payout = 1.9M + (Excess α * 24k) + (Eval Count * 50k)
+
+                    const goal = staff.required_sessions || 90;
                     const incentivePrice = staff.incentive_price || 24000;
+                    const evalPrice = staff.evaluation_price || 50000;
 
-                    let weighted_count = raw_weekday + (raw_weekend * 1.5);
+                    const base_weighted = raw_weekday + (raw_weekend * 1.5);
+                    const total_weighted = base_weighted + (eval_count * 2);
 
-                    // Correction for under-performance
-                    if (weighted_count < required) {
-                        weighted_count += (eval_count * 2);
+                    if (total_weighted > goal) {
+                        const excess = total_weighted - goal;
+                        const incentive = excess * incentivePrice;
+                        const evalBonus = eval_count * evalPrice;
+
+                        payout = baseSalary + incentive + evalBonus;
+                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 인센티브 ${incentive.toLocaleString()} (초과 ${excess.toFixed(1)}회) + 평가수당 ${evalBonus.toLocaleString()}`;
+                    } else {
+                        // Under or Exactly at Goal
+                        payout = baseSalary;
+                        incentiveText = `기본급 ${baseSalary.toLocaleString()} (평일 ${raw_weekday} / 주말 ${raw_weekend} / 평가 ${eval_count})`;
                     }
-
-                    const excess = Math.max(0, weighted_count - required);
-                    const incentive = excess * incentivePrice;
-                    const evalPay = eval_count * evalPrice;
-
-                    payout = baseSalary + incentive + evalPay;
                     revenue = payout / 0.6;
-                    incentiveText = `기본급 ${baseSalary.toLocaleString()} + 인센티브 ${incentive.toLocaleString()} (초과 ${excess.toFixed(1)}회) + 평가 ${evalPay.toLocaleString()}`;
 
                 } else {
                     // Case C: Freelancer Therapist (Ratio-based)
@@ -352,7 +363,7 @@ export function Settlement() {
                                             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div className="col-span-1">
-                                                        <span className="text-xs text-slate-400">{editForm.hire_type === 'fulltime' ? '초과 인센 단가' : '평일 수업 단가'}</span>
+                                                        <span className="text-xs text-slate-400">평일 수업 단가</span>
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.weekday} onChange={e => setEditForm({ ...editForm, weekday: e.target.value })} placeholder="0" />
                                                     </div>
                                                     <div className="col-span-1">
@@ -366,7 +377,7 @@ export function Settlement() {
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.eval} onChange={e => setEditForm({ ...editForm, eval: e.target.value })} placeholder="0" />
                                                     </div>
                                                     <div className="col-span-1">
-                                                        <span className="text-xs text-slate-400">상담 수당</span>
+                                                        <span className="text-xs text-slate-400">{editForm.hire_type === 'fulltime' ? '초과 인센티브' : '상담 수당'}</span>
                                                         <input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.consult} onChange={e => setEditForm({ ...editForm, consult: e.target.value })} placeholder="0" />
                                                     </div>
                                                 </div>

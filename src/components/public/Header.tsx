@@ -90,8 +90,8 @@ export function Header() {
         { name: '홈', href: basePath || '/' },
         { name: '센터 소개', href: `${basePath}/about` },
         { name: '프로그램', href: `${basePath}/programs` },
+        { name: '치료사 소개', href: `${basePath}/therapists` },
         { name: '문의하기', href: `${basePath}/contact` },
-        { name: '우리 아이 동화책 만들기', href: 'https://www.myparents.co.kr/', external: true },
     ];
 
     const isActive = (path: string) => location.pathname === path;
