@@ -29,6 +29,10 @@ export function ParentStatsPage() {
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     const [selectedChildName, setSelectedChildName] = useState<string>('');
     const [therapistId, setTherapistId] = useState<string | null>(null);
+    const [parentChecks, setParentChecks] = useState<Record<string, string[]>>({
+        communication: [], social: [], cognitive: [], motor: [], adaptive: []
+    });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         initializePage();
@@ -98,7 +102,7 @@ export function ParentStatsPage() {
             .from('development_assessments')
             .select('*')
             .eq('child_id', childId)
-            .order('created_at', { ascending: false })
+            .order('evaluation_date', { ascending: false })
             .limit(10); // 추이 확인을 위해 10개까지 로드
 
         setDevData(data || []);
@@ -113,9 +117,78 @@ export function ParentStatsPage() {
 
         if (ctInfo) setTherapistId(ctInfo.therapist_id);
 
+        // ✨ 최신 리포트의 체크 항목을 부모 체크 상태로 초기화 (로드 시점)
+        if (shouldInitChecks && data && data[0]) {
+            const latestDetails = data[0].assessment_details || {};
+            setParentChecks(latestDetails);
+        }
     };
 
+    const handleToggleCheck = (domain: string, itemId: string) => {
+        setParentChecks(prev => {
+            const current = prev[domain] || [];
+            const next = current.includes(itemId)
+                ? current.filter(id => id !== itemId)
+                : [...current, itemId];
+            return { ...prev, [domain]: next };
+        });
+    };
 
+    const handleSaveSelfAssessment = async () => {
+        if (!selectedChildId || !center?.id) return;
+        setSaving(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("로그인이 필요합니다.");
+
+            const payload = {
+                center_id: center.id,
+                child_id: selectedChildId,
+                therapist_id: therapistId, // ✨ 배정된 치료사 ID 연동
+                evaluation_date: new Date().toISOString().split('T')[0],
+                score_communication: (parentChecks.communication?.length || 0),
+                score_social: (parentChecks.social?.length || 0),
+                score_cognitive: (parentChecks.cognitive?.length || 0),
+                score_motor: (parentChecks.motor?.length || 0),
+                score_adaptive: (parentChecks.adaptive?.length || 0),
+                assessment_details: parentChecks,
+                summary: '부모님 자가진단 기록',
+                therapist_notes: '부모님이 앱에서 직접 체크하여 저장한 발달 데이터입니다. 상담 시 참고하세요.'
+            };
+
+            const { error } = await supabase.from('development_assessments').insert(payload);
+            if (error) throw error;
+
+            alert("✅ 자가진단 결과가 성공적으로 저장되었습니다.\n성장 추이 그래프에서 변화를 확인해보세요!");
+
+            // ✨ [유저 요청] 저장 후 체크 리스트 초기화 (다음에 새로 체크할 수 있도록)
+            // setParentChecks({
+            //     communication: [], social: [], cognitive: [], motor: [], adaptive: []
+            // });
+
+            // 갱신 시 체크 항목 다시 채우지 않도록 false 전달
+            await loadChildStats(selectedChildId, false);
+        } catch (e: any) {
+            console.error(e);
+            alert("저장 실패: " + e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // ✨ [Calculated] 부모님이 체크한 내용을 기반으로 실시간 가상 발달 지표 생성
+    const activeAssessment = {
+        evaluation_date: '실시간 자가진단',
+        score_communication: (parentChecks.communication?.length || 0),
+        score_social: (parentChecks.social?.length || 0),
+        score_cognitive: (parentChecks.cognitive?.length || 0),
+        score_motor: (parentChecks.motor?.length || 0),
+        score_adaptive: (parentChecks.adaptive?.length || 0),
+        assessment_details: parentChecks
+    };
+
+    // 차트에 전달할 데이터 조합 (최신은 부모 체크, 나머지는 히스토리)
+    const combinedData = [activeAssessment, ...(devData || [])];
 
     if (error) {
         return (
@@ -135,6 +208,15 @@ export function ParentStatsPage() {
                     <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-black text-slate-400">
                         <ArrowLeft className="w-4 h-4" /> 뒤로가기
                     </button>
+                    {role === 'parent' && (
+                        <button
+                            onClick={handleSaveSelfAssessment}
+                            disabled={saving}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs shadow-lg shadow-indigo-100 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '💾 저장하여 기록 남기기'}
+                        </button>
+                    )}
                 </div>
 
                 <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-6 flex items-center justify-between">
@@ -155,8 +237,10 @@ export function ParentStatsPage() {
                     <div className="space-y-6">
                         {/* 차트 영역 - 항상 표시됨 (부모 체크 기반) */}
                         <ParentDevelopmentChart
-                            assessments={devData || []}
-                            isInteractive={false}
+                            assessments={combinedData}
+                            isInteractive={role === 'parent'}
+                            onToggleCheck={handleToggleCheck}
+                            parentChecks={parentChecks}
                         />
                     </div>
                 )}
