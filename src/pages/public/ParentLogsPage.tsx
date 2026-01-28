@@ -77,13 +77,13 @@ export function ParentLogsPage() {
                 targetChildId = rel?.child_id;
             }
 
-            // 2. 상담 일지 조회 (치료사 이름 포함)
+            // 2. 상담 일지 조회 (치료사 및 발달 평가 데이터 포함)
             let query = supabase
                 .from('counseling_logs')
                 .select(`
                     *,
                     therapists:therapist_id (name),
-                    development_assessments (summary),
+                    development_assessments!log_id (summary),
                     children!inner(center_id)
                 `)
                 .order('session_date', { ascending: false });

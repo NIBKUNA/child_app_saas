@@ -58,7 +58,10 @@ const CHECKLIST_ITEMS = {
     ]
 };
 
-export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId, therapistId, assessmentId, onSuccess }: AssessmentFormModalProps) {
+export function AssessmentFormModal({
+    isOpen, onClose, childId, childName, logId,
+    scheduleId, sessionDate, therapistId, assessmentId, onSuccess
+}: AssessmentFormModalProps) {
     const { center } = useCenter(); // ✨ Context
     const [loading, setLoading] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
