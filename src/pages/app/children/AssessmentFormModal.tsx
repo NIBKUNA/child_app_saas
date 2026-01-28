@@ -81,6 +81,8 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
 
     const [summary, setSummary] = useState('');
     const [therapistNotes, setTherapistNotes] = useState('');  // ✨ [치료사 전용] 부모에게 비공개 메모
+    const [currentLogId, setCurrentLogId] = useState<string | null>(null); // ✨ [Link] DB에 저장된 log_id 보존
+    const [expandedDomain, setExpandedDomain] = useState<string | null>('communication');
     const [originalTherapistId, setOriginalTherapistId] = useState<string | null>(null); // ✨ [Fix] 수정시 원래 작성자 ID 보존
 
     // ✨ [수정 모드] 기존 데이터 로드
@@ -94,6 +96,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
             setSummary('');
             setTherapistNotes('');
             setCurrentLogId(logId || null);
+            setExpandedDomain('communication');
             setOriginalTherapistId(null);
             setIsEditMode(false);
         }
