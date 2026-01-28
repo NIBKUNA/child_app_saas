@@ -11,7 +11,7 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -52,6 +52,7 @@ export function Register() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { slug } = useParams(); // ✨ Get URL Slug for SaaS
 
     // ✨ [소셜 로그인 감지] 이미 인증된 사용자인지 확인
     const [isOAuthUser, setIsOAuthUser] = useState(false);
@@ -206,14 +207,7 @@ export function Register() {
             )}>
                 {/* Close Button */}
                 <button
-                    onClick={() => {
-                        const slug = window.location.pathname.split('/')[2];
-                        if (slug && window.location.pathname.includes('/centers/')) {
-                            navigate(`/centers/${slug}`);
-                        } else {
-                            navigate('/');
-                        }
-                    }}
+                    onClick={() => slug ? navigate(`/centers/${slug}`) : navigate('/')}
                     className={cn(
                         "absolute top-6 right-6 p-2 rounded-full transition-colors",
                         isDark ? "hover:bg-slate-800 text-slate-500" : "hover:bg-slate-100 text-slate-400"
@@ -251,7 +245,7 @@ export function Register() {
                             <div>
                                 <p className="text-xs font-bold text-slate-500 dark:text-slate-400">가입 센터</p>
                                 <p className="text-sm font-black text-slate-800 dark:text-slate-200">
-                                    {center?.name || import.meta.env.VITE_SITE_TITLE || '센터 정보 로딩 중...'}
+                                    {center?.name || (slug ? '센터 정보 확인 중...' : 'Zarada Platform')}
                                 </p>
                             </div>
                         </div>
@@ -376,14 +370,7 @@ export function Register() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => {
-                                const slug = window.location.pathname.split('/')[2];
-                                if (slug && window.location.pathname.includes('/centers/')) {
-                                    navigate(`/centers/${slug}`);
-                                } else {
-                                    navigate('/');
-                                }
-                            }}
+                            onClick={() => slug ? navigate(`/centers/${slug}`) : navigate('/')}
                             className={cn(
                                 "block w-full text-xs font-bold transition-colors",
                                 isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600"
