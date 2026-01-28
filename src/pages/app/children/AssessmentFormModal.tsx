@@ -184,7 +184,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                 throw new Error('작성자(치료사) 정보를 확인할 수 없습니다. 치료사 목록에 해당 계정이 등록되어 있는지 확인해주세요.');
             }
 
-            const payload = {
+            const payload: any = { // Changed to 'any' to allow modification of log_id
                 center_id: center?.id, // ✨ Inject Center ID
                 child_id: childId,
                 therapist_id: effectiveTherapistId, // ✨ therapists 테이블의 ID 사용
@@ -196,9 +196,35 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                 score_motor: sc.motor,
                 score_adaptive: sc.adaptive,
                 summary: summary,
-                therapist_notes: therapistNotes,  // ✨ [복구] DB 컬럼 추가 후 정상 저장됨
+                therapist_notes: therapistNotes,
                 assessment_details: details
             };
+
+            let activeLogId = currentLogId;
+
+            // ✨ [핵심 수정] 일지가 없는 경우 저장을 누르는 시점에 자동 생성 (유령 일지 방지)
+            if (!isEditMode && !activeLogId) {
+                if (!center?.id) throw new Error('센터 정보가 없어 상담 일지를 생성할 수 없습니다.');
+                console.log('No log ID found, creating an automatic log for this assessment...');
+                const { data: newLog, error: logError } = await supabase
+                    .from('counseling_logs')
+                    .insert({
+                        center_id: center?.id,
+                        therapist_id: effectiveTherapistId,
+                        child_id: childId,
+                        session_date: new Date().toISOString().split('T')[0],
+                        content: '발달 평가 작성을 위해 자동 생성된 기본 일지입니다.',
+                        activities: '평가 진행',
+                        child_response: '평가 진행',
+                        next_plan: '평가 결과 기반 계획 수립'
+                    })
+                    .select()
+                    .single();
+
+                if (logError) throw new Error('상담 일지 자동 생성 실패: ' + logError.message);
+                activeLogId = newLog.id;
+                payload.log_id = activeLogId; // 페이로드 업데이트
+            }
 
             let error;
             if (isEditMode && assessmentId) {

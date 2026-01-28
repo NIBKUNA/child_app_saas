@@ -141,51 +141,20 @@ export function ConsultationList() {
     // ✨ [수정] 일지 ID 가져오기 로직 추가 (FK Violation 해결)
     const handleOpenAssessment = async (session) => {
         try {
-            // 1. 해당 일정에 연결된 상담일지(counseling_logs)가 있는지 확인
+            // Find if there's an existing log for this session
             const { data: log } = await supabase
                 .from('counseling_logs')
                 .select('id')
                 .eq('schedule_id', session.id)
                 .maybeSingle();
 
-            let targetLogId = log?.id;
-
-            // 2. 일지가 없다면? -> 자동 생성 후 진행 (평가를 위해서는 일지 데이터가 부모여야 함)
-            if (!targetLogId) {
-                const sessionDate = session.start_time.split('T')[0];
-                if (!confirm(`[${sessionDate}] 수업의 상담 일지가 아직 작성되지 않았습니다.\n\n해당 날짜로 빈 일지를 먼저 생성하고 평가를 작성하시겠습니까?`)) return;
-
-                const { data: newLog, error } = await supabase
-                    .from('counseling_logs')
-                    .insert({
-                        center_id: centerId, // ✨ [FIX] RLS Violation 해결을 위해 center_id 필수 추가
-                        schedule_id: session.id,
-                        therapist_id: session.therapist_id,
-                        child_id: session.child_id,
-                        session_date: session.start_time.split('T')[0], // ✨ [Fix] NOT NULL check violation
-                        content: '발달 평가 작성을 위해 자동 생성된 기본 일지입니다.',
-                        activities: '평가 진행',
-                        child_response: '평가 진행',
-                        next_plan: '평가 결과 기반 계획 수립',
-                        created_at: new Date().toISOString()
-                    })
-                    .select()
-                    .single();
-
-                if (error) throw error;
-                targetLogId = newLog.id;
-                alert("✅ 빈 상담 일지가 생성되었습니다. 이제 평가를 작성합니다.");
-            }
-
             setSelectedSession({
                 ...session,
-                realLogId: targetLogId // ✨ Store Explicit Log ID 
+                realLogId: log?.id || null // Pass existing ID if found, otherwise null
             });
             setIsAssessModalOpen(true);
-
         } catch (error) {
-            console.error("일지 확인 중 오류:", error);
-            alert("상담 일지 정보를 확인할 수 없습니다: " + error.message);
+            console.error("세션 확인 중 오류:", error);
         }
     };
 
@@ -208,12 +177,22 @@ export function ConsultationList() {
         setIsAssessModalOpen(true);
     };
 
-    const handleDelete = async (assessId) => {
+    const handleDelete = async (assess) => {
         if (!confirm("정말 이 발달 평가를 삭제하시겠습니까?\n부모님 앱에서도 즉시 사라집니다.")) return;
 
         try {
-            const { error } = await supabase.from('development_assessments').delete().eq('id', assessId);
-            if (error) throw error;
+            // 1. 평가 삭제
+            const { error: assessError } = await supabase.from('development_assessments').delete().eq('id', assess.id);
+            if (assessError) throw assessError;
+
+            // 2. 연결된 일지가 '발달 평가용 자동 생성 일지'라면 일지도 함께 삭제하여 깨끗하게 정리
+            if (assess.log_id) {
+                const { data: log } = await supabase.from('counseling_logs').select('content').eq('id', assess.log_id).maybeSingle();
+                if (log?.content?.includes('발달 평가 작성을 위해 자동 생성')) {
+                    await supabase.from('counseling_logs').delete().eq('id', assess.log_id);
+                }
+            }
+
             alert("삭제되었습니다.");
             fetchData();
         } catch (e) {
@@ -333,7 +312,7 @@ export function ConsultationList() {
                                                     <Pencil className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(assess.id)}
+                                                    onClick={() => handleDelete(assess)}
                                                     className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-2xl transition-all"
                                                     title="삭제"
                                                 >
