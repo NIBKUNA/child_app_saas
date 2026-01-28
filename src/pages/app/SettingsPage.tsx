@@ -216,32 +216,91 @@ export function SettingsPage() {
                             </div>
                         </div>
 
-                        {/* 2. ✨ Story Section (With Preview Layout Fix) */}
+                        {/* 2. ✨ Main Page Story Section (Separate) */}
                         <div className="space-y-6">
+                            <div className="flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                                        <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 dark:text-white">메인 홈페이지 스토리</h3>
+                                </div>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MAIN PAGE</span>
+                            </div>
+
+                            {/* Live Preview (Text Left, Image Right) */}
+                            <div className="relative rounded-[40px] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 group">
+                                <div className="absolute top-4 left-6 z-20 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest border border-white/10">
+                                    Main Page Live Preview
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2">
+                                    {/* Text (Left) */}
+                                    <div className="p-10 md:p-14 flex flex-col justify-center space-y-8">
+                                        <div className="text-indigo-100 dark:text-slate-700">
+                                            {/* Quote Icon */}
+                                            <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z" /></svg>
+                                        </div>
+                                        <h3 className="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
+                                            {getSetting('home_story_title') || "아이들의 웃음이\n자라나는 두 번째 집"}
+                                        </h3>
+                                        <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
+                                            {getSetting('home_story_body') || "메인 홈페이지에 표시될 소개글입니다.\n설명을 입력하면 실시간으로 반영됩니다."}
+                                        </p>
+                                        <div className="flex items-center gap-2 font-bold text-sm mt-2 text-indigo-600 dark:text-indigo-400">
+                                            {getSetting('home_cta_text') || '상담 예약하기'}
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" /></svg>
+                                        </div>
+                                    </div>
+                                    {/* Image (Right) */}
+                                    <div className="relative h-[300px] lg:h-auto bg-slate-100 dark:bg-slate-800">
+                                        {getSetting('home_story_image') ? (
+                                            <img src={getSetting('home_story_image')} alt="Home Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">이미지가 없습니다</div>
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent lg:bg-gradient-to-l"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Editor */}
+                            <SectionCard title="메인 페이지 스토리 편집" icon={<Edit2 className="text-blue-500" />}>
+                                <div className="space-y-6">
+                                    <ImageUploader bucketName="images" label="메인 스토리 (우측) 이미지" currentImage={getSetting('home_story_image')} onUploadComplete={(url) => handleSave('home_story_image', url)} />
+                                    <div className="h-px bg-slate-100 dark:bg-slate-800 my-4" />
+                                    <SaveableTextArea label="강조 제목 (Quote)" initialValue={getSetting('home_story_title')} onSave={(v) => handleSave('home_story_title', v)} saving={saving} rows={2} />
+                                    <SaveableTextArea label="본문 설명 (Description)" initialValue={getSetting('home_story_body')} onSave={(v) => handleSave('home_story_body', v)} saving={saving} rows={4} />
+                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <SaveableInput label="버튼 텍스트" initialValue={getSetting('home_cta_text')} onSave={(v) => handleSave('home_cta_text', v)} saving={saving} />
+                                        <SaveableInput label="버튼 링크 (URL)" initialValue={getSetting('home_cta_link')} onSave={(v) => handleSave('home_cta_link', v)} saving={saving} />
+                                    </div>
+                                </div>
+                            </SectionCard>
+                        </div>
+
+
+                        {/* 3. ✨ About Page Story Section (Separate) */}
+                        <div className="space-y-6 pt-12 border-t border-slate-200 dark:border-slate-800">
                             <div className="flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-800 pb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
                                         <Heart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                     </div>
-                                    <h3 className="text-lg font-black text-slate-900 dark:text-white">센터 스토리</h3>
+                                    <h3 className="text-lg font-black text-slate-900 dark:text-white">센터 소개 (About) 페이지 스토리</h3>
                                 </div>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">STORY SECTION</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ABOUT PAGE</span>
                             </div>
 
                             {/* Live Preview (Image Left, Text Right) */}
                             <div className="relative rounded-[40px] overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 group">
                                 <div className="absolute top-4 right-6 z-20 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-white text-[10px] font-bold uppercase tracking-widest border border-white/10">
-                                    Live Preview
+                                    About Page Live Preview
                                 </div>
                                 <div className="grid grid-cols-1 lg:grid-cols-2">
                                     {/* Image (Left) */}
                                     <div className="relative h-[300px] lg:h-auto bg-slate-100 dark:bg-slate-800 order-last lg:order-first">
                                         {getSetting('about_main_image') ? (
-                                            <img
-                                                src={getSetting('about_main_image')}
-                                                alt="Preview"
-                                                className="absolute inset-0 w-full h-full object-cover"
-                                            />
+                                            <img src={getSetting('about_main_image')} alt="About Preview" className="absolute inset-0 w-full h-full object-cover" />
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold">이미지가 없습니다</div>
                                         )}
@@ -251,67 +310,32 @@ export function SettingsPage() {
                                     {/* Text (Right) */}
                                     <div className="p-10 md:p-14 flex flex-col justify-center space-y-6">
                                         <div className="text-indigo-100 dark:text-slate-700">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M4.583 17.321C3.548 16.227 3 15 3 13.044c0-3.347 2.48-6.332 6.264-8.044L10.5 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105zm10.333 0C13.881 16.227 13.333 15 13.333 13.044c0-3.347 2.48-6.332 6.264-8.044L20.833 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105z" />
-                                            </svg>
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M4.583 17.321C3.548 16.227 3 15 3 13.044c0-3.347 2.48-6.332 6.264-8.044L10.5 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105zm10.333 0C13.881 16.227 13.333 15 13.333 13.044c0-3.347 2.48-6.332 6.264-8.044L20.833 6.5c-2.352 1.15-3.88 2.882-4.098 4.69.09-.016.178-.024.266-.024a2.5 2.5 0 010 5c-1.38 0-2.5-1.12-2.5-2.5a.5.5 0 01.015-.105z" /></svg>
                                         </div>
                                         <h3 className="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
-                                            {getSetting('about_desc_title') || "아이들의 웃음이\n자라나는 두 번째 집"}
+                                            {getSetting('about_desc_title') || "따뜻한 시선으로\n아이의 잠재력을 발굴합니다"}
                                         </h3>
                                         <p className="text-sm font-medium leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line" style={{ wordBreak: 'keep-all' }}>
-                                            {getSetting('about_desc_body') || "설명 문구를 입력하면 이 곳에 실시간으로 표시됩니다."}
+                                            {getSetting('about_desc_body') || "센터 소개군에 표시될 설명글입니다."}
                                         </p>
                                         <div className="flex items-center gap-2 font-bold text-sm mt-4 text-indigo-600 dark:text-indigo-400">
                                             {getSetting('about_cta_text') || '상담 예약하기'}
-                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" />
-                                            </svg>
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" /></svg>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Editor */}
-                            <SectionCard title="스토리 내용 편집" icon={<Edit2 className="text-indigo-500" />}>
+                            <SectionCard title="센터 소개 페이지 스토리 편집" icon={<Edit2 className="text-emerald-500" />}>
                                 <div className="space-y-6">
-                                    <ImageUploader
-                                        bucketName="images"
-                                        label="스토리 (좌측) 이미지"
-                                        currentImage={getSetting('about_main_image')}
-                                        onUploadComplete={(url) => handleSave('about_main_image', url)}
-                                    />
+                                    <ImageUploader bucketName="images" label="센터 소개 (좌측) 이미지" currentImage={getSetting('about_main_image')} onUploadComplete={(url) => handleSave('about_main_image', url)} />
                                     <div className="h-px bg-slate-100 dark:bg-slate-800 my-4" />
-                                    <SaveableTextArea
-                                        label="강조 제목 (Quote)"
-                                        placeholder="예: 아이들의 웃음이 자라나는 두 번째 집"
-                                        initialValue={getSetting('about_desc_title')}
-                                        onSave={(v) => handleSave('about_desc_title', v)}
-                                        saving={saving}
-                                        rows={2}
-                                    />
-                                    <SaveableTextArea
-                                        label="본문 설명 (Description)"
-                                        placeholder="예: 우리 센터는 단순한 치료 공간을 넘어..."
-                                        initialValue={getSetting('about_desc_body')}
-                                        onSave={(v) => handleSave('about_desc_body', v)}
-                                        saving={saving}
-                                        rows={5}
-                                    />
+                                    <SaveableTextArea label="강조 제목 (Quote)" initialValue={getSetting('about_desc_title')} onSave={(v) => handleSave('about_desc_title', v)} saving={saving} rows={2} />
+                                    <SaveableTextArea label="본문 설명 (Description)" initialValue={getSetting('about_desc_body')} onSave={(v) => handleSave('about_desc_body', v)} saving={saving} rows={5} />
                                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                        <SaveableInput
-                                            label="버튼 텍스트 (하단 링크)"
-                                            placeholder="예: 상담 예약하기"
-                                            initialValue={getSetting('about_cta_text')}
-                                            onSave={(v) => handleSave('about_cta_text', v)}
-                                            saving={saving}
-                                        />
-                                        <SaveableInput
-                                            label="버튼 링크 (URL)"
-                                            placeholder="비워두면 기본 '문의하기' 페이지로 이동"
-                                            initialValue={getSetting('about_cta_link')}
-                                            onSave={(v) => handleSave('about_cta_link', v)}
-                                            saving={saving}
-                                        />
+                                        <SaveableInput label="버튼 텍스트" initialValue={getSetting('about_cta_text')} onSave={(v) => handleSave('about_cta_text', v)} saving={saving} />
+                                        <SaveableInput label="버튼 링크 (URL)" initialValue={getSetting('about_cta_link')} onSave={(v) => handleSave('about_cta_link', v)} saving={saving} />
                                     </div>
                                 </div>
                             </SectionCard>

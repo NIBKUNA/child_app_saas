@@ -231,16 +231,16 @@ export function HomePage() {
                                     className={`text-3xl md:text-4xl font-black leading-[1.15] tracking-[-0.05em] ${isDark ? 'text-white' : 'text-slate-900'}`}
                                     style={{ wordBreak: 'keep-all' }}
                                 >
-                                    {getSetting('about_desc_title') || DEFAULT_CONTENT.story.quote}
+                                    {getSetting('home_story_title') || DEFAULT_CONTENT.story.quote}
                                 </h3>
                                 <p className={`text-base font-medium leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ wordBreak: 'keep-all', whiteSpace: 'pre-line' }}>
-                                    {getSetting('about_desc_body') || DEFAULT_CONTENT.story.description}
+                                    {getSetting('home_story_body') || DEFAULT_CONTENT.story.description}
                                 </p>
                                 <Link
-                                    to={getSetting('about_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')}
+                                    to={getSetting('home_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')}
                                     className={`inline-flex items-center gap-2 font-bold text-sm hover:underline mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}
                                 >
-                                    {getSetting('about_cta_text') || '상담 예약하기'}
+                                    {getSetting('home_cta_text') || '상담 예약하기'}
                                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" />
                                     </svg>
@@ -248,7 +248,7 @@ export function HomePage() {
                             </div>
                             <div className="relative h-[350px] lg:h-auto">
                                 <img
-                                    src={getSetting('about_main_image') || DEFAULT_CONTENT.story.image}
+                                    src={getSetting('home_story_image') || DEFAULT_CONTENT.story.image}
                                     alt="Center Concept"
                                     className="absolute inset-0 w-full h-full object-cover"
                                 />
