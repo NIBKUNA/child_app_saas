@@ -197,7 +197,7 @@ export function AssessmentFormModal({ isOpen, onClose, childId, childName, logId
                 score_motor: sc.motor,
                 score_adaptive: sc.adaptive,
                 summary: summary,
-                therapist_notes: therapistNotes,  // ✨ [치료사 전용 메모]
+                therapist_notes: therapistNotes,  // ✨ [복구] DB 컬럼 추가 후 정상 저장됨
                 assessment_details: details
             };
 
