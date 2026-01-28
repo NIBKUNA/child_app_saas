@@ -301,13 +301,17 @@ export function Register() {
                         )}>
                             {error === 'ALREADY_REGISTERED' ? (
                                 <div className="flex flex-col gap-2 items-center">
-                                    <span className="text-sm">😲 이미 가입된 이메일입니다!</span>
-                                    <span className="text-[10px] text-slate-500">혹시 구글/카카오로 가입하셨나요? 간편 로그인을 이용해 주세요.</span>
+                                    <span className="text-sm font-bold">🚫 이미 등록된 사용자입니다!</span>
+                                    <span className="text-[11px] text-slate-500 text-center leading-relaxed">
+                                        센터 관리자가 이미 계정을 생성했거나,<br />
+                                        이전에 가입하신 이력이 있습니다.<br />
+                                        <span className="font-bold text-indigo-500">비밀번호 찾기</span> 또는 바로 로그인을 진행해주세요.
+                                    </span>
                                     <Link
                                         to="/login"
-                                        className="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                                        className="py-2.5 px-6 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md mt-1"
                                     >
-                                        로그인하러 가기
+                                        로그인 페이지로 이동
                                     </Link>
                                 </div>
                             ) : error}
