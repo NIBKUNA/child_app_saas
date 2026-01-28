@@ -83,7 +83,7 @@ export function ParentLogsPage() {
                 .select(`
                     *,
                     therapists:therapist_id (name),
-                    development_assessments!log_id (summary),
+                    development_assessments (summary),
                     children!inner(center_id)
                 `)
                 .order('session_date', { ascending: false });
