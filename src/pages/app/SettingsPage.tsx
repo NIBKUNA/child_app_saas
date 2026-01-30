@@ -141,6 +141,8 @@ export function SettingsPage() {
                     { id: 'home', label: '홈', icon: <LayoutTemplate className="w-4 h-4" /> },
                     { id: 'about', label: '소개', icon: <Info className="w-4 h-4" /> },
                     { id: 'programs', label: '프로그램', icon: <BookOpen className="w-4 h-4" /> },
+                    { id: 'therapists', label: '치료사', icon: <Heart className="w-4 h-4" /> },
+                    { id: 'center_info', label: '운영정보', icon: <Clock className="w-4 h-4" /> },
                     { id: 'branding', label: '브랜드/SEO', icon: <Palette className="w-4 h-4" /> },
                     { id: 'account', label: '계정', icon: <UserX className="w-4 h-4" /> },
                 ].map((tab) => (
