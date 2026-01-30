@@ -115,9 +115,9 @@ export const GlobalLanding = () => {
                         : "bg-transparent py-6"
                 )}
             >
-                <div className="flex items-center gap-3">
+                <Link to={role === 'super_admin' ? '/master/centers' : '/'} className="flex items-center gap-3 group">
                     <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-xl",
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-xl group-hover:scale-110",
                         isScrolled
                             ? "bg-indigo-600 text-white shadow-indigo-100"
                             : "bg-white text-indigo-600 shadow-indigo-100/20"
@@ -130,7 +130,7 @@ export const GlobalLanding = () => {
                     )}>
                         Zarada
                     </span>
-                </div>
+                </Link>
                 <div className="flex items-center gap-6">
                     {/* Partner Login 버튼 제거 (사용자 요청) */}
                 </div>

@@ -72,6 +72,10 @@ export function Header() {
     const { user, role, signOut } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
+
+    // 👑 [Sovereign Rule] Immediate Super Admin recognition for reliable navigation
+    const isSuper = isSuperAdmin(user?.email);
+
     // ✨ [Fix] Unconditional Hook Call - Always fetch branding
     const { branding, loading } = useCenterBranding();
     const { center } = useCenter();
@@ -238,7 +242,7 @@ export function Header() {
                                                                 <p className="text-[11px] text-slate-600 dark:text-slate-300 font-bold truncate">{user.email}</p>
                                                             </div>
                                                             <Link
-                                                                to={basePath || "/"}
+                                                                to={isSuper ? "/master/centers" : "/"}
                                                                 className={cn(
                                                                     "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-colors",
                                                                     isDark ? "text-slate-300 hover:bg-slate-800" : "text-slate-600 hover:bg-slate-50"
@@ -441,7 +445,7 @@ export function Header() {
 
                                     <div className="pt-2">
                                         <Link
-                                            to="/"
+                                            to={isSuper ? "/master/centers" : "/"}
                                             className={cn("w-full py-4 flex items-center justify-center gap-2 text-lg font-black transition-all rounded-2xl shadow-lg",
                                                 isDark ? "bg-slate-800 text-white" : "bg-slate-900 text-white shadow-slate-200"
                                             )}
@@ -450,7 +454,7 @@ export function Header() {
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                             </svg>
-                                            플랫폼 홈으로 돌아가기
+                                            {isSuper ? '통합 관리 페이지로' : '플랫폼 홈으로 돌아가기'}
                                         </Link>
                                     </div>
 

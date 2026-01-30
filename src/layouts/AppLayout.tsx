@@ -11,7 +11,7 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import React from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -269,9 +269,9 @@ export function AppLayout() {
                             <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
                     </button>
-                    <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">
+                    <Link to={role === 'super_admin' ? '/master/centers' : '/'} className="text-xl font-black tracking-tighter text-slate-900 dark:text-white active:opacity-70 transition-opacity">
                         <span className="text-indigo-600 dark:text-indigo-400">Z</span>arada
-                    </span>
+                    </Link>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">
                     {role?.[0]?.toUpperCase()}

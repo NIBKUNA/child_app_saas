@@ -70,25 +70,14 @@ import { SplashScreen } from '@/components/SplashScreen';
 import { useState, useEffect } from 'react';
 
 function AppHomeRedirect() {
-  const { role, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
 
-  if (!role) {
-    return <GlobalLanding />;
-  }
-
-  if (role === 'super_admin') {
-    // 👑 [Sovereign Rule] Super Admin at root "/" sees the Global Landing (Portal).
-    // This allows "Exit" buttons in Master/App to work.
-    // They are NOT forced into a center dashboard at the root level.
-    return <GlobalLanding />;
-  }
-
-  if (role === 'admin' || role === 'staff' || role === 'employee' || role === 'therapist') {
-    return <Navigate to="/app/schedule" replace />;
-  }
-  return <Navigate to="/parent/home" replace />;
+  // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
+  // This allows all users to "exit" to the platform home.
+  // Logged-in users can return to their dashboard via the "Dashboard" button in the header.
+  return <GlobalLanding />;
 }
 
 function App() {
