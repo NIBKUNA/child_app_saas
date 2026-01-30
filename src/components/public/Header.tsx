@@ -61,6 +61,13 @@ const Icons = {
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" />
             <polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" />
         </svg>
+    ),
+    globe: (className: string) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" />
+            <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" />
+        </svg>
     )
 };
 
