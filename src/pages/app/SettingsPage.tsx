@@ -1258,18 +1258,22 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg p-8 rounded-[40px] shadow-2xl relative">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-2xl p-8 rounded-[40px] shadow-2xl relative">
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6">
                             {editingProfile ? '프로필 수정' : '새 프로필 등록'}
                         </h2>
 
                         <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-                            <SaveableInput
-                                label="이름"
-                                initialValue={formData.name}
-                                onChange={v => setFormData({ ...formData, name: v })}
-                                placeholder="표시될 이름"
-                            />
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">이름</label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="표시될 이름"
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                                />
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase ml-1">프로필 이미지</label>
@@ -1288,27 +1292,38 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                                 </div>
                             </div>
 
-                            <SaveableInput
-                                label="한줄 소개 (Bio)"
-                                initialValue={formData.bio}
-                                onChange={v => setFormData({ ...formData, bio: v })}
-                                placeholder="예: 아이들의 꿈을 응원합니다."
-                            />
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">한줄 소개 (Bio)</label>
+                                <input
+                                    type="text"
+                                    value={formData.bio}
+                                    onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                                    placeholder="예: 아이들의 꿈을 응원합니다."
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                                />
+                            </div>
 
-                            <SaveableInput
-                                label="전문 분야 (쉼표로 구분)"
-                                initialValue={formData.specialties}
-                                onChange={v => setFormData({ ...formData, specialties: v })}
-                                placeholder="언어치료, 인지치료"
-                            />
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">전문 분야 (쉼표로 구분)</label>
+                                <input
+                                    type="text"
+                                    value={formData.specialties}
+                                    onChange={e => setFormData({ ...formData, specialties: e.target.value })}
+                                    placeholder="언어치료, 인지치료"
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                                />
+                            </div>
 
-                            <SaveableTextArea
-                                label="상세 약력 (줄바꿈 구분)"
-                                initialValue={formData.career}
-                                onChange={v => setFormData({ ...formData, career: v })}
-                                rows={4}
-                                placeholder="- OO대학교 졸업&#13;&#10;- OO센터 근무"
-                            />
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">상세 약력 (줄바꿈 구분)</label>
+                                <textarea
+                                    value={formData.career}
+                                    onChange={e => setFormData({ ...formData, career: e.target.value })}
+                                    rows={4}
+                                    placeholder="- OO대학교 졸업&#13;&#10;- OO센터 근무"
+                                    className="w-full p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold text-sm text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all resize-none leading-relaxed focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500"
+                                />
+                            </div>
 
                             <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
                                 <span className="font-bold text-sm text-slate-700 dark:text-slate-300">홈페이지 노출</span>
