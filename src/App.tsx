@@ -79,10 +79,8 @@ function AppHomeRedirect() {
   }
 
   if (role === 'super_admin') {
-    // 👑 [Sovereign Rule] If a specific center is selected, go to dashboard.
-    // Otherwise, always land on Master Console.
-    const stickySlug = localStorage.getItem('zarada_center_slug');
-    if (stickySlug) return <Navigate to="/app/dashboard" replace />;
+    // 👑 [Sovereign Rule] Super Admin always lands on Master Console by default
+    // This allows "Logo" clicks to take them back to the integrated view.
     return <Navigate to="/master/centers" replace />;
   }
 

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { LayoutDashboard, Building2, LogOut, Moon, Sun, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 
 export function MasterLayout() {
@@ -80,11 +81,14 @@ export function MasterLayout() {
                     </div>
 
                     <button
-                        onClick={() => navigate('/')}
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            navigate('/login');
+                        }}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold"
                     >
                         <LogOut className="w-4 h-4" />
-                        나가기
+                        로그아웃
                     </button>
                 </div>
             </aside>
