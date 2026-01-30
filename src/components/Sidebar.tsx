@@ -419,7 +419,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                     <div className="p-6 mb-2 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col items-start gap-1">
-                                <Link to="/" className="flex items-center gap-2 group">
+                                <Link to={role === 'super_admin' ? "/master/centers" : "/"} className="flex items-center gap-2 group">
                                     <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                                         <span className="text-indigo-600 dark:text-indigo-400 mr-0.5">Z</span>arada
                                     </span>

@@ -45,7 +45,7 @@ function SuperAdminBadge() {
             <button
                 onClick={() => {
                     localStorage.removeItem('zarada_center_slug');
-                    navigate('/');
+                    navigate('/master/centers');
                 }}
                 className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-black transition-all active:scale-95"
             >

@@ -35,7 +35,10 @@ export function MasterLayout() {
             {/* Sidebar */}
             <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 relative overflow-hidden">
                 {/* Brand */}
-                <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800">
+                <div
+                    className="h-16 flex items-center gap-3 px-6 border-b border-slate-800 cursor-pointer hover:bg-slate-800 transition-colors"
+                    onClick={() => navigate('/master/centers')}
+                >
                     <Shield className="w-6 h-6 text-indigo-500" />
                     <span className="font-black text-xl tracking-tighter">Zarada</span>
                 </div>
@@ -64,7 +67,7 @@ export function MasterLayout() {
                 </nav>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-slate-800">
+                <div className="p-4 border-t border-slate-800 space-y-2">
                     <div className="flex items-center justify-between bg-slate-800 rounded-xl p-1 mb-4">
                         <button
                             onClick={toggleTheme}
@@ -81,13 +84,20 @@ export function MasterLayout() {
                     </div>
 
                     <button
+                        onClick={() => navigate('/')}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        나가기
+                    </button>
+
+                    <button
                         onClick={async () => {
                             await supabase.auth.signOut();
                             navigate('/login');
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
                     >
-                        <LogOut className="w-4 h-4" />
                         로그아웃
                     </button>
                 </div>

@@ -79,9 +79,10 @@ function AppHomeRedirect() {
   }
 
   if (role === 'super_admin') {
-    // 👑 [Sovereign Rule] Super Admin always lands on Master Console by default
-    // This allows "Logo" clicks to take them back to the integrated view.
-    return <Navigate to="/master/centers" replace />;
+    // 👑 [Sovereign Rule] Super Admin at root "/" sees the Global Landing (Portal).
+    // This allows "Exit" buttons in Master/App to work.
+    // They are NOT forced into a center dashboard at the root level.
+    return <GlobalLanding />;
   }
 
   if (role === 'admin' || role === 'staff' || role === 'employee' || role === 'therapist') {
