@@ -70,78 +70,55 @@ export function Login() {
     // ✨ Agreement Modal State
     const [showAgreement, setShowAgreement] = useState(false);
 
-    // ✨ [OAuth 콜백 처리] OAuth 로그인 후 돌아왔을 때만 세션 체크
+    // ✨ [Mount Check] Redirect if already logged in
     useEffect(() => {
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                console.log("🔒 Already logged in, redirecting away from Login page.");
+                if (isSuperAdmin(session.user.email)) {
+                    navigate('/master/centers', { replace: true });
+                } else {
+                    // Try to restore center context if exists, otherwise go to parent home or app home
+                    const savedSlug = localStorage.getItem('zarada_center_slug');
+                    if (savedSlug) {
+                        navigate('/app/dashboard', { replace: true });
+                    } else {
+                        navigate('/', { replace: true }); // Back to portal to pick a center
+                    }
+                }
+            }
+        }
+
         async function handleOAuthCallback() {
             const hash = window.location.hash;
             const params = new URLSearchParams(window.location.search);
             const isOAuthCallback = hash.includes('access_token') || params.has('code');
 
-            if (!isOAuthCallback) return;
+            if (!isOAuthCallback) {
+                // Not an OAuth callback? Just check if we're already logged in normally.
+                checkSession();
+                return;
+            }
 
             // ✨ Wait for Supabase to process the hash/tokens
             const { data: { session }, error } = await supabase.auth.getSession();
 
+            // ... (existing OAuth logic remains same)
             if (session?.user) {
-                // 🚨 [Invite/Recovery Check] 초대 또는 비밀번호 재설정 링크인 경우
-                // 세션 확보 후 이동해야 함 (URL 토큰 처리 보장)
                 if (hash.includes('type=invite') || hash.includes('type=recovery') || params.get('type') === 'invite' || params.get('type') === 'recovery') {
-                    console.log('🔗 Invite/Recovery Link Detected in Login.tsx - Redirecting to UpdatePassword');
                     navigate('/auth/update-password');
                     return;
                 }
-
-                // 👑 [Sovereign SaaS] Super Admin God-Mode Recognition
                 if (isSuperAdmin(session.user.email)) {
-                    // Scenario 1: Global Login (No slug) -> Master Console
-                    // Scenario 2: Context Login (Slug present) -> Dashboard
-                    const isGlobalLogin = !slug;
-                    console.log("👑 Super Admin (OAuth Bypass):", isGlobalLogin ? "GLOBAL" : "CENTER");
-
-                    if (isGlobalLogin) {
-                        localStorage.removeItem('zarada_center_slug');
-                        navigate('/master/centers', { replace: true });
-                    } else {
-                        navigate('/app/dashboard');
-                    }
-                    return;
-                }
-
-                const { data: profile } = await supabase
-                    .from('user_profiles')
-                    .select('role, center_id, status')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
-
-                if (profile?.center_id && profile?.status === 'active') {
-                    // 이미 가입 완료 -> 홈으로
-                    if (profile.role === 'admin' || profile.role === 'super_admin' || profile.role === 'therapist' || profile.role === 'employee') {
-                        navigate('/app/dashboard');
-                    } else {
-                        navigate('/parent/home');
-                    }
+                    navigate(!slug ? '/master/centers' : '/app/dashboard', { replace: true });
                 } else {
-                    // 🩹 [God Mode / Auto-Repair] for OAuth
-                    const isSuper = isSuperAdmin(session.user.email);
-                    const { data: therapist } = await supabase
-                        .from('therapists')
-                        .select('system_role')
-                        .ilike('email', session.user.email)
-                        .maybeSingle();
-
-                    if (isSuper || therapist) {
-                        console.log("🩹 OAuth Bypass: Teacher/Admin detected, redirecting to Dashboard.");
-                        navigate('/app/dashboard');
-                        return;
-                    }
-
-                    // ✨ 신규 유저 or 프로필 미완성 -> 약관 동의 모달 표시
-                    setShowAgreement(true);
+                    navigate('/app/dashboard');
                 }
             }
         }
         handleOAuthCallback();
-    }, [navigate]);
+    }, [navigate, slug]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

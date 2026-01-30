@@ -115,7 +115,7 @@ export const GlobalLanding = () => {
                         : "bg-transparent py-6"
                 )}
             >
-                <Link to={role === 'super_admin' ? '/master/centers' : '/'} className="flex items-center gap-3 group">
+                <Link to="/" className="flex items-center gap-3 group">
                     <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-xl group-hover:scale-110",
                         isScrolled
@@ -394,7 +394,12 @@ export const GlobalLanding = () => {
                     <div className="flex items-center gap-8">
                         <Link to="/policy/privacy" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Privacy Policy</Link>
                         <Link to="/policy/terms" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Terms of Service</Link>
-                        <Link to="/login" className="px-4 py-1.5 rounded-full border border-white/5 text-[10px] font-black text-slate-500 hover:bg-white/5 hover:text-white transition-all uppercase tracking-widest">Partner Portal</Link>
+                        <Link
+                            to={!role ? "/login" : (role === 'super_admin' ? "/master/centers" : (role === 'parent' ? "/parent/home" : "/app/dashboard"))}
+                            className="px-4 py-1.5 rounded-full border border-white/5 text-[10px] font-black text-slate-500 hover:bg-white/5 hover:text-white transition-all uppercase tracking-widest"
+                        >
+                            {!role ? "Partner Portal" : "Workspace"}
+                        </Link>
                     </div>
                 </div>
             </footer>

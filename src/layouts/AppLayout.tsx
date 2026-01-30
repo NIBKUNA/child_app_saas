@@ -269,7 +269,7 @@ export function AppLayout() {
                             <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
                     </button>
-                    <Link to={role === 'super_admin' ? '/master/centers' : '/'} className="text-xl font-black tracking-tighter text-slate-900 dark:text-white active:opacity-70 transition-opacity">
+                    <Link to="/" className="text-xl font-black tracking-tighter text-slate-900 dark:text-white active:opacity-70 transition-opacity">
                         <span className="text-indigo-600 dark:text-indigo-400">Z</span>arada
                     </Link>
                 </div>

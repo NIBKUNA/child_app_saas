@@ -111,7 +111,7 @@ export function Header() {
                 <div className="relative flex h-20 items-center justify-between">
                     {/* Left: Logo */}
                     <div className="z-10 flex items-center">
-                        <Link to={basePath || '/'} className={cn("flex items-center gap-2 group")}>
+                        <Link to="/" className={cn("flex items-center gap-2 group")}>
                             {branding.loading ? (
                                 <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
                             ) : branding.logo_url ? (
@@ -242,7 +242,7 @@ export function Header() {
                                                                 <p className="text-[11px] text-slate-600 dark:text-slate-300 font-bold truncate">{user.email}</p>
                                                             </div>
                                                             <Link
-                                                                to={isSuper ? "/master/centers" : "/"}
+                                                                to="/"
                                                                 className={cn(
                                                                     "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-colors",
                                                                     isDark ? "text-slate-300 hover:bg-slate-800" : "text-slate-600 hover:bg-slate-50"
@@ -445,7 +445,7 @@ export function Header() {
 
                                     <div className="pt-2">
                                         <Link
-                                            to={isSuper ? "/master/centers" : "/"}
+                                            to="/"
                                             className={cn("w-full py-4 flex items-center justify-center gap-2 text-lg font-black transition-all rounded-2xl shadow-lg",
                                                 isDark ? "bg-slate-800 text-white" : "bg-slate-900 text-white shadow-slate-200"
                                             )}
