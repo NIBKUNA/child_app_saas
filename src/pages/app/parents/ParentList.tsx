@@ -128,14 +128,14 @@ export function ParentList() {
 
             if (profileError) throw profileError;
 
-            // 2. Try to delete from auth.users via Edge Function (if exists)
-            // If no edge function, this will fail silently and user can re-register
+            // 2. Delete from auth.users via Database RPC (Secure)
             try {
-                await supabase.functions.invoke('delete-user', {
-                    body: { userId: parent.id }
-                });
+                // This calls the 'admin_delete_user' Postgres function we created
+                const { error: rpcError } = await supabase.rpc('admin_delete_user', { target_user_id: parent.id });
+                if (rpcError) throw rpcError;
             } catch (e) {
-                console.warn('Auth deletion skipped (function may not exist):', e);
+                console.warn('Auth deletion warning:', e.message);
+                // Even if RPC fails (e.g. already deleted), we proceed as user_profiles is gone
             }
 
             alert(`${parent.name}님의 계정이 삭제되었습니다.\n해당 이메일로 다시 회원가입이 가능합니다.`);
