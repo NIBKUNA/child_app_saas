@@ -95,8 +95,8 @@ export function useTrafficSource() {
                 if (!center?.id) return; // ✨ Wait for center context
 
                 try {
-                    await (supabase as any).from('site_visits').insert({
-                        center_id: center.id, // ✨ Security Filter
+                    const { error } = await (supabase as any).from('site_visits').insert({
+                        center_id: center.id,
                         source_category: category,
                         referrer_url: referrer || null,
                         utm_source: source || null,
@@ -107,19 +107,24 @@ export function useTrafficSource() {
                         visited_at: new Date().toISOString()
                     });
 
+                    if (error) {
+                        console.warn('❌ [Traffic] Record failed:', error.message, error.details);
+                        return;
+                    }
+
                     if (isBlogPage) {
                         sessionStorage.setItem(blogVisitKey, 'true');
                     } else {
                         sessionStorage.setItem('visit_recorded', 'true');
                     }
                 } catch (error) {
-                    console.warn('Failed to record visit:', error);
+                    console.warn('⚠️ [Traffic] System error:', error);
                 }
             };
 
             recordVisit();
         }
-    }, [searchParams]);
+    }, [searchParams, center?.id, window.location.pathname]); // ✨ Add center and path to dependencies
 
     // ✨ [For Form Submission] Get the stored source data
     const getSource = () => {
