@@ -163,7 +163,7 @@ export function ProgramsPage() {
                                         <IconComponent className="w-12 h-12" />
                                     </div>
 
-                                    <div className="flex-1">
+                                    <div className="flex-1 flex flex-col">
                                         <h3 className={cn("text-2xl font-black mb-1", isDark ? "text-white" : "text-slate-900")}>
                                             {program.title}
                                         </h3>

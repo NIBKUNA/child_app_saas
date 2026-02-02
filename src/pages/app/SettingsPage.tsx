@@ -1247,7 +1247,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 axis="y"
                 values={profiles}
                 onReorder={handleReorder}
-                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+                className="space-y-4 max-w-4xl mx-auto"
             >
                 {profiles.map((profile, index) => {
                     const isDisplayOnly = profile.email?.includes('@zarada.local');
@@ -1256,48 +1256,52 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                             key={profile.id}
                             value={profile}
                             className={cn(
-                                "group flex flex-col gap-5 p-6 rounded-[40px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
+                                "group flex items-center gap-6 p-6 rounded-[32px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
                                 profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50" : "border-dashed border-slate-200 opacity-50"
                             )}
                         >
-                            {/* Drag Handle Overlay */}
-                            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-2.5 bg-slate-900 text-white rounded-2xl shadow-xl">
-                                <GripVertical className="w-5 h-5" />
+                            {/* 1. Precise Rank Indicator */}
+                            <div className="w-12 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg shadow-indigo-200 shrink-0">
+                                {index + 1}
                             </div>
 
-                            <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden shadow-lg">
+                            {/* 2. Drag Handle */}
+                            <div className="cursor-grab active:cursor-grabbing p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl transition-colors shrink-0">
+                                <GripVertical className="w-6 h-6 text-slate-400" />
+                            </div>
+
+                            {/* 3. Image Preview */}
+                            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-900 rounded-[24px] overflow-hidden relative shadow-inner shrink-0">
                                 {profile.profile_image ? (
                                     <img src={profile.profile_image} className="w-full h-full object-cover" />
                                 ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-200">
-                                        <Award className="w-12 h-12 opacity-20" />
-                                        <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-30">No Image</span>
-                                    </div>
+                                    <div className="w-full h-full flex items-center justify-center text-slate-300"><Award className="w-8 h-8 opacity-20" /></div>
                                 )}
-                                <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/80 to-transparent">
-                                    <div className="text-white font-black text-lg">{profile.name}</div>
-                                    <div className="text-white/60 text-[9px] font-bold uppercase tracking-widest">Order Rank: {index + 1}</div>
-                                </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
+                            {/* 4. Info Section */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3">
+                                    <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.name}</h4>
                                     <button
                                         onClick={() => toggleVisibility(profile)}
-                                        className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors",
+                                        className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors",
                                             profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
                                     >
                                         {profile.website_visible ? 'Public' : 'Hidden'}
                                     </button>
-                                    <div className="flex items-center gap-1.5">
-                                        <button onClick={() => handleOpenModal(profile)} className="p-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
                                 </div>
+                                <p className="text-xs text-slate-500 font-bold mt-1 line-clamp-1">{profile.bio || '한줄 소개가 없습니다.'}</p>
+                            </div>
+
+                            {/* 5. Controls */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button onClick={() => handleOpenModal(profile)} className="p-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </Reorder.Item>
                     );
