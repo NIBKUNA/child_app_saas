@@ -86,8 +86,8 @@ export function TherapistsPage() {
             </section>
 
             <div className={cn("relative -mt-12 z-20 rounded-t-[50px] px-4 pb-40 transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
-                <div className="container mx-auto max-w-6xl pt-24">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
+                <div className="container mx-auto max-w-7xl pt-24">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
                         {therapists.length === 0 ? (
                             <div className="text-center py-20 opacity-30 col-span-full">
                                 <Shield className="w-16 h-16 mx-auto mb-4" />
@@ -98,7 +98,7 @@ export function TherapistsPage() {
                                 <motion.div
                                     key={staff.id}
                                     className={cn(
-                                        "group flex flex-col gap-8 p-10 rounded-[60px] border transition-all duration-500 hover:-translate-y-2",
+                                        "group flex flex-col gap-6 p-8 rounded-[50px] border transition-all duration-500 hover:-translate-y-2",
                                         isDark ? "bg-[#141620] border-white/5 hover:border-white/10" : "bg-white border-slate-100 shadow-2xl shadow-slate-200/50"
                                     )}
                                     initial={{ opacity: 0, y: 40 }}
@@ -108,49 +108,44 @@ export function TherapistsPage() {
                                 >
                                     {/* 📷 Profile Image Box */}
                                     <div className="relative shrink-0 flex justify-center">
-                                        <div className="w-full aspect-[4/5] max-w-[300px] rounded-[40px] overflow-hidden relative shadow-2xl">
+                                        <div className="w-full aspect-[4/5] rounded-[32px] overflow-hidden relative shadow-2xl">
                                             {staff.profile_image ? (
                                                 <img src={staff.profile_image} alt={staff.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                             ) : (
                                                 <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-300">
-                                                    <Award className="w-16 h-16 opacity-20" />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest mt-4 opacity-30">No Profile Image</span>
+                                                    <Award className="w-12 h-12 opacity-20" />
+                                                    <span className="text-[8px] font-black uppercase tracking-widest mt-4 opacity-30">No Image</span>
                                                 </div>
                                             )}
                                             {/* Name Tag Overlay */}
-                                            <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
-                                                <div className="text-2xl font-black">{staff.name}</div>
-                                                <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">
+                                            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
+                                                <div className="text-xl font-black">{staff.name}</div>
+                                                <div className="text-[9px] font-bold uppercase tracking-widest text-white/60">
                                                     {staff.system_role === 'admin' ? '운영 원장' : staff.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* Abstract background detail */}
-                                        <div className="absolute -z-10 -top-4 -right-4 w-32 h-32 rounded-full blur-3xl opacity-20" style={{ backgroundColor: brandColor }}></div>
+                                        <div className="absolute -z-10 -top-2 -right-2 w-24 h-24 rounded-full blur-3xl opacity-20" style={{ backgroundColor: brandColor }}></div>
                                     </div>
 
                                     {/* 📜 Content Box */}
-                                    <div className="flex-1 space-y-8 flex flex-col">
+                                    <div className="flex-1 space-y-6 flex flex-col">
                                         <div>
-                                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">
-                                                <Heart className="w-3 h-3" style={{ color: brandColor }} />
-                                                Introduction
-                                            </div>
-                                            <h3 className={cn("text-2xl font-black mb-4 leading-tight whitespace-pre-line", isDark ? "text-white" : "text-slate-900")}>
+                                            <h3 className={cn("text-xl font-black mb-3 leading-tight whitespace-pre-line line-clamp-2", isDark ? "text-white" : "text-slate-900")}>
                                                 {staff.bio || `아이들의 행복한 내일을 위해\n진심을 다해 소통하겠습니다.`}
                                             </h3>
-                                            <div className="w-12 h-1.5 rounded-full" style={{ backgroundColor: brandColor }}></div>
+                                            <div className="w-10 h-1 rounded-full" style={{ backgroundColor: brandColor }}></div>
                                         </div>
 
-                                        <div className="space-y-8 flex-1">
+                                        <div className="space-y-6 flex-1">
                                             {/* Specialties */}
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-40">
-                                                    <Shield className="w-4 h-4" /> 주요 분야
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40">
+                                                    주요 분야
                                                 </div>
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-1.5">
                                                     {(staff.specialties || '언어치료, 발달지원').split(',').map((s, i) => (
-                                                        <span key={i} className={cn("px-3 py-1.5 rounded-xl text-xs font-bold", isDark ? "bg-white/5 text-slate-300" : "bg-slate-100 text-slate-600")}>
+                                                        <span key={i} className={cn("px-2.5 py-1 rounded-lg text-[10px] font-bold", isDark ? "bg-white/5 text-slate-300" : "bg-slate-50 text-slate-600 border border-slate-100")}>
                                                             {s.trim()}
                                                         </span>
                                                     ))}
@@ -158,15 +153,15 @@ export function TherapistsPage() {
                                             </div>
 
                                             {/* Career */}
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-40">
-                                                    <Award className="w-4 h-4" /> 주요 약력
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-40">
+                                                    주요 약력
                                                 </div>
-                                                <ul className="space-y-3">
-                                                    {(staff.career || '관련 학과 졸업\n임상 경력 보유').split('\n').map((line, i) => (
-                                                        <li key={i} className="flex gap-3 text-sm font-medium leading-relaxed">
-                                                            <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ backgroundColor: brandColor }}></div>
-                                                            <span className={isDark ? "text-slate-300" : "text-slate-600"}>{line.trim()}</span>
+                                                <ul className="space-y-2">
+                                                    {(staff.career || '관련 학과 졸업\n임상 경력 보유').split('\n').slice(0, 3).map((line, i) => (
+                                                        <li key={i} className="flex gap-2 text-xs font-medium leading-relaxed">
+                                                            <div className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: brandColor }}></div>
+                                                            <span className={cn(isDark ? "text-slate-400" : "text-slate-500", "truncate")}>{line.trim()}</span>
                                                         </li>
                                                     ))}
                                                 </ul>

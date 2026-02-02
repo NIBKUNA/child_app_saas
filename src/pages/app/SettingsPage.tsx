@@ -1230,16 +1230,16 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center bg-indigo-50/50 dark:bg-indigo-900/10 p-6 rounded-[32px] border border-indigo-100 dark:border-indigo-900/30">
+            <div className="flex justify-between items-center bg-indigo-50/50 dark:bg-indigo-900/10 p-8 rounded-[40px] border border-indigo-100 dark:border-indigo-900/30">
                 <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white">실시간 순서 배치</h3>
-                    <p className="text-sm text-slate-500 font-bold">카드를 드래그하여 실제 홈페이지에 노출될 순서를 정하세요.</p>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">치료사 배치 마스터</h3>
+                    <p className="text-sm text-slate-500 font-bold mt-1">드래그하여 3열 배치를 자유롭게 조정하세요. (실시간 저장)</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95"
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-4 rounded-3xl font-black text-sm shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95"
                 >
-                    <Plus className="w-5 h-5" /> 프로필 추가
+                    <Plus className="w-5 h-5" /> 새 프로필 등록
                 </button>
             </div>
 
@@ -1247,57 +1247,57 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 axis="y"
                 values={profiles}
                 onReorder={handleReorder}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
             >
-                {profiles.map(profile => {
+                {profiles.map((profile, index) => {
                     const isDisplayOnly = profile.email?.includes('@zarada.local');
                     return (
                         <Reorder.Item
                             key={profile.id}
                             value={profile}
                             className={cn(
-                                "group flex flex-col gap-6 p-6 rounded-[40px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
-                                profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-sm" : "border-dashed border-slate-200 opacity-50"
+                                "group flex flex-col gap-5 p-6 rounded-[40px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
+                                profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50" : "border-dashed border-slate-200 opacity-50"
                             )}
                         >
                             {/* Drag Handle Overlay */}
-                            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                                <GripVertical className="w-5 h-5 text-slate-400" />
+                            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-2.5 bg-slate-900 text-white rounded-2xl shadow-xl">
+                                <GripVertical className="w-5 h-5" />
                             </div>
 
-                            <div className="flex gap-5">
-                                <div className="w-24 h-32 shrink-0 bg-slate-100 dark:bg-slate-900 rounded-3xl overflow-hidden relative shadow-inner">
-                                    {profile.profile_image ? (
-                                        <img src={profile.profile_image} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-300"><Award className="w-10 h-10 opacity-20" /></div>
-                                    )}
+                            <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden shadow-lg">
+                                {profile.profile_image ? (
+                                    <img src={profile.profile_image} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-200">
+                                        <Award className="w-12 h-12 opacity-20" />
+                                        <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-30">No Image</span>
+                                    </div>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/80 to-transparent">
+                                    <div className="text-white font-black text-lg">{profile.name}</div>
+                                    <div className="text-white/60 text-[9px] font-bold uppercase tracking-widest">Order Rank: {index + 1}</div>
                                 </div>
-                                <div className="flex flex-col justify-center flex-1 min-w-0">
-                                    <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.name}</h4>
-                                    <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-1">
-                                        {profile.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-4">
-                                        <button
-                                            onClick={() => toggleVisibility(profile)}
-                                            className={cn("px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors",
-                                                profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
-                                        >
-                                            {profile.website_visible ? 'Visible' : 'Hidden'}
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => toggleVisibility(profile)}
+                                        className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors",
+                                            profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
+                                    >
+                                        {profile.website_visible ? 'Public' : 'Hidden'}
+                                    </button>
+                                    <div className="flex items-center gap-1.5">
+                                        <button onClick={() => handleOpenModal(profile)} className="p-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                                            <Edit2 className="w-4 h-4" />
                                         </button>
-                                        <div className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">
-                                            Order: {profile.sort_order}
-                                        </div>
+                                        <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button onClick={() => handleOpenModal(profile)} className="flex-1 py-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-black hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">프로필 수정</button>
-                                <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="px-5 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl hover:bg-rose-100 transition-colors">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
                             </div>
                         </Reorder.Item>
                     );
