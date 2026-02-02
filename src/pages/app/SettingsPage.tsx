@@ -14,8 +14,9 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle, Bell, LayoutTemplate, Info, BookOpen, Palette, CheckCircle2, Brain, Loader2, X, Receipt, Search, ChevronLeft, ChevronRight, Pencil, Clock, Share2, UserX, Heart } from 'lucide-react';
+import { MessageCircle, Bell, LayoutTemplate, Info, BookOpen, Palette, CheckCircle2, Brain, Loader2, X, Receipt, Search, ChevronLeft, ChevronRight, Pencil, Clock, Share2, UserX, Heart, GripVertical } from 'lucide-react';
 import { useAdminSettings, type AdminSettingKey, type ProgramItem } from '@/hooks/useAdminSettings';
+import { Reorder, motion } from 'framer-motion';
 import { ImageUploader } from '@/components/common/ImageUploader';
 import { MultiImageUploader } from '@/components/common/MultiImageUploader';
 import { ProgramListEditor } from '@/components/admin/ProgramListEditor';
@@ -1198,67 +1199,110 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         }
     };
 
+    const handleReorder = async (newOrder: any[]) => {
+        setProfiles(newOrder); // Optimistic UI update
+
+        try {
+            // Prepare batch update
+            const updates = newOrder.map((p, index) => ({
+                id: p.id,
+                sort_order: index,
+                // Include required fields if needed, but update only targets these rows by ID
+                center_id: centerId,
+                name: p.name,
+                system_status: p.system_status,
+                hire_type: p.hire_type,
+                system_role: p.system_role
+            }));
+
+            const { error } = await supabase
+                .from('therapists')
+                .upsert(updates, { onConflict: 'id' });
+
+            if (error) throw error;
+        } catch (e) {
+            console.error('Reorder save failed:', e);
+            fetchProfiles(); // Rollback on error
+        }
+    };
+
     if (loading) return <div className="text-center py-10"><Loader2 className="animate-spin inline text-slate-300" /></div>;
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="space-y-8">
+            <div className="flex justify-between items-center bg-indigo-50/50 dark:bg-indigo-900/10 p-6 rounded-[32px] border border-indigo-100 dark:border-indigo-900/30">
                 <div>
-                    <h3 className="text-lg font-black text-slate-800 dark:text-white">프로필 목록</h3>
-                    <p className="text-xs text-slate-500 font-medium">홈페이지 '치료사 소개' 란에 표시될 프로필을 관리합니다.</p>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white">실시간 순서 배치</h3>
+                    <p className="text-sm text-slate-500 font-bold">카드를 드래그하여 실제 홈페이지에 노출될 순서를 정하세요.</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95"
                 >
-                    <Plus className="w-4 h-4" /> 프로필 추가
+                    <Plus className="w-5 h-5" /> 프로필 추가
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Reorder.Group
+                axis="y"
+                values={profiles}
+                onReorder={handleReorder}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
                 {profiles.map(profile => {
                     const isDisplayOnly = profile.email?.includes('@zarada.local');
                     return (
-                        <div key={profile.id} className={cn(
-                            "flex gap-4 p-4 rounded-3xl border transition-all group relative overflow-hidden",
-                            profile.website_visible
-                                ? "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm"
-                                : "bg-slate-50 dark:bg-slate-900 border-slate-100 opacity-60"
-                        )}>
-                            <div className="w-20 h-24 shrink-0 bg-slate-100 rounded-2xl overflow-hidden relative">
-                                {profile.profile_image ? (
-                                    <img src={profile.profile_image} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300"><Globe className="w-8 h-8" /></div>
-                                )}
+                        <Reorder.Item
+                            key={profile.id}
+                            value={profile}
+                            className={cn(
+                                "group flex flex-col gap-6 p-6 rounded-[40px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
+                                profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-sm" : "border-dashed border-slate-200 opacity-50"
+                            )}
+                        >
+                            {/* Drag Handle Overlay */}
+                            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                                <GripVertical className="w-5 h-5 text-slate-400" />
                             </div>
-                            <div className="flex flex-col flex-1 min-w-0">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h4 className="font-black text-slate-900 dark:text-white truncate">{profile.name}</h4>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">
-                                            {isDisplayOnly ? 'Display Profile' : 'System User'}
-                                        </p>
+
+                            <div className="flex gap-5">
+                                <div className="w-24 h-32 shrink-0 bg-slate-100 dark:bg-slate-900 rounded-3xl overflow-hidden relative shadow-inner">
+                                    {profile.profile_image ? (
+                                        <img src={profile.profile_image} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-slate-300"><Award className="w-10 h-10 opacity-20" /></div>
+                                    )}
+                                </div>
+                                <div className="flex flex-col justify-center flex-1 min-w-0">
+                                    <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.name}</h4>
+                                    <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-1">
+                                        {profile.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <button
+                                            onClick={() => toggleVisibility(profile)}
+                                            className={cn("px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors",
+                                                profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
+                                        >
+                                            {profile.website_visible ? 'Visible' : 'Hidden'}
+                                        </button>
+                                        <div className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">
+                                            Order: {profile.sort_order}
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={() => toggleVisibility(profile)}
-                                        className={cn("p-1.5 rounded-lg transition-colors", profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-200 text-slate-500")}
-                                        title="홈페이지 노출 여부"
-                                    >
-                                        {profile.website_visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                                    </button>
-                                </div>
-                                <div className="mt-auto flex gap-2">
-                                    <button onClick={() => handleOpenModal(profile)} className="flex-1 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600">수정</button>
-                                    <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg hover:bg-rose-100">
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
                                 </div>
                             </div>
-                        </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={() => handleOpenModal(profile)} className="flex-1 py-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-2xl text-xs font-black hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">프로필 수정</button>
+                                <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="px-5 py-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl hover:bg-rose-100 transition-colors">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </Reorder.Item>
                     );
                 })}
-            </div>
+            </Reorder.Group>
 
             {isModalOpen && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
@@ -1337,16 +1381,6 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                                 >
                                     <div className={cn("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", formData.website_visible ? "left-7" : "left-1")} />
                                 </button>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">정렬 순서 (숫자가 낮을수록 앞)</label>
-                                <input
-                                    type="number"
-                                    value={formData.sort_order}
-                                    onChange={e => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
-                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
-                                />
                             </div>
                         </div>
 
