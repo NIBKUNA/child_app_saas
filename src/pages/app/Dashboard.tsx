@@ -526,7 +526,7 @@ export function Dashboard() {
                 .select('id, marketing_source, inflow_source, status, created_at, child_id')
                 .eq('center_id', center.id)
                 .gte('created_at', monthsToShow[0] + '-01')
-                .lte('created_at', selectedMonth + '-31');
+                .lte('created_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0'));
 
             // ✨ [HQ INTELLIGENCE] Lead Velocity & Campaign Deep Dive
             const monthlyLeadsMap: Record<string, { consults: number; converted: number }> = {};
