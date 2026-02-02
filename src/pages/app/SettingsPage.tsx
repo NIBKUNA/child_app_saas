@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { AccountDeletionModal } from '@/components/AccountDeletionModal';
-import { Plus, Trash2, Edit2, Globe, Eye, EyeOff } from 'lucide-react'; // ✨ Added Icons
+import { Plus, Trash2, Edit2, Globe, Eye, EyeOff, Award } from 'lucide-react'; // ✨ Added Icons
 
 // --- ❌ 원본 로직 절대 보존 ---
 const AI_GENERATING_KEY = 'ai_blog_generating';
