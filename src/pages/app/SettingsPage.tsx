@@ -1247,20 +1247,59 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 axis="y"
                 values={profiles}
                 onReorder={handleReorder}
-                className="space-y-4 max-w-4xl mx-auto px-4"
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6"
             >
                 {profiles.map((profile, index) => {
                     const isDisplayOnly = profile.email?.includes('@zarada.local');
                     return (
-                        <TherapistReorderItem
+                        <Reorder.Item
                             key={profile.id}
-                            profile={profile}
-                            index={index}
-                            isDisplayOnly={isDisplayOnly}
-                            onEdit={() => handleOpenModal(profile)}
-                            onDelete={() => handleDelete(profile.id, !isDisplayOnly)}
-                            onToggleVisibility={() => toggleVisibility(profile)}
-                        />
+                            value={profile}
+                            className={cn(
+                                "group flex flex-col gap-5 p-6 rounded-[40px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
+                                profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50" : "border-dashed border-slate-200 opacity-50"
+                            )}
+                        >
+                            {/* Drag Handle Overlay */}
+                            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-2.5 bg-slate-900 text-white rounded-2xl shadow-xl">
+                                <GripVertical className="w-5 h-5" />
+                            </div>
+
+                            <div className="relative aspect-[4/5] rounded-[28px] overflow-hidden shadow-lg">
+                                {profile.profile_image ? (
+                                    <img src={profile.profile_image} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-200">
+                                        <Award className="w-12 h-12 opacity-20" />
+                                        <span className="text-[8px] font-black uppercase tracking-widest mt-2 opacity-30">No Image</span>
+                                    </div>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/80 to-transparent">
+                                    <div className="text-white font-black text-lg">{profile.name}</div>
+                                    <div className="text-white/60 text-[9px] font-bold uppercase tracking-widest">Order Rank: {index + 1}</div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <button
+                                        onClick={() => toggleVisibility(profile)}
+                                        className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors",
+                                            profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
+                                    >
+                                        {profile.website_visible ? 'Public' : 'Hidden'}
+                                    </button>
+                                    <div className="flex items-center gap-1.5">
+                                        <button onClick={() => handleOpenModal(profile)} className="p-2.5 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-colors">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </Reorder.Item>
                     );
                 })}
             </Reorder.Group>
@@ -1357,76 +1396,3 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
     );
 }
 
-// --- 💎 Premium Drag & Drop Component ---
-function TherapistReorderItem({ profile, index, isDisplayOnly, onEdit, onDelete, onToggleVisibility }: any) {
-    const controls = useDragControls();
-
-    return (
-        <Reorder.Item
-            value={profile}
-            dragListener={false}
-            dragControls={controls}
-            whileDrag={{
-                scale: 1.05,
-                boxShadow: "0 40px 80px -15px rgba(0, 0, 0, 0.25)",
-                zIndex: 100
-            }}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className={cn(
-                "group flex items-center gap-6 p-6 rounded-[36px] border transition-all relative overflow-visible",
-                profile.website_visible
-                    ? "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50"
-                    : "bg-slate-50/50 border-dashed border-slate-200 dark:border-slate-700 opacity-60"
-            )}
-        >
-            {/* 📍 Rank Badge */}
-            <div className="w-14 h-14 flex items-center justify-center bg-indigo-600 text-white rounded-[22px] font-black text-2xl shadow-xl shadow-indigo-100 dark:shadow-none shrink-0 cursor-default select-none">
-                {index + 1}
-            </div>
-
-            {/* 🕹️ Authentic Drag Handle (The only way to start drag) */}
-            <div
-                onPointerDown={(e) => controls.start(e)}
-                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl transition-colors cursor-grab active:cursor-grabbing shrink-0"
-            >
-                <GripVertical className="w-6 h-6 text-slate-300 group-hover:text-indigo-400 transition-colors" />
-            </div>
-
-            {/* 📸 Visual Preview */}
-            <div className="w-22 h-22 bg-slate-200 dark:bg-slate-900 rounded-[28px] overflow-hidden relative shadow-inner shrink-0 border-4 border-white dark:border-slate-800">
-                {profile.profile_image ? (
-                    <img src={profile.profile_image} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400"><Award className="w-8 h-8 opacity-20" /></div>
-                )}
-            </div>
-
-            {/* 📝 Content */}
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-1">
-                    <h4 className="text-xl font-black text-slate-900 dark:text-white truncate">{profile.name}</h4>
-                    <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                        profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-200 text-slate-500")}>
-                        {profile.website_visible ? 'Public' : 'Hidden'}
-                    </span>
-                </div>
-                <p className="text-sm text-slate-500 font-bold opacity-60 line-clamp-1">{profile.bio || '한줄 소개를 입력해주세요.'}</p>
-            </div>
-
-            {/* ⚙️ Actions */}
-            <div className="flex items-center gap-3 shrink-0">
-                <button onClick={onToggleVisibility} className={cn("p-4 rounded-2xl transition-all", profile.website_visible ? "text-indigo-600 bg-indigo-50" : "text-slate-400 bg-slate-100")}>
-                    {profile.website_visible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-                <button onClick={onEdit} className="p-4 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
-                    <Edit2 className="w-5 h-5" />
-                </button>
-                <button onClick={onDelete} className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
-                    <Trash2 className="w-5 h-5" />
-                </button>
-            </div>
-        </Reorder.Item>
-    );
-}
