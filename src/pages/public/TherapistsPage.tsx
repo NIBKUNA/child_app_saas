@@ -85,9 +85,9 @@ export function TherapistsPage() {
 
             <div className={cn("relative -mt-12 z-20 rounded-t-[50px] px-4 pb-40 transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
                 <div className="container mx-auto max-w-6xl pt-24">
-                    <div className="grid gap-12 lg:gap-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
                         {therapists.length === 0 ? (
-                            <div className="text-center py-20 opacity-30">
+                            <div className="text-center py-20 opacity-30 col-span-full">
                                 <Shield className="w-16 h-16 mx-auto mb-4" />
                                 <p className="text-xl font-bold">등록된 선생님 정보가 없습니다.</p>
                             </div>
@@ -96,7 +96,7 @@ export function TherapistsPage() {
                                 <motion.div
                                     key={staff.id}
                                     className={cn(
-                                        "group flex flex-col lg:flex-row gap-10 lg:items-center p-8 md:p-12 rounded-[60px] border transition-all duration-500",
+                                        "group flex flex-col gap-8 p-10 rounded-[60px] border transition-all duration-500 hover:-translate-y-2",
                                         isDark ? "bg-[#141620] border-white/5 hover:border-white/10" : "bg-white border-slate-100 shadow-2xl shadow-slate-200/50"
                                     )}
                                     initial={{ opacity: 0, y: 40 }}
@@ -105,8 +105,8 @@ export function TherapistsPage() {
                                     transition={{ delay: idx * 0.1 }}
                                 >
                                     {/* 📷 Profile Image Box */}
-                                    <div className="relative shrink-0 flex justify-center lg:justify-start">
-                                        <div className="w-48 h-64 md:w-64 md:h-80 rounded-[40px] overflow-hidden relative shadow-2xl">
+                                    <div className="relative shrink-0 flex justify-center">
+                                        <div className="w-full aspect-[4/5] max-w-[300px] rounded-[40px] overflow-hidden relative shadow-2xl">
                                             {staff.profile_image ? (
                                                 <img src={staff.profile_image} alt={staff.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                             ) : (
@@ -116,7 +116,7 @@ export function TherapistsPage() {
                                                 </div>
                                             )}
                                             {/* Name Tag Overlay */}
-                                            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+                                            <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
                                                 <div className="text-2xl font-black">{staff.name}</div>
                                                 <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">
                                                     {staff.system_role === 'admin' ? '운영 원장' : staff.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
@@ -124,23 +124,23 @@ export function TherapistsPage() {
                                             </div>
                                         </div>
                                         {/* Abstract background detail */}
-                                        <div className="absolute -z-10 -top-4 -left-4 w-24 h-24 rounded-full blur-2xl opacity-20" style={{ backgroundColor: brandColor }}></div>
+                                        <div className="absolute -z-10 -top-4 -right-4 w-32 h-32 rounded-full blur-3xl opacity-20" style={{ backgroundColor: brandColor }}></div>
                                     </div>
 
                                     {/* 📜 Content Box */}
-                                    <div className="flex-1 space-y-8">
+                                    <div className="flex-1 space-y-8 flex flex-col">
                                         <div>
                                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">
                                                 <Heart className="w-3 h-3" style={{ color: brandColor }} />
                                                 Introduction
                                             </div>
-                                            <h3 className={cn("text-3xl font-black mb-4", isDark ? "text-white" : "text-slate-900")}>
+                                            <h3 className={cn("text-2xl font-black mb-4 leading-tight whitespace-pre-line", isDark ? "text-white" : "text-slate-900")}>
                                                 {staff.bio || `아이들의 행복한 내일을 위해\n진심을 다해 소통하겠습니다.`}
                                             </h3>
                                             <div className="w-12 h-1.5 rounded-full" style={{ backgroundColor: brandColor }}></div>
                                         </div>
 
-                                        <div className="grid md:grid-cols-2 gap-8">
+                                        <div className="space-y-8 flex-1">
                                             {/* Specialties */}
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-40">
@@ -160,10 +160,10 @@ export function TherapistsPage() {
                                                 <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-40">
                                                     <Award className="w-4 h-4" /> 주요 약력
                                                 </div>
-                                                <ul className="space-y-2">
+                                                <ul className="space-y-3">
                                                     {(staff.career || '관련 학과 졸업\n임상 경력 보유').split('\n').map((line, i) => (
-                                                        <li key={i} className="flex gap-2 text-sm font-medium opacity-70">
-                                                            <div className="w-1 h-1 rounded-full mt-2 shrink-0" style={{ backgroundColor: brandColor }}></div>
+                                                        <li key={i} className="flex gap-3 text-sm font-medium leading-relaxed">
+                                                            <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ backgroundColor: brandColor }}></div>
                                                             <span className={isDark ? "text-slate-300" : "text-slate-600"}>{line.trim()}</span>
                                                         </li>
                                                     ))}
