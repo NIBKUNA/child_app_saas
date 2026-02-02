@@ -175,12 +175,12 @@ export function ProgramsPage() {
                                         </p>
 
                                         {(program.targets || []).length > 0 && (
-                                            <div className={cn("p-6 rounded-[32px] border transition-colors mb-8", isDark ? "bg-white/5 border-white/5 group-hover:bg-white/10" : "bg-slate-50 border-slate-100")}>
-                                                <h4 className={cn("font-black text-[10px] mb-4 uppercase tracking-[0.2em] opacity-40", isDark ? "text-white" : "text-slate-900")}>추천 대상</h4>
-                                                <ul className="space-y-3">
+                                            <div className={cn("p-8 rounded-[32px] border transition-colors mt-auto", isDark ? "bg-white/5 border-white/5 group-hover:bg-white/10" : "bg-slate-50 border-slate-100")}>
+                                                <h4 className={cn("font-black text-[10px] mb-5 uppercase tracking-[0.2em] opacity-40", isDark ? "text-white" : "text-slate-900")}>추천 대상</h4>
+                                                <ul className="space-y-3.5">
                                                     {(program.targets || []).map((target: string, tidx: number) => (
-                                                        <li key={tidx} className="flex items-center gap-3 text-xs font-bold opacity-70">
-                                                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: brandColor }}></div>
+                                                        <li key={tidx} className="flex items-start gap-3 text-xs font-bold opacity-70 leading-relaxed">
+                                                            <div className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: brandColor }}></div>
                                                             <span className={isDark ? "text-slate-300" : "text-slate-600"}>{target}</span>
                                                         </li>
                                                     ))}
