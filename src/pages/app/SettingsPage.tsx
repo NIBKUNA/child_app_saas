@@ -1077,7 +1077,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         specialties: '',
         career: '',
         profile_image: '',
-        website_visible: true
+        website_visible: true,
+        sort_order: 0
     });
 
     const fetchProfiles = async () => {
@@ -1086,7 +1087,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             .from('therapists')
             .select('*')
             .eq('center_id', centerId)
-            // .eq('system_status', 'active') // Show all for management, but visually distinguish
+            .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true });
         setProfiles(data || []);
         setLoading(false);
@@ -1105,7 +1106,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 specialties: profile.specialties || '',
                 career: profile.career || '',
                 profile_image: profile.profile_image || '',
-                website_visible: profile.website_visible
+                website_visible: profile.website_visible,
+                sort_order: profile.sort_order || 0
             });
         } else {
             setEditingProfile(null);
@@ -1115,7 +1117,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 specialties: '',
                 career: '',
                 profile_image: '',
-                website_visible: true
+                website_visible: true,
+                sort_order: profiles.length // Default to end of list
             });
         }
         setIsModalOpen(true);
@@ -1132,10 +1135,10 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 career: formData.career,
                 profile_image: formData.profile_image,
                 website_visible: formData.website_visible,
+                sort_order: Number(formData.sort_order) || 0,
                 center_id: centerId,
-                // Ensure defaults for required fields if new
                 system_status: 'active',
-                hire_type: 'freelancer', // Default for display profiles
+                hire_type: 'freelancer',
                 system_role: 'therapist'
             };
 
@@ -1334,6 +1337,16 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                                 >
                                     <div className={cn("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", formData.website_visible ? "left-7" : "left-1")} />
                                 </button>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">정렬 순서 (숫자가 낮을수록 앞)</label>
+                                <input
+                                    type="number"
+                                    value={formData.sort_order}
+                                    onChange={e => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })}
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
+                                />
                             </div>
                         </div>
 

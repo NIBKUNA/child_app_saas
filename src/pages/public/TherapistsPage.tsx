@@ -44,7 +44,9 @@ export function TherapistsPage() {
                 .select('*')
                 .eq('center_id', center.id)
                 .eq('system_status', 'active')
-                .eq('website_visible', true);
+                .eq('website_visible', true)
+                .order('sort_order', { ascending: true })
+                .order('created_at', { ascending: true });
 
             if (error) throw error;
             setTherapists(data || []);
