@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -11,13 +9,13 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import React from 'react';
-import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
+import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
-import { Lock, LogOut, ShieldAlert, MonitorCheck, RefreshCw } from 'lucide-react';
+import { LogOut, ShieldAlert, MonitorCheck, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 
@@ -135,7 +133,6 @@ export function AppLayout() {
                 },
                 (payload) => {
                     const eventType = payload.eventType;
-                    // DELETE 이벤트일 경우 payload.new가 없을 수 있으므로 old를 참조하거나 기본값 처리 필요
                     const newItem = payload.new as any || {};
 
                     let title = '';
@@ -143,7 +140,7 @@ export function AppLayout() {
 
                     if (eventType === 'INSERT') {
                         title = '🚀 새로운 상담 신청!';
-                        body = `${newItem.child_name || '아동'} (${newItem.guardian_name}) 님이 상담을 요청했습니다.`;
+                        body = `${newItem.child_name || '아동'} (${newItem.guardian_name || ''}) 님이 상담을 요청했습니다.`;
                     } else if (eventType === 'UPDATE') {
                         title = '🔄 상담 신청 수정';
                         body = `${newItem.child_name || '아동'} 님의 상담 신청 내역이 변경되었습니다.`;

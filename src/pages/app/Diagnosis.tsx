@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -11,15 +9,20 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
-import { Database, Activity, ShieldAlert, CheckCircle2, LayoutDashboard, Share2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { Activity, ShieldAlert, CheckCircle2, LayoutDashboard } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useCenter } from '@/contexts/CenterContext';
 
-const Diagnosis = () => {
-    const [stats, setStats] = useState({ staffCount: 0, hasConflict: false });
+interface DiagnosisStats {
+    staffCount: number;
+    hasConflict: boolean;
+}
+
+const Diagnosis: React.FC = () => {
+    const [stats, setStats] = useState<DiagnosisStats>({ staffCount: 0, hasConflict: false });
     const [isScanning, setIsScanning] = useState(false);
-    const { center } = useCenter(); // ✨ Context
+    const { center } = useCenter();
 
     const checkSystemHealth = useCallback(async () => {
         if (!center?.id) return;
@@ -31,7 +34,8 @@ const Diagnosis = () => {
             const { count: staffCount } = await supabase.from('therapists').select('*', { count: 'exact', head: true }).eq('center_id', center.id);
 
             // 2. 저장 충돌 테스트 (409 에러 방지 체크)
-            const { error } = await supabase.from('admin_settings').upsert({ center_id: center.id, key: 'system_check', value: 'active' });
+            const upsertData = { center_id: center.id, key: 'system_check', value: 'active' };
+            const { error } = await supabase.from('admin_settings').upsert(upsertData as never);
 
             setStats({
                 staffCount: (profileCount || 0) + (staffCount || 0),
@@ -42,7 +46,7 @@ const Diagnosis = () => {
         } finally {
             setIsScanning(false);
         }
-    }, []);
+    }, [center?.id]);
 
     useEffect(() => { checkSystemHealth(); }, [checkSystemHealth]);
 

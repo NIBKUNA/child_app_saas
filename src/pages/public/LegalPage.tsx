@@ -1,14 +1,19 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, FileText } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { useCenter } from '@/contexts/CenterContext';
 
 export const LegalPage = ({ type }: { type: 'privacy' | 'terms' }) => {
     const navigate = useNavigate();
+    const { center } = useCenter();
+
+    const centerName = center?.name || '아동발달센터';
 
     const content = type === 'privacy' ? {
         title: "개인정보처리방침",
         icon: <Shield className="w-8 h-8 text-indigo-600" />,
-        text: `자라다(이하 '회사')는 이용자의 개인정보를 중요시하며, "개인정보보호법" 등 관련 법령을 준수하고 있습니다.
+        text: `${centerName}(이하 '회사')는 이용자의 개인정보를 중요시하며, "개인정보보호법" 등 관련 법령을 준수하고 있습니다.
 
 1. 수집하는 개인정보 항목
 - 성명, 연락처, 이메일, 센터명, 아이 정보 등
@@ -23,7 +28,7 @@ export const LegalPage = ({ type }: { type: 'privacy' | 'terms' }) => {
     } : {
         title: "서비스 이용약관",
         icon: <FileText className="w-8 h-8 text-indigo-600" />,
-        text: `본 약관은 자라다(이하 '회사')가 제공하는 모든 서비스의 이용 조건 및 절차에 관한 의무 사항을 규정함을 목적으로 합니다.
+        text: `본 약관은 ${centerName}(이하 '회사')가 제공하는 모든 서비스의 이용 조건 및 절차에 관한 의무 사항을 규정함을 목적으로 합니다.
 
 1. 서비스의 제공 및 변경
 - 회사는 아동발달센터 관리 및 관련 서비스를 제공합니다.
@@ -39,6 +44,11 @@ export const LegalPage = ({ type }: { type: 'privacy' | 'terms' }) => {
 
     return (
         <div className="min-h-screen bg-slate-50 py-20 px-4">
+            <Helmet>
+                <title>{content.title} - {centerName}</title>
+                <meta name="description" content={`${centerName}의 ${content.title} 안내입니다.`} />
+            </Helmet>
+
             <div className="max-w-3xl mx-auto">
                 <button
                     onClick={() => navigate(-1)}

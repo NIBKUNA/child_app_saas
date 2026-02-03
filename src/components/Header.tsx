@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -12,16 +11,18 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { useCenterBranding } from '@/hooks/useCenterBranding';
 
 export function Header() {
     const { user, role, signOut } = useAuth();
+    const { branding } = useCenterBranding();
 
     return (
         <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
             <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
                 {/* 로고 영역 */}
                 <Link to="/" className="font-black text-xl flex items-center gap-2">
-                    🧸 {localStorage.getItem('cached_center_name') || import.meta.env.VITE_CENTER_NAME || '아동발달센터'}
+                    🧸 {branding.name || '아동발달센터'}
                 </Link>
 
                 {/* 우측 메뉴 영역 */}

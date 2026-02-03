@@ -1,17 +1,32 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Building2, Plus, MapPin, Phone, X, Globe, Save, Mail } from 'lucide-react';
+import { Building2, Plus, MapPin, X, Globe, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
+import { useAuth } from '@/contexts/AuthContext';
+import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+import type { Database } from '@/types/database.types';
+
+type Center = Database['public']['Tables']['centers']['Row'];
 
 export function CenterList() {
-    const [centers, setCenters] = useState([]);
+    const { user, role, loading: authLoading } = useAuth();
+    const [centers, setCenters] = useState<Center[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCenter, setNewCenter] = useState({ name: '', slug: '' });
     const navigate = useNavigate();
+
+    // ✨ Super Admin Security Check
+    const isSuper = role === 'super_admin' || checkSuperAdmin(user?.email);
+
+    useEffect(() => {
+        if (!authLoading && !isSuper) {
+            alert('접근 권한이 없습니다. (Super Admin Only)');
+            navigate('/');
+        }
+    }, [authLoading, isSuper, navigate]);
 
     useEffect(() => {
         fetchCenters();
@@ -50,7 +65,7 @@ export function CenterList() {
                     name: newCenter.name,
                     slug: finalSlug,
                     is_active: true
-                })
+                } as any) // ✨ Temporarily using any to bypass the strange inference issue while maintaining schema sync
                 .select()
                 .single();
 
@@ -110,6 +125,7 @@ export function CenterList() {
                                 )}>
                                     {center.is_active ? 'ACTIVE' : 'INACTIVE'}
                                 </span>
+
                                 <span className="text-[10px] font-bold text-slate-400">
                                     ID: {center.id.slice(0, 8)}
                                 </span>

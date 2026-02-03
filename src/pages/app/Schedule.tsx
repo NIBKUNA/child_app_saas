@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -17,7 +16,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import koLocale from '@fullcalendar/core/locales/ko';
-import { Plus, Loader2, Calendar, Clock, User, FileText, Filter, Users, X } from 'lucide-react';
+import type { EventClickArg, EventInput } from '@fullcalendar/core';
+import { Plus, Loader2, Clock, User } from 'lucide-react';
 import { ScheduleModal } from '@/components/app/schedule/ScheduleModal';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
@@ -25,24 +25,79 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { SUPER_ADMIN_EMAILS } from '@/config/superAdmin';
 
+// ✨ 스케줄 상태 타입
+type ScheduleStatus = 'scheduled' | 'completed' | 'canceled' | 'cancelled' | 'carried_over';
+
+// ✨ 치료사 필터 옵션 타입
+interface TherapistOption {
+    id: string;
+    name: string;
+    color: string;
+}
+
+// ✨ FullCalendar extendedProps 타입
+interface ScheduleExtendedProps {
+    status: ScheduleStatus;
+    child_id: string;
+    program_id: string | null;
+    therapist_id: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    childName: string;
+    programName: string;
+    therapistName: string;
+    color: string;
+    hasNote: boolean;
+}
+
+// ✨ 툴팁 정보 타입
+interface TooltipInfo {
+    event: {
+        title: string;
+        start: Date | null;
+        end: Date | null;
+        extendedProps: ScheduleExtendedProps;
+    };
+    x: number;
+    y: number;
+}
+
+// ✨ Supabase 스케줄 데이터 타입
+interface ScheduleData {
+    id: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    status: ScheduleStatus;
+    notes: string | null;
+    service_type: string | null;
+    child_id: string;
+    therapist_id: string;
+    program_id: string | null;
+    children: { name: string; center_id: string } | null;
+    programs: { name: string } | null;
+    therapists: { name: string; color: string } | null;
+}
+
 export function Schedule() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const { center } = useCenter(); // ✨ Use Center Context
     const centerId = center?.id;
 
-    const [events, setEvents] = useState([]);
+    const [events, setEvents] = useState<EventInput[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedScheduleId, setSelectedScheduleId] = useState(null);
-    const [clickedDate, setClickedDate] = useState(null);
-    const [tooltipInfo, setTooltipInfo] = useState(null);
-    const calendarRef = useRef(null);
+    const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+    const [clickedDate, setClickedDate] = useState<Date | ScheduleExtendedProps | null>(null);
+    const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo | null>(null);
+    const calendarRef = useRef<FullCalendar | null>(null);
 
     // ✨ [Therapist Filter] 치료사 필터 상태 (다중 선택 지원)
-    const [therapists, setTherapists] = useState([]);
-    const [selectedTherapistIds, setSelectedTherapistIds] = useState(new Set(['all']));
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [therapists, setTherapists] = useState<TherapistOption[]>([]);
+    const [selectedTherapistIds, setSelectedTherapistIds] = useState<Set<string>>(new Set(['all']));
+    const [_currentDate, setCurrentDate] = useState(new Date());
 
     const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
 
@@ -95,48 +150,51 @@ export function Schedule() {
 
             // ✨ [권한 분리] 행정직원(admin, manager, staff)은 전체 조회 가능
             // 치료사(therapist)는 본인의 일정만 조회 가능
-            const isAdminStaff = ['admin', 'super_admin', 'manager', 'staff'].includes(role);
+            const _isAdminStaff = ['admin', 'super_admin', 'manager', 'staff'].includes(role ?? '');
             if (role === 'therapist' && authTherapistId) {
                 query = query.eq('therapist_id', authTherapistId);
             }
 
             const { data, error } = await query;
+            const scheduleData = data as ScheduleData[] | null;
 
             if (error) throw error;
 
             // ✨ [Auto-Completion Logic]
             // Mark past 'scheduled' events as 'completed' automatically
             const now = new Date();
-            const pastScheduledIds = data
-                ?.filter(s => s.status === 'scheduled' && new Date(s.end_time) < now)
+            const pastScheduledIds = scheduleData
+                ?.filter(s => s.status === 'scheduled' && new Date(`${s.date}T${s.end_time}`) < now)
                 .map(s => s.id) || [];
 
             if (pastScheduledIds.length > 0) {
                 console.log(`✅ [Auto-Sync] Completing ${pastScheduledIds.length} past schedules.`);
-                await supabase
+                await (supabase
                     .from('schedules')
-                    .update({ status: 'completed' })
+                    .update({ status: 'completed' }) as never)
                     .in('id', pastScheduledIds);
 
                 // Update local data to reflect the change
-                data.forEach(s => {
-                    if (pastScheduledIds.includes(s.id)) s.status = 'completed';
+                scheduleData?.forEach((s: ScheduleData) => {
+                    if (pastScheduledIds.includes(s.id)) {
+                        (s as { status: string }).status = 'completed';
+                    }
                 });
             }
 
             let attendedLogIds = new Set();
-            if (data && data.length > 0) {
+            if (scheduleData && scheduleData.length > 0) {
                 // ✨ [Assessment Check] Fetch daily logs only if there are schedules
                 // daily_logs 대신 통합된 counseling_logs를 사용합니다.
                 const { data: logsData } = await supabase
                     .from('counseling_logs')
                     .select('schedule_id')
-                    .in('schedule_id', data.map(s => s.id));
+                    .in('schedule_id', scheduleData.map(s => s.id));
 
                 attendedLogIds = new Set(logsData?.map(l => l.schedule_id) || []);
             }
-            if (data) {
-                const formattedEvents = data.map(schedule => {
+            if (scheduleData) {
+                const formattedEvents = scheduleData.map((schedule: ScheduleData) => {
                     const childName = schedule.children?.name || '미등록';
                     const therapistName = schedule.therapists?.name || '미정';
                     const originalColor = schedule.therapists?.color || '#94a3b8';
@@ -189,14 +247,14 @@ export function Schedule() {
         }
     };
 
-    const handleEventClick = (info) => {
+    const handleEventClick = (info: EventClickArg) => {
         setSelectedScheduleId(info.event.id);
-        setClickedDate(info.event.extendedProps);
+        setClickedDate(info.event.extendedProps as ScheduleExtendedProps);
         setIsModalOpen(true);
         setTooltipInfo(null);
     };
 
-    const handleDateClick = (info) => {
+    const handleDateClick = (info: { date: Date }) => {
         setSelectedScheduleId(null);
         setClickedDate(info.date);
         setIsModalOpen(true);
@@ -213,14 +271,19 @@ export function Schedule() {
         setSelectedScheduleId(null);
         setClickedDate(null);
         if (shouldRefresh) {
-            fetchSchedules(centerId);
+            fetchSchedules();
         }
     };
 
-    const handleEventMouseEnter = (info) => {
+    const handleEventMouseEnter = (info: { el: HTMLElement; event: EventClickArg['event'] }) => {
         const rect = info.el.getBoundingClientRect();
         setTooltipInfo({
-            event: info.event,
+            event: {
+                title: info.event.title,
+                start: info.event.start,
+                end: info.event.end,
+                extendedProps: info.event.extendedProps as ScheduleExtendedProps
+            },
             x: rect.left + rect.width / 2,
             y: rect.top - 10,
         });
@@ -230,7 +293,7 @@ export function Schedule() {
         setTooltipInfo(null);
     };
 
-    const getStatusBadge = (status) => {
+    const getStatusBadge = (status: ScheduleStatus) => {
         switch (status) {
             case 'completed': return { text: '출석 완료', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
             case 'canceled':
@@ -461,7 +524,7 @@ export function Schedule() {
                                 buttonText={{ today: '오늘', month: '월간', week: '주간', day: '일간' }}
                                 events={selectedTherapistIds.has('all')
                                     ? events
-                                    : events.filter(e => selectedTherapistIds.has(e.extendedProps.therapist_id))}
+                                    : events.filter(e => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id as string))}
                                 height="100%"
                                 dayMaxEvents={5} // ✨ 인원 많아져도 볼 수 있게 최대 표시 개수 상향
                                 eventDisplay="block"
@@ -510,7 +573,7 @@ export function Schedule() {
                                 <div className="flex items-center gap-2.5 text-slate-300">
                                     <Clock className="w-4 h-4 text-slate-400" />
                                     <span className="font-medium tracking-wide">
-                                        {new Date(tooltipInfo.event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(tooltipInfo.event.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {tooltipInfo.event.start ? new Date(tooltipInfo.event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'} - {tooltipInfo.event.end ? new Date(tooltipInfo.event.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                                     </span>
                                 </div>
                             </div>

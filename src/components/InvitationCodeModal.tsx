@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -44,7 +42,7 @@ export function InvitationCodeModal({ isOpen, onClose, onSuccess, parentId }: In
             // The previous checkProfileExists was causing false positives due to RLS/Network latency.
 
             // ✨ [Secure Code Connection] RPC 함수 사용 (RLS 우회 및 트랜잭션 보장)
-            const { data: result, error: rpcError } = await supabase.rpc('connect_child_with_code', {
+            const { data: result, error: rpcError } = await (supabase as any).rpc('connect_child_with_code', {
                 p_parent_id: parentId,
                 p_code: code.toUpperCase().trim()
             });
@@ -52,16 +50,17 @@ export function InvitationCodeModal({ isOpen, onClose, onSuccess, parentId }: In
             if (rpcError) throw rpcError;
 
             // RPC가 커스텀 에러 메시지를 반환했는지 확인
-            if (!result.success) {
+            if (!result || !result.success) {
                 // Friendly mapping for common errors
-                if (result.message?.includes('violates foreign key constraint')) {
+                const errMsg = (result as any)?.message || '';
+                if (errMsg.includes('violates foreign key constraint')) {
                     throw new Error("회원 정보가 완전히 생성되지 않았습니다. 잠시 후 다시 시도해주세요.");
                 }
-                throw new Error(result.message || '연결에 실패했습니다.');
+                throw new Error(errMsg || '연결에 실패했습니다.');
             }
 
             // 성공 시 아동 이름 반환
-            onSuccess(result.child_name);
+            onSuccess((result as any).child_name);
         } catch (err: any) {
             console.error("Invitation code error:", err);
             // Translate DB FK errors to user friendly message

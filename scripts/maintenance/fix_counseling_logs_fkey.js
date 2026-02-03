@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 
-const env = fs.readFileSync('.env', 'utf8');
+const env = fs.readFileSync('../../.env', 'utf8');
 const url = env.match(/SUPABASE_URL=(.*)/)[1].trim().replace(/^['\"]|['\"]$/g, '');
 const key = env.match(/SUPABASE_SERVICE_ROLE_KEY=(.*)/)[1].trim().replace(/^['\"]|['\"]$/g, '');
 

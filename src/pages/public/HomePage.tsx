@@ -20,6 +20,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { HeroBackground } from '@/components/public/HeroBackground';
 import { useCenter } from '@/contexts/CenterContext';
+import type { Database } from '@/types/database.types';
 
 // Custom SVG Icons (no Lucide)
 const SvgIcons = {
@@ -67,12 +68,14 @@ const DEFAULT_CONTENT = {
     }
 };
 
+
+
 export function HomePage() {
     const navigate = useNavigate();
     const { getSetting, loading } = useAdminSettings();
     const { theme } = useTheme();
     const { center } = useCenter();
-    const [centerInfo, setCenterInfo] = useState<any>(null);
+    const [centerInfo, setCenterInfo] = useState<Database['public']['Tables']['centers']['Row'] | null>(null);
     const isDark = theme === 'dark';
 
     // ✨ Sync context center to local info for backward partial compatibility if needed, 
@@ -93,11 +96,11 @@ export function HomePage() {
     return (
         <div className={`min-h-screen font-sans overflow-x-hidden transition-colors ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
             <Helmet>
-                <title>{brandName} - {centerInfo?.description?.slice(0, 20) || '아이의 행복한 성장을 함께합니다'}</title>
-                <meta name="description" content={centerInfo?.description || DEFAULT_CONTENT.hero.description} />
+                <title>{brandName} - {getSetting('home_subtitle')?.slice(0, 20) || '아이의 행복한 성장을 함께합니다'}</title>
+                <meta name="description" content={getSetting('home_subtitle') || DEFAULT_CONTENT.hero.description} />
                 <link rel="canonical" href={canonicalUrl} />
                 <meta property="og:title" content={brandName} />
-                <meta property="og:description" content={centerInfo?.description || DEFAULT_CONTENT.hero.description} />
+                <meta property="og:description" content={getSetting('home_subtitle') || DEFAULT_CONTENT.hero.description} />
                 <meta property="og:image" content={bgImage} />
                 {getSetting('seo_keywords') && <meta name="keywords" content={getSetting('seo_keywords')} />}
             </Helmet>

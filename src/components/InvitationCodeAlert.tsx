@@ -8,9 +8,6 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-
-// @ts-nocheck
-/* eslint-disable */
 import { useState } from 'react';
 import { X, Copy, Check, Gift, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';

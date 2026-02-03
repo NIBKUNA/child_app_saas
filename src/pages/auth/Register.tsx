@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -10,7 +8,7 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -20,7 +18,9 @@ import { TermsModal } from '@/components/public/TermsModal';
 import { useCenter } from '@/contexts/CenterContext';
 
 // Custom SVG Icons
-const Icons = {
+type IconFunction = (className: string) => ReactNode;
+
+const Icons: Record<string, IconFunction> = {
     loader: (className: string) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" />
@@ -48,15 +48,11 @@ export function Register() {
         if (center?.id) setCenterId(center.id);
     }, [center]);
 
-    const [centers, setCenters] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
-    const { slug } = useParams(); // ✨ Get URL Slug for SaaS
+    const { slug } = useParams();
 
-    // ✨ [소셜 로그인 감지] 이미 인증된 사용자인지 확인
-    const [isOAuthUser, setIsOAuthUser] = useState(false);
-    const [oauthUserData, setOauthUserData] = useState<any>(null);
     const [modalType, setModalType] = useState<'terms' | 'privacy' | null>(null);
 
     useEffect(() => {
@@ -64,9 +60,9 @@ export function Register() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 // ✨ [기존 가입자 확인] 이미 프로필이 있는지 체크
-                const { data: existingProfile } = await supabase
-                    .from('user_profiles')
-                    .select('role, center_id, status')
+                const { data: existingProfile } = await (supabase
+                    .from('user_profiles') as any)
+                    .select('role, center_id, status, email, name')
                     .eq('id', session.user.id)
                     .maybeSingle();
 
@@ -87,23 +83,15 @@ export function Register() {
                         navigate('/login');
                         return;
                     } else {
-                        // ✨ [Pending 상태 구제] 승인 대기 중이지만 역할을 바꾸거나 수정하고 싶어하는 경우
-                        // 로그아웃 시키지 않고 폼을 채워서 수정 기회를 줌
-                        setIsOAuthUser(true);
-                        setOauthUserData(session.user);
+                        // Pending 상태 등의 처리 (필요시 추가)
                         setEmail(existingProfile.email || session.user.email || '');
                         setName(existingProfile.name || '');
                         setCenterId(existingProfile.center_id);
-                        setError('⚠️ 현재 승인 대기 중인 계정입니다. 가입 유형을 학부모로 변경하면 즉시 이용 가능합니다.');
-
-                        // 기존 상태가 pending이면 수정 폼을 보여주기 위해 여기서 return하지 않고 진행
-                        // (단, 알림은 너무 자주 뜨지 않게 제거하거나 상단 에러로 대체)
+                        setError('⚠️ 현재 승인 대기 중인 계정입니다.');
                     }
                 }
 
-                // 신규 소셜 로그인 사용자 → 온보딩 필요
-                setIsOAuthUser(true);
-                setOauthUserData(session.user);
+                // 신규 소셜 로그인 사용자 → 초기 정보 세팅
                 setEmail(session.user.email || '');
                 setName(session.user.user_metadata?.full_name || session.user.user_metadata?.name || '');
             }
@@ -111,24 +99,13 @@ export function Register() {
         checkSession();
     }, [navigate]);
 
-    useEffect(() => {
-        async function fetchCenters() {
-            const { data } = await supabase.from('centers').select('id, name');
-            if (data && data.length > 0) {
-                setCenters(data);
-            }
-        }
-        fetchCenters();
-    }, [centerId]); // Add centerId dependency to strictly check it
-
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // ✨ [Safeguard] Resolve Center ID Robustly (Just-In-Time)
         let effectiveCenterId = centerId;
         if (!effectiveCenterId && slug) {
-            console.log("🔍 Center context missing, fetching by slug...", slug);
-            const { data } = await supabase.from('centers').select('id').eq('slug', slug).maybeSingle();
+            const { data } = await (supabase.from('centers') as any).select('id').eq('slug', slug).maybeSingle();
             if (data) effectiveCenterId = data.id;
         }
 
@@ -140,27 +117,21 @@ export function Register() {
         setError(null);
 
         try {
-            // 기본값은 Parent
             let finalRole = 'parent';
-            let finalStatus = 'active';
 
             // ✨ [Security] 하이재킹 방지 및 권한 자동 할당
-            const { data: preRegistered } = await supabase
-                .from('therapists')
+            const { data: preRegistered } = await (supabase
+                .from('therapists') as any)
                 .select('system_role')
                 .ilike('email', email)
                 .maybeSingle();
 
             if (preRegistered) {
                 finalRole = preRegistered.system_role || 'therapist';
-                finalStatus = 'active';
             } else if (isSuperAdmin(email)) {
                 finalRole = 'super_admin';
             }
 
-            // 🚀 [Updated] Metadata-First Registration
-            // We do NOT manually insert into user_profiles here anymore.
-            // The Backend Trigger 'handle_new_user' does it for us safely.
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -169,7 +140,6 @@ export function Register() {
                         full_name: name,
                         role: finalRole,
                         center_id: effectiveCenterId,
-                        // ✨ Pass phone if you have a phone field input, otherwise trigger defaults it
                         phone: '010-0000-0000'
                     }
                 },
@@ -178,24 +148,16 @@ export function Register() {
             if (authError) throw authError;
 
             if (authData.user) {
-                // ⏳ Wait a moment for the Trigger to finish creating the profile
-                // This prevents "Profile not found" on the immediate next page load
                 await new Promise(resolve => setTimeout(resolve, 1000));
-
                 alert('회원가입이 완료되었습니다!\n환영합니다.');
-
-                // Auto-login check
                 if (!authData.session) {
                     await supabase.auth.signInWithPassword({ email, password });
                 }
-
                 navigate('/parent/home');
             }
         } catch (err: any) {
             console.error('Registration error details:', err);
             let msg = err.message || '오류가 발생했습니다.';
-
-            // 한글 오류 메시지 매핑
             if (msg.includes('Database error') || msg.includes('Internal Server Error')) {
                 msg = '서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
             } else if (msg.includes('User already registered')) {
@@ -203,19 +165,11 @@ export function Register() {
             } else if (msg === 'ALREADY_REGISTERED') {
                 msg = '이미 가입된 이메일입니다.';
             }
-
             setError(msg);
         } finally {
             setLoading(false);
         }
     };
-
-    const inputClass = cn(
-        "w-full rounded-2xl border px-4 py-3.5 text-sm font-bold outline-none transition-all",
-        isDark
-            ? "border-slate-700 bg-slate-800 text-white placeholder-slate-500 focus:bg-slate-700 focus:ring-4 focus:ring-indigo-500/20"
-            : "border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-    );
 
     return (
         <div className={cn(
@@ -257,7 +211,6 @@ export function Register() {
                 />
 
                 <form className="space-y-5" onSubmit={handleRegister}>
-                    {/* 센터 선택 (자동 할당) */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -272,15 +225,12 @@ export function Register() {
                         </div>
                     </div>
 
-
-
                     <div className="space-y-4 pt-2">
                         <InputField label="이름" placeholder="성함 입력" value={name} onChange={setName} isDark={isDark} />
                         <InputField label="이메일" type="email" placeholder="example@email.com" value={email} onChange={setEmail} isDark={isDark} />
                         <InputField label="비밀번호" type="password" placeholder="8자 이상" value={password} onChange={setPassword} isDark={isDark} />
                     </div>
 
-                    {/* 이용약관 동의 (Simplified) */}
                     <div className="flex items-start gap-3 px-1">
                         <input
                             type="checkbox"
@@ -334,8 +284,8 @@ export function Register() {
                                                 if (!window.confirm(`${email} 계정을 초기화하고 다시 가입하시겠습니까?`)) return;
                                                 setLoading(true);
                                                 try {
-                                                    const { error } = await supabase.rpc('force_cleanup_user_by_email', { target_email: email });
-                                                    if (error) throw error;
+                                                    const { error: cleanupError } = await (supabase.rpc as any)('force_cleanup_user_by_email', { target_email: email });
+                                                    if (cleanupError) throw cleanupError;
                                                     alert('계정이 초기화되었습니다. 다시 가입 버튼을 눌러주세요.');
                                                     setError(null);
                                                 } catch (e: any) {
@@ -354,7 +304,6 @@ export function Register() {
                         </div>
                     )}
 
-                    {/* Register Button - Always visible with indigo-600 */}
                     <button
                         type="submit"
                         disabled={loading}
@@ -406,7 +355,7 @@ export function Register() {
     );
 }
 
-function InputField({ label, type = "text", placeholder, value, onChange, isDark }: any) {
+function InputField({ label, type = "text", placeholder, value, onChange, isDark }: { label: string, type?: string, placeholder: string, value: string, onChange: (v: string) => void, isDark: boolean }) {
     return (
         <div className="space-y-1">
             <label className={cn(

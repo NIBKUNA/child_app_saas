@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -13,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
+import type { Database } from '@/types/database.types'; // ✨ Import Types
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
@@ -21,12 +21,14 @@ import {
     Calendar, CheckCircle2, XCircle, Hourglass, Save, StickyNote
 } from 'lucide-react';
 
-const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');
+const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
+
+type ConsultationInquiry = Database['public']['Tables']['consultations']['Row'];
 
 export default function ConsultationInquiryList() {
-    const [inquiries, setInquiries] = useState([]);
+    const [inquiries, setInquiries] = useState<ConsultationInquiry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [memoValues, setMemoValues] = useState({}); // 각 문의별 메모 임시 상태
+    const [memoValues, setMemoValues] = useState<{ [key: string]: string }>({}); // 각 문의별 메모 임시 상태
     const [viewMode, setViewMode] = useState<'pending' | 'archived'>('pending'); // ✨ Tab State
     const { center } = useCenter(); // ✨ Use Center
     const centerId = center?.id;
@@ -38,8 +40,8 @@ export default function ConsultationInquiryList() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('consultations')
+            const { data, error } = await (supabase
+                .from('consultations') as any)
                 .select('*')
                 .is('schedule_id', null)
                 .eq('center_id', centerId) // ✨ [SECURITY] Enforce Center ID Filter
@@ -49,11 +51,12 @@ export default function ConsultationInquiryList() {
             setInquiries(data || []);
 
             // 초기 메모 값 설정
-            const initialMemos = {};
-            data?.forEach(inq => {
-                initialMemos[inq.id] = inq.notes || ''; // DB의 notes 컬럼 사용
+            const initialMemos: { [key: string]: string | null } = {};
+            // @ts-ignore
+            data?.forEach((inq: ConsultationInquiry) => {
+                initialMemos[inq.id] = (inq as any).notes || ''; // DB의 notes 컬럼 사용
             });
-            setMemoValues(initialMemos);
+            setMemoValues(initialMemos as any);
         } catch (e) {
             console.error("Data Load Error:", e);
         } finally {
@@ -62,9 +65,9 @@ export default function ConsultationInquiryList() {
     };
 
     // 메모 저장 함수
-    const saveMemo = async (id) => {
-        const { error } = await supabase
-            .from('consultations')
+    const saveMemo = async (id: string) => {
+        const { error } = await (supabase
+            .from('consultations') as any)
             .update({ notes: memoValues[id] }) // notes 컬럼에 저장
             .eq('id', id);
 
@@ -76,10 +79,10 @@ export default function ConsultationInquiryList() {
         }
     };
 
-    const updateStatus = async (id, nextStatus) => {
+    const updateStatus = async (id: string, nextStatus: string) => {
         try {
-            const { error } = await supabase
-                .from('consultations')
+            const { error } = await (supabase
+                .from('consultations') as any)
                 .update({ status: nextStatus })
                 .eq('id', id);
 
@@ -97,9 +100,9 @@ export default function ConsultationInquiryList() {
         }
     };
 
-    const deleteInquiry = async (id) => {
+    const deleteInquiry = async (id: string) => {
         if (!confirm("이 상담 문의를 영구적으로 삭제하시겠습니까?")) return;
-        const { error } = await supabase.from('consultations').delete().eq('id', id);
+        const { error } = await (supabase.from('consultations') as any).delete().eq('id', id);
         if (!error) {
             setInquiries(prev => prev.filter(item => item.id !== id));
         }
@@ -119,14 +122,14 @@ export default function ConsultationInquiryList() {
                     <ExcelExportButton
                         data={inquiries}
                         fileName="상담문의_목록"
-                        headers={['child_name', 'child_gender', 'guardian_name', 'guardian_phone', 'preferred_consult_schedule', 'primary_concerns', 'status', 'marketing_source', 'inflow_source', 'created_at']}
+                        headers={['child_name', 'child_gender', 'guardian_name', 'guardian_phone', 'preferred_consult_schedule', 'concern', 'status', 'marketing_source', 'inflow_source', 'created_at']}
                         headerLabels={{
                             child_name: '아동명',
                             child_gender: '성별',
                             guardian_name: '보호자명',
                             guardian_phone: '연락처',
                             preferred_consult_schedule: '희망일정',
-                            primary_concerns: '주호소',
+                            concern: '주호소',
                             status: '상태',
                             marketing_source: '유입경로(UTM)',
                             inflow_source: '유입경로(설문)',
@@ -206,7 +209,7 @@ export default function ConsultationInquiryList() {
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-[11px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">부모님 고민사항</p>
-                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.primary_concerns}</p>
+                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.concern}</p>
                                 </div>
                             </div>
 

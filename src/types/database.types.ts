@@ -595,6 +595,224 @@ export type Database = {
                     updated_at?: string
                 }
             }
+            payments: {
+                Row: {
+                    id: string
+                    child_id: string | null
+                    amount: number
+                    method: string | null
+                    credit_used: number | null
+                    memo: string | null
+                    payment_month: string | null
+                    paid_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    child_id?: string | null
+                    amount?: number
+                    method?: string | null
+                    credit_used?: number | null
+                    memo?: string | null
+                    payment_month?: string | null
+                    paid_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    child_id?: string | null
+                    amount?: number
+                    method?: string | null
+                    credit_used?: number | null
+                    memo?: string | null
+                    payment_month?: string | null
+                    paid_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "payments_child_id_fkey"
+                        columns: ["child_id"]
+                        referencedRelation: "children"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            payment_items: {
+                Row: {
+                    id: string
+                    payment_id: string | null
+                    schedule_id: string | null
+                    amount: number | null
+                    quantity: number | null
+                    unit_price: number | null
+                    service_type: string | null
+                    service_date: string | null
+                    notes: string | null
+                    created_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    payment_id?: string | null
+                    schedule_id?: string | null
+                    amount?: number | null
+                    quantity?: number | null
+                    unit_price?: number | null
+                    service_type?: string | null
+                    service_date?: string | null
+                    notes?: string | null
+                    created_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    payment_id?: string | null
+                    schedule_id?: string | null
+                    amount?: number | null
+                    quantity?: number | null
+                    unit_price?: number | null
+                    service_type?: string | null
+                    service_date?: string | null
+                    notes?: string | null
+                    created_at?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "payment_items_payment_id_fkey"
+                        columns: ["payment_id"]
+                        referencedRelation: "payments"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "payment_items_schedule_id_fkey"
+                        columns: ["schedule_id"]
+                        referencedRelation: "schedules"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            family_relationships: {
+                Row: {
+                    id: string
+                    parent_id: string
+                    child_id: string
+                    relationship_type: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    parent_id: string
+                    child_id: string
+                    relationship_type?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    parent_id?: string
+                    child_id?: string
+                    relationship_type?: string | null
+                    created_at?: string
+                }
+            }
+            development_assessments: {
+                Row: {
+                    id: string
+                    center_id: string | null
+                    child_id: string | null
+                    therapist_id: string | null
+                    evaluation_date: string
+                    score_communication: number | null
+                    score_social: number | null
+                    score_cognitive: number | null
+                    score_motor: number | null
+                    score_adaptive: number | null
+                    evaluation_content: string | null
+                    assessment_details: Json | null
+                    summary: string | null
+                    therapist_notes: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    center_id?: string | null
+                    child_id?: string | null
+                    therapist_id?: string | null
+                    evaluation_date: string
+                    score_communication?: number | null
+                    score_social?: number | null
+                    score_cognitive?: number | null
+                    score_motor?: number | null
+                    score_adaptive?: number | null
+                    evaluation_content?: string | null
+                    assessment_details?: Json | null
+                    summary?: string | null
+                    therapist_notes?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    center_id?: string | null
+                    child_id?: string | null
+                    therapist_id?: string | null
+                    evaluation_date?: string
+                    score_communication?: number | null
+                    score_social?: number | null
+                    score_cognitive?: number | null
+                    score_motor?: number | null
+                    score_adaptive?: number | null
+                    evaluation_content?: string | null
+                    assessment_details?: Json | null
+                    summary?: string | null
+                    therapist_notes?: string | null
+                    created_at?: string
+                }
+            }
+            parent_observations: {
+                Row: {
+                    id: string
+                    parent_id: string | null
+                    child_id: string | null
+                    content: string
+                    observation_date: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    parent_id?: string | null
+                    child_id?: string | null
+                    content: string
+                    observation_date?: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    parent_id?: string | null
+                    child_id?: string | null
+                    content?: string
+                    observation_date?: string
+                    created_at?: string
+                }
+            }
+            child_therapist: {
+                Row: {
+                    id: string
+                    child_id: string | null
+                    therapist_id: string | null
+                    is_primary: boolean | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    child_id?: string | null
+                    therapist_id?: string | null
+                    is_primary?: boolean | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    child_id?: string | null
+                    therapist_id?: string | null
+                    is_primary?: boolean | null
+                    created_at?: string
+                }
+            }
+
         }
         Views: {
             [_ in never]: never

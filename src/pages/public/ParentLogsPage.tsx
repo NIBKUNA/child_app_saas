@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -45,22 +44,22 @@ export function ParentLogsPage() {
             const user = authData?.user;
             if (!user) return;
 
-            const { data: profile } = await supabase
-                .from('user_profiles')
+            const { data: profile } = await (supabase
+                .from('user_profiles') as any)
                 .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
 
-            let targetChildId = null;
-            const { data: parentRecord } = await supabase
-                .from('parents')
+            let targetChildId: string | null = null;
+            const { data: parentRecord } = await (supabase
+                .from('parents') as any)
                 .select('id')
                 .eq('profile_id', user.id)
                 .maybeSingle();
 
             if (parentRecord) {
-                const { data: directChild } = await supabase
-                    .from('children')
+                const { data: directChild } = await (supabase
+                    .from('children') as any)
                     .select('id')
                     .eq('parent_id', (parentRecord as any).id)
                     .maybeSingle();
@@ -68,8 +67,8 @@ export function ParentLogsPage() {
             }
 
             if (!targetChildId) {
-                const { data: rel } = await supabase
-                    .from('family_relationships')
+                const { data: rel } = await (supabase
+                    .from('family_relationships') as any)
                     .select('child_id')
                     .eq('parent_id', user.id)
                     .maybeSingle();
@@ -81,8 +80,8 @@ export function ParentLogsPage() {
                 return;
             }
 
-            let query = supabase
-                .from('development_assessments')
+            let query = (supabase
+                .from('development_assessments') as any)
                 .select(`
                     *,
                     therapists:therapist_id (name, id),
@@ -111,8 +110,8 @@ export function ParentLogsPage() {
             setLogs(formattedLogs || []);
 
             if (targetChildId) {
-                const { data: observations } = await supabase
-                    .from('parent_observations')
+                const { data: observations } = await (supabase
+                    .from('parent_observations') as any)
                     .select('*')
                     .eq('child_id', targetChildId)
                     .order('created_at', { ascending: false })

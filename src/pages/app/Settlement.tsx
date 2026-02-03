@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -14,28 +12,117 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import {
-    Calendar, DollarSign, Coins, Briefcase, Edit2, X, Check, Calculator, UserCheck, Download
+    Calendar, Edit2, Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useCenter } from '@/contexts/CenterContext';
 import { SUPER_ADMIN_EMAILS, isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+
+// ✨ 고용 형태 타입
+type HireType = 'freelancer' | 'fulltime' | 'regular';
+
+// ✨ 시스템 역할 타입
+type SystemRole = 'therapist' | 'staff' | 'admin';
+
+// ✨ 정산 통계 타입
+interface TotalStats {
+    revenue: number;
+    payout: number;
+    net: number;
+    count: number;
+}
+
+// ✨ 세션 카운트 타입
+interface SessionCounts {
+    weekday: number;
+    weekend: number;
+    eval: number;
+    consult: number;
+}
+
+// ✨ 정산 대상 데이터 타입
+interface SettlementData {
+    id: string;
+    name: string;
+    email: string;
+    hire_type: HireType;
+    system_role?: SystemRole | null;
+    base_salary?: number | null;
+    required_sessions?: number | null;
+    session_price_weekday?: number | null;
+    session_price_weekend?: number | null;
+    evaluation_price?: number | null;
+    consult_price?: number | null;
+    incentive_price?: number | null;
+    bank_name?: string | null;
+    account_number?: string | null;
+    account_holder?: string | null;
+    remarks?: string | null;
+    revenue: number;
+    payout: number;
+    incentiveText: string;
+    counts: SessionCounts;
+}
+
+// ✨ 편집 폼 상태 타입
+interface EditFormState {
+    hire_type: HireType;
+    base_salary: string;
+    base_session_count: string;
+    weekday: string;
+    weekend: string;
+    eval: string;
+    consult: string;
+    incentive: string;
+    remarks: string;
+}
+
+// ✨ 치료사 데이터 타입 (Supabase therapists 테이블)
+interface TherapistData {
+    id: string;
+    name: string;
+    email: string;
+    hire_type: HireType | null;
+    system_role: SystemRole | null;
+    base_salary: number | null;
+    required_sessions: number | null;
+    session_price_weekday: number | null;
+    session_price_weekend: number | null;
+    evaluation_price: number | null;
+    consult_price: number | null;
+    incentive_price: number | null;
+    bank_name: string | null;
+    account_number: string | null;
+    account_holder: string | null;
+    remarks: string | null;
+    center_id: string;
+}
+
+// ✨ 스케줄 세션 데이터 타입
+interface ScheduleSessionData {
+    id: string;
+    therapist_id: string;
+    status: 'scheduled' | 'completed' | 'canceled' | 'cancelled';
+    start_time: string;
+    end_time: string;
+    service_type: string | null;
+}
 
 export function Settlement() {
     const { user } = useAuth();
-    const { center } = useCenter(); // ✨ Use Center Context
+    const { center } = useCenter();
     const centerId = center?.id;
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('therapist');
+    const [_loading, setLoading] = useState(true);
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-    const [settlementList, setSettlementList] = useState<any[]>([]);
-    const [totalStats, setTotalStats] = useState({ revenue: 0, payout: 0, net: 0, count: 0 });
+    const [settlementList, setSettlementList] = useState<SettlementData[]>([]);
+    const [_totalStats, setTotalStats] = useState<TotalStats>({ revenue: 0, payout: 0, net: 0, count: 0 });
 
     // ✨ [Fix] Missing State Definitions
     const [editingId, setEditingId] = useState<string | null>(null);
     // ✨ [Fix] Use string for inputs to prevent "0" locking
-    const [editForm, setEditForm] = useState({
+    const [editForm, setEditForm] = useState<EditFormState>({
         hire_type: 'freelancer',
         base_salary: '',
         base_session_count: '',
@@ -47,17 +134,17 @@ export function Settlement() {
         remarks: ''
     });
 
-    const startEdit = (t: any) => {
+    const startEdit = (t: SettlementData) => {
         setEditingId(t.id);
         setEditForm({
             hire_type: t.hire_type || 'freelancer',
-            base_salary: t.base_salary || '',
-            base_session_count: t.required_sessions || '',
-            weekday: t.session_price_weekday || '',
-            weekend: t.session_price_weekend || '',
-            eval: t.evaluation_price || '',
-            consult: t.consult_price || '',
-            incentive: t.incentive_price || '', // ✨ Added
+            base_salary: String(t.base_salary || ''),
+            base_session_count: String(t.required_sessions || ''),
+            weekday: String(t.session_price_weekday || ''),
+            weekend: String(t.session_price_weekend || ''),
+            eval: String(t.evaluation_price || ''),
+            consult: String(t.consult_price || ''),
+            incentive: String(t.incentive_price || ''),
             remarks: t.remarks || ''
         });
     };
@@ -65,7 +152,7 @@ export function Settlement() {
     const saveEdit = async (id: string) => {
         if (!window.confirm('저장하시겠습니까?')) return;
         try {
-            const { error } = await supabase.from('therapists').update({
+            const updatePayload = {
                 hire_type: editForm.hire_type,
                 base_salary: Number(editForm.base_salary) || 0,
                 required_sessions: Number(editForm.base_session_count) || 0,
@@ -73,16 +160,16 @@ export function Settlement() {
                 session_price_weekend: Number(editForm.weekend) || 0,
                 evaluation_price: Number(editForm.eval) || 0,
                 consult_price: Number(editForm.consult) || 0,
-                incentive_price: Number(editForm.incentive) || 0, // ✨ Added
+                incentive_price: Number(editForm.incentive) || 0,
                 remarks: editForm.remarks
-            }).eq('id', id);
-
+            };
+            const { error } = await supabase.from('therapists').update(updatePayload as never).eq('id', id);
             if (error) throw error;
-
+            alert('저장되었습니다.');
             setEditingId(null);
             fetchSettlements();
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
             alert('저장 실패');
         }
     };
@@ -141,40 +228,42 @@ export function Settlement() {
         try {
             // 1. Get Staff for this Center
             const superAdminListHost = `("${SUPER_ADMIN_EMAILS.join('","')}")`;
-            const { data: staffData } = await supabase
+            const { data: staffDataRaw } = await supabase
                 .from('therapists')
                 .select('*')
-                .eq('center_id', centerId) // ✨ Security Filter
-                .filter('email', 'not.in', superAdminListHost); // ✨ [Correction] Exclude all Super Admins from payroll list
+                .eq('center_id', centerId)
+                .filter('email', 'not.in', superAdminListHost);
+            const staffData = (staffDataRaw || []) as TherapistData[];
 
             // 2. Get Sessions for Month (Table: schedules)
             const startDate = `${selectedMonth}-01`;
             const endDate = new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + 1)).toISOString().slice(0, 10);
 
-            const { data: sessionData } = await supabase
+            const { data: sessionDataRaw } = await supabase
                 .from('schedules')
                 .select('id, therapist_id, status, start_time, end_time, service_type')
-                .eq('center_id', centerId) // ✨ Security Filter
+                .eq('center_id', centerId)
                 .gte('start_time', startDate)
                 .lt('start_time', endDate);
+            const sessionData = (sessionDataRaw || []) as ScheduleSessionData[];
 
             // ✨ [Auto-Sync] Mark past 'scheduled' sessions as 'completed'
             const now = new Date();
             const pastScheduledIds = sessionData
-                ?.filter(s => s.status === 'scheduled' && new Date(s.end_time) < now)
-                .map(s => s.id) || [];
+                .filter((s: ScheduleSessionData) => s.status === 'scheduled' && new Date(s.end_time) < now)
+                .map((s: ScheduleSessionData) => s.id);
 
             if (pastScheduledIds.length > 0) {
                 console.log(`💼 [Payroll Sync] Auto-completing ${pastScheduledIds.length} sessions for accurate settlement.`);
-                await supabase.from('schedules').update({ status: 'completed' }).in('id', pastScheduledIds);
+                await supabase.from('schedules').update({ status: 'completed' } as never).in('id', pastScheduledIds);
                 // Update local status for calculation
-                sessionData.forEach(s => {
-                    if (pastScheduledIds.includes(s.id)) s.status = 'completed';
+                sessionData.forEach((s: ScheduleSessionData) => {
+                    if (pastScheduledIds.includes(s.id)) (s as { status: string }).status = 'completed';
                 });
             }
 
             // Filter for calculation (only completed sessions)
-            const completedSessions = sessionData?.filter(s => s.status === 'completed') || [];
+            const completedSessions = sessionData.filter((s: ScheduleSessionData) => s.status === 'completed');
 
             // 3. Calculate (Advanced Engine)
             const calculatedList = staffData?.map(staff => {
@@ -209,41 +298,56 @@ export function Settlement() {
                 let incentiveText = '';
 
                 const hireType = staff.hire_type || 'freelancer';
-                const baseSalary = staff.base_salary || 0;
+                const baseSalary = staff.base_salary || 1900000;
                 const evalPrice = staff.evaluation_price || 50000;
-                const consultPrice = staff.consult_price || 0; // ✨ New Column
+                const consultPrice = staff.consult_price || 0;
 
-                // 🏗️ 2. Apply Formula based on Role and Hire Type
                 if (staff.system_role === 'staff') {
-                    // Case A: Administrative Staff (Fixed Salary only)
                     payout = baseSalary;
-                    revenue = payout; // Admin staff is overhead
+                    revenue = payout;
                     incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정직원)`;
                 } else if (hireType === 'fulltime' || hireType === 'regular' || staff.system_role === 'admin') {
-                    // Case B: Regular Staff/Admin (Zarada Weighted Model)
+                    // ✨ [사용자 규정 적용 + 유연한 설정 유지]
                     const goal = staff.required_sessions || 90;
                     const incentivePrice = staff.incentive_price || 24000;
 
-                    // ✨ [Zarada Weighted Logic]
-                    // Weekday(1) + Weekend(1.5) + Eval(2) + Consult(1)
-                    const base_weighted = raw_weekday + (raw_weekend * 1.5) + (consult_count * 1.0);
-                    const total_weighted = base_weighted + (eval_count * 2);
 
-                    const evalBonus = eval_count * evalPrice;
-                    const consultBonus = consult_count * consultPrice; // 상담별 특별 수당 (있을 경우)
+                    // 1. 수업 수 = 평일(1) + 주말(1.5)
+                    const base_weighted = raw_weekday + (raw_weekend * 1.5);
 
-                    if (total_weighted > goal) {
-                        const excess = total_weighted - goal;
-                        const incentive = excess * incentivePrice;
-                        payout = baseSalary + incentive + evalBonus + consultBonus;
-                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 인센티브 ${incentive.toLocaleString()} (초과 ${excess.toFixed(1)}회) + 평가수당 ${evalBonus.toLocaleString()}${consultBonus > 0 ? ` + 상담수당 ${consultBonus.toLocaleString()}` : ''}`;
+                    if (base_weighted > goal) {
+                        // 90회 수업 초과시
+                        const alpha = base_weighted - goal;
+                        const excess_pay = alpha * incentivePrice;
+                        const eval_bonus = eval_count * evalPrice;
+                        payout = baseSalary + excess_pay + eval_bonus;
+                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 초과수당 ${excess_pay.toLocaleString()}(${alpha.toFixed(1)}회) + 평가수당 ${eval_bonus.toLocaleString()}`;
                     } else {
-                        payout = baseSalary + evalBonus + consultBonus; // 목표 미달이어도 평가/상담 수당은 별도 지급 (센터 정책에 따름)
-                        incentiveText = `기본급 ${baseSalary.toLocaleString()} (평일:${raw_weekday}/주말:${raw_weekend}/상담:${consult_count}/평가:${eval_count})`;
+                        // 90회 수업 전까지: 평가 X 2 로 부족한 회기수를 채움
+                        const gap = goal - base_weighted;
+                        const evals_needed = Math.ceil(gap / 2);
+                        const evals_to_fill = Math.min(eval_count, evals_needed);
+                        const evals_bonus_count = eval_count - evals_to_fill;
+
+                        // 부족분 채운 후의 수업 수
+                        const filled_total = base_weighted + (evals_to_fill * 2);
+                        const alpha = Math.max(0, filled_total - goal);
+
+                        // 초과분이 발생하거나 남은 평가가 있다면 보너스 합산
+                        const excess_pay = alpha * incentivePrice;
+                        const eval_bonus = evals_bonus_count * evalPrice;
+
+                        payout = baseSalary + excess_pay + eval_bonus;
+
+                        if (alpha > 0 || evals_bonus_count > 0) {
+                            incentiveText = `기본급 ${baseSalary.toLocaleString()} + 초과수당 ${excess_pay.toLocaleString()} + 평가수당 ${eval_bonus.toLocaleString()}`;
+                        } else {
+                            incentiveText = `기본급 ${baseSalary.toLocaleString()} (회기:${base_weighted}/보충:${evals_to_fill})`;
+                        }
                     }
-                    revenue = payout / 0.6;
+                    revenue = payout; // Revenue calculation removed per user preference
                 } else {
-                    // Case C: Freelancer Therapist (Ratio-based)
+                    // Freelancer Therapist (Ratio-based remains same)
                     const weekdayPrice = staff.session_price_weekday || 0;
                     const weekendPrice = staff.session_price_weekend || 0;
 
@@ -253,9 +357,10 @@ export function Settlement() {
                     const consultPay = consult_count * consultPrice;
 
                     payout = weekdayPay + weekendPay + evalPay + consultPay;
-                    revenue = payout / 0.6;
+                    revenue = payout;
                     incentiveText = `평일(${raw_weekday})${weekdayPay.toLocaleString()} + 주말(${raw_weekend})${weekendPay.toLocaleString()} + 평가(${eval_count})${evalPay.toLocaleString()} + 상담(${consult_count})${consultPay.toLocaleString()}`;
                 }
+
 
                 return {
                     ...staff,
@@ -363,7 +468,7 @@ export function Settlement() {
                                                     행정직원 (고정급 정산)
                                                 </div>
                                             ) : (
-                                                <select className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.hire_type} onChange={e => setEditForm({ ...editForm, hire_type: e.target.value })}>
+                                                <select className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.hire_type} onChange={e => setEditForm({ ...editForm, hire_type: e.target.value as HireType })}>
                                                     <option value="freelancer">프리랜서</option>
                                                     <option value="fulltime">정규직</option>
                                                 </select>

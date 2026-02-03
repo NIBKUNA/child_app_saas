@@ -8,9 +8,6 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-
-// @ts-nocheck
-/* eslint-disable */
 import { useState } from 'react';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -25,7 +22,7 @@ interface AccountDeletionModalProps {
     userEmail: string;
 }
 
-export function AccountDeletionModal({ isOpen, onClose, userId, userEmail }: AccountDeletionModalProps) {
+export function AccountDeletionModal({ isOpen, onClose, userId }: AccountDeletionModalProps) {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const navigate = useNavigate();
@@ -45,20 +42,19 @@ export function AccountDeletionModal({ isOpen, onClose, userId, userEmail }: Acc
 
         try {
             // 1. 관련 데이터 정리 (개인정보 보호 정책)
-
             // family_relationships 삭제
             // ✨ [안전 조치] 자녀 테이블의 parent_id 연결 해제 (데이터 보존)
             // 사용자 프로필 삭제 전, 연결된 자녀의 부모 ID를 NULL로 설정하여
             // 자녀 데이터가 CASCADE로 인해 삭제되는 것을 방지합니다.
             // (RPC 실행 시 auth.users 삭제로 인해 Cascade 될 수 있으므로 먼저 연결 해제)
-            await supabase
-                .from('children')
+            await (supabase
+                .from('children') as any)
                 .update({ parent_id: null })
                 .eq('parent_id', userId);
 
             // 🔐 Secure RPC Call (Auth User Withdrawal)
             // This triggers the cleaned-up withdrawal process for SaaS
-            const { error: rpcError } = await supabase.rpc('user_withdraw');
+            const { error: rpcError } = await (supabase.rpc as any)('user_withdraw');
 
             if (rpcError) throw rpcError;
 

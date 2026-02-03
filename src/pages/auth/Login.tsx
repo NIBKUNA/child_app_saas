@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -10,8 +8,8 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation, useParams } from 'react-router-dom';
+import { useState, useEffect, type ReactNode } from 'react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { supabase, setRememberMe, getRememberMe } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
 import { cn } from '@/lib/utils';
@@ -22,7 +20,9 @@ import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { isSuperAdmin } from '@/config/superAdmin';
 
 // Custom SVG Icons
-const Icons = {
+type IconFunction = (className: string) => ReactNode;
+
+const Icons: Record<string, IconFunction> = {
     loader: (className: string) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" />
@@ -62,13 +62,11 @@ export function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [rememberMe, setRememberMeState] = useState(getRememberMe());
-    const [selectedTab, setSelectedTab] = useState<'parent' | 'teacher' | 'admin'>('parent'); // ✨ Tab State
     const navigate = useNavigate();
-    const location = useLocation(); // ✨ Use Location Hook
-    const { slug } = useParams(); // ✨ [Sovereign SaaS] Get slug from URL params
+    const { slug } = useParams();
 
     // ✨ Agreement Modal State
-    const [showAgreement, setShowAgreement] = useState(false);
+    const [showAgreement] = useState(false);
 
     // ✨ [Mount Check] Redirect if already logged in
     useEffect(() => {
@@ -102,7 +100,7 @@ export function Login() {
             }
 
             // ✨ Wait for Supabase to process the hash/tokens
-            const { data: { session }, error } = await supabase.auth.getSession();
+            const { data: { session } } = await supabase.auth.getSession();
 
             // ... (existing OAuth logic remains same)
             if (session?.user) {
@@ -135,12 +133,12 @@ export function Login() {
 
             if (authError) throw authError;
 
-            if (user) {
+            if (user && user.email) {
                 // 🛡️ Super Admin Whitelist check 
                 const isSuper = isSuperAdmin(user.email);
 
-                let { data: profile, error: profileError } = await supabase
-                    .from('user_profiles')
+                let { data: profile, error: profileError } = await (supabase
+                    .from('user_profiles') as any)
                     .select('role, center_id')
                     .eq('id', user.id)
                     .maybeSingle();
@@ -152,8 +150,8 @@ export function Login() {
                         profile = { role: 'super_admin', center_id: null };
                     } else {
                         // Therapist Auto-Repair
-                        const { data: therapist } = await supabase
-                            .from('therapists')
+                        const { data: therapist } = await (supabase
+                            .from('therapists') as any)
                             .select('system_role')
                             .ilike('email', user.email)
                             .maybeSingle();
@@ -183,8 +181,8 @@ export function Login() {
                         localStorage.removeItem('zarada_center_slug');
                     }
                 } else if (profile.center_id) {
-                    const { data: centerData } = await supabase
-                        .from('centers')
+                    const { data: centerData } = await (supabase
+                        .from('centers') as any)
                         .select('slug')
                         .eq('id', profile.center_id)
                         .maybeSingle();

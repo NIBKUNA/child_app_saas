@@ -1,19 +1,10 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
  * 📅 Date: 2026-01-11
  * 🖋️ Description: Unified Comprehensive Report Generator
  * -----------------------------------------------------------
- * - Exports 5 Integrated Sheets:
- *   1. Dashboard KPI (Revenue, Active Members, Session Stats)
- *   2. Marketing Intelligence (Leads Data)
- *   3. Staff Information (Team Roster)
- *   4. Payment Details (Detailed Transaction Log)
- *   5. Integrated Master (Child + Assessment + Aggregated Payments)
  */
-
 import { supabase } from '@/lib/supabase';
 import * as XLSX from 'xlsx';
 
@@ -23,8 +14,17 @@ const formatDate = (dateString: string | null) => {
     return dateString.slice(0, 10);
 };
 
+interface AssessmentDetails {
+    communication?: any[];
+    social?: any[];
+    cognitive?: any[];
+    motor?: any[];
+    adaptive?: any[];
+    [key: string]: any[] | undefined;
+}
+
 // Helper: Flatten Assessment Details
-const formatEvidenceDetailed = (details: any) => {
+const formatEvidenceDetailed = (details: AssessmentDetails | null | undefined) => {
     if (!details || Object.keys(details).length === 0) return '평가 근거 없음';
     const summary = [];
     if (details.communication?.length) summary.push(`[언어] ${details.communication.length}개 항목 달성`);
@@ -61,22 +61,22 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             { data: schedules }
         ] = await Promise.all([
             // 1. Children (Master List)
-            supabase.from('children').select(`
+            (supabase.from('children') as any).select(`
                 id, name, gender, birth_date, is_active, created_at, parent_id,
                 profiles:user_profiles ( name, email )
             `).eq('center_id', centerId),
             // 2. Profiles (Phone Numbers)
-            supabase.from('user_profiles').select('id, phone').eq('center_id', centerId),
+            (supabase.from('user_profiles') as any).select('id, phone').eq('center_id', centerId),
             // 3. Assessments (Latest)
-            supabase.from('development_assessments').select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
+            (supabase.from('development_assessments') as any).select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
             // 4. Payments (Selected Month)
-            supabase.from('payments').select('*').eq('center_id', centerId).gte('paid_at', startOfMonth).lt('paid_at', startOfNextMonth),
+            (supabase.from('payments') as any).select('*').eq('center_id', centerId).gte('paid_at', startOfMonth).lt('paid_at', startOfNextMonth),
             // 5. Leads (Marketing)
-            supabase.from('leads').select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
+            (supabase.from('leads') as any).select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
             // 6. Staff (User Profiles with roles)
-            supabase.from('user_profiles').select('*').eq('center_id', centerId).in('role', ['admin', 'therapist', 'super_admin']),
+            (supabase.from('user_profiles') as any).select('*').eq('center_id', centerId).in('role', ['admin', 'therapist', 'super_admin']),
             // 7. Schedules (Selected Month for KPI)
-            supabase.from('schedules').select('status, date').eq('center_id', centerId).like('date', `${selectedMonth}%`)
+            (supabase.from('schedules') as any).select('status, date').eq('center_id', centerId).like('date', `${selectedMonth}%`)
         ]);
 
         // ------------------------------------------------------------------
@@ -94,9 +94,9 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // Map: Payment Aggregation
-        const paymentMap = new Map();
+        const paymentMap = new Map<string, number>();
         let totalRevenue = 0;
-        (payments || []).forEach(p => {
+        (payments || []).forEach((p: any) => {
             const amount = Number(p.amount) || 0;
             const current = paymentMap.get(p.child_id) || 0;
             paymentMap.set(p.child_id, current + amount);

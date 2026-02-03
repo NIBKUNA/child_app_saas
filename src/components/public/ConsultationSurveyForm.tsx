@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -97,7 +95,17 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
 
     const [birth, setBirth] = useState(initialBirth);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        child_name: string;
+        child_gender: string;
+        diagnosis: string;
+        concern: string;
+        preferred_service: string[];
+        parent_name: string;
+        phone: string;
+        relation: string;
+        discovery_path: string;
+    }>({
         child_name: initialData?.childName || '',
         child_gender: initialData?.childGender === 'female' ? '여아' : (initialData?.childGender === 'male' ? '남아' : '남아'),
         diagnosis: '아니오 (없음)',
@@ -170,7 +178,7 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                 utmContent ? `Content: ${utmContent}` : null,
             ].filter(Boolean).join(' / ');
 
-            const { error } = await supabase.from('consultations').insert([{
+            const { error } = await (supabase.from('consultations') as any).insert([{
                 center_id: centerId,
                 child_name: formData.child_name,
                 child_gender: mappedGender,

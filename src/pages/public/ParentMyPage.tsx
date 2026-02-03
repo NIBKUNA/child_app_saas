@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -26,13 +24,18 @@ import { AccountDeletionModal } from '@/components/AccountDeletionModal';
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
 import { TermsModal } from '@/components/public/TermsModal';
 
+interface Child {
+    name: string;
+    birth_date: string;
+}
+
 export function ParentMyPage() {
     const { user, signOut, profile } = useAuth();
     const { theme } = useTheme();
     const { getSetting } = useAdminSettings();
     const isDark = theme === 'dark';
 
-    const [children, setChildren] = useState<any[]>([]);
+    const [children, setChildren] = useState<Child[]>([]);
     const [loading, setLoading] = useState(true);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -51,22 +54,22 @@ export function ParentMyPage() {
         setLoading(true);
         try {
             // 1. Fetch connected children via family_relationships
-            const { data: relationships } = await supabase
-                .from('family_relationships')
+            const { data: relationships } = await (supabase
+                .from('family_relationships') as any)
                 .select('child_id, children:child_id(name, birth_date)')
                 .eq('parent_id', user.id);
 
             // 2. Fetch connected children via parents table (Legacy)
-            const { data: parentRecord } = await supabase
-                .from('parents')
+            const { data: parentRecord } = await (supabase
+                .from('parents') as any)
                 .select('id')
                 .eq('profile_id', user.id)
                 .maybeSingle();
 
-            let legacyChildren: any[] = [];
+            let legacyChildren: Child[] = [];
             if (parentRecord) {
-                const { data } = await supabase
-                    .from('children')
+                const { data } = await (supabase
+                    .from('children') as any)
                     .select('name, birth_date')
                     .eq('parent_id', parentRecord.id);
                 legacyChildren = data || [];
@@ -74,12 +77,12 @@ export function ParentMyPage() {
 
             // 3. Merge and deduplicate
             const relChildren = (relationships || [])
-                .map(r => r.children)
-                .filter(Boolean);
+                .map((r: any) => r.children)
+                .filter((c: Child | null): c is Child => c !== null);
 
             // Deduplicate by name and birth_date since we don't necessarily have IDs for legacy here
             const combined = [...relChildren, ...legacyChildren];
-            const uniqueChildren = Array.from(new Map(combined.map(c => [`${c.name}-${c.birth_date}`, c])).values());
+            const uniqueChildren = Array.from(new Map(combined.map((c: any) => [`${c.name}-${c.birth_date}`, c])).values());
 
             setChildren(uniqueChildren);
         } catch (e) {
@@ -115,7 +118,7 @@ export function ParentMyPage() {
         const event = (window as any).deferredPrompt;
         if (event) {
             event.prompt();
-            event.userChoice.then((choice: any) => {
+            event.userChoice.then((choice: { outcome: string }) => {
                 if (choice.outcome === 'accepted') {
                     console.log('User accepted the install prompt');
                 }
@@ -185,7 +188,7 @@ export function ParentMyPage() {
                     {loading ? (
                         <div className="p-8 text-center text-slate-400 text-sm">로딩 중...</div>
                     ) : children.length > 0 ? (
-                        children.map((child: any, idx) => (
+                        children.map((child, idx) => (
                             <div key={idx} className={cn(
                                 "p-5 rounded-3xl flex justify-between items-center border",
                                 isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-sm"

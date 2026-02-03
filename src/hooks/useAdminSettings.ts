@@ -36,6 +36,7 @@ export type AdminSettingKey =
     | 'center_name'
     | 'center_phone'
     | 'center_address'
+    | 'center_email'
     | 'center_map_url'
     | 'ai_posting_day'
     | 'ai_posting_time'
@@ -44,6 +45,12 @@ export type AdminSettingKey =
     | 'seo_keywords'
     | 'banner_animation'
     | 'banner_duration'
+    | 'sns_instagram'
+    | 'sns_facebook'
+    | 'sns_youtube'
+    | 'sns_blog'
+    | 'about_gallery'
+    | 'therapists_intro_text'
     | 'openai_api_key';
 
 export interface ProgramItem {

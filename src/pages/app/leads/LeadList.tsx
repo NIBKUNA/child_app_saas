@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -14,19 +13,22 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
+import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { Loader2, Phone, Trash2, Search, Filter } from 'lucide-react';
 
 type Lead = Database['public']['Tables']['leads']['Row'];
 
 export function LeadList() {
+    const { center } = useCenter(); // ✨ Use Center
+    const centerId = center?.id;
     const [loading, setLoading] = useState(true);
     const [leads, setLeads] = useState<Lead[]>([]);
     const [filter, setFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        fetchLeads();
-    }, []);
+        if (centerId) fetchLeads();
+    }, [centerId]);
 
     const fetchLeads = async () => {
         setLoading(true);
@@ -34,6 +36,7 @@ export function LeadList() {
         let query = (supabase
             .from('leads') as any)
             .select('*')
+            .eq('center_id', centerId) // ✨ [SECURITY] Enforce Center ID Filter
             .order('created_at', { ascending: false });
 
         const { data, error } = await query;
@@ -77,9 +80,9 @@ export function LeadList() {
     const filteredLeads = leads.filter(lead => {
         const matchesFilter = filter === 'all' || lead.status === filter;
         const matchesSearch =
-            lead.parent_name?.includes(searchTerm) ||
-            lead.child_name?.includes(searchTerm) ||
-            lead.phone?.includes(searchTerm);
+            (lead.parent_name || '').includes(searchTerm) ||
+            (lead.child_name || '').includes(searchTerm) ||
+            (lead.phone || '').includes(searchTerm);
         return matchesFilter && matchesSearch;
     });
 

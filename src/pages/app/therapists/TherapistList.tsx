@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Modified by: Gemini AI (for An Uk-bin)
@@ -11,8 +10,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
-    Plus, Search, Phone, Mail, Edit2, X, Check,
-    Shield, Stethoscope, UserCog, UserCheck, AlertCircle, UserMinus, Lock, RotateCcw, Trash2, Archive, ArchiveRestore
+    Plus, Search, Mail, Edit2, X, Check,
+    Shield, UserCog, Trash2, Archive, ArchiveRestore
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -25,22 +24,93 @@ const COLORS = [
     '#64748b', '#71717a'
 ];
 
+// ✨ 고용 형태 타입
+export type HireType = 'freelancer' | 'fulltime' | 'parttime' | 'regular';
+
+// ✨ 시스템 역할 타입
+export type SystemRole = 'therapist' | 'staff' | 'admin' | 'parent' | 'super';
+
+// ✨ 시스템 상태 타입 (active: 근무중, retired: 퇴사, rejected: 승인거절)
+export type SystemStatus = 'active' | 'retired' | 'rejected';
+
+// ✨ 치료사/직원 데이터 인터페이스 (정산 및 스케줄 모듈과 호환)
+export interface Therapist {
+    id: string;
+    name: string;
+    email: string;
+    contact: string | null;
+    hire_type: HireType;
+    system_role: SystemRole;
+    system_status: SystemStatus;
+    center_id: string;
+    color: string;
+    remarks: string | null;
+
+    // 정산 정보
+    bank_name: string | null;
+    account_number: string | null;
+    account_holder: string | null;
+    base_salary: number;
+    required_sessions: number;
+    session_price_weekday: number;
+    session_price_weekend: number;
+    incentive_price: number;
+    evaluation_price: number;
+
+    // 프로필 정보 (선택)
+    userId?: string | null;   // user_profiles 연결 ID
+    profile_image?: string | null;
+    bio?: string | null;
+    career?: string | null;
+    specialties?: string | null;
+    website_visible?: boolean;
+}
+
+// ✨ 폼 데이터 타입
+interface TherapistFormData {
+    name: string;
+    contact: string;
+    email: string;
+    hire_type: HireType;
+    system_role: SystemRole;
+    system_status: SystemStatus;
+    remarks: string;
+    color: string;
+    bank_name: string;
+    account_number: string;
+    account_holder: string;
+    base_salary: number;
+    required_sessions: number;
+    session_price_weekday: number;
+    session_price_weekend: number;
+    incentive_price: number;
+    evaluation_price: number;
+
+    // 추가 필드 (초기화 편의성)
+    bio?: string;
+    career?: string;
+    specialties?: string;
+    profile_image?: string;
+    website_visible?: boolean;
+}
+
 export function TherapistList() {
     const { user } = useAuth();
     const { center } = useCenter(); // ✨ Use Center Context
     const centerId = center?.id;
-    const [staffs, setStaffs] = useState([]);
+    const [staffs, setStaffs] = useState<Therapist[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'active' | 'retired'>('active');
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<TherapistFormData>({
         name: '', contact: '', email: '', hire_type: 'freelancer',
-        system_role: 'therapist', remarks: '', color: '#3b82f6',
+        system_role: 'therapist', system_status: 'active', remarks: '', color: '#3b82f6',
         bank_name: '', account_number: '', account_holder: '',
-        base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000
+        base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000,
+        bio: '', career: '', specialties: '', profile_image: '', website_visible: true
     });
 
     // ✨ [New] Success Modal State
@@ -53,21 +123,24 @@ export function TherapistList() {
     }, [centerId]);
 
     const fetchStaffs = async () => {
+        if (!centerId) return;
         setLoading(true);
         try {
             const superAdminList = `("${SUPER_ADMIN_EMAILS.join('","')}")`;
 
             // 1. [Therapists First] 상세 정보(은행, 연락처 등) 조회 (정산의 기준이 되는 테이블)
-            const { data: therapistData } = await supabase
+            const { data: therapistDataRaw } = await supabase
                 .from('therapists')
                 .select('*')
                 .eq('center_id', centerId);
+            const therapistData = therapistDataRaw as Therapist[] | null;
 
             // 2. [Profiles Second] 이 센터 소속의 유저 프로필 조회
-            const { data: profileData } = await supabase
+            const { data: profileDataRaw } = await supabase
                 .from('user_profiles')
                 .select('*')
                 .eq('center_id', centerId);
+            const profileData = profileDataRaw as { id: string; email: string; role: SystemRole }[] | null;
 
             // 3. [Merge] 정산 정보(Therapists)를 기준으로 계정(Profile) 정보를 붙이기
             // 이제 계정(user_profile)이 아직 없어도 직원 목록에 정상적으로 뜹니다.
@@ -75,20 +148,16 @@ export function TherapistList() {
                 const profile = profileData?.find(p => p.email === t.email);
 
                 return {
-                    id: t.id,
-                    userId: profile?.id || null, // 계정 정보가 없을 수 있음
-                    email: t.email,
                     ...t,
-                    name: t.name,
+                    userId: profile?.id || null, // 계정 정보가 없을 수 있음
                     system_role: t.system_role || profile?.role || 'therapist',
                     // ✨ [Fix] UI상 상태는 고용 정보(Therapist)의 상태를 마스터로 사용
                     system_status: t.system_status || 'active',
-                    center_id: t.center_id,
                     hire_type: t.hire_type || (profile?.role === 'admin' ? 'fulltime' : 'freelancer')
                 };
             }).filter(u => u.system_role !== 'parent' && u.system_role !== 'super');
 
-            setStaffs(mergedData || []);
+            setStaffs((mergedData || []) as Therapist[]);
 
         } catch (error) {
             console.error("데이터 로딩 실패:", error);
@@ -97,7 +166,7 @@ export function TherapistList() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
@@ -129,26 +198,25 @@ export function TherapistList() {
                     message: `${formData.name}님에게 이메일 초대가 발송되었습니다.\n수신함에서 스팸 메일함도 꼭 확인해주세요.`
                 });
             } else {
-                // ✨ [Edit Mode] Direct Update (As Admin)
-                const { error: therapistError } = await supabase
-                    .from('therapists')
+                const { error: therapistError } = await (supabase
+                    .from('therapists') as any)
                     .upsert({
                         email: formData.email,
                         name: formData.name,
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
+                        account_number: formData.account_number,
                         account_holder: formData.account_holder,
                         system_role: formData.system_role,
                         system_status: 'active', // Ensure they are active
                         center_id: centerId,
-
                     }, { onConflict: 'email' });
 
                 if (therapistError) throw therapistError;
 
-                const { error: profileError } = await supabase
-                    .from('user_profiles')
+                const { error: profileError } = await (supabase
+                    .from('user_profiles') as any)
                     .update({
                         name: formData.name,
                         role: formData.system_role
@@ -167,7 +235,7 @@ export function TherapistList() {
                 setIsModalOpen(false);
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             alert('❌ 처리 실패: ' + (error.message || '알 수 없는 오류'));
         } finally {
@@ -175,9 +243,8 @@ export function TherapistList() {
         }
     };
 
-    const handleToggleStatus = async (staff: any) => {
+    const handleToggleStatus = async (staff: Therapist) => {
         const isRetired = staff.system_status === 'retired';
-        const newStatus = isRetired ? 'active' : 'retired';
 
         // ✨ [핵심 수정] 사용자 요청: "퇴사 시 계정(Auth)은 확실히 날리되, 일지 정보는 보관"
         const message = isRetired
@@ -192,8 +259,8 @@ export function TherapistList() {
             if (!isRetired) {
                 // [퇴사 처리: Clean Account Removal]
                 // 1. Therapists 마스터 상태를 'retired'로 변경 (일지 보존을 위해 레코드는 유지)
-                const { error: therapistError } = await supabase
-                    .from('therapists')
+                const { error: therapistError } = await (supabase
+                    .from('therapists') as any)
                     .update({ system_status: 'retired' })
                     .eq('id', staff.id);
 
@@ -202,6 +269,7 @@ export function TherapistList() {
                 // 2. Auth 계정 및 프로필 삭제 (보안 및 DB 정리)
                 if (staff.userId) {
                     // ※ 중요: DB에서 therapists.profile_id 가 'ON DELETE SET NULL'로 설정되어 있어야 함
+                    // @ts-expect-error - RPC args mismatch
                     const { error } = await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
                     if (error) console.warn('Account removal note:', error.message);
                 }
@@ -209,8 +277,8 @@ export function TherapistList() {
                 alert('퇴사 처리가 완료되었습니다. 직원의 로그인 계정은 삭제되었으며 정보는 보관함으로 이동했습니다.');
             } else {
                 // [복귀 처리]
-                const { error: therapistError } = await supabase
-                    .from('therapists')
+                const { error: therapistError } = await (supabase
+                    .from('therapists') as any)
                     .update({ system_status: 'active' })
                     .eq('id', staff.id);
 
@@ -228,7 +296,7 @@ export function TherapistList() {
         }
     };
 
-    const handleHardReset = async (staff: any) => {
+    const handleHardReset = async (staff: Therapist) => {
         const confirmMsg = `[🚨 FINAL WARNING]\n\n${staff.name}님의 정보를 DB에서 "영구 삭제" 하시겠습니까?\n\n이 작업은 퇴사가 아닌 '데이터 말소'입니다. 이 직원이 배정된 일지나 정산 기록에 문제가 생길 수 있습니다.`;
         if (!confirm(confirmMsg)) return;
 
@@ -255,6 +323,7 @@ export function TherapistList() {
 
             // 2. 계정 삭제 (있는 경우)
             if (staff.userId) {
+                // @ts-expect-error - RPC args mismatch
                 await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
             }
 
@@ -276,7 +345,7 @@ export function TherapistList() {
         }
     };
 
-    const handleEdit = (staff) => {
+    const handleEdit = (staff: Therapist) => {
         setEditingId(staff.id);
         setFormData({
             name: staff.name,
@@ -284,6 +353,7 @@ export function TherapistList() {
             email: staff.email || '',
             hire_type: staff.hire_type || 'freelancer',
             system_role: staff.system_role || 'therapist',
+            system_status: staff.system_status || 'active',
             remarks: staff.remarks || '',
             color: staff.color || '#3b82f6',
             bank_name: staff.bank_name || '',
@@ -426,7 +496,7 @@ export function TherapistList() {
                                                     "bg-emerald-100 text-emerald-600 border-emerald-200"
                                         )}>
                                             {staff.system_status === 'retired' ? 'RETIRED' : (
-                                                { 'admin': 'ADMIN', 'staff': 'STAFF' }[staff.system_role] || 'THERAPIST'
+                                                { 'admin': 'ADMIN', 'staff': 'STAFF', 'therapist': 'THERAPIST', 'parent': 'PARENT', 'super': 'SUPER' }[staff.system_role] || 'THERAPIST'
                                             )}
                                         </span>
                                     </h3>
@@ -464,8 +534,8 @@ export function TherapistList() {
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                                 {editingId
-                                    ? ({ 'admin': '관리자 정보 수정', 'staff': '행정직원 정보 수정' }[formData.system_role] || '치료사 정보 수정')
-                                    : ({ 'admin': '새 관리자 등록', 'staff': '새 행정직원 등록' }[formData.system_role] || '새 치료사 등록')}
+                                    ? ({ 'admin': '관리자 정보 수정', 'staff': '행정직원 정보 수정', 'therapist': '치료사 정보 수정', 'parent': '부모 정보 수정', 'super': '슈퍼관리자 수정' }[formData.system_role] || '치료사 정보 수정')
+                                    : ({ 'admin': '새 관리자 등록', 'staff': '새 행정직원 등록', 'therapist': '새 치료사 등록', 'parent': '새 부모 등록', 'super': '새 슈퍼관리자 등록' }[formData.system_role] || '새 치료사 등록')}
                             </h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
                         </div>
@@ -501,7 +571,7 @@ export function TherapistList() {
                                             <select
                                                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer text-slate-900 dark:text-white"
                                                 value={formData.hire_type}
-                                                onChange={e => setFormData({ ...formData, hire_type: e.target.value })}
+                                                onChange={e => setFormData({ ...formData, hire_type: e.target.value as HireType })}
                                             >
                                                 <option value="fulltime">💼 정규직 (Full-Time)</option>
                                                 <option value="freelancer">🦄 프리랜서 (Freelancer)</option>
@@ -527,7 +597,9 @@ export function TherapistList() {
                                                 {
                                                     'admin': '🛡️ 관리자 (Admin)',
                                                     'staff': '💼 행정직원 (Staff)',
-                                                    'therapist': '🩺 치료사 (Therapist)'
+                                                    'therapist': '🩺 치료사 (Therapist)',
+                                                    'parent': '👨‍👩‍👧‍👦 학부모 (Parent)',
+                                                    'super': '👑 슈퍼관리자 (Super)'
                                                 }[formData.system_role] || '🩺 치료사 (Therapist)'
                                             }
                                         />

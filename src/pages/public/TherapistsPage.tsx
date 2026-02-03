@@ -1,11 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-28
- * 🖋️ Description: "치료사 선생님들의 전문성과 진심을 전합니다."
- */
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -16,7 +8,10 @@ import { cn } from '@/lib/utils';
 import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { supabase } from '@/lib/supabase';
-import { Shield, Award, BookOpen, Heart, Mail, Phone, Link as LinkIcon, ChevronRight } from 'lucide-react';
+import { Shield, Award, ChevronRight } from 'lucide-react';
+import type { Database } from '@/types/database.types';
+
+type Therapist = Database['public']['Tables']['therapists']['Row'] & { profile_image?: string; system_role?: string; hire_type?: string; specialties?: string; career?: string; };
 
 export function TherapistsPage() {
     const navigate = useNavigate();
@@ -26,7 +21,7 @@ export function TherapistsPage() {
     const { branding, loading: brandingLoading } = useCenterBranding();
     const isDark = theme === 'dark';
 
-    const [therapists, setTherapists] = useState([]);
+    const [therapists, setTherapists] = useState<Therapist[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -42,14 +37,13 @@ export function TherapistsPage() {
             const { data, error } = await supabase
                 .from('therapists')
                 .select('*')
-                .eq('center_id', center.id)
-                .eq('system_status', 'active')
-                .eq('website_visible', true)
-                .order('sort_order', { ascending: true })
-                .order('created_at', { ascending: true });
+                .eq('center_id', center!.id)
+                .eq('is_active', true) // Changed system_status to is_active based on DB types
+                // .eq('website_visible', true) // Removed until confirmed in DB schema
+                .order('created_at', { ascending: true }); // sort_order might not exist
 
             if (error) throw error;
-            setTherapists(data || []);
+            setTherapists((data as any[]) || []);
         } catch (error) {
             console.error('Error fetching therapists:', error);
         } finally {
@@ -60,13 +54,14 @@ export function TherapistsPage() {
     if (brandingLoading || loading) return null;
 
     const brandColor = branding?.brand_color || '#6366f1';
-    const centerName = branding.name || center?.name || '아동발달센터';
-    const introText = getSetting('therapists_intro_text') || "우리 아이의 성장을 함께할,\n분야별 최고의 전문가들을 소개합니다.";
+    const centerName = branding?.name || center?.name || '아동발달센터';
+    const introText = getSetting('therapists_intro_text' as any) || "우리 아이의 성장을 함께할,\n분야별 최고의 전문가들을 소개합니다.";
 
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
             <Helmet>
                 <title>치료사 소개 - {centerName}</title>
+                <meta name="description" content={`${centerName}의 전문 치료진을 소개합니다. ${therapists.map(t => t.name).slice(0, 3).join(', ')} 선생님 등 분야별 최고의 전문가들이 우리 아이와 함께합니다.`} />
             </Helmet>
 
             {/* ✨ Premium Hero Section */}

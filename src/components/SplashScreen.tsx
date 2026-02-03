@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -43,15 +41,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                     return;
                 }
 
-                const { data: settings } = await supabase
-                    .from('admin_settings')
+                const { data: settings } = await (supabase
+                    .from('admin_settings') as any)
                     .select('*')
                     .eq('key', 'center_name');
 
                 const name = settings?.[0]?.value;
                 if (!name) {
-                    const { data: center } = await supabase
-                        .from('centers')
+                    const { data: center } = await (supabase
+                        .from('centers') as any)
                         .select('name')
                         .limit(1)
                         .maybeSingle();

@@ -1,17 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
- * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
- * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
- * -----------------------------------------------------------
- * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
- * 예술적 영감을 바탕으로 구축되었습니다.
- */
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { ConsultationSurveyForm } from '@/components/public/ConsultationSurveyForm';
@@ -21,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 
 // Custom SVG Icons
+// ... (Icons remain same)
 const Icons = {
     mapPin: (className: string) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -52,9 +40,9 @@ export function ContactPage() {
 
     if (loading) return null;
 
-    const weekdayHours = getSetting('center_weekday_hours') || branding?.weekday_hours || '09:00 - 19:00';
-    const saturdayHours = getSetting('center_saturday_hours') || branding?.saturday_hours || '09:00 - 16:00';
-    const holidayText = getSetting('center_holiday_text') || branding?.holiday_text || '매주 일요일 및 공휴일';
+    const weekdayHours = getSetting('center_weekday_hours' as any) || branding?.weekday_hours || '09:00 - 19:00';
+    const saturdayHours = getSetting('center_saturday_hours' as any) || branding?.saturday_hours || '09:00 - 16:00';
+
     const brandColor = branding?.brand_color || '#6366f1';
 
     return (

@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -20,22 +18,24 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Quote, ChevronLeft, ChevronRight, Send, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+
+interface Review {
+    id: string;
+    author_name: string;
+    created_at: string;
+    rating_facility: number;
+    rating_kindness: number;
+    rating_convenience: number;
+}
 
 // 금칙어 목록 (의료광고법 준수)
-const BANNED_WORDS = [
-    '완치', '치료됨', '효과', '개선', '나았', '호전', '좋아졌', '치유',
-    '100%', '확실', '보장', '최고', '유일', '기적', '완벽'
-];
+// const BANNED_WORDS = [
+//     '완치', '치료됨', '효과', '개선', '나았', '호전', '좋아졌', '치유',
+//     '100%', '확실', '보장', '최고', '유일', '기적', '완벽'
+// ];
 
-// 금칙어 검사 함수
-function containsBannedWords(text: string): string[] {
-    const found: string[] = [];
-    BANNED_WORDS.forEach(word => {
-        if (text.includes(word)) found.push(word);
-    });
-    return found;
-}
+// 금칙어 검사 함수 -> Unused
+// function containsBannedWords(text: string): string[] { ... }
 
 // 별점 컴포넌트
 function StarRating({ value, onChange, readonly = false }: { value: number; onChange?: (v: number) => void; readonly?: boolean }) {
@@ -59,7 +59,7 @@ function StarRating({ value, onChange, readonly = false }: { value: number; onCh
 }
 
 // 리뷰 카드 컴포넌트
-function ReviewCard({ review }: { review: any }) {
+function ReviewCard({ review }: { review: Review }) {
     const avgRating = ((review.rating_facility + review.rating_kindness + review.rating_convenience) / 3).toFixed(1);
 
     return (
@@ -120,7 +120,6 @@ function ReviewCard({ review }: { review: any }) {
 
 // 리뷰 작성 폼 - 별점만 수집 (의료법 준수)
 function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () => void }) {
-    const { user } = useAuth();
     const [authorName, setAuthorName] = useState('');
     const [ratings, setRatings] = useState({ facility: 5, kindness: 5, convenience: 5 });
     const [error, setError] = useState<string | null>(null);
@@ -137,7 +136,7 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
 
         setSubmitting(true);
         try {
-            const { error: insertError } = await supabase.from('reviews').insert({
+            const { error: insertError } = await (supabase.from('reviews') as any).insert({
                 center_id: centerId,
                 author_name: authorName,
                 rating_facility: ratings.facility,
@@ -224,7 +223,7 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
 
 // 메인 리뷰 섹션 컴포넌트
 export function ReviewsSection({ centerId }: { centerId?: string }) {
-    const [reviews, setReviews] = useState<any[]>([]);
+    const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);

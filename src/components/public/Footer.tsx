@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -17,11 +15,10 @@
  * ============================================
  */
 import { useCenterBranding } from '@/hooks/useCenterBranding';
-import { useAuth } from '@/contexts/AuthContext';
 import { MapPin, Phone, Mail } from 'lucide-react';
 
 // Premium SNS Icons with hover effects and high contrast
-function SnsIcon({ href, children, label }: { href: string; children: React.ReactNode; label: string }) {
+function SnsIcon({ href, children, label }: { href: string | undefined | null; children: React.ReactNode; label: string }) {
     if (!href) return null;
     return (
         <a
@@ -43,7 +40,6 @@ function SnsIcon({ href, children, label }: { href: string; children: React.Reac
 export function Footer() {
     // ✨ [Fix] Unconditional Hook Call - Always fetch branding
     const { branding, loading } = useCenterBranding();
-    const { user } = useAuth();
 
     if (loading) return null;
     // branding.settings has the raw row from admin_settings

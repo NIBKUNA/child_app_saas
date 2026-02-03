@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -11,12 +9,15 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { Navigate, useLocation, Outlet } from 'react-router-dom'; // ✨ Outlet 추가
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, type UserRole } from '@/contexts/AuthContext';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+
+// ✨ allowedRoles에 null을 제외한 UserRole만 허용
+type AllowedRole = Exclude<UserRole, null>;
 
 interface ProtectedRouteProps {
     children?: React.ReactNode; // ✨ 물음표(?) 추가: children이 없을 수도 있음을 명시
-    allowedRoles: string[];
+    allowedRoles: AllowedRole[];
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {

@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -19,22 +18,44 @@ import { ChildDetailModal } from '@/components/app/children/ChildDetailModal';
 import { cn } from '@/lib/utils';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useCenter } from '@/contexts/CenterContext';
+
+// ✨ 아동 성별 타입 (DB: 'male' | 'female', UI: '남' | '여')
+type Gender = 'male' | 'female';
+
+// ✨ 아동 정보 인터페이스 (schedules.child_id 와 일관성 유지)
+export interface Child {
+    id: string;                    // PK: schedules.child_id, payments.child_id 등과 FK 연결
+    name: string;
+    birth_date: string | null;
+    gender: Gender | null;
+    diagnosis: string | null;
+    guardian_name: string | null;
+    contact: string | null;
+    address: string | null;
+    memo: string | null;
+    registration_number: string | null;
+    invitation_code: string | null;
+    parent_id: string | null;      // parents.id 참조
+    center_id: string;
+    created_at?: string;
+    updated_at?: string;
+}
 
 export function ChildList() {
-    const [children, setChildren] = useState([]);
+    const [children, setChildren] = useState<Child[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
-    const { center } = useCenter(); // ✨ Use center
+    const { center } = useCenter();
     const centerId = center?.id;
 
-    const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
+    const { role, therapistId: authTherapistId } = useAuth();
 
     // 모달 상태
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedChildId, setSelectedChildId] = useState(null);
+    const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [detailChild, setDetailChild] = useState(null);
+    const [detailChild, setDetailChild] = useState<Child | null>(null);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
     // 초대 코드 복사
@@ -48,7 +69,7 @@ export function ChildList() {
         }
     };
 
-    const handleOpenDetail = (child) => {
+    const handleOpenDetail = (child: Child) => {
         setDetailChild(child);
         setIsDetailModalOpen(true);
     };
@@ -58,6 +79,7 @@ export function ChildList() {
     }, [centerId, role, authTherapistId]);
 
     const fetchChildren = async () => {
+        if (!centerId) return;
         try {
             let query = supabase
                 .from('children')
@@ -72,14 +94,14 @@ export function ChildList() {
                     .select('child_id')
                     .eq('therapist_id', authTherapistId);
 
-                const assignedChildIds = assignments?.map(a => a.child_id) || [];
+                const assignedChildIds = (assignments as { child_id: string }[] | null)?.map(a => a.child_id) || [];
                 query = query.in('id', assignedChildIds);
             }
 
             const { data, error } = await query.order('name');
 
             if (error) throw error;
-            setChildren(data || []);
+            setChildren((data || []) as Child[]);
         } catch (error) {
             console.error('아동 목록 로딩 실패:', error);
         } finally {
@@ -87,12 +109,12 @@ export function ChildList() {
         }
     };
 
-    const filteredChildren = children.filter(child =>
+    const filteredChildren = children.filter((child: Child) =>
         child.name.includes(searchTerm) ||
         (child.guardian_name && child.guardian_name.includes(searchTerm))
     );
 
-    const handleEdit = (id) => {
+    const handleEdit = (id: string) => {
         setSelectedChildId(id);
         setIsModalOpen(true);
     };
@@ -102,7 +124,7 @@ export function ChildList() {
         setIsModalOpen(true);
     };
 
-    const handleModalClose = (refresh) => {
+    const handleModalClose = (refresh: boolean) => {
         setIsModalOpen(false);
         setSelectedChildId(null);
         if (refresh) fetchChildren();
@@ -186,7 +208,7 @@ export function ChildList() {
                                             <td className="px-6 py-5">
                                                 {child.invitation_code ? (
                                                     <button
-                                                        onClick={() => copyInvitationCode(child.invitation_code)}
+                                                        onClick={() => copyInvitationCode(child.invitation_code!)}
                                                         className={cn(
                                                             "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition-all",
                                                             copiedCode === child.invitation_code

@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -24,7 +22,22 @@ import { isSuperAdmin } from '@/config/superAdmin';
 // Moved import to top-level
 import { useAuth } from '@/contexts/AuthContext';
 
-function SearchableSelect({ label, placeholder, options, value, onChange, required }) {
+interface Option {
+    id: string;
+    name: string;
+    color?: string;
+}
+
+interface SearchableSelectProps {
+    label: string;
+    placeholder: string;
+    options: Option[];
+    value: string;
+    onChange: (val: string) => void;
+    required?: boolean;
+}
+
+function SearchableSelect({ label, placeholder, options, value, onChange, required }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const selectedOption = options.find(opt => opt.id === value);
@@ -104,7 +117,15 @@ function SearchableSelect({ label, placeholder, options, value, onChange, requir
 
 
 
-export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }) {
+interface ScheduleModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    scheduleId?: string | null;
+    initialDate?: string | Date | any;
+    onSuccess: () => void;
+}
+
+export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }: ScheduleModalProps) {
     const { center } = useCenter();
     const centerId = center?.id;
     const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
@@ -112,10 +133,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
 
-    const [childrenList, setChildrenList] = useState([]);
-    const [programsList, setProgramsList] = useState([]);
-    const [therapistsList, setTherapistsList] = useState([]);
-    const [childCreditMap, setChildCreditMap] = useState({});
+    const [childrenList, setChildrenList] = useState<any[]>([]);
+    const [programsList, setProgramsList] = useState<any[]>([]);
+    const [therapistsList, setTherapistsList] = useState<any[]>([]);
+    const [childCreditMap, setChildCreditMap] = useState<Record<string, number>>({});
 
     const [isRecurring, setIsRecurring] = useState(false);
     const [repeatWeeks, setRepeatWeeks] = useState(4);
@@ -147,10 +168,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         setFetching(true);
         try {
             const [childRes, progRes, therRes, profileRes] = await Promise.all([
-                supabase.from('children').select('*').eq('center_id', targetId).order('name'),
-                supabase.from('programs').select('*').eq('center_id', targetId).order('name'),
-                supabase.from('therapists').select('*').eq('center_id', targetId).order('name'),
-                supabase.from('user_profiles').select('*')
+                (supabase.from('children') as any).select('*').eq('center_id', targetId).order('name'),
+                (supabase.from('programs') as any).select('*').eq('center_id', targetId).order('name'),
+                (supabase.from('therapists') as any).select('*').eq('center_id', targetId).order('name'),
+                (supabase.from('user_profiles') as any).select('*')
             ]);
 
             setChildrenList(childRes.data || []);
@@ -197,7 +218,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         service_type: data.service_type || 'therapy'
                     });
                 } else {
-                    const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
+                    const { data } = await (supabase.from('schedules') as any).select('*').eq('id', scheduleId).single();
                     if (data) {
                         let sTime = data.start_time;
                         if (sTime && sTime.includes('T')) sTime = sTime.split('T')[1].slice(0, 5);
@@ -249,14 +270,14 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         }
     };
 
-    const calculateEndTime = (start, duration) => {
+    const calculateEndTime = (start: string, duration: number) => {
         const [h, m] = start.split(':').map(Number);
         const d = new Date();
         d.setHours(h, m + duration);
         return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
@@ -278,7 +299,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             };
 
             // ✨ [핵심 수정] 타임존 계산 없이 문자열 결합 ("2026-01-07" + "T" + "10:00" + ":00")
-            const makeIsoString = (date, time) => `${date}T${time}:00`;
+            const makeIsoString = (date: string, time: string) => `${date}T${time}:00`;
 
             if (!scheduleId && isRecurring && repeatWeeks > 1) {
                 const schedulesToInsert = [];
@@ -293,7 +314,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         end_time: makeIsoString(nextDateStr, formData.end_time)
                     });
                 }
-                const { data: insertedData, error } = await supabase.from('schedules').insert(schedulesToInsert).select();
+                const { data: _insertedData, error } = await (supabase.from('schedules') as any).insert(schedulesToInsert).select();
                 if (error) throw error;
 
                 // ✨ [Notification] 치료사에게 알림 생성
@@ -301,7 +322,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 const { data: { user: currentUser } } = await supabase.auth.getUser();
 
                 if (targetTherapist?.profile_id && targetTherapist.profile_id !== currentUser?.id) {
-                    await supabase.from('admin_notifications').insert([{
+                    await (supabase.from('admin_notifications') as any).insert([{
                         user_id: targetTherapist.profile_id,
                         type: 'schedule',
                         title: '🚀 새로운 일정 등록',
@@ -320,9 +341,9 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 };
 
                 if (scheduleId) {
-                    await supabase.from('schedules').update(payload).eq('id', scheduleId);
+                    await (supabase.from('schedules') as any).update(payload).eq('id', scheduleId);
                 } else {
-                    const { data: inserted, error } = await supabase.from('schedules').insert([payload]).select().single();
+                    const { data: _inserted, error } = await (supabase.from('schedules') as any).insert([payload]).select().single();
                     if (error) throw error;
 
                     // ✨ [Notification] 치료사에게 알림 생성
@@ -330,7 +351,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     const { data: { user: currentUser } } = await supabase.auth.getUser();
 
                     if (targetTherapist?.profile_id && targetTherapist.profile_id !== currentUser?.id) {
-                        await supabase.from('admin_notifications').insert([{
+                        await (supabase.from('admin_notifications') as any).insert([{
                             user_id: targetTherapist.profile_id,
                             type: 'schedule',
                             title: '📅 새 일정이 등록되었습니다',
@@ -356,7 +377,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             let deleteFuture = forceFuture;
 
             // 결제 여부 확인 (Ghost Credit 방지)
-            const { data: payItems } = await supabase.from('payment_items').select('id, payment_id').eq('schedule_id', scheduleId);
+            const { data: payItems } = await (supabase.from('payment_items') as any).select('id, payment_id').eq('schedule_id', scheduleId);
 
             if (payItems && payItems.length > 0) {
                 if (!confirm(
@@ -375,8 +396,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             }
 
             if (deleteFuture) {
-                let query = supabase
-                    .from('schedules')
+                let query = (supabase
+                    .from('schedules') as any)
                     .select('id')
                     .eq('child_id', formData.child_id)
                     .eq('program_id', formData.program_id)
@@ -392,49 +413,49 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 const { data: futureSchedules } = await query;
 
                 if (futureSchedules && futureSchedules.length > 0) {
-                    const ids = futureSchedules.map(s => s.id);
+                    const ids = futureSchedules.map((s: any) => s.id);
 
                     // ✨ [핵심 수정] 하위 참조 데이터(development_assessments) 삭제를 위해 일지 ID 먼저 확보
-                    const { data: logs } = await supabase
-                        .from('counseling_logs')
+                    const { data: logs } = await (supabase
+                        .from('counseling_logs') as any)
                         .select('id')
                         .in('schedule_id', ids);
 
                     if (logs && logs.length > 0) {
-                        const logIds = logs.map(l => l.id);
-                        await supabase.from('development_assessments').delete().in('log_id', logIds);
+                        const logIds = logs.map((l: any) => l.id);
+                        await (supabase.from('development_assessments') as any).delete().in('log_id', logIds);
                     }
 
                     // 참조 데이터 일괄 삭제
-                    await supabase.from('consultations').delete().in('schedule_id', ids);
-                    await supabase.from('payment_items').delete().in('schedule_id', ids);
-                    await supabase.from('counseling_logs').delete().in('schedule_id', ids);
+                    await (supabase.from('consultations') as any).delete().in('schedule_id', ids);
+                    await (supabase.from('payment_items') as any).delete().in('schedule_id', ids);
+                    await (supabase.from('counseling_logs') as any).delete().in('schedule_id', ids);
 
                     // 본 일정 일괄 삭제
-                    const { error } = await supabase.from('schedules').delete().in('id', ids);
+                    const { error } = await (supabase.from('schedules') as any).delete().in('id', ids);
                     if (error) throw error;
                     alert('해당 일자 이후의 모든 관련 일정이 삭제되었습니다.');
                 }
             } else {
                 // 기존 단일 삭제 로직
                 // ✨ [핵심 수정] 하위 참조 데이터 먼저 삭제
-                const { data: logs } = await supabase
-                    .from('counseling_logs')
+                const { data: logs } = await (supabase
+                    .from('counseling_logs') as any)
                     .select('id')
                     .eq('schedule_id', scheduleId);
 
                 if (logs && logs.length > 0) {
-                    const logIds = logs.map(l => l.id);
-                    await supabase.from('development_assessments').delete().in('log_id', logIds);
+                    const logIds = logs.map((l: any) => l.id);
+                    await (supabase.from('development_assessments') as any).delete().in('log_id', logIds);
                 }
 
                 // 1. 참조 데이터 수동 삭제
-                await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
-                await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
-                await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
+                await (supabase.from('consultations') as any).delete().eq('schedule_id', scheduleId);
+                await (supabase.from('payment_items') as any).delete().eq('schedule_id', scheduleId);
+                await (supabase.from('counseling_logs') as any).delete().eq('schedule_id', scheduleId);
 
                 // 2. 본 일정 삭제
-                const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
+                const { error } = await (supabase.from('schedules') as any).delete().eq('id', scheduleId);
                 if (error) throw error;
             }
 
@@ -446,7 +467,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             setLoading(false);
         }
     };
-    const handleProgramChange = (pid) => {
+    const handleProgramChange = (pid: string) => {
         const p = programsList.find(x => x.id === pid);
         setFormData(prev => ({
             ...prev,
@@ -456,7 +477,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         }));
     };
 
-    const handleStartTimeChange = (sTime) => {
+    const handleStartTimeChange = (sTime: string) => {
         const p = programsList.find(x => x.id === formData.program_id);
         const eTime = p ? calculateEndTime(sTime, p.duration) : formData.end_time;
         setFormData(prev => ({ ...prev, start_time: sTime, end_time: eTime }));

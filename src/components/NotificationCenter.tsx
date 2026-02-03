@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -11,7 +9,7 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, User, X } from 'lucide-react';
+import { Bell, User, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -61,8 +59,8 @@ export function NotificationCenter() {
     // 알림 읽음 처리
     const markAsRead = async (id: string) => {
         try {
-            await supabase
-                .from('admin_notifications')
+            await (supabase
+                .from('admin_notifications') as any)
                 .update({ is_read: true })
                 .eq('id', id);
 
@@ -80,8 +78,8 @@ export function NotificationCenter() {
             const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
             if (unreadIds.length === 0) return;
 
-            await supabase
-                .from('admin_notifications')
+            await (supabase
+                .from('admin_notifications') as any)
                 .update({ is_read: true })
                 .in('id', unreadIds);
 

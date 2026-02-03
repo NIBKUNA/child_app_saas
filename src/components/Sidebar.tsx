@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -18,13 +16,12 @@
  * ============================================
  */
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, type UserRole } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { useCenterBranding } from '@/hooks/useCenterBranding';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { cn } from "@/lib/utils";
 import { supabase } from '@/lib/supabase';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useCenter } from '@/contexts/CenterContext';
 
 // ============================================
 // 🔐 SIDEBAR STATE PERSISTENCE KEY
@@ -35,7 +32,9 @@ const SIDEBAR_STORAGE_KEY = 'zarada_sidebar_open_groups';
 // 🎨 MINIMALIST HIGH-END SVG ICONS
 // Theme-aware stroke colors
 // ============================================
-const Icons = {
+type IconFunction = (className: string) => ReactNode;
+
+const Icons: Record<string, IconFunction> = {
     // 센터 현황 그룹 아이콘
     centerStatus: (className: string) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -181,11 +180,20 @@ const Icons = {
     ),
 };
 
-// ============================================
-// ZENITH SIDEBAR - 4대 분류 메뉴 구조 (Reorganized)
-// [Insight] → [Operations] → [Management] → [Platform]
-// ============================================
-const MENU_GROUPS = [
+interface MenuItem {
+    name: string;
+    path: string;
+    icon: IconFunction;
+    roles: Exclude<UserRole, null>[];
+}
+
+interface MenuGroup {
+    name: string;
+    icon: IconFunction;
+    items: MenuItem[];
+}
+
+const MENU_GROUPS: MenuGroup[] = [
     {
         name: '센터 운영',  // Operations
         icon: Icons.calendar,
@@ -194,7 +202,7 @@ const MENU_GROUPS = [
             // ✨ [Manager] Schedule, Billing, Programs
             { name: '치료 일정', path: '/app/schedule', icon: Icons.calendar, roles: ['super_admin', 'admin', 'therapist', 'manager', 'staff'] },
             { name: '수납 관리', path: '/app/billing', icon: Icons.billing, roles: ['super_admin', 'admin', 'manager', 'staff'] },
-            { name: '상담일지', path: '/app/consultations', icon: Icons.consultation, roles: ['super_admin', 'admin', 'therapist'] }, // Manager doesn't write logs usually? User said "Therapist Only for own kids", but admin can see all. User didn't explicitly say Manager CANNOT see logs, but "Therapist account features... Administrative staff account features...". Administrative list didn't include logs. So remove manager.
+            { name: '상담일지', path: '/app/consultations', icon: Icons.consultation, roles: ['super_admin', 'admin', 'therapist'] },
             { name: '프로그램 관리', path: '/app/programs', icon: Icons.program, roles: ['super_admin', 'admin', 'manager', 'staff'] },
         ]
     },
@@ -202,13 +210,11 @@ const MENU_GROUPS = [
         name: '리소스 관리',  // Management
         icon: Icons.members,
         items: [
-            // ✨ [Manager] Leads, Children, Parents allowed.
-            // ✨ [Therapist] REMOVED from Leads, Children, Parents (User request: Therapist only Schedule & Logs)
             { name: '상담문의', path: '/app/leads', icon: Icons.leads, roles: ['super_admin', 'admin', 'manager', 'staff'] },
-            { name: '아동 관리', path: '/app/children', icon: Icons.child, roles: ['super_admin', 'admin', 'manager', 'staff'] }, // Therapist removed
-            { name: '부모 관리', path: '/app/parents', icon: Icons.members, roles: ['super_admin', 'admin', 'manager', 'staff'] }, // Therapist removed
-            { name: '직원 관리', path: '/app/therapists', icon: Icons.staff, roles: ['super_admin', 'admin'] }, // Manager NO
-            { name: '급여 관리', path: '/app/settlement', icon: Icons.salary, roles: ['super_admin', 'admin'] }, // Manager NO
+            { name: '아동 관리', path: '/app/children', icon: Icons.child, roles: ['super_admin', 'admin', 'manager', 'staff'] },
+            { name: '부모 관리', path: '/app/parents', icon: Icons.members, roles: ['super_admin', 'admin', 'manager', 'staff'] },
+            { name: '직원 관리', path: '/app/therapists', icon: Icons.staff, roles: ['super_admin', 'admin'] },
+            { name: '급여 관리', path: '/app/settlement', icon: Icons.salary, roles: ['super_admin', 'admin'] },
         ]
     },
     {
@@ -255,10 +261,9 @@ function ThemeToggle() {
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
     const location = useLocation();
     const { role, user, signOut } = useAuth();
-    const { center } = useCenter(); // ✨ Context
+    const { center } = useCenter();
     const centerId = center?.id;
-    const { theme, isSuperAdmin } = useTheme();
-    const { branding } = useCenterBranding();
+    const { isSuperAdmin } = useTheme();
 
     // ✨ [Notification] 알림 표시 상태
     const [hasUnreadInquiry, setHasUnreadInquiry] = useState(false);
@@ -277,8 +282,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 
                 // 2. DB 읽음 처리 (백그라운드)
                 if (user) {
-                    supabase
-                        .from('admin_notifications')
+                    (supabase
+                        .from('admin_notifications') as any)
                         .update({ is_read: true })
                         .eq('user_id', user.id)
                         .eq('type', 'schedule')
@@ -404,8 +409,6 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
         try { await signOut(); } catch (error) { console.error('Logout failed:', error); }
     };
 
-    const isDark = theme === 'dark';
-
     return (
         <>
             {/* Sidebar */}
@@ -444,7 +447,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                     <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto custom-scrollbar">
                         {/* Homepage Link */}
                         <Link
-                            to={localStorage.getItem('zarada_center_slug') ? `/centers/${localStorage.getItem('zarada_center_slug')}` : "/"}
+                            to={center?.slug ? `/centers/${center.slug}` : (localStorage.getItem('zarada_center_slug') ? `/centers/${localStorage.getItem('zarada_center_slug')}` : "/")}
                             className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold border text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
                             onClick={onClose}
                         >
@@ -457,7 +460,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                             // ✨ [Super Admin] isSuperAdmin이면 모든 메뉴 표시, 아니면 role 기반 필터링
                             const visibleItems = isSuperAdmin
                                 ? group.items
-                                : group.items.filter(item => role && item.roles.includes(role));
+                                : group.items.filter(item => role && (item.roles as UserRole[]).includes(role));
                             if (visibleItems.length === 0) return null;
                             const isGroupOpen = openGroups.includes(group.name);
 

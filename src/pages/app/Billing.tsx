@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -18,21 +16,85 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenter } from '@/contexts/CenterContext';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
-    ChevronLeft, ChevronRight, Search, CreditCard, Banknote, Receipt,
-    X, Loader2, CheckSquare, Square, Settings2, Trash2, User
+    ChevronLeft, ChevronRight, Search, Loader2, User, X, CheckSquare, Square, Settings2, Receipt
 } from 'lucide-react';
+import type { Database } from '@/types/database.types';
+
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+type TableInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
+
+
+// ✨ 수납 상태 타입 정의
+type ScheduleStatus = 'scheduled' | 'completed' | 'canceled' | 'cancelled';
+
+// ✨ 결제 수단 타입 정의 (미사용 경고 방지용 주석)
+// type PaymentMethod = '카드' | '계좌이체' | '현금' | '보정';
+
+// ✨ 아동별 수납 세션 데이터 (Supabase join 결과)
+interface ScheduleData extends Omit<TableRow<'schedules'>, 'status'> {
+    status: ScheduleStatus;
+    children: {
+        id: string;
+        name: string;
+        credit: number | null;
+        center_id: string | null;
+    } | null;
+    programs: {
+        name: string;
+        price: number;
+    } | null;
+}
+
+
+// ✨ 아동별 수납 통합 데이터
+interface ChildBillingData {
+    id: string;
+    name: string;
+    paid: number;
+    credit: number;
+    completed: number;
+    sessions: BillingSession[];
+}
+
+// ✨ 수납 세션 데이터 (내부 맵 저장용)
+interface BillingSession {
+    id: string;
+    date: string;
+    status: ScheduleStatus;
+    price: number;
+    isCanceled: boolean;
+    programs?: { name: string; price: number } | null;
+}
+
+// ✨ 수납 입력 폼 상태
+interface PaymentInputs {
+    card: number;
+    cash: number;
+    creditUsed: number;
+    memo: string;
+}
+// ✨ PaymentModal Props
+interface PaymentModalProps {
+    childData: ChildBillingData;
+    month: string;
+    onClose: () => void;
+    onSuccess: () => void;
+    isDark: boolean;
+}
 
 export function Billing() {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [loading, setLoading] = useState(true);
-    const [schedules, setSchedules] = useState([]);
-    const [payments, setPayments] = useState([]);
+    // ✨ Supabase에서 join된 데이터는 엄격한 타입 사용
+    const [schedules, setSchedules] = useState<ScheduleData[]>([]);
+    const [payments, setPayments] = useState<TableRow<'payments'>[]>([]);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedChild, setSelectedChild] = useState(null);
+    const [selectedChild, setSelectedChild] = useState<ChildBillingData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { center } = useCenter(); // ✨ Use center from context
+    const { center } = useCenter();
+
 
     const fetchData = async () => {
         if (!center?.id) return;
@@ -52,8 +114,9 @@ export function Billing() {
                 .eq('payment_month', selectedMonth)
                 .eq('children.center_id', center.id);
 
-            setSchedules(sData || []);
-            setPayments(pData || []);
+            setSchedules((sData || []) as unknown as ScheduleData[]);
+            setPayments((pData || []) as unknown as TableRow<'payments'>[]);
+
         } finally {
             setLoading(false);
         }
@@ -63,7 +126,7 @@ export function Billing() {
 
     const stats = useMemo(() => {
         const filteredSchedules = schedules.filter(s => s.start_time.includes(selectedMonth));
-        const childMap = {};
+        const childMap: Record<string, ChildBillingData> = {};
 
         filteredSchedules.forEach(item => {
             const childId = item.children?.id;
@@ -75,24 +138,26 @@ export function Billing() {
             if (!childMap[childId]) {
                 const childPaidTotal = payments
                     .filter(p => p.child_id === childId)
-                    .reduce((sum, p) => sum + (Number(p.amount) || 0) + (Number(p.credit_used) || 0), 0);
+                    .reduce((sum: number, p) => sum + (Number(p.amount) || 0) + (Number(p.credit_used) || 0), 0);
 
                 childMap[childId] = {
                     id: childId, name: childName, paid: childPaidTotal,
-                    credit: item.children.credit || 0, completed: 0, sessions: []
+                    credit: item.children?.credit || 0, completed: 0, sessions: []
                 };
             }
 
             const isCanceled = item.status === 'canceled' || item.status === 'cancelled';
             const price = isCanceled ? 0 : (item.programs?.price || 0);
-            childMap[childId].sessions.push({ ...item, price, isCanceled });
+            const date = item.start_time.split('T')[0];
+            childMap[childId].sessions.push({ ...item, date, price, isCanceled });
             if (item.status === 'completed') childMap[childId].completed += price;
+
         });
         return { childList: Object.values(childMap) };
     }, [schedules, payments, selectedMonth, searchTerm]);
 
     // ✨ [복구] 월 변경 함수
-    const changeMonth = (offset) => {
+    const changeMonth = (offset: number) => {
         const d = new Date(selectedMonth + "-01");
         d.setMonth(d.getMonth() + offset);
         setSelectedMonth(d.toISOString().slice(0, 7));
@@ -153,7 +218,7 @@ export function Billing() {
                             ) : stats.childList.length === 0 ? (
                                 <tr><td colSpan={5} className={cn("p-20 text-center font-bold", isDark ? "text-slate-500" : "text-slate-400")}>해당 조건의 데이터가 없습니다.</td></tr>
                             ) : (
-                                stats.childList.map(child => {
+                                stats.childList.map((child: ChildBillingData) => {
                                     const balance = child.completed - child.paid;
                                     return (
                                         <tr key={child.id} className={cn("transition-all cursor-pointer group", isDark ? "hover:bg-slate-800/50" : "hover:bg-blue-50/20")} onClick={() => { setSelectedChild(child); setIsModalOpen(true); }}>
@@ -177,61 +242,86 @@ export function Billing() {
                     </table>
                 </div>
             </div>
-            {isModalOpen && <PaymentModal childData={selectedChild} month={selectedMonth} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} isDark={isDark} />}
+            {isModalOpen && selectedChild && <PaymentModal childData={selectedChild} month={selectedMonth} onClose={() => setIsModalOpen(false)} onSuccess={fetchData} isDark={isDark} />}
         </div>
     );
 }
 
-function PaymentModal({ childData, month, onClose, onSuccess, isDark }) {
-    const { center } = useCenter(); // ✨ Use context
+function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentModalProps) {
+    const { center } = useCenter();
     const [loading, setLoading] = useState(false);
-    const [inputs, setInputs] = useState({ card: 0, cash: 0, creditUsed: 0, memo: '' });
-    const [localSessions, setLocalSessions] = useState(childData.sessions);
-    const [selectedSessions, setSelectedSessions] = useState(childData.sessions.filter(s => s.status === 'completed' && !s.isCanceled).map(s => s.id));
+    const [inputs, setInputs] = useState<PaymentInputs>({ card: 0, cash: 0, creditUsed: 0, memo: '' });
+    const [localSessions, setLocalSessions] = useState<BillingSession[]>(childData.sessions);
+    const [selectedSessions, setSelectedSessions] = useState<string[]>(
+        childData.sessions.filter((s: BillingSession) => s.status === 'completed' && !s.isCanceled).map((s: BillingSession) => s.id)
+    );
 
-    const totalFee = localSessions.filter(s => selectedSessions.includes(s.id)).reduce((sum, s) => sum + s.price, 0);
+    const totalFee = localSessions.filter((s: BillingSession) => selectedSessions.includes(s.id)).reduce((sum: number, s: BillingSession) => sum + s.price, 0);
     const alreadyPaid = childData.paid;
     const currentPaying = Number(inputs.card) + Number(inputs.cash) + Number(inputs.creditUsed);
     const finalBalance = totalFee - alreadyPaid - currentPaying;
 
     const handleSave = async () => {
+        if (!center?.id) return;
         setLoading(true);
         try {
             const payAmount = Number(inputs.card) + Number(inputs.cash);
-            const { data: pay } = await supabase.from('payments').insert([{
-                center_id: center.id, // ✨ Inject Center ID
-                child_id: childData.id, amount: payAmount, method: inputs.card > 0 ? '카드' : '계좌이체', credit_used: inputs.creditUsed, memo: inputs.memo, payment_month: month
-            }]).select().maybeSingle();
+            const paymentData: TableInsert<'payments'> = {
+                child_id: childData.id,
+                amount: payAmount,
+                method: inputs.card > 0 ? '카드' : '계좌이체',
+                credit_used: inputs.creditUsed,
+                memo: inputs.memo,
+                payment_month: month
+            };
+            const { data: pay } = await supabase.from('payments').insert(paymentData).select().maybeSingle();
+            if (!pay) throw new Error('Payment was not recorded');
 
-            const items = selectedSessions.map(sid => ({ payment_id: pay.id, schedule_id: sid, amount: localSessions.find(s => s.id === sid).price }));
-            await supabase.from('payment_items').insert(items);
+
+
+            if (pay) {
+                const items: TableInsert<'payment_items'>[] = selectedSessions.map((sid: string) => ({
+                    payment_id: pay.id,
+                    schedule_id: sid,
+                    amount: localSessions.find((s: BillingSession) => s.id === sid)?.price || 0
+                }));
+                await supabase.from('payment_items').insert(items);
+            }
+
 
             let newCredit = childData.credit - inputs.creditUsed;
-            if (finalBalance < 0) newCredit += Math.abs(finalBalance);
             await supabase.from('children').update({ credit: newCredit }).eq('id', childData.id);
+
+
 
             alert('수납이 완료되었습니다.'); onSuccess(); onClose();
         } finally { setLoading(false); }
     };
 
-    const handleStatusChange = async (sid, newStatus) => {
+    const handleStatusChange = async (sid: string, newStatus: ScheduleStatus) => {
         const isCancel = newStatus === 'canceled' || newStatus === 'cancelled';
         if (isCancel && !confirm('수업을 취소하시겠습니까?')) return;
         setLoading(true);
-        await supabase.from('schedules').update({ status: newStatus }).eq('id', sid);
+        await supabase.from('schedules').update({ status: newStatus } as never).eq('id', sid);
         onSuccess();
-        setLocalSessions(prev => prev.map(s => s.id === sid ? { ...s, status: newStatus, isCanceled: isCancel, price: isCancel ? 0 : s.price } : s));
+        setLocalSessions((prev: BillingSession[]) => prev.map((s: BillingSession) => s.id === sid ? { ...s, status: newStatus, isCanceled: isCancel, price: isCancel ? 0 : s.price } : s));
         setLoading(false);
     };
 
     const handleManualAdjustment = async () => {
+        if (!center?.id) return;
         const adj = prompt("차감(보정)할 금액을 숫자로 입력하세요.");
-        if (!adj || isNaN(adj)) return;
+        if (!adj || isNaN(Number(adj))) return;
         setLoading(true);
-        await supabase.from('payments').insert([{
-            center_id: center.id, // ✨ Inject Center ID
-            child_id: childData.id, amount: -Number(adj), method: '보정', payment_month: month, memo: '수동 과납 보정'
-        }]);
+        const adjustmentData: TableInsert<'payments'> = {
+            child_id: childData.id,
+            amount: -Number(adj),
+            method: '보정',
+            payment_month: month,
+            memo: '수동 과납 보정'
+        };
+        await supabase.from('payments').insert(adjustmentData);
+
         onSuccess(); onClose();
     };
 
@@ -268,7 +358,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }) {
                                             <select
                                                 value={s.status}
                                                 onClick={e => e.stopPropagation()}
-                                                onChange={(e) => handleStatusChange(s.id, e.target.value)}
+                                                onChange={(e) => handleStatusChange(s.id, e.target.value as ScheduleStatus)}
                                                 className="text-[10px] md:text-xs font-bold bg-slate-100 px-2 py-1 md:px-3 md:py-1.5 rounded-xl border-none outline-none mb-2 cursor-pointer"
                                             >
                                                 <option value="scheduled">예정</option><option value="completed">완료</option><option value="canceled">취소</option>

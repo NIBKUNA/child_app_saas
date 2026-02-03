@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -46,8 +44,8 @@ export function BlogPage() {
     const fetchPosts = async () => {
         if (!center) return;
 
-        const { data, error } = await (supabase as any)
-            .from('blog_posts')
+        const { data, error } = await (supabase
+            .from('blog_posts') as any)
             .select('id, title, slug, excerpt, cover_image_url, published_at')
             .eq('is_published', true)
             .eq('center_id', center.id) // ✨ Strict Tenant Filtering
@@ -70,15 +68,15 @@ export function BlogPage() {
             isDark ? "bg-slate-950 text-white" : "bg-white text-slate-900"
         )}>
             <Helmet>
-                <title>Blog | {centerName}</title>
-                <meta name="description" content="Professional insights for your child's growth." />
+                <title>마음 성장 칼럼 | {centerName}</title>
+                <meta name="description" content={`${centerName} 전문가들이 전하는 우리 아이의 건강한 성장을 위한 따뜻한 조언과 발달 정보를 확인하세요.`} />
             </Helmet>
 
             {/* Spacious Centered Header */}
             <header className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
                 <p
                     className="font-bold tracking-widest text-sm mb-4"
-                    style={{ color: branding.brand_color }} // ✨ Usage
+                    style={{ color: branding.brand_color || undefined }} // ✨ Usage
                 >
                     아이와 함께 성장하는 이야기
                 </p>
@@ -138,7 +136,7 @@ export function BlogPage() {
                                     {post.cover_image_url ? (
                                         <img
                                             src={post.cover_image_url}
-                                            alt={post.title}
+                                            alt={post.title || ''}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                         />
                                     ) : (
@@ -170,10 +168,10 @@ export function BlogPage() {
                                             isDark ? "text-white" : "text-slate-900"
                                         )}
                                         // Dynamic Color on hover
-                                        onMouseEnter={(e) => e.currentTarget.style.color = branding.brand_color}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = ''}
+                                        onMouseEnter={(e) => e.currentTarget.style.color = branding.brand_color || ''}
+                                        onMouseLeave={(e) => (e.currentTarget.style.color = '')}
                                     >
-                                        {post.title}
+                                        {post.title || ''}
                                     </h2>
 
                                     {/* Excerpt */}

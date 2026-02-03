@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -12,18 +10,31 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import Center Context
 import { Plus, Edit2, Trash2, Briefcase, ClipboardList, MessageCircle, X } from 'lucide-react';
 
+interface Program {
+    id: string;
+    name: string;
+    duration: number;
+    price: number;
+    category: string;
+    center_id: string;
+}
+
 export default function Programs() {
-    const [programs, setPrograms] = useState([]);
+    const [programs, setPrograms] = useState<Program[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const { center } = useCenter(); // ✨ Use Center Context for SaaS capability
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        duration: number;
+        price: number;
+        category: string;
+    }>({
         name: '',
         duration: 40,
         price: 0,
@@ -35,9 +46,10 @@ export default function Programs() {
     }, [center?.id]);
 
     const fetchPrograms = async () => {
+        if (!center?.id) return;
         setLoading(true);
-        const { data, error } = await supabase
-            .from('programs')
+        const { data, error } = await (supabase
+            .from('programs') as any)
             .select('*')
             .eq('center_id', center.id) // ✨ Filter by Center ID
             .order('category', { ascending: true });
@@ -45,13 +57,14 @@ export default function Programs() {
         setLoading(false);
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!center?.id) return;
         try {
             if (editingId) {
-                await supabase.from('programs').update(formData).eq('id', editingId);
+                await (supabase.from('programs') as any).update(formData).eq('id', editingId);
             } else {
-                await supabase.from('programs').insert([{ ...formData, center_id: center.id }]); // ✨ Insert with Center ID
+                await (supabase.from('programs') as any).insert([{ ...formData, center_id: center.id }]); // ✨ Insert with Center ID
             }
             setIsModalOpen(false);
             setEditingId(null);
@@ -62,7 +75,7 @@ export default function Programs() {
         }
     };
 
-    const handleEdit = (p) => {
+    const handleEdit = (p: Program) => {
         setEditingId(p.id);
         setFormData({
             name: p.name,
@@ -73,14 +86,14 @@ export default function Programs() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (id: string) => {
         if (!confirm('정말 삭제하시겠습니까?')) return;
-        await supabase.from('programs').delete().eq('id', id);
+        await (supabase.from('programs') as any).delete().eq('id', id);
         fetchPrograms();
     };
 
     // ✨ 카테고리별 디자인 설정
-    const getCategoryStyle = (cat) => {
+    const getCategoryStyle = (cat: string) => {
         switch (cat) {
             case 'evaluation':
                 return { label: '평가', color: 'bg-blue-100 text-blue-600', icon: ClipboardList, badge: 'bg-blue-50 text-blue-600' };

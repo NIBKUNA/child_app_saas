@@ -1,38 +1,38 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-11
- * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
- * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
- * -----------------------------------------------------------
- * 부모님 발달 리포트 - 인터랙티브 체크 및 저장 추이 기능
- */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Loader2, BarChart3, Users, ChevronDown, Printer } from 'lucide-react';
+import { ArrowLeft, Loader2, BarChart3 } from 'lucide-react';
+
 import { ParentDevelopmentChart } from '@/components/app/parent/ParentDevelopmentChart';
 import { useCenter } from '@/contexts/CenterContext';
+import type { Database } from '@/types/database.types';
+
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+type TableInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
+
+interface DevelopmentAssessment extends TableRow<'development_assessments'> { }
+interface ChildBasic extends Pick<TableRow<'children'>, 'id' | 'name'> { }
+
 
 export function ParentStatsPage() {
     const navigate = useNavigate();
     const { center } = useCenter();
     const [loading, setLoading] = useState(true);
-    const [devData, setDevData] = useState<any>(null);
+    const [devData, setDevData] = useState<DevelopmentAssessment[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [role, setRole] = useState<string>('parent');
 
-    // 관리자용 상태
-    const [children, setChildren] = useState<any[]>([]);
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     const [selectedChildName, setSelectedChildName] = useState<string>('');
+
+
+
     const [therapistId, setTherapistId] = useState<string | null>(null);
     const [parentChecks, setParentChecks] = useState<Record<string, string[]>>({
         communication: [], social: [], cognitive: [], motor: [], adaptive: []
     });
     const [saving, setSaving] = useState(false);
+
 
     useEffect(() => {
         initializePage();
@@ -45,25 +45,30 @@ export function ParentStatsPage() {
             const user = authData?.user;
             if (!user) return setError("로그인이 필요합니다.");
 
-            // ✨ user_profiles 테이블에서 역할 확인 (parents 테이블과 별개)
+            // ✨ profiles 테이블에서 역할 확인 (parents 테이블과 별개)
             const { data: profile } = await supabase
-                .from('user_profiles')
+                .from('profiles')
                 .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
 
-            setRole(profile?.role || 'parent');
+            setRole((profile as any)?.role || 'parent');
 
-            if (profile?.role === 'admin' || profile?.role === 'super_admin' || profile?.role === 'manager') {
+            if ((profile as any)?.role === 'admin' || (profile as any)?.role === 'super_admin' || (profile as any)?.role === 'manager') {
+
                 if (!center?.id) { setLoading(false); return; }
                 const { data: childList } = await supabase.from('children').select('id, name').eq('center_id', center.id);
-                setChildren(childList || []);
-                if (childList?.[0]) {
-                    setSelectedChildId(childList[0].id);
-                    setSelectedChildName(childList[0].name);
-                    await loadChildStats(childList[0].id);
+                const childrenData = (childList || []) as ChildBasic[];
+                // setChildren(childrenData); // Remove if state not needed, or add back
+                if (childrenData[0]) {
+                    setSelectedChildId(childrenData[0].id);
+                    setSelectedChildName(childrenData[0].name);
+                    await loadChildStats(childrenData[0].id);
                 }
             } else {
+
+
+
                 // 부모 권한일 때 연결된 자녀 찾기
                 let childId = null;
                 const { data: parentRecord } = await supabase.from('parents').select('id').eq('profile_id', user.id).maybeSingle();
@@ -105,7 +110,8 @@ export function ParentStatsPage() {
             .order('evaluation_date', { ascending: false })
             .limit(10); // 추이 확인을 위해 10개까지 로드
 
-        setDevData(data || []);
+        const assessments = data as DevelopmentAssessment[];
+        setDevData(assessments || []);
 
         // ✨ 배정 치료사 정보를 child_therapist 테이블에서 가져오기
         const { data: ctInfo } = await supabase
@@ -115,14 +121,16 @@ export function ParentStatsPage() {
             .eq('is_primary', true)
             .maybeSingle();
 
-        if (ctInfo) setTherapistId(ctInfo.therapist_id);
+        if (ctInfo) setTherapistId((ctInfo as any).therapist_id);
+
 
         // ✨ 최신 리포트의 체크 항목을 부모 체크 상태로 초기화 (로드 시점)
-        if (shouldInitChecks && data && data[0]) {
-            const latestDetails = data[0].assessment_details || {};
+        if (shouldInitChecks && assessments && assessments[0]) {
+            const latestDetails = (assessments[0].assessment_details as Record<string, string[]>) || {};
             setParentChecks(latestDetails);
         }
     };
+
 
     const handleToggleCheck = (domain: string, itemId: string) => {
         setParentChecks(prev => {
@@ -141,7 +149,7 @@ export function ParentStatsPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("로그인이 필요합니다.");
 
-            const payload = {
+            const payload: TableInsert<'development_assessments'> = {
                 center_id: center.id,
                 child_id: selectedChildId,
                 therapist_id: therapistId, // ✨ 배정된 치료사 ID 연동
@@ -151,12 +159,14 @@ export function ParentStatsPage() {
                 score_cognitive: (parentChecks.cognitive?.length || 0),
                 score_motor: (parentChecks.motor?.length || 0),
                 score_adaptive: (parentChecks.adaptive?.length || 0),
-                assessment_details: parentChecks,
+                assessment_details: parentChecks as any, // Json support
                 summary: '부모님 자가진단 기록',
                 therapist_notes: '부모님이 앱에서 직접 체크하여 저장한 발달 데이터입니다. 상담 시 참고하세요.'
             };
 
-            const { error } = await supabase.from('development_assessments').insert(payload);
+
+            const { error } = await supabase.from('development_assessments').insert(payload as any);
+
             if (error) throw error;
 
             alert("✅ 자가진단 결과가 성공적으로 저장되었습니다.\n성장 추이 그래프에서 변화를 확인해보세요!");

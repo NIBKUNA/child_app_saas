@@ -1,22 +1,15 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
- * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
- * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
- * -----------------------------------------------------------
- * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
- * 예술적 영감을 바탕으로 구축되었습니다.
- */
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+// ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+// -----------------------------------------------------------
+// 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
+// 예술적 영감을 바탕으로 구축되었습니다.
+
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { CenterProvider } from '@/contexts/CenterContext';
 import { CenterGuard } from '@/components/auth/CenterGuard';
 
-import ProtectedRoute from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute'; // Ensure this exports UserRole or accept string[]
 import { useAuth } from '@/contexts/AuthContext';
 
 import { PublicLayout } from '@/layouts/PublicLayout';
@@ -55,7 +48,7 @@ import { ParentList } from '@/pages/app/parents/ParentList';
 import { TherapistList } from '@/pages/app/therapists/TherapistList';
 import SessionList from '@/pages/app/sessions/SessionList';
 import SessionNote from '@/pages/app/sessions/SessionNote';
-import { LeadList } from '@/pages/app/leads/LeadList';
+// import { LeadList } from '@/pages/app/leads/LeadList';
 import ConsultationInquiryList from '@/pages/app/consultations/ConsultationInquiryList';
 // import BlogList from '@/pages/app/blog/BlogList';
 // import BlogEditor from '@/pages/app/blog/BlogEditor';
@@ -100,7 +93,7 @@ function App() {
     }
   }, []);
 
-  const [showSplash, setShowSplash] = useState(() => {
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
     // ✨ [Optimization] Splash logic:
     // 1. Only show on the main portal ('/') or Master Console ('/master')
     // 2. Do NOT show on specific center landing pages to speed up marketing conversions

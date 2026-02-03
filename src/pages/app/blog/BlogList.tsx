@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -13,13 +11,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { Search, Plus, Loader2, Pencil, Trash2, RefreshCw } from 'lucide-react';
 
+interface BlogPost {
+    id: string;
+    title: string;
+    created_at: string;
+    [key: string]: any;
+}
+
 export default function BlogList() {
+    const navigate = useNavigate();
     const { center } = useCenter(); // ✨ Use Center Context
     const centerId = center?.id;
+
+    const [posts, setPosts] = useState<BlogPost[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // ✨ [Fix] 함수명 변경 (loadBlogPosts) - 캐시 충돌 방지
     const loadBlogPosts = useCallback(async () => {
@@ -27,8 +36,8 @@ export default function BlogList() {
 
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('blog_posts')
+            const { data, error } = await (supabase
+                .from('blog_posts') as any)
                 .select('*')
                 .eq('center_id', centerId) // ✨ [Security] Isolation
                 .order('created_at', { ascending: false });
@@ -47,10 +56,10 @@ export default function BlogList() {
         loadBlogPosts();
     }, [loadBlogPosts]);
 
-    const handleDelete = async (id, title) => {
+    const handleDelete = async (id: string, title: string) => {
         if (!confirm(`"${title}" 글을 정말 삭제하시겠습니까?`)) return;
         try {
-            const { error } = await supabase.from('blog_posts').delete().eq('id', id);
+            const { error } = await (supabase.from('blog_posts') as any).delete().eq('id', id);
             if (error) throw error;
             setPosts(prev => prev.filter(p => p.id !== id));
             alert('삭제되었습니다.');

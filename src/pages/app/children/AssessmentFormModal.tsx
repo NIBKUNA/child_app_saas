@@ -1,10 +1,34 @@
-// @ts-nocheck
-/* eslint-disable */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext';
 import { X, Save, Loader2, MessageCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+// ✨ DB 컬럼과 매핑되는 Assessment 데이터 타입
+interface AssessmentData {
+    id: string;
+    summary: string | null;
+    therapist_notes: string | null;
+    log_id: string | null;
+    therapist_id: string | null;
+    assessment_details: Record<string, unknown>;
+}
+
+// ✨ DB에 저장할 Payload 타입 (assessment_details JSONB 포함)
+interface AssessmentPayload {
+    center_id: string | undefined;
+    child_id: string;
+    therapist_id: string | null;
+    log_id: string | null;
+    evaluation_date: string;
+    summary: string;
+    therapist_notes: string;
+    score_communication: number;
+    score_social: number;
+    score_cognitive: number;
+    score_motor: number;
+    score_adaptive: number;
+    assessment_details: Record<string, unknown>;
+}
 
 interface AssessmentFormModalProps {
     isOpen: boolean;
@@ -56,15 +80,17 @@ export function AssessmentFormModal({
             const { data, error } = await supabase
                 .from('development_assessments')
                 .select('*')
-                .eq('id', assessmentId)
+                .eq('id', assessmentId as string)
                 .maybeSingle();
 
             if (error) throw error;
-            if (data) {
-                setSummary(data.summary || '');
-                setTherapistNotes(data.therapist_notes || '');
-                setCurrentLogId(data.log_id || null);
-                setOriginalTherapistId(data.therapist_id || null);
+            // ✨ Type assertion for Supabase data
+            const typedData = data as AssessmentData | null;
+            if (typedData) {
+                setSummary(typedData.summary || '');
+                setTherapistNotes(typedData.therapist_notes || '');
+                setCurrentLogId(typedData.log_id || null);
+                setOriginalTherapistId(typedData.therapist_id || null);
                 setIsEditMode(true);
             }
         } catch (e) {
@@ -88,14 +114,15 @@ export function AssessmentFormModal({
                     .select('id')
                     .eq('profile_id', user.id)
                     .maybeSingle();
-                effectiveTherapistId = myTherapist?.id || null;
+                const typedTherapist = myTherapist as { id: string } | null;
+                effectiveTherapistId = typedTherapist?.id || null;
             }
 
             if (!effectiveTherapistId) {
                 throw new Error('작성자(치료사) 정보를 확인할 수 없습니다.');
             }
 
-            const payload: any = {
+            const payload: AssessmentPayload = {
                 center_id: center?.id,
                 child_id: childId,
                 therapist_id: effectiveTherapistId,
@@ -116,37 +143,39 @@ export function AssessmentFormModal({
             if (!isEditMode && !activeLogId) {
                 if (!center?.id) throw new Error('센터 정보가 없어 상담 일지를 생성할 수 없습니다.');
                 const finalDate = sessionDate || new Date().toISOString().split('T')[0];
+                const logInsertData = {
+                    center_id: center.id,
+                    therapist_id: effectiveTherapistId,
+                    child_id: childId,
+                    schedule_id: scheduleId ?? null,
+                    session_date: finalDate,
+                    content: summary || '상담 진행',
+                    activities: '상담/수업 진행',
+                    child_response: '상담/수업 진행'
+                };
                 const { data: newLog, error: logError } = await supabase
                     .from('counseling_logs')
-                    .insert({
-                        center_id: center.id,
-                        therapist_id: effectiveTherapistId,
-                        child_id: childId,
-                        schedule_id: scheduleId,
-                        session_date: finalDate,
-                        content: summary || '상담 진행',
-                        activities: '상담/수업 진행',
-                        child_response: '상담/수업 진행'
-                    })
+                    .insert(logInsertData as never)
                     .select()
                     .single();
 
                 if (logError) throw new Error('상담 일지 자동 생성 실패: ' + logError.message);
-                activeLogId = newLog.id;
+                const typedNewLog = newLog as { id: string };
+                activeLogId = typedNewLog.id;
                 payload.log_id = activeLogId;
             } else if (activeLogId) {
                 await supabase
                     .from('counseling_logs')
-                    .update({ content: summary })
+                    .update({ content: summary } as never)
                     .eq('id', activeLogId);
             }
 
             let error;
             if (isEditMode && assessmentId) {
-                const res = await supabase.from('development_assessments').update(payload).eq('id', assessmentId);
+                const res = await supabase.from('development_assessments').update(payload as never).eq('id', assessmentId);
                 error = res.error;
             } else {
-                const res = await supabase.from('development_assessments').insert(payload);
+                const res = await supabase.from('development_assessments').insert(payload as never);
                 error = res.error;
             }
 

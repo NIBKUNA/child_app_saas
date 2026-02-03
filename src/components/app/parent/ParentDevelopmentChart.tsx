@@ -1,5 +1,11 @@
-// @ts-nocheck
-/* eslint-disable */
+/**
+ * 🎨 Project: Zarada ERP - The Sovereign Canvas
+ * 🛠️ Created by: 안욱빈 (An Uk-bin)
+ * 📅 Date: 2026-01-10
+ * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
+ * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
+ * -----------------------------------------------------------
+ */
 import { useState } from 'react';
 import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
@@ -55,13 +61,25 @@ const DOMAINS_META = [
     { key: 'adaptive', label: '자조/적응', color: 'text-emerald-600', bg: 'bg-emerald-50', icon: Baby },
 ];
 
+interface Assessment {
+    evaluation_date: string;
+    score_communication: number;
+    score_social: number;
+    score_cognitive: number;
+    score_motor: number;
+    score_adaptive: number;
+    summary?: string;
+    assessment_details?: Record<string, any>;
+    [key: string]: any;
+}
+
 export function ParentDevelopmentChart({
     assessments,
     isInteractive = false,
     onToggleCheck,
     parentChecks
 }: {
-    assessments: any[],
+    assessments: Assessment[],
     isInteractive?: boolean,
     onToggleCheck?: (domain: string, itemId: string) => void,
     parentChecks?: Record<string, string[]>
@@ -104,7 +122,7 @@ export function ParentDevelopmentChart({
             '인지': a.score_cognitive,
             '운동': a.score_motor,
             '자조': a.score_adaptive,
-        }));
+        } as Record<string, any>));
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">

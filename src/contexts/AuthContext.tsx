@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Modified by: Gemini AI (for An Uk-bin)
@@ -13,15 +12,38 @@ import { isSuperAdmin } from '@/config/superAdmin';
 
 
 // ✨ UserRole 타입 유지 (retired 포함)
-export type UserRole = 'super_admin' | 'admin' | 'staff' | 'employee' | 'therapist' | 'parent' | 'retired' | null;
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff' | 'employee' | 'therapist' | 'parent' | 'retired' | null;
 
+// ✨ UserProfile 타입 정의 (DB user_profiles 테이블 스키마 기반)
+export interface UserProfile {
+    id: string;
+    email: string | null;
+    name: string | null;
+    phone: string | null;
+    role: UserRole;
+    status: 'active' | 'inactive' | 'retired' | null;
+    center_id: string | null;
+    avatar_url: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+}
+
+// ✨ Realtime Payload 타입 정의
+interface ProfileChangePayload {
+    new: {
+        role: string;
+        status: string;
+    };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ROLE_CACHE_KEY = 'cached_user_role';
 
 type AuthContextType = {
     session: Session | null;
     user: User | null;
     role: UserRole;
-    profile: any;
+    profile: UserProfile | null;
     therapistId: string | null;
     centerId: string | null;
     loading: boolean;
@@ -43,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<UserRole>(null);
-    const [profile, setProfile] = useState<any>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [therapistId, setTherapistId] = useState<string | null>(null);
     const [centerId, setCenterId] = useState<string | null>(null); // ✨ Default to null
     const [loading, setLoading] = useState(true);
@@ -106,9 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         initialLoadComplete.current = true;
                     }
                 }
-            } catch (error) {
+            } catch (err) {
                 clearTimeout(safetyTimeout);
-                console.error("🚨 Unexpected Auth Error:", error);
+                console.error("🚨 Unexpected Auth Error:", err);
                 if (mounted) setLoading(false);
             }
         };
@@ -180,7 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .then(({ data }) => {
                     if (data) {
                         // 👑 [Conflict Resolution] Super Admin has NO primary center
-                        setProfile({ ...data, center_id: null });
+                        const profileData = data as unknown as UserProfile;
+                        setProfile({ ...profileData, center_id: null });
                     }
                 });
 
@@ -194,11 +217,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             // 1. [Sync] 프로필 조회
-            let { data: dbProfile, error } = await supabase
+            const { data: dbProfile } = await supabase
                 .from('user_profiles')
                 .select('*')
                 .eq('id', user.id)
                 .maybeSingle();
+
+            // ✨ Type assertion for dbProfile
+            const typedProfile = dbProfile as unknown as UserProfile | null;
 
             // 2. ✨ [Self-Healing] Removed hardcoded repair relying on CURRENT_CENTER_ID
             // If needed, we can implement dynamic repair later.
@@ -208,11 +234,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             */
 
-            if (dbProfile) {
-                const dbRole = (dbProfile.role as UserRole) || 'parent';
+            if (typedProfile) {
+                const dbRole = (typedProfile.role as UserRole) || 'parent';
 
                 // 🚨 [보안] 퇴사자 및 비활성 계정 철저 차단
-                if (dbProfile.status === 'retired' || dbProfile.status === 'inactive' || dbRole === 'retired') {
+                if (typedProfile.status === 'retired' || typedProfile.status === 'inactive' || dbRole === 'retired') {
                     console.warn('[Auth] Access Blocked: Retired/Inactive User');
                     setRole(null);
                     setProfile(null);
@@ -223,17 +249,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 setRole(dbRole);
-                setProfile(dbProfile);
-                setCenterId(dbProfile.center_id);
+                setProfile(typedProfile);
+                setCenterId(typedProfile.center_id);
 
                 // 치료사 전용 ID 세팅
-                if (dbRole === 'therapist') {
+                if (dbRole === 'therapist' && user.email) {
                     const { data: therapistData } = await supabase
                         .from('therapists')
                         .select('id')
                         .ilike('email', user.email)
                         .maybeSingle();
-                    if (therapistData) setTherapistId(therapistData.id);
+                    const typedTherapistData = therapistData as { id: string } | null;
+                    if (typedTherapistData) setTherapistId(typedTherapistData.id);
                 }
 
                 setLoading(false);
@@ -268,7 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const channel = supabase.channel(`profile_changes_${user.id}`)
                 .on('postgres_changes',
                     { event: 'UPDATE', schema: 'public', table: 'user_profiles', filter: `id=eq.${user.id}` },
-                    (payload) => {
+                    (payload: ProfileChangePayload) => {
                         // 👑 [Sovereign Fortress] 슈퍼 어드민은 감시 대상에서도 제외 (혹은 DB변경 무시)
                         if (isSuperAdmin(user.email)) return;
 

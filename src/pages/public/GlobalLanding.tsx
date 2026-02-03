@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
@@ -106,6 +107,11 @@ export const GlobalLanding = () => {
 
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans overflow-x-hidden">
+            <Helmet>
+                <title>자라다(Zarada) | 아동발달센터 통합 관리 솔루션</title>
+                <meta name="description" content="우리 아이가 다니는 아동발달센터를 검색하세요. 자라다는 아동발달센터의 효율적인 운영과 아이들의 성장을 돕는 차세대 ERP 솔루션입니다." />
+            </Helmet>
+
             {/* ✨ Premium Header */}
             <header
                 className={cn(

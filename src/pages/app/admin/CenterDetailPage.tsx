@@ -3,16 +3,33 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Building2, Users, Baby, ArrowLeft, MoreHorizontal, ExternalLink, Pencil, X, Save, ShieldAlert, Trash2 } from 'lucide-react';
 import { useCenter } from '@/contexts/CenterContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 import { cn } from '@/lib/utils';
+import type { Database } from '@/types/database.types';
+
+type Center = Database['public']['Tables']['centers']['Row'];
+
 
 export function CenterDetailPage() {
     const { centerId } = useParams();
     const navigate = useNavigate();
     const { setCenter } = useCenter();
-    const [centerData, setCenterData] = useState<any>(null);
+    const { user, role, loading: authLoading } = useAuth();
+    const [centerData, setCenterData] = useState<Center | null>(null);
     const [stats, setStats] = useState({ teachers: 0, children: 0 });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // ✨ Super Admin Security Check
+    const isSuper = role === 'super_admin' || checkSuperAdmin(user?.email);
+
+    useEffect(() => {
+        if (!authLoading && !isSuper) {
+            alert('접근 권한이 없습니다. (Super Admin Only)');
+            navigate('/');
+        }
+    }, [authLoading, isSuper, navigate]);
 
     // Edit State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -43,10 +60,11 @@ export function CenterDetailPage() {
             if (centerError) throw centerError;
 
             const { count: teacherCount } = await supabase
-                .from('user_profiles')
+                .from('profiles')
                 .select('id', { count: 'exact', head: true })
                 .eq('center_id', centerId as string)
                 .in('role', ['therapist', 'manager', 'admin']);
+
 
             const { count: childCount } = await supabase
                 .from('children')
@@ -79,9 +97,10 @@ export function CenterDetailPage() {
         const { data: authData } = await supabase.auth.getUser();
         console.log("🔍 [Auth Debug] 현재 로그인 계정:", authData.user?.email);
 
-        // DB에서 실제로 인식하는 권한 체크 트리거 (임시)
-        const { data: rpcCheck } = await (supabase as any).rpc('is_super_admin');
+        // DB에서 실제로 인식하는 권한 체크 트리거 (임시 - 유지됨)
+        const { data: rpcCheck } = await supabase.rpc('is_super_admin');
         console.log("🛡️ [DB Policy Debug] DB가 나를 슈퍼어드민으로 인정하는가?:", rpcCheck);
+
 
         setSaving(true);
         const updateData: any = {
@@ -114,11 +133,12 @@ export function CenterDetailPage() {
         }
 
         try {
-            const { error, data } = await (supabase as any)
+            const { error, data } = await supabase
                 .from('centers')
-                .update(updateData)
+                .update(updateData as any)
                 .eq('id', centerId as string)
                 .select();
+
 
             if (error) {
                 console.error('❌ Supabase 업데이트 오류:', error);
@@ -186,7 +206,8 @@ export function CenterDetailPage() {
                                 return;
                             }
                             try {
-                                const { error } = await (supabase as any).rpc('admin_delete_center', { target_center_id: centerId });
+                                const { error } = await supabase.rpc('admin_delete_center', { target_center_id: centerId } as any);
+
                                 if (error) throw error;
                                 alert('지점이 완전히 삭제되었습니다.');
                                 navigate('/master/centers');

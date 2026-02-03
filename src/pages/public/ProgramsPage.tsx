@@ -1,10 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
- */
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -42,6 +35,15 @@ const CUSTOM_PROGRAM_ICONS: Record<string, React.FC<{ className?: string }>> = {
     'default': SpeechTherapyIcon
 };
 
+interface Program {
+    title: string;
+    description?: string;
+    desc?: string; // legacy support
+    targets?: string[];
+    eng?: string;
+    icon_name?: string;
+}
+
 export function ProgramsPage() {
     const { getSetting } = useAdminSettings();
     const { center } = useCenter();
@@ -53,17 +55,18 @@ export function ProgramsPage() {
     if (loading) return null;
 
     const brandColor = branding?.brand_color || '#6366f1';
-    const centerName = branding.name || center?.name || '아동발달센터';
-    const introText = branding.settings?.programs_intro_text || getSetting('programs_intro_text') || "아이의 고유한 특성을 존중하며,\n단계별 1:1 맞춤형 솔루션을 제공합니다.";
+    const centerName = branding?.name || center?.name || '아동발달센터';
+    const introText = branding?.settings?.programs_intro_text || getSetting('programs_intro_text' as any) || "아이의 고유한 특성을 존중하며,\n단계별 1:1 맞춤형 솔루션을 제공합니다.";
 
-    const programsJson = branding.settings?.programs_list || getSetting('programs_list');
+    const programsJson = branding?.settings?.programs_list || getSetting('programs_list' as any);
     const dynamicPrograms = programsJson ? (typeof programsJson === 'string' ? JSON.parse(programsJson) : programsJson) : [];
-    const programs = dynamicPrograms.length > 0 ? dynamicPrograms : DEFAULT_PROGRAMS;
+    const programs: Program[] = dynamicPrograms.length > 0 ? dynamicPrograms : (DEFAULT_PROGRAMS as any as Program[]);
 
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
             <Helmet>
                 <title>치료 프로그램 - {centerName}</title>
+                <meta name="description" content={`${centerName}의 맞춤형 발달 지원 프로그램을 소개합니다. ${programs.map((p: any) => p.title).slice(0, 3).join(', ')} 등 전문적인 치료 서비스를 확인하세요.`} />
                 <script type="application/ld+json">
                     {JSON.stringify({
                         "@context": "https://schema.org",
@@ -78,7 +81,7 @@ export function ProgramsPage() {
                                 // ✨ SEO Magic: Multi-Region Targeting
                                 // Take top 3 keywords as 'Regions' to create multiple service offers
                                 const seoKeywords = branding.settings?.seo_keywords || getSetting('seo_keywords') || '';
-                                const regions = seoKeywords.split(',').map(s => s.trim()).filter(Boolean).slice(0, 3);
+                                const regions = seoKeywords.split(',').map((s: string) => s.trim()).filter(Boolean).slice(0, 3);
 
                                 // If no keywords, return just the original program
                                 if (regions.length === 0) {
@@ -97,7 +100,7 @@ export function ProgramsPage() {
                                 }
 
                                 // Create an offer for each region
-                                return regions.map(region => ({
+                                return regions.map((region: string) => ({
                                     "@type": "Offer",
                                     "itemOffered": {
                                         "@type": "Service",

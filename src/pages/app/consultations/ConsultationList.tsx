@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -20,22 +19,58 @@ import {
     Clock, CheckCircle2, X,
     Pencil, Trash2, BarChart3
 } from 'lucide-react';
+import type { Database } from '@/types/database.types'; // ✨ Import Types
 import { AssessmentFormModal } from '@/pages/app/children/AssessmentFormModal';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+
+interface Session {
+    id: string;
+    child_id: string;
+    status: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
+    therapist_id: string;
+    start_time: string;
+    service_type: string | null;
+    children: {
+        id: string;
+        name: string;
+        center_id: string | null;
+    };
+    realLogId?: string | null;
+}
+
+interface DevelopmentAssessment {
+    id: string;
+    evaluation_date?: string;
+    created_at: string;
+    child_id: string;
+    log_id?: string;
+    therapist_id?: string | null;
+    score_communication?: number;
+    score_social?: number;
+    score_cognitive?: number;
+    score_motor?: number;
+    score_adaptive?: number;
+    summary?: string;
+    children?: {
+        id: string;
+        name: string;
+        center_id: string | null;
+    };
+}
 
 export function ConsultationList() {
     const { user } = useAuth();
     const { center } = useCenter(); // ✨ Use Center
     const centerId = center?.id;
     const [userRole, setUserRole] = useState('therapist');
-    const [todoChildren, setTodoChildren] = useState([]);
-    const [recentAssessments, setRecentAssessments] = useState([]);
+    const [todoChildren, setTodoChildren] = useState<Session[]>([]);
+    const [recentAssessments, setRecentAssessments] = useState<DevelopmentAssessment[]>([]);
     const [loading, setLoading] = useState(true);
 
     // 발달 평가 모달 상태
     const [isAssessModalOpen, setIsAssessModalOpen] = useState(false);
-    const [selectedSession, setSelectedSession] = useState(null);
-    const [editingAssessmentId, setEditingAssessmentId] = useState(null);  // ✨ [수정 모드]
+    const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+    const [editingAssessmentId, setEditingAssessmentId] = useState<string | null>(null);  // ✨ [수정 모드]
 
     useEffect(() => {
         if (user && centerId) {
@@ -45,14 +80,15 @@ export function ConsultationList() {
 
     const fetchData = async () => {
         if (!centerId || typeof centerId !== 'string' || centerId.length < 32) return;
+        if (!user) return; // ✨ Check user
         setLoading(true);
         try {
-            const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).maybeSingle();
-            const role = profile?.role || 'therapist';
+            const { data: profile } = await (supabase.from('user_profiles') as any).select('role').eq('id', user.id).maybeSingle();
+            const role = (profile as any)?.role || 'therapist';
             setUserRole(role);
 
             // ✨ [Refactor] Using Centralized Super Admin Check
-            const isSuperAdmin = role === 'super_admin' || checkSuperAdmin(user?.email);
+            const isSuperAdmin = role === 'super_admin' || checkSuperAdmin(user?.email || '');
             const isAdmin = role === 'admin' || isSuperAdmin;
 
             // ✨ [FIX] therapists 테이블에서 현재 유저의 therapist 레코드 조회
@@ -61,8 +97,8 @@ export function ConsultationList() {
             if (!isAdmin) {
                 // ✨ [Improved] Search by profile_id (Canonical Link)
                 // 이메일 변경 시에도 연결이 유지되도록 profile_id를 우선 사용합니다.
-                const { data: therapist } = await supabase
-                    .from('therapists')
+                const { data: therapist } = await (supabase
+                    .from('therapists') as any)
                     .select('id')
                     .eq('profile_id', user.id)
                     .maybeSingle();
@@ -71,12 +107,12 @@ export function ConsultationList() {
 
                 // 🛡️ Fallback: 연결이 끊긴 경우 이메일로 재시도 (Legacy/Broken Link Support)
                 if (!currentTherapistId && user.email) {
-                    const { data: legacyTherapist } = await supabase
-                        .from('therapists')
+                    const { data: legacyTherapist } = await (supabase
+                        .from('therapists') as any)
                         .select('id')
                         .eq('email', user.email)
                         .maybeSingle();
-                    currentTherapistId = legacyTherapist?.id;
+                    currentTherapistId = (legacyTherapist as any)?.id;
                 }
 
                 if (!currentTherapistId) {
@@ -89,13 +125,13 @@ export function ConsultationList() {
 
             // 1. 이미 일지가 작성된 '스케줄 ID' 수집 (교차 검증)
             // counseling_logs 테이블에서 schedule_id를 가져와야 정확히 매칭됨
-            const { data: writtenLogs } = await supabase
-                .from('counseling_logs')
+            const { data: writtenLogs } = await (supabase
+                .from('counseling_logs') as any)
                 .select('schedule_id')
                 .eq('center_id', centerId) // 🔒 Security Filter
                 .not('schedule_id', 'is', null);
 
-            const writtenScheduleIds = new Set(writtenLogs?.map(l => l.schedule_id));
+            const writtenScheduleIds = new Set((writtenLogs as any[])?.map((l: any) => l.schedule_id));
 
             // ✨ [FIX] 상태 조건 완화 - 완료됐거나 OR 상담 당일이 지난 일정 모두 포함
             const today = new Date().toISOString().split('T')[0];
@@ -106,8 +142,8 @@ export function ConsultationList() {
             limitDate.setDate(limitDate.getDate() - 60);
             const minDate = limitDate.toISOString().split('T')[0];
 
-            let sessionQuery = supabase
-                .from('schedules')
+            let sessionQuery = (supabase
+                .from('schedules') as any)
                 .select(`id, child_id, status, therapist_id, start_time, service_type, children!inner (id, name, center_id)`)
                 .eq('children.center_id', centerId)
                 .gte('start_time', minDate) // 🛡️ Performance Filter
@@ -120,13 +156,13 @@ export function ConsultationList() {
             const { data: sessions } = await sessionQuery.order('start_time', { ascending: false });
 
             // 2. 일지가 없는(ID가 Set에 없는) 스케줄만 필터링
-            const pending = sessions?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
+            const pending = (sessions as any[])?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
             setTodoChildren(pending);
 
             // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)
             // ✨ [권한 분리] 부모님이 직접 작성한 '자가진단 기록'은 치료사 리스트에서 제외
-            let assessQuery = supabase
-                .from('development_assessments')
+            let assessQuery = (supabase
+                .from('development_assessments') as any)
                 .select('*, children!inner(id, name, center_id)')
                 .eq('children.center_id', centerId)
                 .not('summary', 'eq', '부모님 자가진단 기록') // ✨ [User Request] 부모 자가진단 제외
@@ -138,7 +174,7 @@ export function ConsultationList() {
                 assessQuery = assessQuery.eq('therapist_id', currentTherapistId);
             }
             const { data: assessments } = await assessQuery;
-            setRecentAssessments(assessments || []);
+            setRecentAssessments((assessments as any) || []);
 
         } catch (e) {
             console.error("데이터 로드 오류:", e);
@@ -148,11 +184,11 @@ export function ConsultationList() {
     };
 
     // ✨ [수정] 일지 ID 가져오기 로직 추가 (FK Violation 해결)
-    const handleOpenAssessment = async (session) => {
+    const handleOpenAssessment = async (session: Session) => {
         try {
             // Find if there's an existing log for this session
-            const { data: log } = await supabase
-                .from('counseling_logs')
+            const { data: log } = await (supabase
+                .from('counseling_logs') as any)
                 .select('id')
                 .eq('schedule_id', session.id)
                 .maybeSingle();
@@ -175,30 +211,35 @@ export function ConsultationList() {
     };
 
     // ✨ [수정 기능] 기존 평가 수정 
-    const handleEdit = (assess) => {
+    const handleEdit = (assess: DevelopmentAssessment) => {
         setEditingAssessmentId(assess.id);
         // 이미 log_id가 assessment에 들어있으므로 그것을 사용
         setSelectedSession({
-            children: assess.children || { id: assess.child_id, name: '아동' },
+            id: '', // Dummy ID required by type
+            child_id: assess.child_id,
+            status: 'completed', // Mock status
+            start_time: assess.created_at,
+            service_type: null,
+            children: assess.children || { id: assess.child_id, name: '아동', center_id: centerId || null },
             realLogId: assess.log_id,
-            therapist_id: assess.therapist_id // ✨ [Fix] 원래 작성자 ID 전달
+            therapist_id: assess.therapist_id || '' // ✨ [Fix] 원래 작성자 ID 전달
         });
         setIsAssessModalOpen(true);
     };
 
-    const handleDelete = async (assess) => {
+    const handleDelete = async (assess: DevelopmentAssessment) => {
         if (!confirm("정말 이 발달 평가를 삭제하시겠습니까?\n부모님 앱에서도 즉시 사라집니다.")) return;
 
         try {
             // 1. 평가 삭제
-            const { error: assessError } = await supabase.from('development_assessments').delete().eq('id', assess.id);
+            const { error: assessError } = await (supabase.from('development_assessments') as any).delete().eq('id', assess.id);
             if (assessError) throw assessError;
 
             // 2. 연결된 일지가 '발달 평가용 자동 생성 일지'라면 일지도 함께 삭제하여 깨끗하게 정리
             if (assess.log_id) {
-                const { data: log } = await supabase.from('counseling_logs').select('content').eq('id', assess.log_id).maybeSingle();
-                if (log?.content?.includes('발달 평가 작성을 위해 자동 생성')) {
-                    await supabase.from('counseling_logs').delete().eq('id', assess.log_id);
+                const { data: log } = await (supabase.from('counseling_logs') as any).select('content').eq('id', assess.log_id).maybeSingle();
+                if ((log as any)?.content?.includes('발달 평가 작성을 위해 자동 생성')) {
+                    await (supabase.from('counseling_logs') as any).delete().eq('id', assess.log_id);
                 }
             }
 
@@ -211,7 +252,7 @@ export function ConsultationList() {
     };
 
     // 평균 점수 계산
-    const calcAvg = (a) => {
+    const calcAvg = (a: DevelopmentAssessment) => {
         const scores = [a.score_communication, a.score_social, a.score_cognitive, a.score_motor, a.score_adaptive].filter(s => s !== null && s !== undefined);
         if (scores.length === 0) return 0;
         return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);

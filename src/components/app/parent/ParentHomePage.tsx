@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -10,8 +8,8 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { Progress } from "@/components/ui/progress"; // shadcn/ui 사용 가정
 import { Baby, MessageCircle, Brain, Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DevScoreProps {
     label: string;

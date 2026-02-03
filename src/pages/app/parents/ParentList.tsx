@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP
  * 🛠️ Created by: Gemini AI
@@ -15,18 +14,44 @@ import { Search, User, Shield, Ban, CheckCircle, Mail, RotateCcw, Trash2 } from 
 import { cn } from '@/lib/utils';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 
+// ✨ 부모 계정 상태 타입
+type ParentStatus = 'active' | 'blocked' | 'retired';
+
+// ✨ 필터 탭 타입
+type FilterTab = 'active' | 'blocked' | 'all';
+
+// ✨ 연결된 자녀 정보 타입
+interface ChildLink {
+    id: string;
+    name: string;
+}
+
+// ✨ 부모님 정보 인터페이스 (user_profiles 기반)
+export interface Parent {
+    id: string;                      // user_profiles.id (auth.users.id)
+    name: string;
+    email: string;
+    status: ParentStatus;
+    role: 'parent';
+    center_id: string;
+    created_at: string | null;
+    updated_at: string | null;
+    children: ChildLink[];           // 연결된 자녀 목록
+}
+
 export function ParentList() {
-    const [parents, setParents] = useState([]);
+    const [parents, setParents] = useState<Parent[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('active');
-    const { center } = useCenter(); // ✨ SaaS: Center Context
+    const [activeTab, setActiveTab] = useState<FilterTab>('active');
+    const { center } = useCenter();
 
     useEffect(() => {
         if (center?.id) fetchParents();
     }, [center?.id]);
 
     const fetchParents = async () => {
+        if (!center?.id) return;
         setLoading(true);
         try {
             // 1. Fetch all parents in this center (SaaS Logic)
@@ -38,6 +63,7 @@ export function ParentList() {
                 .order('name', { ascending: true });
 
             if (error) throw error;
+            const profileList = profiles as { id: string; name: string; email: string; status: string; center_id: string; created_at: string | null; updated_at: string | null }[] | null;
 
             // 2. [Improved] Get all Parent-Child connections for this center
             // This includes both direct (children.parent_id -> parents.id) 
@@ -45,41 +71,51 @@ export function ParentList() {
             const { data: familyLinks } = await supabase
                 .from('family_relationships')
                 .select('parent_id, child_id, children(name)')
-                .in('parent_id', profiles.map(p => p.id));
+                .in('parent_id', profileList?.map(p => p.id) || []);
+            const familyLinkList = familyLinks as { parent_id: string; child_id: string; children: { name: string } | null }[] | null;
 
             // Also get legacy links for compatibility
             const { data: parentsRecords } = await supabase
                 .from('parents')
                 .select('id, profile_id')
-                .in('profile_id', profiles.map(p => p.id));
+                .in('profile_id', profileList?.map(p => p.id) || []);
+            const parentsRecordList = parentsRecords as { id: string; profile_id: string }[] | null;
 
             const { data: legacyChildren } = await supabase
                 .from('children')
                 .select('id, name, parent_id')
-                .in('parent_id', parentsRecords?.map(pr => pr.id) || []);
+                .in('parent_id', parentsRecordList?.map(pr => pr.id) || []);
+            const legacyChildrenList = legacyChildren as { id: string; name: string; parent_id: string }[] | null;
 
             // 3. [Merge] Combine all sources of truth
-            const merged = (profiles || []).map(p => {
-                const parentRecord = parentsRecords?.find(pr => pr.profile_id === p.id);
+            const merged: Parent[] = (profileList || []).map(p => {
+                const parentRecord = parentsRecordList?.find(pr => pr.profile_id === p.id);
 
                 // Children from junction table
-                const junctionChildren = familyLinks
+                const junctionChildren = familyLinkList
                     ?.filter(l => l.parent_id === p.id)
-                    ?.map(l => ({ id: l.child_id, name: l.children?.name }));
+                    ?.map(l => ({ id: l.child_id, name: l.children?.name || '' })) || [];
 
                 // Children from legacy parent_ptr
                 const legacyMatched = parentRecord
-                    ? legacyChildren?.filter(c => c.parent_id === parentRecord.id)
+                    ? legacyChildrenList?.filter(c => c.parent_id === parentRecord.id) || []
                     : [];
 
                 // Unique set of children
-                const allChildrenMap = new Map();
-                [...(junctionChildren || []), ...(legacyMatched || [])].forEach(c => {
-                    if (c && c.id) allChildrenMap.set(c.id, c);
+                const allChildrenMap = new Map<string, ChildLink>();
+                [...junctionChildren, ...legacyMatched].forEach(c => {
+                    if (c && c.id) allChildrenMap.set(c.id, { id: c.id, name: c.name });
                 });
 
                 return {
-                    ...p,
+                    id: p.id,
+                    name: p.name,
+                    email: p.email,
+                    status: p.status as ParentStatus,
+                    role: 'parent' as const,
+                    center_id: p.center_id,
+                    created_at: p.created_at,
+                    updated_at: p.updated_at,
                     children: Array.from(allChildrenMap.values())
                 };
             });
@@ -91,7 +127,7 @@ export function ParentList() {
         }
     };
 
-    const handleToggleStatus = async (parent) => {
+    const handleToggleStatus = async (parent: Parent) => {
         const isBlocked = parent.status === 'blocked' || parent.status === 'retired';
         const newStatus = isBlocked ? 'active' : 'blocked';
         const confirmMsg = isBlocked
@@ -109,12 +145,13 @@ export function ParentList() {
             if (error) throw error;
             fetchParents();
         } catch (e) {
-            alert('상태 변경 실패: ' + e.message);
+            const errMsg = e instanceof Error ? e.message : '알 수 없는 오류';
+            alert('상태 변경 실패: ' + errMsg);
         }
     };
 
     // ✨ NEW: Delete Parent Function
-    const handleDeleteParent = async (parent) => {
+    const handleDeleteParent = async (parent: Parent) => {
         const confirmMsg = `⚠️ 정말 ${parent.name}님의 계정을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.\n삭제 후 해당 이메일로 다시 회원가입할 수 있습니다.`;
 
         if (!confirm(confirmMsg)) return;
@@ -131,21 +168,24 @@ export function ParentList() {
             // 2. Delete from auth.users via Database RPC (Secure)
             try {
                 // This calls the 'admin_delete_user' Postgres function we created
+                // @ts-expect-error - Supabase RPC types need regeneration
                 const { error: rpcError } = await supabase.rpc('admin_delete_user', { target_user_id: parent.id });
                 if (rpcError) throw rpcError;
             } catch (e) {
-                console.warn('Auth deletion warning:', e.message);
+                const warnMsg = e instanceof Error ? e.message : 'unknown';
+                console.warn('Auth deletion warning:', warnMsg);
                 // Even if RPC fails (e.g. already deleted), we proceed as user_profiles is gone
             }
 
             alert(`${parent.name}님의 계정이 삭제되었습니다.\n해당 이메일로 다시 회원가입이 가능합니다.`);
             fetchParents();
         } catch (e) {
-            alert('삭제 실패: ' + e.message);
+            const errMsg = e instanceof Error ? e.message : '알 수 없는 오류';
+            alert('삭제 실패: ' + errMsg);
         }
     };
 
-    const handleResetPasswordEmail = async (email) => {
+    const handleResetPasswordEmail = async (email: string) => {
         if (!confirm(`${email} 주소로 비밀번호 재설정 메일을 발송하시겠습니까?`)) return;
 
         try {
@@ -155,7 +195,8 @@ export function ParentList() {
             if (error) throw error;
             alert('재설정 메일이 발송되었습니다.');
         } catch (e) {
-            alert('메일 발송 실패: ' + e.message);
+            const errMsg = e instanceof Error ? e.message : '알 수 없는 오류';
+            alert('메일 발송 실패: ' + errMsg);
         }
     };
 

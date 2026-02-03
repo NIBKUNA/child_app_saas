@@ -1,5 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -11,11 +9,10 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useCenter } from '@/contexts/CenterContext';
@@ -71,6 +68,12 @@ const Icons = {
     )
 };
 
+interface NavItem {
+    name: string;
+    href: string;
+    external?: boolean;
+}
+
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -97,7 +100,7 @@ export function Header() {
 
     const basePath = center?.slug ? `/centers/${center.slug}` : '';
 
-    const navigation = [
+    const navigation: NavItem[] = [
         { name: '홈', href: basePath || '/' },
         { name: '센터 소개', href: `${basePath}/about` },
         { name: '프로그램', href: `${basePath}/programs` },
@@ -119,17 +122,17 @@ export function Header() {
                     {/* Left: Logo */}
                     <div className="z-10 flex items-center">
                         <Link to={basePath || '/'} className={cn("flex items-center gap-2 group")}>
-                            {branding.loading ? (
+                            {loading ? (
                                 <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
                             ) : branding.logo_url ? (
                                 <img
                                     src={branding.logo_url}
-                                    alt={branding.name}
+                                    alt={branding.name || ''}
                                     className="h-12 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                                     style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
                                 />
                             ) : (
-                                <span className="text-xl font-black tracking-tighter" style={{ color: branding.brand_color }}>
+                                <span className="text-xl font-black tracking-tighter" style={{ color: branding.brand_color || undefined }}>
                                     Zarada
                                 </span>
                             )}
@@ -174,7 +177,7 @@ export function Header() {
                                             animate={{
                                                 scaleX: isActive(item.href) ? 1 : 0,
                                                 opacity: isActive(item.href) ? 1 : 0,
-                                                backgroundColor: branding.brand_color
+                                                backgroundColor: branding.brand_color || undefined
                                             }}
                                             transition={{ type: "spring", stiffness: 350, damping: 30 }}
                                         />

@@ -1,22 +1,9 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
- * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
- * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
- * -----------------------------------------------------------
- * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
- * 예술적 영감을 바탕으로 구축되었습니다.
- */
-import { useState, useEffect, useRef } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Home, Sparkles, User, Calendar as CalendarIcon,
-    MessageSquare, ChevronLeft, ChevronRight, Activity, Info, Quote
+    Home, Sparkles, MessageSquare, Calendar as CalendarIcon, Info
 } from 'lucide-react';
+
 import { MessageCircle } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,10 +11,13 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 
+import type { Database } from '@/types/database.types';
+
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+
+
+
 // 📊 Recharts for Horizontal Bar Chart
-import {
-    BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList, Cell, Tooltip
-} from 'recharts';
 
 // 캘린더 라이브러리
 import FullCalendar from '@fullcalendar/react';
@@ -38,44 +28,69 @@ import koLocale from '@fullcalendar/core/locales/ko';
 
 import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyModal';
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
-import { DynamicHomeCareTips } from '@/components/public/DynamicHomeCareTips';
 import { Skeleton } from '@/components/common/Skeleton';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useCenter } from '@/contexts/CenterContext';
 
-// 🎨 Brand Colors for Chart
-const CHART_COLORS = [
-    '#6366f1', // Indigo - 의사소통
-    '#ec4899', // Pink - 사회성
-    '#8b5cf6', // Violet - 인지
-    '#f59e0b', // Amber - 운동
-    '#10b981', // Emerald - 적응
-];
+
+interface ChildInfo extends TableRow<'children'> { }
+
+interface LogContent extends TableRow<'counseling_logs'> {
+    therapists: { name: string | null } | null;
+    development_assessments: TableRow<'development_assessments'> | TableRow<'development_assessments'>[] | null;
+}
+
+/* [Clean] Removed as logs are no longer displayed on Home
+interface FormattedLog extends Partial<TableRow<'counseling_logs'>> {
+    id: string;
+    content: string;
+    domain_scores: Record<string, number | null> | null;
+    development_assessments?: TableRow<'development_assessments'> | TableRow<'development_assessments'>[] | null;
+    therapists?: { name: string | null } | null;
+}
+*/
+
+
+interface CalendarEvent {
+    id: string;
+    title: string;
+    start: string;
+    end: string;
+    backgroundColor: string;
+    borderColor: string;
+    textColor: string;
+    extendedProps: {
+        therapistColor: string;
+        therapistName: string | null | undefined;
+        status: string | null | undefined;
+    };
+}
+
 
 export function ParentHomePage() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { getSetting } = useAdminSettings();
     const { theme } = useTheme();
-    const { center } = useCenter(); // ✨ Fetch Center Context
+    const { center } = useCenter();
     const isDark = theme === 'dark';
-    const dateInputRef = useRef(null);
+
+
+
 
     // 상태 관리
-    const [childInfo, setChildInfo] = useState(null);
+    const [childInfo, setChildInfo] = useState<ChildInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSurveyOpen, setIsSurveyOpen] = useState(false);
 
-    const [calendarEvents, setCalendarEvents] = useState([]);
-    const [allLogs, setAllLogs] = useState([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [filterDate, setFilterDate] = useState('');
+    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+
     const [hasUpcomingConsultation, setHasUpcomingConsultation] = useState(false);
     const [showInvitationModal, setShowInvitationModal] = useState(false);
     // ✨ 관찰 일기 상태
     const [observationText, setObservationText] = useState('');
     const [savingObs, setSavingObs] = useState(false);
-    // ✨ 지능형 홈 케어 팁 상태
-    const [smartTips, setSmartTips] = useState([]);
+
+
 
     useEffect(() => {
         if (user?.id) fetchDashboardData();
@@ -87,6 +102,8 @@ export function ParentHomePage() {
             // ✨ [자녀 연결 감지] children + family_relationships 체크
             let child = null;
 
+            if (!user?.id) return;
+
             // 1. parents 테이블에서 프로필(user.id)에 해당하는 레코드 ID 찾기
             const { data: parentRecord } = await supabase
                 .from('parents')
@@ -94,12 +111,13 @@ export function ParentHomePage() {
                 .eq('profile_id', user.id)
                 .maybeSingle();
 
+
             // 2. children.parent_id (Legacy) 또는 family_relationships (New) 체크
             if (parentRecord) {
                 const { data: directChild } = await supabase
                     .from('children')
                     .select('*')
-                    .eq('parent_id', parentRecord.id)
+                    .eq('parent_id', (parentRecord as any).id)
                     .maybeSingle();
                 if (directChild) child = directChild;
             }
@@ -108,14 +126,17 @@ export function ParentHomePage() {
                 // 3. family_relationships 테이블에서 체크 (Junction)
                 const { data: relationship } = await supabase
                     .from('family_relationships')
-                    .select('child_id, children(*)')
-                    .eq('parent_id', user.id)
+                    .select('child_id, children:child_id(*)')
+                    .eq('parent_id', user?.id)
                     .maybeSingle();
 
-                if (relationship?.children) {
-                    child = relationship.children;
+                if ((relationship as any)?.children) {
+                    child = (relationship as any).children as unknown as ChildInfo;
                 }
             }
+
+
+
 
             if (child) {
                 setChildInfo(child);
@@ -125,18 +146,16 @@ export function ParentHomePage() {
                 const { data: schedules } = await supabase
                     .from('schedules')
                     .select(`
-                        id, date, start_time, end_time, status,
-                        programs (name),
+                        id, start_time, end_time, status, title,
                         therapists (name, color)
                     `)
                     .eq('child_id', child.id)
-                    // .neq('status', 'cancelled') // ✨ [User Request] 취소된 일정도 표시 (상태 구분)
-                    .order('date', { ascending: true });
+                    .order('start_time', { ascending: true });
 
                 if (schedules) {
-                    const events = schedules.map(s => ({
+                    const events: CalendarEvent[] = (schedules as any[]).map(s => ({
                         id: s.id,
-                        title: s.programs?.name || '수업',
+                        title: s.title || '수업',
                         start: s.start_time,
                         end: s.end_time,
                         backgroundColor: 'transparent',
@@ -152,21 +171,14 @@ export function ParentHomePage() {
 
                     // ✨ 다가오는 상담/평가 일정 확인
                     const today = new Date().toISOString();
-                    const nextConsult = schedules.find(s =>
+                    const nextConsult = (schedules as any[]).find(s =>
                         s.start_time > today &&
-                        (s.programs?.name?.includes('상담') || s.programs?.name?.includes('평가'))
+                        (s.title?.includes('상담') || s.title?.includes('평가'))
                     );
                     if (nextConsult) setHasUpcomingConsultation(true);
                 }
 
                 // 상담 일지 가져오기
-                // ✨ [FIX] 상담 일지(실제 성장 리포트) 가져오기
-                // consultations(문의)가 아닌 development_assessments(평가) + counseling_logs(내용) 조회
-                // 🚀 [Optimization] SQL 레벨에서 최신 2개만 가져오도록 최적화 (Comparison Logic용)
-                // 단, 전체 리스트가 필요하다면 limit을 없애야 하지만, 성능 문제 지적에 따라 limit을 적용함.
-                // 타임라인 슬라이더가 2개만 나오게 됨.
-                // ✨ [FIX] 상담 일지(counseling_logs)를 메인으로 조회하여, 평가서가 없어도 일지가 보이도록 수정
-                // Left Join: counseling_logs -> development_assessments
                 const { data: logs } = await supabase
                     .from('counseling_logs')
                     .select(`
@@ -187,60 +199,15 @@ export function ParentHomePage() {
                     .order('created_at', { ascending: false })
                     .limit(5); // Show last 5 logs
 
-                // UI에 맞게 데이터 매핑
-                const formattedLogs = logs?.map(log => {
-                    const assessment = log.development_assessments?.[0] || log.development_assessments; // Handle array or single object
+                // const castedLogs = logs as unknown as LogContent[];
+                /* [Clean] Removed as logs are no longer displayed on Home ... */
 
-                    return {
-                        ...log,
-                        // 콘텐츠 우선순위: 부모 피드백 -> 평가 상세 -> 일지 내용 -> 없음
-                        content: log.parent_feedback || assessment?.evaluation_content || log.content || '작성된 내용이 없습니다.',
-                        // 평가 점수가 있으면 매핑, 없으면 null (그래프 숨김 처리)
-                        domain_scores: assessment ? {
-                            '의사소통': assessment.score_communication,
-                            '사회성': assessment.score_social,
-                            '인지': assessment.score_cognitive,
-                            '운동': assessment.score_motor,
-                            '적응': assessment.score_adaptive
-                        } : null
-                    };
-                });
-                setAllLogs(formattedLogs || []);
 
-                // ✨ [Smart Logic] 최신 평가 기반 취약 영역 분석 및 팁 추천 (Removed, now handled by DynamicHomeCareTips)
-                // if (formattedLogs && formattedLogs.length > 0) {
-                //     const latest = formattedLogs[0];
-                //     const scores = {
-                //         'communication': latest.score_communication || 0,
-                //         'social': latest.score_social || 0,
-                //         'cognitive': latest.score_cognitive || 0,
-                //         'motor': latest.score_motor || 0,
-                //         'adaptive': latest.score_adaptive || 0
-                //     };
 
-                //     // 점수가 가장 낮은 영역 찾기 (여러 개일 경우 첫 번째)
-                //     const sortedDomains = Object.entries(scores).sort(([, a], [, b]) => a - b);
-                //     const lowestDomain = sortedDomains[0][0]; // e.g., 'social'
-
-                //     console.log('🔍 [Smart Analysis] Lowest Domain:', lowestDomain);
-
-                //     // 해당 영역의 팁 가져오기 (DB 연동)
-                //     const { data: tips } = await supabase
-                //         .from('home_care_tips')
-                //         .select('*')
-                //         .eq('category', lowestDomain)
-                //         .limit(2);
-
-                //     setSmartTips(tips || []);
-                // }
 
             } else {
                 // ✨ [초대 코드 모달] 연결된 자녀가 없고 '부모' 권한일 때만 모달 표시
-                // 슈퍼 어드민이나 치료사는 굳이 이 모달을 볼 필요가 없음
                 const isParent = user?.user_metadata?.role === 'parent' || user?.role === 'parent';
-                // Note: AuthContext might not have role fully set yet if we use user object directly, 
-                // but we can trust checking context role if available. 
-                // Ideally we use the 'role' from useAuth() hook.
                 if (isParent) {
                     setShowInvitationModal(true);
                 }
@@ -252,37 +219,36 @@ export function ParentHomePage() {
         }
     };
 
-    const handleDateChange = (e) => {
-        const date = e.target.value;
-        if (!date) return;
-        setFilterDate(date);
-        const foundIndex = allLogs.findIndex(log => log.created_at.startsWith(date));
-        if (foundIndex !== -1) setCurrentIndex(foundIndex);
-    };
-    const nextSlide = () => { if (currentIndex < allLogs.length - 1) setCurrentIndex(prev => prev + 1); };
-    const prevSlide = () => { if (currentIndex > 0) setCurrentIndex(prev => prev - 1); };
+
+
+
 
     // ✨ 관찰 일기 저장 핸들러
     const handleSaveObservation = async () => {
         if (!observationText.trim() || !childInfo?.id || !user?.id) return;
         setSavingObs(true);
         try {
-            const { error } = await supabase.from('parent_observations').insert({
+            const payload = {
                 parent_id: user.id,
                 child_id: childInfo.id,
                 content: observationText.trim(),
                 observation_date: new Date().toISOString().split('T')[0]
-            });
+            };
+            const { error } = await supabase.from('parent_observations').insert(payload as any);
             if (error) throw error;
             alert('관찰 일기가 저장되었습니다! 🌟');
             setObservationText('');
-        } catch (e) {
-            console.error(e);
-            alert('저장 중 오류가 발생했습니다.');
+        } catch (e: any) {
+            alert('저장 실패: ' + e.message);
         } finally {
             setSavingObs(false);
         }
     };
+
+
+
+
+
 
     if (loading) {
         return (
@@ -314,6 +280,7 @@ export function ParentHomePage() {
 
     const kakaoUrl = getSetting('kakao_url');
 
+
     return (
         <div className={cn("min-h-screen font-sans pb-20 transition-colors", isDark ? "bg-slate-950 text-slate-100" : "bg-[#FDFCFB] text-[#1e293b]")}>
             {/* 🚀 [SEO] Global SEOHead가 적용되므로 하드코딩 Helmet 삭제됨 */}
@@ -321,16 +288,17 @@ export function ParentHomePage() {
             <ConsultationSurveyModal
                 isOpen={isSurveyOpen}
                 onClose={() => setIsSurveyOpen(false)}
-                centerId={childInfo?.center_id} // ✨ Pass centerId from childInfo
+                centerId={childInfo?.center_id || ''} // ✨ Pass centerId from childInfo
                 initialData={{
-                    childName: childInfo?.name,
-                    childBirthDate: childInfo?.birth_date,
-                    childGender: childInfo?.gender,
-                    childId: childInfo?.id,
+                    childName: childInfo?.name || '',
+                    childBirthDate: childInfo?.birth_date || '',
+                    childGender: childInfo?.gender as any || 'other',
+                    childId: childInfo?.id || '',
                     guardianName: user?.user_metadata?.name || '',
                     guardianPhone: user?.phone || ''
                 }}
             />
+
 
             {/* ✨ 초대 코드 입력 모달 (연결된 자녀 없을 시) */}
             <InvitationCodeModal
@@ -340,8 +308,9 @@ export function ParentHomePage() {
                     alert(`🎉 ${childName} 어린이와 성공적으로 연결되었습니다!`);
                     fetchDashboardData();
                 }}
-                parentId={user?.id}
+                parentId={user?.id || ''}
             />
+
 
             <nav className={cn(
                 "sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b shadow-sm",
@@ -413,36 +382,67 @@ export function ParentHomePage() {
                 </div>
             </header>
 
-            {/* Mood Check Banner */}
-            <div className="max-w-4xl mx-auto px-4 -mt-8 relative z-20">
+            {/* Mood Check Banner & Observation */}
+            <div className="max-w-4xl mx-auto px-4 -mt-8 relative z-20 space-y-4">
                 <div className={cn(
-                    "rounded-[28px] p-6 shadow-lg border flex items-center justify-between",
+                    "rounded-[28px] p-6 shadow-lg border flex flex-col md:flex-row items-center justify-between gap-6",
                     isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-indigo-100/30"
                 )}>
-                    <div className="flex items-center gap-4">
-                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-2xl", isDark ? "bg-amber-900/30" : "bg-amber-50")}>☀️</div>
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0", isDark ? "bg-amber-900/30" : "bg-amber-50")}>☀️</div>
                         <div>
                             <p className={cn("text-sm font-black", isDark ? "text-white" : "text-slate-800")} style={{ wordBreak: 'keep-all' }}>
                                 오늘 {childInfo?.name}의 컨디션은 어떤가요?
                             </p>
-                            <p className={cn("text-xs font-medium", isDark ? "text-slate-500" : "text-slate-400")}>가정에서의 상태를 기록해보세요</p>
+                            <p className={cn("text-xs font-medium", isDark ? "text-slate-500" : "text-slate-400")}>가정에서의 관찰 일기를 남겨주세요</p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        {['😊', '😐', '😢'].map((emoji, idx) => (
-                            <button
-                                key={idx}
-                                className={cn(
-                                    "w-11 h-11 rounded-xl hover:scale-110 transition-all text-xl border",
-                                    isDark ? "bg-slate-800 hover:bg-indigo-900 border-slate-700" : "bg-slate-50 hover:bg-indigo-50 border-slate-100"
-                                )}
-                            >
-                                {emoji}
-                            </button>
-                        ))}
+                    <div className="w-full md:w-auto flex flex-col gap-3">
+                        <div className="flex gap-2 justify-center">
+                            {['😊', '😐', '😢'].map((emoji, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setObservationText(prev => prev + emoji)}
+                                    className={cn(
+                                        "w-11 h-11 rounded-xl hover:scale-110 transition-all text-xl border",
+                                        isDark ? "bg-slate-800 hover:bg-indigo-900 border-slate-700" : "bg-slate-50 hover:bg-indigo-50 border-slate-100"
+                                    )}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className={cn(
+                    "rounded-[28px] p-6 shadow-lg border space-y-4",
+                    isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-indigo-100/30"
+                )}>
+                    <textarea
+                        value={observationText}
+                        onChange={(e) => setObservationText(e.target.value)}
+                        placeholder="오늘 우리 아이는 어땠나요? 선생님께 전달할 관찰 내용을 적어보세요..."
+                        className={cn(
+                            "w-full h-24 p-4 rounded-2xl text-sm border focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none",
+                            isDark ? "bg-slate-800 border-slate-700 text-white placeholder:text-slate-500" : "bg-slate-50 border-slate-100 text-slate-800 placeholder:text-slate-400"
+                        )}
+                    />
+                    <div className="flex justify-end">
+                        <button
+                            onClick={handleSaveObservation}
+                            disabled={savingObs || !observationText.trim()}
+                            className={cn(
+                                "px-6 py-2 rounded-xl text-sm font-black transition-all flex items-center gap-2 shadow-md",
+                                savingObs ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90 active:scale-95"
+                            )}
+                        >
+                            {savingObs ? '저장 중...' : '기록 저장하기'}
+                        </button>
                     </div>
                 </div>
             </div>
+
 
             <main className="max-w-4xl mx-auto p-4 md:p-8 space-y-12 mt-8">
 
@@ -569,9 +569,9 @@ export function ParentHomePage() {
                                     </div>
                                 );
                             }}
-                            eventClick={(info) => alert(`${childInfo?.name} 아동\n${info.event.title}\n시간: ${info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
-                            noEventsContent="예정된 수업이 없습니다."
+                            eventClick={(info) => alert(`${childInfo?.name} 아동\n${info.event.title}\n시간: ${info.event.start?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
                         />
+
                     </div>
                 </section>
 

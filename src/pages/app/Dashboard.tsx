@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -16,22 +15,65 @@ import { useAuth } from '@/contexts/AuthContext'; // ✨ Import useAuth
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
-import * as XLSX from 'xlsx';
 import { generateIntegratedReport } from '@/utils/reportGenerator';
 import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import {
-    Users, Calendar, TrendingUp, DollarSign,
-    ArrowUpRight, ArrowDownRight, Activity, PieChart as PieIcon,
-    ChevronRight, ChevronLeft, Search, MapPin, Share2, Heart,
-    Stethoscope, ClipboardCheck, BarChart3, Crown, ThumbsUp, Smartphone, Globe, Lightbulb, BookOpen, Quote,
-    Download, FileSpreadsheet, FileText
+    Crown, FileSpreadsheet
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-    AreaChart, Area, PieChart, Pie, Cell, Legend, LineChart, Line, ComposedChart, LabelList
+    AreaChart, Area, PieChart, Pie, Cell, Legend, Line, ComposedChart, LabelList
 } from 'recharts';
 import { useTheme } from '@/contexts/ThemeProvider';
+
+interface DashboardSchedule {
+    id: string;
+    start_time: string;
+    status: string;
+    child_id: string;
+    service_type: string | null;
+    children: {
+        id: string;
+        name: string;
+        gender: string | null;
+        birth_date: string | null;
+        center_id: string | null;
+    };
+    therapists: {
+        name: string;
+    } | null;
+}
+
+interface DashboardChild {
+    id: string;
+    name: string;
+    gender: string | null;
+    birth_date: string | null;
+    created_at: string;
+}
+
+interface DashboardPayment {
+    amount: number;
+    child_id: string | null;
+    paid_at: string | null;
+}
+
+interface SiteVisit {
+    source_category: string | null;
+    visited_at: string;
+    referrer_url: string | null;
+    page_url: string | null;
+}
+
+interface DashboardLead {
+    id: string;
+    marketing_source: string | null;
+    inflow_source: string | null;
+    status: string | null;
+    created_at: string | null;
+    child_id: string | null;
+}
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
 const AGE_COLORS = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF', '#FFCD56'];
@@ -144,7 +186,7 @@ const SvgIcons = {
     ),
 };
 
-const KpiCard = ({ title, value, icon, trend, trendUp, color, bg, border }) => (
+const KpiCard = ({ title, value, icon, trend, trendUp, color, bg, border }: { title: string; value: string; icon: any; trend: string; trendUp: boolean; color: string; bg: string; border: string }) => (
     <div className={`p-6 rounded-3xl border ${border} ${bg} relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-white/30 dark:from-white/5 dark:to-white/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
         <div className="flex justify-between items-start mb-6">
@@ -165,25 +207,9 @@ const KpiCard = ({ title, value, icon, trend, trendUp, color, bg, border }) => (
     </div>
 );
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        const data = payload[0].payload;
-        return (
-            <div className="bg-white/95 dark:bg-slate-900/95 border border-slate-100 dark:border-slate-800 p-3 rounded-xl shadow-lg backdrop-blur-md text-left">
-                <p className="font-bold text-slate-900 dark:text-white mb-1 leading-tight text-sm">{data.fullName || label}</p>
-                <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                    <p className="text-blue-600 dark:text-blue-400 font-bold text-sm">
-                        조회수: {data.value.toLocaleString()}회
-                    </p>
-                </div>
-            </div>
-        );
-    }
-    return null;
-};
 
-const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", brandColor = '#4f46e5' }) => (
+
+const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; brandColor?: string }) => (
     <div className={`bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
         <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3 relative z-10 text-left">
             <div
@@ -200,7 +226,7 @@ const ChartContainer = ({ title, icon, children, className = "", innerHeight = "
     </div>
 );
 
-const ChannelGridCard = ({ channel, totalInflow }) => {
+const ChannelGridCard = ({ channel, totalInflow }: { channel: any; totalInflow: number }) => {
     const percent = totalInflow > 0 ? ((channel.value / totalInflow) * 100).toFixed(1) : '0.0';
     return (
         <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:border-indigo-100 dark:hover:border-indigo-900 transition-all text-left">
@@ -227,7 +253,7 @@ const ChannelGridCard = ({ channel, totalInflow }) => {
 };
 
 export function Dashboard() {
-    const { isSuperAdmin, canExportData, canViewRevenue, theme } = useTheme();
+    const { isSuperAdmin, theme } = useTheme();
     const isDark = theme === 'dark';
     const tooltipProps = getTooltipProps(isDark);
     const operationsRef = useRef<HTMLDivElement>(null);
@@ -250,17 +276,17 @@ export function Dashboard() {
     const { branding } = useCenterBranding();
     const BRAND_COLOR = branding?.brand_color || '#6366f1';
 
-    const [revenueData, setRevenueData] = useState([]);
-    const [statusData, setStatusData] = useState([]);
-    const [therapistData, setTherapistData] = useState([]);
-    const [conversionData, setConversionData] = useState([]);
-    const [marketingData, setMarketingData] = useState([]);
+    const [revenueData, setRevenueData] = useState<{ name: string; value: number }[]>([]);
+    const [statusData, setStatusData] = useState<{ name: string; value: number; color: string }[]>([]);
+    const [therapistData, setTherapistData] = useState<{ name: string; value: number }[]>([]);
+    const [conversionData, setConversionData] = useState<{ name: string; consults: number; converted: number; rate: number }[]>([]);
+    const [marketingData, setMarketingData] = useState<{ cat: string; name: string; value: number; color: string }[]>([]);
     const [totalInflow, setTotalInflow] = useState(0);
-    const [bestChannel, setBestChannel] = useState({ name: '-', value: 0 });
-    const [programData, setProgramData] = useState([]);
-    const [ageData, setAgeData] = useState([]);
-    const [genderData, setGenderData] = useState([]);
-    const [topChildren, setTopChildren] = useState([]);
+    const [bestChannel, setBestChannel] = useState<{ name: string; value: number }>({ name: '-', value: 0 });
+    const [programData, setProgramData] = useState<{ name: string; value: number }[]>([]);
+    const [ageData, setAgeData] = useState<{ name: string; value: number }[]>([]);
+    const [genderData, setGenderData] = useState<{ name: string; value: number }[]>([]);
+    const [topChildren, setTopChildren] = useState<{ name: string; value: number }[]>([]);
     const [channelConversionData, setChannelConversionData] = useState<{ name: string; total: number; converted: number; rate: number; color: string }[]>([]);
     const [campaignData, setCampaignData] = useState<{ name: string; value: number }[]>([]); // ✨ Campaign Performance
     const [avgLeadTime, setAvgLeadTime] = useState(0); // ✨ Lead Velocity (Days)
@@ -295,30 +321,30 @@ export function Dashboard() {
             }
 
             // ✨ [SECURITY] Enforce Center ID Filter using Inner Join on Children
-            const { data: allSchedules } = await supabase
-                .from('schedules')
+            const { data: allSchedules } = await (supabase
+                .from('schedules') as any)
                 .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name)`)
                 .eq('children.center_id', center.id)
                 .order('start_time', { ascending: true });
 
             // ✨ [SECURITY] Fetch Children only for this center
-            const { data: existingChildren } = await supabase
-                .from('children')
+            const { data: existingChildren } = await (supabase
+                .from('children') as any)
                 .select('id, name, gender, birth_date, created_at')
                 .eq('center_id', center.id); // 🔒 Security Filter
 
-            const validChildIds = new Set(existingChildren?.map(c => c.id) || []);
+            const validChildIds = new Set((existingChildren as DashboardChild[])?.map(c => c.id) || []);
 
             // ✨ [FIX] Build set of child_ids that have completed schedules
             const childrenWithCompletedSchedules = new Set<string>();
-            allSchedules?.forEach(s => {
+            (allSchedules as DashboardSchedule[])?.forEach(s => {
                 if (s.status === 'completed' && s.child_id) {
                     childrenWithCompletedSchedules.add(s.child_id);
                 }
             });
 
-            const { data: allPayments } = await supabase
-                .from('payments')
+            const { data: allPayments } = await (supabase
+                .from('payments') as any)
                 .select('amount, child_id, paid_at')
                 .in('child_id', [...validChildIds]); // 🔒 Security Filter
 
@@ -334,7 +360,7 @@ export function Dashboard() {
             const childContribMap: Record<string, number> = {};
 
             // Payment Processing (Revenue)
-            allPayments?.forEach(p => {
+            (allPayments as DashboardPayment[])?.forEach(p => {
                 if (p.paid_at && p.child_id && validChildIds.has(p.child_id) && childrenWithCompletedSchedules.has(p.child_id)) {
                     const m = (p.paid_at as string).slice(0, 7);
                     if (monthlyRevMap[m] !== undefined) monthlyRevMap[m] += (p.amount || 0);
@@ -342,7 +368,7 @@ export function Dashboard() {
             });
 
             // Schedule Processing
-            allSchedules?.forEach(s => {
+            (allSchedules as DashboardSchedule[])?.forEach(s => {
                 if (s.start_time && s.start_time.startsWith(selectedMonth)) {
                     // Status
                     if (s.status === 'completed') statusMap.completed++;
@@ -368,7 +394,7 @@ export function Dashboard() {
             });
 
             // Demographics (from existingChildren)
-            existingChildren?.forEach(c => {
+            (existingChildren as DashboardChild[])?.forEach(c => {
                 // ✨ [FIX] Match actual DB values: '남' or '여' (not '남아'/'여아')
                 if (c.gender === '남' || c.gender === '남아') mCount++;
                 else if (c.gender === '여' || c.gender === '여아') fCount++;
@@ -420,13 +446,14 @@ export function Dashboard() {
             };
             const blogTrafficMap: Record<string, Record<string, number>> = {}; // ✨ Blog Traffic Aggregation
 
-            siteVisits?.forEach((v: any) => {
+            siteVisits?.forEach((v: SiteVisit) => {
                 let cat = v.source_category || 'Others';
 
                 // ✨ [Enhancement] Break down 'Others' using referrer domain
                 if (v.referrer_url) {
                     try {
                         const url = new URL(v.referrer_url);
+
                         const hostname = url.hostname.replace('www.', '');
 
                         // 1. Exclude Dev/Infra Domains & Internal
@@ -461,12 +488,12 @@ export function Dashboard() {
                 }
 
                 // ✨ [Blog Analytics] Aggregate traffic per blog post (Exclude Direct entries with NO info)
-                const isBlog = v.page_url && v.page_url.includes('/blog/');
+                const isBlog = v.page_url?.includes('/blog/') ?? false;
                 const hasInfo = cat !== 'Direct' || v.referrer_url;
 
                 if (isBlog && hasInfo) {
                     try {
-                        const parts = v.page_url.split('/blog/');
+                        const parts = v.page_url!.split('/blog/');
                         if (parts.length > 1) {
                             const slug = parts[1].split('?')[0];
                             if (slug) {
@@ -537,7 +564,7 @@ export function Dashboard() {
             let leadTimeTotal = 0;
             let leadTimeCount = 0;
 
-            allLeads?.forEach((lead: any) => {
+            allLeads?.forEach((lead: DashboardLead) => {
                 if (lead.created_at) {
                     const m = (lead.created_at as string).slice(0, 7);
 
@@ -560,9 +587,9 @@ export function Dashboard() {
                     // This requires finding a schedule for the same child_id or name
                     // (Simplified logic: time to first schedule after lead date)
                     if (lead.child_id && lead.created_at) {
-                        const firstSchedule = allSchedules?.find(s =>
+                        const firstSchedule = (allSchedules as DashboardSchedule[])?.find(s =>
                             s.child_id === lead.child_id &&
-                            new Date(s.start_time) > new Date(lead.created_at)
+                            new Date(s.start_time) > new Date(lead.created_at!)
                         );
                         if (firstSchedule) {
                             const diffDays = Math.ceil((new Date(firstSchedule.start_time).getTime() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24));
@@ -629,7 +656,7 @@ export function Dashboard() {
             setChannelConversionData(channelConvArr);
 
             // ✨ [NEW CHILDREN KPI] Count children registered in the selected month
-            const newCount = existingChildren?.filter(c =>
+            const newCount = (existingChildren as DashboardChild[])?.filter(c =>
                 c.created_at && (c.created_at as string).startsWith(selectedMonth)
             ).length || 0;
 
@@ -727,19 +754,19 @@ export function Dashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={revenueData} margin={{ top: 80, right: 30, left: 20 }}>
+                                <AreaChart data={revenueData} margin={{ top: 80, right: 30, left: 20, bottom: 0 }}>
                                     <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={v => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v} />
-                                    <RechartsTooltip {...tooltipProps} formatter={val => [`₩${val.toLocaleString()}`, '매출']} />
+                                    <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`₩${val?.toLocaleString?.() ?? 0}`, '매출']} />
                                     <Area type="monotone" dataKey="value" stroke={BRAND_COLOR} strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80 }}>
+                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
                                         {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                                     </Pie>
@@ -755,9 +782,9 @@ export function Dashboard() {
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                 <XAxis type="number" hide />
                                 <YAxis dataKey="name" type="category" width={100} tick={{ fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                <RechartsTooltip {...tooltipProps} formatter={val => [`₩${val.toLocaleString()}`, '매출']} />
+                                <RechartsTooltip formatter={(val: any) => [`${val?.toLocaleString?.() ?? 0}원`, '매출']} {...tooltipProps} />
                                 <Bar dataKey="value" fill={BRAND_COLOR} radius={[0, 8, 8, 0]} barSize={32}>
-                                    <LabelList dataKey="value" position="right" formatter={v => `₩${v.toLocaleString()}`} style={{ fontWeight: 'bold', fill: '#64748b' }} />
+                                    <LabelList dataKey="value" position="right" formatter={(v: any) => `₩${(v || 0).toLocaleString()}`} style={{ fontWeight: 'bold', fill: '#64748b' }} />
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
@@ -781,9 +808,9 @@ export function Dashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80 }}>
-                                    <Pie data={programData} innerRadius={50} outerRadius={80} dataKey="value" stroke="none" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
-                                        {programData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
+                                    <Pie data={programData} innerRadius={50} outerRadius={80} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
+                                        {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                     </Pie>
                                     <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} iconSize={8} />
                                 </PieChart>
@@ -791,9 +818,9 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80 }}>
+                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={ageData} innerRadius={50} outerRadius={70} dataKey="value" stroke="none">
-                                        {ageData.map((e, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
+                                        {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
                                     </Pie>
                                     <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} iconSize={8} />
                                 </PieChart>
@@ -801,8 +828,8 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80 }}>
-                                    <Pie data={genderData} outerRadius={60} dataKey="value" stroke="none" label={({ name }) => name}>
+                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
+                                    <Pie data={genderData} outerRadius={60} dataKey="value" stroke="none" label={({ name }: any) => name}>
                                         <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
                                     </Pie>
                                     <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
@@ -811,7 +838,7 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={topChildren} layout="vertical" margin={{ top: 80, right: 30, left: 10 }}>
+                                <BarChart data={topChildren} layout="vertical" margin={{ top: 80, right: 30, left: 10, bottom: 0 }}>
                                     <XAxis type="number" hide /><YAxis dataKey="name" type="category" width={60} axisLine={false} tickLine={false} />
                                     <RechartsTooltip {...tooltipProps} /><Bar dataKey="value" fill="#ec4899" radius={[0, 6, 6, 0]} />
                                 </BarChart>
@@ -876,7 +903,7 @@ export function Dashboard() {
                                                     outerRadius={75}
                                                     paddingAngle={5}
                                                     stroke="none"
-                                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                                                    label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
                                                 >
                                                     {channelConversionData.map((entry, index) => (
                                                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -916,7 +943,7 @@ export function Dashboard() {
                                                     channel.rate >= 25 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400' :
                                                         'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                                                     }`}>
-                                                    {channel.rate}%
+                                                    {channel.rate ?? 0}%
                                                 </div>
                                             </div>
                                         ))}

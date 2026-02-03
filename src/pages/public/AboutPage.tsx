@@ -1,10 +1,3 @@
-// @ts-nocheck
-/* eslint-disable */
-/**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
- */
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -58,15 +51,16 @@ export function AboutPage() {
     // ✨ [Anti-Flicker] Prevent showing hardcoded defaults before branding/settings are ready
     if (loading) return null;
 
-    const centerName = branding.name || center?.name || '아동발달센터';
+    const centerName = branding?.name || center?.name || '아동발달센터';
 
-    const introText = branding.settings?.about_intro_text || getSetting('about_intro_text') || `아이는 믿는 만큼 자라고, 사랑받는 만큼 행복해집니다.\n${centerName}는 아이들의 건강한 성장을 위해 진심을 다합니다.`;
-    const mainImage = branding.settings?.about_main_image || getSetting('about_main_image');
-    const descTitle = branding.settings?.about_desc_title || getSetting('about_desc_title') || "따뜻한 시선으로\n아이의 잠재력을 발굴합니다";
-    const descBody = branding.settings?.about_desc_body || getSetting('about_desc_body') || `${centerName}는 각 분야별 석/박사 출신의 전문 치료진들이 협력하여 아동 개개인에게 최적화된 맞춤 치료 프로그램을 제공합니다.\n\n단순히 증상을 개선하는 것을 넘어, 아이가 스스로 긍정적인 자아를 형성하고 세상과 소통하며 행복하게 살아갈 수 있도록 돕는 것이 우리의 목표입니다.`;
+    const introText = branding?.settings?.about_intro_text || getSetting('about_intro_text') || `아이는 믿는 만큼 자라고, 사랑받는 만큼 행복해집니다.\n${centerName}는 아이들의 건강한 성장을 위해 진심을 다합니다.`;
+    const mainImage = branding?.settings?.about_main_image || getSetting('about_main_image');
+    const descTitle = branding?.settings?.about_desc_title || getSetting('about_desc_title') || "따뜻한 시선으로\n아이의 잠재력을 발굴합니다";
+    const descBody = branding?.settings?.about_desc_body || getSetting('about_desc_body') || `${centerName}는 각 분야별 석/박사 출신의 전문 치료진들이 협력하여 아동 개개인에게 최적화된 맞춤 치료 프로그램을 제공합니다.\n\n단순히 증상을 개선하는 것을 넘어, 아이가 스스로 긍정적인 자아를 형성하고 세상과 소통하며 행복하게 살아갈 수 있도록 돕는 것이 우리의 목표입니다.`;
 
-    const galleryRaw = branding.settings?.about_gallery || getSetting('about_gallery');
-    const galleryImages = galleryRaw ? galleryRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const galleryRaw = branding?.settings?.about_gallery || getSetting('about_gallery' as any);
+    const galleryImages = typeof galleryRaw === 'string' ? galleryRaw.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+
 
     const values = [
         { icon: Icons.award, title: "검증된 전문성", desc: "석/박사급 치료진의 체계적 접근", color: isDark ? "bg-slate-800" : "bg-white", brandColor: true },
@@ -79,9 +73,10 @@ export function AboutPage() {
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-slate-950" : "bg-[#F8FAFC]")}>
             <Helmet>
                 <title>센터 소개 - {centerName}</title>
+                <meta name="description" content={introText.slice(0, 160)} />
             </Helmet>
 
-            <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: branding.brand_color }}>
+            <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: branding?.brand_color || undefined }}>
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
 
@@ -99,7 +94,7 @@ export function AboutPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-16">
                         {values.map((item, idx) => (
                             <motion.div key={idx} className={cn("rounded-[28px] p-6 text-center border", isDark ? "bg-slate-900 border-slate-800 shadow-lg" : "bg-white border-slate-100 shadow-lg shadow-slate-100")} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }}>
-                                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mx-auto", item.color)} style={item.brandColor ? { backgroundColor: branding.brand_color + '10', color: branding.brand_color } : undefined}>
+                                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-4 mx-auto", item.color)} style={item.brandColor ? { backgroundColor: (branding?.brand_color || '#000') + '10', color: branding?.brand_color || undefined } : undefined}>
                                     {item.icon("w-7 h-7")}
                                 </div>
                                 <h3 className={cn("font-black text-sm mb-1", isDark ? "text-white" : "text-slate-800")}>{item.title}</h3>
@@ -117,7 +112,7 @@ export function AboutPage() {
                             <div className="p-10 md:p-16 flex flex-col justify-center space-y-6">
                                 <h2 className={cn("text-3xl font-black tracking-[-0.05em] leading-tight whitespace-pre-line", isDark ? "text-white" : "text-slate-900")}>{descTitle}</h2>
                                 <p className={cn("font-medium leading-relaxed whitespace-pre-line", isDark ? "text-slate-400" : "text-slate-500")}>{descBody}</p>
-                                <Link to={getSetting('about_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')} className="inline-flex items-center gap-2 font-bold text-sm hover:underline mt-4" style={{ color: branding.brand_color }}>
+                                <Link to={getSetting('about_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')} className="inline-flex items-center gap-2 font-bold text-sm hover:underline mt-4" style={{ color: branding?.brand_color || undefined }}>
                                     {getSetting('about_cta_text') || '상담 예약하기'} {Icons.arrowRight("w-4 h-4")}
                                 </Link>
                             </div>

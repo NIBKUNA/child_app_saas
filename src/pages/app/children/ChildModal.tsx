@@ -1,5 +1,4 @@
-// @ts-nocheck
-/* eslint-disable */
+
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
@@ -15,9 +14,55 @@ import { supabase } from '@/lib/supabase';
 import { X, Loader2, Save, Trash2, UserCheck, AlertCircle, Mail } from 'lucide-react';
 import { InvitationCodeAlert } from '@/components/InvitationCodeAlert';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useCenter } from '@/contexts/CenterContext';
 
-export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
+// ✨ 아동 모달 Props 타입
+interface ChildModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    childId: string | null;
+    onSuccess: () => void;
+}
+
+// ✨ 아동 폼 데이터 타입 (UI 용)
+interface ChildFormData {
+    name: string;
+    registration_number: string;
+    birth_date: string;
+    gender: '남' | '여';           // UI에서의 성별 표시
+    diagnosis: string;
+    guardian_name: string;
+    contact: string;
+    center_id: string;
+}
+
+// ✨ Supabase 저장용 데이터 타입
+interface ChildSubmissionData {
+    name: string;
+    registration_number: string | null;
+    birth_date: string | null;
+    gender: 'male' | 'female';   // DB Enum
+    diagnosis: string | null;
+    guardian_name: string | null;
+    contact: string | null;
+    center_id: string;
+}
+
+// ✨ 아동 정보 응답 타입 (Supabase)
+interface ChildData {
+    id: string;
+    name: string;
+    registration_number: string | null;
+    birth_date: string | null;
+    gender: 'male' | 'female' | null;
+    diagnosis: string | null;
+    guardian_name: string | null;
+    contact: string | null;
+    center_id: string;
+    invitation_code: string | null;
+}
+
+export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalProps) {
     const [loading, setLoading] = useState(false);
     const { center } = useCenter(); // ✨ Use center
     const centerId = center?.id;
@@ -25,7 +70,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     const [showCodeAlert, setShowCodeAlert] = useState(false);
     const [newChildCode, setNewChildCode] = useState('');
     const [newChildName, setNewChildName] = useState('');
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<ChildFormData>({
         name: '',
         registration_number: '',
         birth_date: '',
@@ -52,47 +97,49 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
     // ✨ [Removed] fetchParentAccounts logic
 
     const loadChild = async () => {
-        const { data, error } = await supabase.from('children').select('*').eq('id', childId).single();
-        if (data) {
+        const { data, error } = await supabase.from('children').select('*').eq('id', childId!).single();
+        const childData = data as ChildData | null;
+        if (childData) {
             setFormData({
-                ...data,
-                // ✨ [FIX] Ensure no null values for inputs (Controlled Components)
-                registration_number: data.registration_number || '',
-                birth_date: data.birth_date || '',
-                diagnosis: data.diagnosis || '',
-                guardian_name: data.guardian_name || '',
-                contact: data.contact || '',
-                gender: data.gender === 'male' ? '남' : '여' // ✨ [FIX] Map back to UI terms
+                name: childData.name,
+                registration_number: childData.registration_number || '',
+                birth_date: childData.birth_date || '',
+                diagnosis: childData.diagnosis || '',
+                guardian_name: childData.guardian_name || '',
+                contact: childData.contact || '',
+                gender: childData.gender === 'male' ? '남' : '여',
+                center_id: childData.center_id
             });
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!centerId) return alert('센터 정보가 없습니다.');
         setLoading(true);
 
         try {
-            const submissionData = {
+            const submissionData: ChildSubmissionData = {
                 name: formData.name,
                 registration_number: formData.registration_number || null,
                 birth_date: formData.birth_date || null,
-                gender: formData.gender === '남' ? 'male' : 'female', // ✨ [FIX] Map to DB Enum
+                gender: formData.gender === '남' ? 'male' : 'female',
                 diagnosis: formData.diagnosis || null,
                 guardian_name: formData.guardian_name || null,
-                contact: formData.contact || null, // ✨ [FIX] Include contact
+                contact: formData.contact || null,
                 center_id: centerId
             };
 
             let result;
             if (childId) {
+                // @ts-expect-error - Supabase generated types need regeneration
                 result = await supabase.from('children').update(submissionData).eq('id', childId);
                 if (result.error) throw result.error;
                 alert('성공적으로 저장되었습니다.');
                 onSuccess();
             } else {
-                // ✨ Let the Database Trigger handle invitation_code generation
                 result = await supabase.from('children')
+                    // @ts-expect-error - Supabase generated types need regeneration
                     .insert([{ ...submissionData }])
                     .select('invitation_code, name')
                     .single();
@@ -100,15 +147,16 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                 if (result.error) throw result.error;
 
                 setNewChildName(submissionData.name);
-                setNewChildCode(result.data.invitation_code);
+                setNewChildCode((result.data as { invitation_code: string }).invitation_code);
                 setShowCodeAlert(true);
             }
         } catch (error) {
             console.error('저장 실패 상세:', error);
-            if (error.code === '23503') {
+            if (error instanceof Error && 'code' in error && (error as { code: string }).code === '23503') {
                 alert('저장 실패: 선택한 보호자 계정이 유효하지 않습니다. 다시 선택해주세요.');
             } else {
-                alert('저장 실패: ' + (error.message || '데이터 형식을 확인해주세요.'));
+                const errMsg = error instanceof Error ? error.message : '데이터 형식을 확인해주세요.';
+                alert('저장 실패: ' + errMsg);
             }
         } finally {
             setLoading(false);
@@ -123,14 +171,14 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
             // ✨ [Cleanup] 
             // DB 스키마에 ON DELETE CASCADE가 설정되어 있어, 
             // children 테이블에서 삭제하면 연결된 모든 데이터(일정, 일지, 결제 등)가 자동 삭제됩니다.
-            const { error } = await supabase.from('children').delete().eq('id', childId);
+            const { error } = await supabase.from('children').delete().eq('id', childId!);
             if (error) throw error;
 
             alert('아동 및 관련 데이터가 모두 삭제되었습니다.');
             onSuccess();
         } catch (error) {
             console.error('삭제 실패:', error);
-            alert('삭제 중 오류가 발생했습니다: ' + error.message);
+            alert('삭제 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : '알 수 없는 오류'));
         } finally {
             setLoading(false);
         }
@@ -166,7 +214,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }) {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">성별</label>
-                                <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                                <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value as '남' | '여' })}>
                                     <option value="남">남성</option>
                                     <option value="여">여성</option>
                                 </select>
