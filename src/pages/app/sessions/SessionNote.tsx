@@ -107,7 +107,6 @@ export default function SessionNote() {
 
                     if (myTherapist) {
                         effectiveTherapistId = (myTherapist as any).id;
-                        console.log('🩹 Fixed missing therapist_id with current user:', effectiveTherapistId);
                     }
                 }
             }

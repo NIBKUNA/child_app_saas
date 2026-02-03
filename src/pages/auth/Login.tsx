@@ -73,7 +73,6 @@ export function Login() {
         async function checkSession() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                console.log("🔒 Already logged in, redirecting away from Login page.");
                 if (isSuperAdmin(session.user.email)) {
                     navigate('/master/centers', { replace: true });
                 } else {
@@ -146,7 +145,6 @@ export function Login() {
                 // ✨ [God Mode / Auto-Repair] 
                 if (!profile) {
                     if (isSuper) {
-                        console.log("👑 Super Admin detected during login, skipping profile check.");
                         profile = { role: 'super_admin', center_id: null };
                     } else {
                         // Therapist Auto-Repair
@@ -157,7 +155,6 @@ export function Login() {
                             .maybeSingle();
 
                         if (therapist) {
-                            console.log("🩹 Login: Therapist record found, bypass profile check.");
                             profile = { role: therapist.system_role || 'therapist', center_id: null };
                         } else {
                             console.error('프로필 정보를 가져올 수 없습니다:', profileError);
@@ -200,18 +197,14 @@ export function Login() {
                         const isGlobalPath = !slug;
 
                         if (isGlobalPath) {
-                            localStorage.removeItem('zarada_center_slug'); // Clear sticky context
-                            console.log("👑 Super Admin (Global): Enforcing Master Console");
+                            localStorage.removeItem('zarada_center_slug');
                             navigate('/master/centers', { replace: true });
                         } else {
                             // Contextual Login - Respect existing context (set by URL/Guard)
                             const selectedSlug = localStorage.getItem('zarada_center_slug');
                             if (selectedSlug) {
-                                console.log("👑 Super Admin (Context): Entering", selectedSlug);
                                 navigate('/app/dashboard');
                             } else {
-                                // Fallback: If for some reason we are not at /login but have no slug, go Master
-                                console.log("👑 Super Admin (Fallback): No slug found -> Master Console");
                                 navigate('/master/centers', { replace: true });
                             }
                         }

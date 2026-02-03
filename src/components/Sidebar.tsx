@@ -365,8 +365,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
             if (saved) {
                 return JSON.parse(saved);
             }
-        } catch (e) {
-            console.log('Sidebar state load error:', e);
+        } catch {
+            // Sidebar state load error - silently ignored
         }
         return []; // Default: all accordions closed
     });
@@ -375,8 +375,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
     useEffect(() => {
         try {
             localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(openGroups));
-        } catch (e) {
-            console.log('Sidebar state save error:', e);
+        } catch {
+            // Sidebar state save error - silently ignored
         }
     }, [openGroups]);
 

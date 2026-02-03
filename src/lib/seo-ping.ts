@@ -15,9 +15,7 @@ export async function pingSearchEngines(sitemapUrl: string = 'https://mydomain.c
     ];
 
     try {
-        console.log("📡 Pinging search engines...");
         await Promise.all(engines.map(url => fetch(url, { mode: 'no-cors' }).catch(() => { })));
-        console.log("✅ Ping requests sent (no-cors mode).");
         return true;
     } catch (e) {
         console.error("Ping failed:", e);

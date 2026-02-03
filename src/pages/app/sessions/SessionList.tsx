@@ -50,8 +50,6 @@ export default function SessionList() {
                 .from('schedules') as any)
                 .update({ status: 'completed' })
                 .in('id', idsToUpdate);
-
-            console.log(`Auto-completed ${idsToUpdate.length} sessions.`);
         }
 
         // 2. Fetch all sessions (Filtered by Center)

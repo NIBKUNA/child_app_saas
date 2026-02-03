@@ -254,7 +254,6 @@ export function Settlement() {
                 .map((s: ScheduleSessionData) => s.id);
 
             if (pastScheduledIds.length > 0) {
-                console.log(`💼 [Payroll Sync] Auto-completing ${pastScheduledIds.length} sessions for accurate settlement.`);
                 await supabase.from('schedules').update({ status: 'completed' } as never).in('id', pastScheduledIds);
                 // Update local status for calculation
                 sessionData.forEach((s: ScheduleSessionData) => {

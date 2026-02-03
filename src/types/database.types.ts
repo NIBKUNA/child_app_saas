@@ -152,21 +152,18 @@ export type Database = {
                     key: string
                     value: string | null
                     updated_at: string | null
-                    updated_by: string | null
                 }
                 Insert: {
                     center_id: string
                     key: string
                     value?: string | null
                     updated_at?: string | null
-                    updated_by?: string | null
                 }
                 Update: {
                     center_id?: string
                     key?: string
                     value?: string | null
                     updated_at?: string | null
-                    updated_by?: string | null
                 }
             }
             centers: {

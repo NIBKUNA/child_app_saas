@@ -59,7 +59,7 @@ export function CenterList() {
         try {
             setLoading(true);
             // 1. Create Center
-            const { data: centerData, error: centerError } = await supabase
+            const { data: _centerData, error: centerError } = await supabase
                 .from('centers')
                 .insert({
                     name: newCenter.name,
@@ -74,8 +74,6 @@ export function CenterList() {
                 if (centerError.code === '23505') throw new Error('이미 존재하는 Slug입니다. 다른 주소를 입력해주세요.');
                 throw centerError;
             }
-
-            console.log('Center created successfully:', centerData);
 
             alert('✅ 새로운 센터가 등록되었습니다!');
             setIsCreateModalOpen(false);

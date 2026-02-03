@@ -52,7 +52,6 @@ export const CenterGuard: React.FC<CenterGuardProps> = ({ children }) => {
     if (!center && !isAdminPath && !isAppPath && !isSuperAdmin) {
         if (location.pathname === '/' || location.pathname === '') return <Outlet />;
 
-        console.log("🛡️ [CenterGuard] No center selected, redirecting to portal...");
         return <Navigate to="/" replace />;
     }
 

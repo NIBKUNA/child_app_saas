@@ -97,7 +97,7 @@ export function Schedule() {
     // ✨ [Therapist Filter] 치료사 필터 상태 (다중 선택 지원)
     const [therapists, setTherapists] = useState<TherapistOption[]>([]);
     const [selectedTherapistIds, setSelectedTherapistIds] = useState<Set<string>>(new Set(['all']));
-    const [_currentDate, setCurrentDate] = useState(new Date());
+    const [_currentDate] = useState(new Date());
 
     const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
 
@@ -150,7 +150,6 @@ export function Schedule() {
 
             // ✨ [권한 분리] 행정직원(admin, manager, staff)은 전체 조회 가능
             // 치료사(therapist)는 본인의 일정만 조회 가능
-            const _isAdminStaff = ['admin', 'super_admin', 'manager', 'staff'].includes(role ?? '');
             if (role === 'therapist' && authTherapistId) {
                 query = query.eq('therapist_id', authTherapistId);
             }
@@ -168,10 +167,9 @@ export function Schedule() {
                 .map(s => s.id) || [];
 
             if (pastScheduledIds.length > 0) {
-                console.log(`✅ [Auto-Sync] Completing ${pastScheduledIds.length} past schedules.`);
                 await (supabase
-                    .from('schedules')
-                    .update({ status: 'completed' }) as never)
+                    .from('schedules') as any)
+                    .update({ status: 'completed' })
                     .in('id', pastScheduledIds);
 
                 // Update local data to reflect the change
@@ -191,7 +189,7 @@ export function Schedule() {
                     .select('schedule_id')
                     .in('schedule_id', scheduleData.map(s => s.id));
 
-                attendedLogIds = new Set(logsData?.map(l => l.schedule_id) || []);
+                attendedLogIds = new Set((logsData as { schedule_id: string }[] | null)?.map(l => l.schedule_id) || []);
             }
             if (scheduleData) {
                 const formattedEvents = scheduleData.map((schedule: ScheduleData) => {

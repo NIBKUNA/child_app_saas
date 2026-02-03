@@ -111,15 +111,13 @@ export function AppLayout() {
         }
 
         if (!center?.id || typeof center.id !== 'string' || center.id.length < 32) {
-            console.log("🛠️ [AppLayout] Waiting for valid Center ID before subscribing...", center?.id);
             return;
         }
 
-        // Register Service Worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
-                .then(registration => console.log('SW Registered:', registration.scope))
-                .catch(err => console.log('SW Registration Failed:', err));
+                .then(() => { })
+                .catch(() => { });
         }
 
         const channel = supabase

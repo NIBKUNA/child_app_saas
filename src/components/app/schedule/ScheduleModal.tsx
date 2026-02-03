@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
-    X, Loader2, Save, Trash2, Calendar, Clock, User,
+    X, Loader2, Save, Trash2,
     CheckCircle2, XCircle, ArrowRightCircle, CalendarClock, Repeat, Search, ChevronDown
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -37,7 +37,7 @@ interface SearchableSelectProps {
     required?: boolean;
 }
 
-function SearchableSelect({ label, placeholder, options, value, onChange, required }: SearchableSelectProps) {
+function SearchableSelect({ label, placeholder, options, value, onChange }: SearchableSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const selectedOption = options.find(opt => opt.id === value);
@@ -136,7 +136,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     const [childrenList, setChildrenList] = useState<any[]>([]);
     const [programsList, setProgramsList] = useState<any[]>([]);
     const [therapistsList, setTherapistsList] = useState<any[]>([]);
-    const [childCreditMap, setChildCreditMap] = useState<Record<string, number>>({});
+
 
     const [isRecurring, setIsRecurring] = useState(false);
     const [repeatWeeks, setRepeatWeeks] = useState(4);
@@ -164,7 +164,6 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     const loadInitialData = async (targetId: string) => {
         if (!targetId || targetId.length < 32) return;
 
-        console.log("🚀 [ScheduleModal] Fetching data for Center:", targetId);
         setFetching(true);
         try {
             const [childRes, progRes, therRes, profileRes] = await Promise.all([
@@ -181,10 +180,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             const profiles = profileRes.data || [];
             const rawTherapists = therRes.data || [];
 
-            let filteredTherapists = rawTherapists.filter(t => {
+            let filteredTherapists = rawTherapists.filter((t: { email: string; profile_id?: string; id: string }) => {
                 if (isSuperAdmin(t.email)) return false;
                 if (t.profile_id) {
-                    const profile = profiles.find(p => p.id === t.profile_id);
+                    const profile = profiles.find((p: { id: string; role?: string }) => p.id === t.profile_id);
                     if (profile?.role === 'super_admin') return false;
                 }
                 return true;
@@ -192,7 +191,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
             // ✨ [권한 분리] 치료사는 본인만 선택 가능하도록 제한
             if (role === 'therapist' && authTherapistId) {
-                filteredTherapists = filteredTherapists.filter(t => t.id === authTherapistId);
+                filteredTherapists = filteredTherapists.filter((t: { id: string }) => t.id === authTherapistId);
             }
 
             setTherapistsList(filteredTherapists);
@@ -364,7 +363,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             onSuccess();
         } catch (error) {
             console.error(error);
-            alert('저장 실패: ' + (error.message || '알 수 없는 오류'));
+            alert('저장 실패: ' + ((error as Error).message || '알 수 없는 오류'));
         } finally {
             setLoading(false);
         }
@@ -462,7 +461,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             onSuccess();
         } catch (error) {
             console.error('삭제 실패:', error);
-            alert('일정 삭제 중 오류가 발생했습니다.\n' + error.message);
+            alert('일정 삭제 중 오류가 발생했습니다.\n' + (error as Error).message);
         } finally {
             setLoading(false);
         }
@@ -483,7 +482,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         setFormData(prev => ({ ...prev, start_time: sTime, end_time: eTime }));
     };
 
-    const getStatusStyle = (s) => {
+    const getStatusStyle = (s: string) => {
         if (s === 'completed') return { icon: <CheckCircle2 className="w-4" />, label: '완료', activeClass: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
         if (s === 'cancelled') return { icon: <XCircle className="w-4" />, label: '취소', activeClass: 'bg-rose-50 text-rose-600 border-rose-200' };
         if (s === 'carried_over') return { icon: <ArrowRightCircle className="w-4" />, label: '이월', activeClass: 'bg-purple-50 text-purple-600 border-purple-200' };

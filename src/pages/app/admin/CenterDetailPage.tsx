@@ -94,14 +94,6 @@ export function CenterDetailPage() {
         e.preventDefault();
         if (!centerId || !centerData) return;
 
-        const { data: authData } = await supabase.auth.getUser();
-        console.log("🔍 [Auth Debug] 현재 로그인 계정:", authData.user?.email);
-
-        // DB에서 실제로 인식하는 권한 체크 트리거 (임시 - 유지됨)
-        const { data: rpcCheck } = await supabase.rpc('is_super_admin');
-        console.log("🛡️ [DB Policy Debug] DB가 나를 슈퍼어드민으로 인정하는가?:", rpcCheck);
-
-
         setSaving(true);
         const updateData: any = {
             updated_at: new Date().toISOString()
@@ -122,18 +114,15 @@ export function CenterDetailPage() {
         if (hasChanged(editForm.business_number, centerData.business_number)) updateData.business_number = editForm.business_number;
         if (hasChanged(editForm.email, centerData.email)) updateData.email = editForm.email;
 
-        console.log("🛠️ [Update Debug] 전송 예정 데이터:", updateData);
-
         // 변경된 사항이 없으면 바로 종료
         if (Object.keys(updateData).length <= 1) {
-            console.log("ℹ️ 변경된 사항이 없어 업데이트를 건너뜁니다.");
             setIsEditModalOpen(false);
             setSaving(false);
             return;
         }
 
         try {
-            const { error, data } = await supabase
+            const { error } = await supabase
                 .from('centers')
                 .update(updateData as any)
                 .eq('id', centerId as string)
@@ -144,8 +133,6 @@ export function CenterDetailPage() {
                 console.error('❌ Supabase 업데이트 오류:', error);
                 throw error;
             }
-
-            console.log("✅ [DB Response] 성공!", data);
 
             // ✨ [Nuclear Option] 성공 시 즉시 새로고침하여 DB 상태 강제 반영
             alert('✅ 지점 정보가 성공적으로 수정되었습니다. 화면을 갱신합니다.');

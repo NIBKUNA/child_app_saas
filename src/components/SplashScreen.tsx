@@ -57,8 +57,8 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 } else {
                     setCenterName(name);
                 }
-            } catch (e) {
-                console.log('Splash branding fetch error:', e);
+            } catch {
+                // Splash branding fetch error - silently ignored
             }
         };
 

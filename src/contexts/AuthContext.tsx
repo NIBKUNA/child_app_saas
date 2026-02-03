@@ -36,9 +36,6 @@ interface ProfileChangePayload {
     };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ROLE_CACHE_KEY = 'cached_user_role';
-
 type AuthContextType = {
     session: Session | null;
     user: User | null;
@@ -79,9 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         // ✨ [DEBUG] 초기 로드 시 Invite Flag 확인
-        if (initialHash.current.includes('type=invite') || initialParams.current.get('type') === 'invite') {
-            console.log("🚩 Invite Link Detected on Mount (Persisted)");
-        }
+        // Invite link detection handled silently
     }, []);
 
     useEffect(() => {
@@ -109,7 +104,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.error("❌ Session Init Error:", error.message);
                     // ✨ [Auto-Fix] 토큰이 만료되었거나 유효하지 않으면 강제 로그아웃 처리
                     if (error.message.includes("Refresh Token") || error.message.includes("Not Found")) {
-                        console.log("🧹 Cleaning up invalid session data...");
                         await supabase.auth.signOut(); // Clean Supabase state
                         localStorage.clear();
                         sessionStorage.clear();
@@ -155,16 +149,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     initialParams.current.get('type') === 'invite';
 
                 if (isInviteOrRecovery) {
-                    // 세션이 없어도 토큰이 있다면 기다려야 하므로, 여기서는 '납치'만 준비
-                    // 실제로는 session이 생긴 직후에 이동해야 함.
-                    console.log('🔐 Redirecting to Password Update (AuthContext)...');
                     window.location.href = '/auth/update-password';
                     return;
                 }
 
                 // 👑 [Sovereign Fortress] Immediate Super Admin Recognition
                 if (isSuperAdmin(session?.user?.email)) {
-                    console.log('👑 Sovereign Alert: Immediate Super Admin Recognition in Auth Change');
                     setRole('super_admin');
                     setCenterId(null); // ✨ Global Access
                     setLoading(false);
@@ -193,7 +183,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 👑 [Sovereign Fortress] God Mode Injection - Bypass ALL checks
         // 슈퍼 관리자 계정은 어떠한 상황에서도 무조건 Super Admin으로 간주한다.
         if (isSuperAdmin(user.email)) {
-            console.log(`👑 Sovereign Alert: GOD MODE ACTIVATED (${user.email})`);
             setRole('super_admin');
             setCenterId(null); // ✨ Global Access
 
@@ -321,8 +310,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [user?.id, role]);
 
     const signOut = async () => {
-        console.log('☢️ NUCLEAR SIGN-OUT INITIATED');
-
         try {
             // ✨ [Fix] 세션이 있는 경우에만 서버 로그아웃 요청 (403 에러 방지)
             const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -343,7 +330,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const cacheNames = await caches.keys();
                     await Promise.all(cacheNames.map(name => caches.delete(name)));
-                    console.log('✅ All Caches Detonated');
                 } catch (err) {
                     console.error('Cache Clear Failed:', err);
                 }

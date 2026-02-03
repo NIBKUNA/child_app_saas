@@ -37,8 +37,6 @@ const formatEvidenceDetailed = (details: AssessmentDetails | null | undefined) =
 
 export const generateIntegratedReport = async (selectedMonth: string, centerId: string) => {
     try {
-        console.log(`🚀 Starting Comprehensive Report for ${selectedMonth} (Center: ${centerId})...`);
-
         if (!centerId) throw new Error("Center ID is required for report generation.");
 
         // Time Range Setup
@@ -89,7 +87,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
 
         // Map: Latest Assessment per Child
         const assessmentMap = new Map();
-        (assessments || []).forEach(a => {
+        (assessments || []).forEach((a: { child_id: string }) => {
             if (!assessmentMap.has(a.child_id)) assessmentMap.set(a.child_id, a);
         });
 
@@ -104,11 +102,11 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // KPI Calculations
-        const activeChildrenCount = (children || []).filter(c => c.is_active).length;
-        const newChildrenCount = (children || []).filter(c => c.created_at?.startsWith(selectedMonth)).length;
+        const activeChildrenCount = (children || []).filter((c: { is_active: boolean }) => c.is_active).length;
+        const newChildrenCount = (children || []).filter((c: { created_at?: string }) => c.created_at?.startsWith(selectedMonth)).length;
 
         const sessionStats = { completed: 0, cancelled: 0, scheduled: 0, total: 0 };
-        (schedules || []).forEach(s => {
+        (schedules || []).forEach((s: { status: string }) => {
             sessionStats.total++;
             if (s.status === 'completed') sessionStats.completed++;
             else if (s.status === 'cancelled') sessionStats.cancelled++;
@@ -131,7 +129,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         ];
 
         // Sheet 2: Marketing Intelligence (Leads)
-        const marketingData = (leads || []).map(lead => {
+        const marketingData = (leads || []).map((lead: { status: string; converted_at?: string; created_at?: string; parent_name: string; child_name?: string; phone: string; concern?: string; source?: string; assigned_to?: string; admin_notes?: string }) => {
             let conversionDays = '-';
             if (lead.status === 'converted' && lead.converted_at && lead.created_at) {
                 const start = new Date(lead.created_at);
@@ -155,7 +153,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // Sheet 3: Staff Information
-        const staffData = (staff || []).map(s => ({
+        const staffData = (staff || []).map((s: { name: string; role: string; email: string; status?: string; created_at?: string }) => ({
             '이름': s.name,
             '역할': s.role,
             '이메일': s.email,
@@ -164,9 +162,8 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         }));
 
         // Sheet 4: Payment Details
-        const paymentDetailData = (payments || []).map(p => {
-            // Find child name roughly (optimized)
-            const childName = (children || []).find(c => c.id === p.child_id)?.name || 'Unknown';
+        const paymentDetailData = (payments || []).map((p: { paid_at?: string; child_id: string; amount?: number; method?: string; status?: string; description?: string }) => {
+            const childName = (children || []).find((c: { id: string; name: string }) => c.id === p.child_id)?.name || 'Unknown';
             return {
                 '결제일시': p.paid_at ? new Date(p.paid_at).toLocaleString() : '-',
                 '아동명': childName,
@@ -178,7 +175,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // Sheet 5: Integrated Master (Existing Logic)
-        const masterData = (children || []).map(child => {
+        const masterData = (children || []).map((child: { id: string; name: string; birth_date?: string; gender?: string; is_active: boolean; parent_id?: string; profiles?: { name: string; email: string } }) => {
             const guardianBase = child.profiles || { name: '-', email: '-' };
             const guardianPhone = phoneMap.get(child.parent_id) || '-';
             const assess = assessmentMap.get(child.id);

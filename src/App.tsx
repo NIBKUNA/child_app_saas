@@ -78,7 +78,6 @@ function App() {
   useEffect(() => {
     const SAAS_ENGINE_VER = "1.3.0";
     if (localStorage.getItem('zarada_ver') !== SAAS_ENGINE_VER) {
-      console.log("🔄 [System] New version detected, clearing cache (preserving auth)...");
       const token = localStorage.getItem('zarada-auth-token');
       const rememberMe = localStorage.getItem('remember_me');
 
@@ -120,10 +119,7 @@ function App() {
     });
 
     if (hasUtm) {
-      console.log("🎨 [Marketing] UTM 파라미터가 감지되어 저장되었습니다:", {
-        source: localStorage.getItem('utm_source'),
-        medium: localStorage.getItem('utm_medium')
-      });
+      // UTM parameters captured and stored for marketing analytics
     }
   }, []);
 

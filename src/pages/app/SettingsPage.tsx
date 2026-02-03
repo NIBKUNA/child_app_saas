@@ -25,7 +25,7 @@ import {
     Pencil
 } from 'lucide-react';
 import { useAdminSettings, type AdminSettingKey, type ProgramItem } from '@/hooks/useAdminSettings';
-import { Reorder, motion, useDragControls } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import { ImageUploader } from '@/components/common/ImageUploader';
 import { MultiImageUploader } from '@/components/common/MultiImageUploader';
 import { ProgramListEditor } from '@/components/admin/ProgramListEditor';
@@ -41,8 +41,6 @@ type TableRow<T extends keyof Database['public']['Tables']> = Database['public']
 type Center = TableRow<'centers'>;
 
 // --- ❌ 원본 로직 절대 보존 ---
-const AI_GENERATING_KEY = 'ai_blog_generating';
-const AI_GENERATION_START_KEY = 'ai_blog_generation_start';
 
 type TabType = 'home' | 'about' | 'programs' | 'therapists' | 'branding' | 'center_info' | 'account';
 const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'therapists', 'branding', 'center_info', 'account'];
@@ -78,8 +76,7 @@ export function SettingsPage() {
                     center_id: centerId,
                     key: key,
                     value: finalValue,
-                    updated_at: new Date().toISOString(),
-                    updated_by: user?.id || null
+                    updated_at: new Date().toISOString()
                 }, { onConflict: 'center_id, key' });
 
             if (error) throw error;

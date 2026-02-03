@@ -101,7 +101,7 @@ export function ParentMyPage() {
         if (navigator.share) {
             try {
                 await navigator.share(shareData);
-            } catch (err) { console.log('Share canceled'); }
+            } catch { /* Share canceled */ }
         } else {
             navigator.clipboard.writeText(shareData.url).then(() => alert('링크가 복사되었습니다.'));
         }
@@ -118,10 +118,7 @@ export function ParentMyPage() {
         const event = (window as any).deferredPrompt;
         if (event) {
             event.prompt();
-            event.userChoice.then((choice: { outcome: string }) => {
-                if (choice.outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                }
+            event.userChoice.then(() => {
                 (window as any).deferredPrompt = null;
             });
         } else {

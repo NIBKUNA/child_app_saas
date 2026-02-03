@@ -85,7 +85,6 @@ export const GlobalLanding = () => {
     }, [keyword, centers]);
 
     const handleSelect = (center: Center) => {
-        console.log("🎯 Selecting center:", center.slug);
         // ✨ [Critical] Clear previous state to avoid conflict
         localStorage.setItem('zarada_center_slug', center.slug);
 

@@ -34,7 +34,6 @@ export function useCenterSEO() {
                 }
 
                 if (!profile?.center_id) {
-                    console.log('No center assigned for this user, using default SEO.');
                     setSeoData({
                         name: '발달센터',
                         seo_description: '아동발달전문센터 - 언어치료, 감각통합, 미술치료, 놀이치료, 인지치료 전문'

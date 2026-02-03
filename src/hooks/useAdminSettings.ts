@@ -188,7 +188,6 @@ export const useAdminSettings = () => {
 
         // ✨ [Global Sync] 이벤트 리스너 등록
         const handleSync = () => {
-            console.log('🔄 Settings Sync Triggered');
             fetchSettings();
         };
         window.addEventListener('settings-updated', handleSync);

@@ -101,7 +101,6 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (!slug) {
         if (!authLoading) {
-          console.log("CenterContext: No slug found (Global Mode)");
           setCenterState(null);
           setLoading(false);
           // ✨ [Fix] Clear error if we are intentionally in global mode

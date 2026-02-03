@@ -18,13 +18,14 @@ import { ThemeProvider } from '@/contexts/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
 
-// ✨ [Developer Signature]
-console.log(
-  "%c 🎨 Zarada ERP System %c Designed & Developed by 안욱빈 ",
-  "color: #fff; background: #c0392b; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
-  "color: #fff; background: #2c3e50; padding: 5px 10px; border-radius: 0 5px 5px 0;",
-  "\n코드와 데이터로 세상을 채색하다. Copyright (c) 2026 안욱빈. All rights reserved."
-);
+// ✨ [Developer Signature] - Removed for production cleanliness
+// Uncomment in development if needed:
+// console.log(
+//   "%c 🎨 Zarada ERP System %c Designed & Developed by 안욱빈 ",
+//   "color: #fff; background: #c0392b; padding: 5px 10px; border-radius: 5px 0 0 5px; font-weight: bold;",
+//   "color: #fff; background: #2c3e50; padding: 5px 10px; border-radius: 0 5px 5px 0;",
+//   "\n코드와 데이터로 세상을 채색하다. Copyright (c) 2026 안욱빈. All rights reserved."
+// );
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
