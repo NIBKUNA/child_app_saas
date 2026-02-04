@@ -140,7 +140,6 @@ export function Register() {
                         full_name: name,
                         role: finalRole,
                         center_id: effectiveCenterId,
-                        phone: '010-0000-0000'
                     }
                 },
             });

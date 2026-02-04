@@ -42,6 +42,7 @@ interface DashboardSchedule {
     };
     therapists: {
         name: string;
+        session_price_weekday: number | null;
     } | null;
 }
 
@@ -321,7 +322,7 @@ export function Dashboard() {
             // ✨ [SECURITY] Enforce Center ID Filter using Inner Join on Children
             const { data: allSchedules } = await (supabase
                 .from('schedules') as any)
-                .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name)`)
+                .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday)`)
                 .eq('children.center_id', center.id)
                 .order('start_time', { ascending: true });
 
@@ -376,8 +377,8 @@ export function Dashboard() {
                     if (s.status === 'completed') {
                         // Therapist
                         const tName = s.therapists?.name || '미배정';
-                        // ✨ [Fallback] Use fixed session price if programs table is missing or price is null
-                        const sessionPrice = 60000;
+                        // ✨ [Dynamic] Use therapist's default price, or fallback if not set
+                        const sessionPrice = s.therapists?.session_price_weekday || 60000;
                         therapistRevMap[tName] = (therapistRevMap[tName] || 0) + sessionPrice;
 
                         // Program / Service Type
