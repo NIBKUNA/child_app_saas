@@ -11,9 +11,8 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { X, Loader2, Save, Trash2, UserCheck, AlertCircle, Mail } from 'lucide-react';
+import { X, Loader2, Save, Trash2 } from 'lucide-react';
 import { InvitationCodeAlert } from '@/components/InvitationCodeAlert';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext';
 
 // ✨ 아동 모달 Props 타입
@@ -97,7 +96,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
     // ✨ [Removed] fetchParentAccounts logic
 
     const loadChild = async () => {
-        const { data, error } = await supabase.from('children').select('*').eq('id', childId!).single();
+        const { data } = await supabase.from('children').select('*').eq('id', childId!).single();
         const childData = data as ChildData | null;
         if (childData) {
             setFormData({

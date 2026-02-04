@@ -10,12 +10,12 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
-    Plus, Search, Mail, Edit2, X, Check,
+    Plus, Mail, Edit2, X, Check,
     Shield, UserCog, Trash2, Archive, ArchiveRestore
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { isSuperAdmin, SUPER_ADMIN_EMAILS } from '@/config/superAdmin';
+import { isSuperAdmin } from '@/config/superAdmin';
 import { Helmet } from 'react-helmet-async';
 
 const COLORS = [
@@ -99,8 +99,8 @@ export function TherapistList() {
     const { center } = useCenter(); // ✨ Use Center Context
     const centerId = center?.id;
     const [staffs, setStaffs] = useState<Therapist[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [, setLoading] = useState(true);
+    const [searchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'active' | 'retired'>('active');
@@ -126,8 +126,6 @@ export function TherapistList() {
         if (!centerId) return;
         setLoading(true);
         try {
-            const superAdminList = `("${SUPER_ADMIN_EMAILS.join('","')}")`;
-
             // 1. [Therapists First] 상세 정보(은행, 연락처 등) 조회 (정산의 기준이 되는 테이블)
             const { data: therapistDataRaw } = await supabase
                 .from('therapists')
@@ -288,7 +286,7 @@ export function TherapistList() {
             }
 
             fetchStaffs();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             alert('처리 실패: ' + (error.message || '알 수 없는 오류'));
         } finally {
@@ -337,7 +335,7 @@ export function TherapistList() {
 
             alert('DB에서 해당 직원의 모든 정보가 완전히 삭제되었습니다.');
             fetchStaffs();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             alert('영구 삭제 실패: ' + (error.message || '오류 발생'));
         } finally {

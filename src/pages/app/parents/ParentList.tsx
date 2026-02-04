@@ -7,7 +7,6 @@
  */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { Helmet } from 'react-helmet-async';
 import { Search, User, Shield, Ban, CheckCircle, Mail, RotateCcw, Trash2 } from 'lucide-react';
@@ -41,7 +40,7 @@ export interface Parent {
 
 export function ParentList() {
     const [parents, setParents] = useState<Parent[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<FilterTab>('active');
     const { center } = useCenter();
@@ -137,8 +136,8 @@ export function ParentList() {
         if (!confirm(confirmMsg)) return;
 
         try {
-            const { error } = await supabase
-                .from('user_profiles')
+            const { error } = await (supabase
+                .from('user_profiles') as any)
                 .update({ status: newStatus })
                 .eq('id', parent.id);
 

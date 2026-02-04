@@ -16,10 +16,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
-    Clock, CheckCircle2, X,
+    Clock, CheckCircle2,
     Pencil, Trash2, BarChart3
 } from 'lucide-react';
-import type { Database } from '@/types/database.types'; // ✨ Import Types
 import { AssessmentFormModal } from '@/pages/app/children/AssessmentFormModal';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 

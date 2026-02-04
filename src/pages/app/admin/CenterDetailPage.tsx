@@ -122,8 +122,8 @@ export function CenterDetailPage() {
         }
 
         try {
-            const { error } = await supabase
-                .from('centers')
+            const { error } = await (supabase
+                .from('centers' as any) as any)
                 .update(updateData as any)
                 .eq('id', centerId as string)
                 .select();
