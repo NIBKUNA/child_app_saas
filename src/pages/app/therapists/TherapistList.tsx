@@ -27,8 +27,8 @@ const COLORS = [
 // ✨ 고용 형태 타입
 export type HireType = 'freelancer' | 'fulltime' | 'parttime' | 'regular';
 
-// ✨ 시스템 역할 타입
-export type SystemRole = 'therapist' | 'staff' | 'admin' | 'parent' | 'super' | 'manager' | 'super_admin';
+// ✨ 시스템 역할 타입 (단순화: admin, manager, therapist)
+export type SystemRole = 'therapist' | 'manager' | 'admin' | 'parent' | 'super_admin';
 
 // ✨ 시스템 상태 타입 (active: 근무중, retired: 퇴사, rejected: 승인거절)
 export type SystemStatus = 'active' | 'retired' | 'rejected';
@@ -153,7 +153,7 @@ export function TherapistList() {
                     system_status: t.system_status || 'active',
                     hire_type: t.hire_type || (profile?.role === 'admin' ? 'fulltime' : 'freelancer')
                 };
-            }).filter(u => u.system_role !== 'parent' && u.system_role !== 'super');
+            }).filter(u => u.system_role !== 'parent' && u.system_role !== 'super_admin');
 
             setStaffs((mergedData || []) as Therapist[]);
 
@@ -452,7 +452,7 @@ export function TherapistList() {
                             setEditingId(null);
                             setFormData({
                                 name: '', contact: '', email: '', hire_type: 'parttime',
-                                system_role: 'staff',
+                                system_role: 'manager',
                                 system_status: 'active',
                                 remarks: '', color: '#f59e0b',
                                 bank_name: '', account_number: '', account_holder: '',
@@ -462,7 +462,7 @@ export function TherapistList() {
                         }}
                         className="bg-amber-100 text-amber-700 px-5 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:bg-amber-200 border border-amber-200"
                     >
-                        <UserCog className="w-5 h-5" /> 행정직원 등록
+                        <UserCog className="w-5 h-5" /> 매니저/행정 등록
                     </button>
                 </div>
             </div>
@@ -495,7 +495,7 @@ export function TherapistList() {
                                                     "bg-emerald-100 text-emerald-600 border-emerald-200"
                                         )}>
                                             {staff.system_status === 'retired' ? 'RETIRED' : (
-                                                { 'admin': 'ADMIN', 'staff': 'STAFF', 'therapist': 'THERAPIST', 'parent': 'PARENT', 'super': 'SUPER', 'manager': 'MANAGER', 'super_admin': 'SUPER ADMIN' }[staff.system_role] || 'THERAPIST'
+                                                { 'admin': 'ADMIN', 'manager': 'MANAGER', 'therapist': 'THERAPIST', 'parent': 'PARENT', 'super_admin': 'SUPER ADMIN' }[staff.system_role] || 'THERAPIST'
                                             )}
                                         </span>
                                     </h3>
@@ -595,11 +595,9 @@ export function TherapistList() {
                                             value={
                                                 {
                                                     'admin': '🛡️ 관리자 (Admin)',
-                                                    'staff': '💼 행정직원 (Staff)',
+                                                    'manager': '📋 매니저/행정 (Manager)',
                                                     'therapist': '🩺 치료사 (Therapist)',
                                                     'parent': '👨‍👩‍👧‍👦 학부모 (Parent)',
-                                                    'super': '👑 슈퍼관리자 (Super)',
-                                                    'manager': '📋 매니저 (Manager)',
                                                     'super_admin': '🔑 최고관리자 (Super Admin)'
                                                 }[formData.system_role] || '🩺 치료사 (Therapist)'
                                             }

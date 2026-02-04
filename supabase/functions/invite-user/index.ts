@@ -105,21 +105,14 @@ serve(async (req: Request) => {
 
         console.log(`${logTag} 📧 Inviting: ${email} | Role: ${role} | Center: ${targetCenterId}`);
 
-        // 🛡️ [Proper Fix] DB Enum Fallback: DB에 staff/super가 아직 추가 안 되었을 경우를 대비
-        // Auth Metadata(trigger용)에는 안전한 권한인 'manager'나 'therapist'로 보내고, 
-        // 실제 상세 테이블에는 원본 role을 저장합니다.
-        let authRole = role || 'therapist';
-        if (authRole === 'staff') authRole = 'manager';
-        if (authRole === 'super') authRole = 'super_admin';
-
         // 6. [Send Invitation]
-        console.log(`${logTag} 🔎 Attempting to invite user: ${email}...`);
+        console.log(`${logTag} 🔎 Attempting to invite user: ${email} with role: ${role}...`);
 
         let finalUserId: string | null = null;
 
-        // 🚀 Always call inviteUserByEmail to trigger the actual invitation flow
+        // 🚀 Send invitation with the requested role directly
         const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            data: { name, role: authRole, full_name: name, center_id: targetCenterId },
+            data: { name, role, full_name: name, center_id: targetCenterId },
             redirectTo: finalRedirectTo,
         });
 
@@ -135,7 +128,7 @@ serve(async (req: Request) => {
                 }
             } else {
                 console.error(`${logTag} ❌ Supabase Auth Invitation Error:`, inviteError.message);
-                throw new Error(`Database error saving new user: ${inviteError.message}`);
+                throw new Error(`Auth Error: ${inviteError.message}`);
             }
         } else {
             console.log(`${logTag} 📧 Invitation email triggered successfully for: ${email}`);
@@ -153,7 +146,7 @@ serve(async (req: Request) => {
                 id: finalUserId,
                 email,
                 name,
-                role: authRole as any,
+                role: role as any,
                 status: 'active',
                 center_id: targetCenterId
             }, { onConflict: 'id' });
