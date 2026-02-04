@@ -170,12 +170,14 @@ export function TherapistList() {
 
         try {
             if (!editingId) {
-                // 1. [Invite] DB 트리거 에러를 피하기 위해 가장 기본 권한인 'therapist'로 초대
+                // 1. [Invite] DB 트리거(Enum) 에러를 방지하기 위해 정식 권한인 'manager'로 초대
+                // DB의 user_role 타입에 'staff'를 추가할 수 없는 환경이므로, 
+                // 인증 시스템상으로는 'manager'로 등록하고 앱 내부 데이터에서 'staff'로 구분합니다.
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,
                         name: formData.name,
-                        role: 'therapist', // 🛡️ 'staff' 대신 안전한 권한으로 우선 초대
+                        role: 'manager',
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
