@@ -173,16 +173,6 @@ export function TherapistList() {
                 // 🚀 [Security] JWT 갱신 시도 (Invalid JWT 방지)
                 await supabase.auth.refreshSession();
 
-                // 🚀 [Debug] Check token before calling
-                const { data: { session } } = await supabase.auth.getSession();
-                console.log('--- Invitation Process ---');
-                console.log('Target Email:', formData.email);
-                console.log('Target Role:', formData.system_role);
-                console.log('Session Token Present:', !!session?.access_token);
-                if (session?.access_token) {
-                    console.log('Token (first 10 chars):', session.access_token.substring(0, 10));
-                }
-
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,

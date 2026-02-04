@@ -202,7 +202,7 @@ const MENU_GROUPS: MenuGroup[] = [
             // ✨ [Manager] Schedule, Billing, Programs
             { name: '치료 일정', path: '/app/schedule', icon: Icons.calendar, roles: ['super_admin', 'admin', 'therapist', 'manager'] },
             { name: '수납 관리', path: '/app/billing', icon: Icons.billing, roles: ['super_admin', 'admin', 'manager'] },
-            { name: '상담일지', path: '/app/consultations', icon: Icons.consultation, roles: ['super_admin', 'admin', 'therapist'] },
+            { name: '상담일지', path: '/app/consultations', icon: Icons.consultation, roles: ['super_admin', 'admin', 'therapist', 'manager'] },
             { name: '프로그램 관리', path: '/app/programs', icon: Icons.program, roles: ['super_admin', 'admin', 'manager'] },
         ]
     },
@@ -222,7 +222,7 @@ const MENU_GROUPS: MenuGroup[] = [
         icon: Icons.system,
         items: [
             { name: '대시보드', path: '/app/dashboard', icon: Icons.dashboard, roles: ['super_admin', 'admin'] },
-            { name: '사이트 설정', path: '/app/settings', icon: Icons.settings, roles: ['super_admin'] },
+            { name: '사이트 설정', path: '/app/settings', icon: Icons.settings, roles: ['super_admin', 'admin'] },
             { name: '전체 센터 관리', path: '/master/centers', icon: Icons.globe, roles: ['super_admin'] },
         ]
     }

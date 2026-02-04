@@ -264,7 +264,7 @@ function App() {
             } />
 
             <Route path="consultations" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'therapist']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'therapist', 'manager']}>
                 <ConsultationList />
               </ProtectedRoute>
             } />
