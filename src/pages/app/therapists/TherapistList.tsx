@@ -171,11 +171,17 @@ export function TherapistList() {
         try {
             if (!editingId) {
                 // ✨ [New Registration] Use Edge Function for Secure Invitation
+                // 🛡️ DB Enum Safe-guard
+                // DB가 'staff' 역할을 모르기 때문에, 초대 시에는 일단 'manager'로 보내서 
+                // DB 트랜잭션 에러(400 Bad Request)를 방지합니다.
+                const inviteRole = formData.system_role === 'staff' ? 'manager' : formData.system_role;
+
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,
                         name: formData.name,
-                        role: formData.system_role,
+                        role: inviteRole,
+                        system_role: formData.system_role, // 🚀 실제 권한을 명시적으로 전달 (Staff 등)
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
