@@ -221,7 +221,7 @@ const MENU_GROUPS: MenuGroup[] = [
         name: '시스템',  // Platform
         icon: Icons.system,
         items: [
-            { name: '대시보드', path: '/app/dashboard', icon: Icons.dashboard, roles: ['super_admin', 'admin', 'manager'] },
+            { name: '대시보드', path: '/app/dashboard', icon: Icons.dashboard, roles: ['super_admin', 'admin'] },
             { name: '사이트 설정', path: '/app/settings', icon: Icons.settings, roles: ['super_admin'] },
             { name: '전체 센터 관리', path: '/master/centers', icon: Icons.globe, roles: ['super_admin'] },
         ]

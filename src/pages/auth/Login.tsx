@@ -210,9 +210,11 @@ export function Login() {
                         }
                         break;
                     case 'admin':
+                        navigate('/app/dashboard');
+                        break;
                     case 'manager':
                     case 'therapist':
-                        navigate('/app/dashboard'); // Go to Dashboard
+                        navigate('/app/schedule'); // Land on Schedule directly
                         break;
                     case 'parent':
                         navigate('/parent/home');

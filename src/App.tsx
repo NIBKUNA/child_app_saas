@@ -6,7 +6,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
-import { CenterProvider } from '@/contexts/CenterContext';
+import { CenterProvider, useCenter } from '@/contexts/CenterContext';
 import { CenterGuard } from '@/components/auth/CenterGuard';
 
 import ProtectedRoute from '@/components/ProtectedRoute'; // Ensure this exports UserRole or accept string[]
@@ -63,9 +63,19 @@ import { SplashScreen } from '@/components/SplashScreen';
 import { useState, useEffect } from 'react';
 
 function AppHomeRedirect() {
-  const { loading } = useAuth();
+  const { role, loading } = useAuth();
+  const { center } = useCenter();
 
   if (loading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
+
+  // ✨ [Sovereign SaaS] Smart Redirection
+  // If a center-affiliated staff/admin logs in, take them to their workspace.
+  if (role && role !== 'parent' && role !== 'super_admin' && center?.slug) {
+    if (role === 'manager' || role === 'therapist') {
+      return <Navigate to="/app/schedule" replace />;
+    }
+    return <Navigate to="/app/dashboard" replace />;
+  }
 
   // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
   // This allows all users to "exit" to the platform home.
@@ -196,7 +206,7 @@ function App() {
             <Route index element={<AppHomeRedirect />} />
 
             <Route path="dashboard" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
