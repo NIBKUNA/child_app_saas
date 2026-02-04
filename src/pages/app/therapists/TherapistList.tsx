@@ -170,14 +170,13 @@ export function TherapistList() {
 
         try {
             if (!editingId) {
-                // 1. [Invite] DB 트리거(Enum) 에러를 방지하기 위해 정식 권한인 'manager'로 초대
-                // DB의 user_role 타입에 'staff'를 추가할 수 없는 환경이므로, 
-                // 인증 시스템상으로는 'manager'로 등록하고 앱 내부 데이터에서 'staff'로 구분합니다.
+                // 🚀 [Proper Fix] Edge Function이 이제 내부적으로 Role Enum 우회 처리를 수행합니다.
+                // 프론트엔드는 원본 역할을 그대로 전달하면 됩니다.
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,
                         name: formData.name,
-                        role: 'manager',
+                        role: formData.system_role,
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
@@ -190,20 +189,6 @@ export function TherapistList() {
 
                 if (error) throw error;
                 if (data && data.error) throw new Error(data.error);
-
-                // 2. [Force Sync] 초대가 성공하면, 즉시 therapists 테이블의 권한을 'staff'로 강제 업데이트
-                // 이 방식은 서버 배포나 SQL 실행 없이도 즉시 효과가 나타납니다.
-                if (formData.system_role === 'staff' || formData.system_role === 'manager' || formData.system_role === 'super_admin') {
-                    await supabase
-                        .from('therapists')
-                        .update({ system_role: formData.system_role })
-                        .eq('email', formData.email);
-
-                    await supabase
-                        .from('user_profiles')
-                        .update({ role: formData.system_role as any })
-                        .eq('email', formData.email);
-                }
 
                 // ✨ Show Custom Success Modal instead of Alert
                 setSuccessModal({
