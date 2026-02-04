@@ -114,7 +114,7 @@ export function HomeLoginModal({ isOpen, onClose, centerName = "아동발달센�
                         }
                         break;
                     case 'admin':
-                    case 'employee':
+                    case 'manager':
                     case 'therapist':
                         navigate('/app/dashboard');
                         break;

@@ -266,11 +266,9 @@ export function Dashboard() {
     const { role } = useAuth(); // ✨ Role based access control
     const navigate = useNavigate(); // ✨ Navigation
 
-    // ✨ [Security] Staff/Employee Access Restriction
+    // ✨ [Security] Access check for specific roles if needed
     useEffect(() => {
-        if (role === 'staff' || role === 'employee') {
-            navigate('/app/schedule', { replace: true });
-        }
+        // Redirection logic removed for consolidated roles
     }, [role, navigate]);
 
     const { branding } = useCenterBranding();
@@ -343,8 +341,8 @@ export function Dashboard() {
                 }
             });
 
-            const { data: allPayments } = await (supabase
-                .from('payments') as any)
+            const { data: allPayments } = await (supabase as any)
+                .from('payments')
                 .select('amount, child_id, paid_at')
                 .in('child_id', [...validChildIds]); // 🔒 Security Filter
 

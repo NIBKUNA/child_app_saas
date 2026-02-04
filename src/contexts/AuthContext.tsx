@@ -11,8 +11,8 @@ import { supabase } from '@/lib/supabase';
 import { isSuperAdmin } from '@/config/superAdmin';
 
 
-// ✨ UserRole 타입 유지 (retired 포함)
-export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff' | 'employee' | 'therapist' | 'parent' | 'retired' | null;
+// ✨ UserRole 타입 유지 (단순화: admin, manager, therapist, parent, super_admin)
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'therapist' | 'parent' | 'retired' | null;
 
 // ✨ UserProfile 타입 정의 (DB user_profiles 테이블 스키마 기반)
 export interface UserProfile {

@@ -45,6 +45,8 @@ serve(async (req: Request) => {
             }), { status: 500, headers: corsHeaders });
         }
 
+        console.log(`${logTag} 🛠️ Env Check: URL=${supabaseUrl.substring(0, 20)}..., KeyPrefix=${supabaseServiceKey.substring(0, 5)}...`);
+
         // 3. [Auth] Identify Caller
         if (!authHeader) {
             console.error(`${logTag} ❌ No Authorization header provided.`);

@@ -200,19 +200,19 @@ const MENU_GROUPS: MenuGroup[] = [
         items: [
             // ✨ [Therapist] Only Schedule & Consultations
             // ✨ [Manager] Schedule, Billing, Programs
-            { name: '치료 일정', path: '/app/schedule', icon: Icons.calendar, roles: ['super_admin', 'admin', 'therapist', 'manager', 'staff'] },
-            { name: '수납 관리', path: '/app/billing', icon: Icons.billing, roles: ['super_admin', 'admin', 'manager', 'staff'] },
+            { name: '치료 일정', path: '/app/schedule', icon: Icons.calendar, roles: ['super_admin', 'admin', 'therapist', 'manager'] },
+            { name: '수납 관리', path: '/app/billing', icon: Icons.billing, roles: ['super_admin', 'admin', 'manager'] },
             { name: '상담일지', path: '/app/consultations', icon: Icons.consultation, roles: ['super_admin', 'admin', 'therapist'] },
-            { name: '프로그램 관리', path: '/app/programs', icon: Icons.program, roles: ['super_admin', 'admin', 'manager', 'staff'] },
+            { name: '프로그램 관리', path: '/app/programs', icon: Icons.program, roles: ['super_admin', 'admin', 'manager'] },
         ]
     },
     {
         name: '리소스 관리',  // Management
         icon: Icons.members,
         items: [
-            { name: '상담문의', path: '/app/leads', icon: Icons.leads, roles: ['super_admin', 'admin', 'manager', 'staff'] },
-            { name: '아동 관리', path: '/app/children', icon: Icons.child, roles: ['super_admin', 'admin', 'manager', 'staff'] },
-            { name: '부모 관리', path: '/app/parents', icon: Icons.members, roles: ['super_admin', 'admin', 'manager', 'staff'] },
+            { name: '상담문의', path: '/app/leads', icon: Icons.leads, roles: ['super_admin', 'admin', 'manager'] },
+            { name: '아동 관리', path: '/app/children', icon: Icons.child, roles: ['super_admin', 'admin', 'manager'] },
+            { name: '부모 관리', path: '/app/parents', icon: Icons.members, roles: ['super_admin', 'admin', 'manager'] },
             { name: '직원 관리', path: '/app/therapists', icon: Icons.staff, roles: ['super_admin', 'admin'] },
             { name: '급여 관리', path: '/app/settlement', icon: Icons.salary, roles: ['super_admin', 'admin'] },
         ]
@@ -282,8 +282,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 
                 // 2. DB 읽음 처리 (백그라운드)
                 if (user) {
-                    (supabase
-                        .from('admin_notifications') as any)
+                    (supabase as any)
+                        .from('admin_notifications')
                         .update({ is_read: true })
                         .eq('user_id', user.id)
                         .eq('type', 'schedule')
@@ -307,7 +307,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                 const cid = centerId || 'global';
 
                 // 1. 상담문의 (어드민/슈퍼어드민만 표시)
-                if (isSuperAdmin || role === 'admin' || role === 'staff') {
+                if (isSuperAdmin || role === 'admin' || role === 'manager') {
                     const lastCheck = localStorage.getItem(`last_inquiry_check_${cid}`);
 
                     let query = supabase
@@ -333,7 +333,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                 if (user) {
                     const lastScheduleCheck = localStorage.getItem(`last_schedule_check_${cid}`);
 
-                    let q = supabase
+                    let q = (supabase as any)
                         .from('admin_notifications')
                         .select('id', { count: 'exact', head: true })
                         .eq('user_id', user.id)

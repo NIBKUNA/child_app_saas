@@ -210,7 +210,7 @@ export function Login() {
                         }
                         break;
                     case 'admin':
-                    case 'employee':
+                    case 'manager':
                     case 'therapist':
                         navigate('/app/dashboard'); // Go to Dashboard
                         break;

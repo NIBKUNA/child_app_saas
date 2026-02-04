@@ -23,7 +23,7 @@ import { SUPER_ADMIN_EMAILS, isSuperAdmin as checkSuperAdmin } from '@/config/su
 type HireType = 'freelancer' | 'fulltime' | 'regular';
 
 // ✨ 시스템 역할 타입
-type SystemRole = 'therapist' | 'staff' | 'admin';
+type SystemRole = 'therapist' | 'manager' | 'admin' | 'super_admin' | 'parent';
 
 // ✨ 정산 통계 타입
 interface TotalStats {
@@ -301,10 +301,10 @@ export function Settlement() {
                 const evalPrice = staff.evaluation_price || 50000;
                 const consultPrice = staff.consult_price || 0;
 
-                if (staff.system_role === 'staff') {
+                if (staff.system_role === 'manager') {
                     payout = baseSalary;
                     revenue = payout;
-                    incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정직원)`;
+                    incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정/매니저)`;
                 } else if (hireType === 'fulltime' || hireType === 'regular' || staff.system_role === 'admin') {
                     // ✨ [사용자 규정 적용 + 유연한 설정 유지]
                     const goal = staff.required_sessions || 90;
@@ -462,9 +462,9 @@ export function Settlement() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
                                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">고용 및 급여 형태</label>
-                                            {t.system_role === 'staff' ? (
+                                            {t.system_role === 'manager' ? (
                                                 <div className="p-2 bg-white dark:bg-slate-900 rounded-lg border dark:border-slate-700 font-bold text-slate-700 dark:text-white">
-                                                    행정직원 (고정급 정산)
+                                                    행정/매니저 (고정급 정산)
                                                 </div>
                                             ) : (
                                                 <select className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.hire_type} onChange={e => setEditForm({ ...editForm, hire_type: e.target.value as HireType })}>
@@ -473,17 +473,17 @@ export function Settlement() {
                                                 </select>
                                             )}
 
-                                            {(editForm.hire_type === 'fulltime' || t.system_role === 'staff' || t.system_role === 'admin') && (
+                                            {(editForm.hire_type === 'fulltime' || t.system_role === 'manager' || t.system_role === 'admin') && (
                                                 <>
                                                     <div><span className="text-xs text-slate-400">월 고정 급여 (원)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_salary} onChange={e => setEditForm({ ...editForm, base_salary: e.target.value })} placeholder="0" /></div>
-                                                    {t.system_role !== 'staff' && (
+                                                    {t.system_role !== 'manager' && (
                                                         <div><span className="text-xs text-slate-400">기본 의무 회기 (회)</span><input type="number" className="w-full p-2 border dark:border-slate-700 rounded-lg font-bold bg-white dark:bg-slate-900 text-slate-900 dark:text-white" value={editForm.base_session_count} onChange={e => setEditForm({ ...editForm, base_session_count: e.target.value })} placeholder="0" /></div>
                                                     )}
                                                 </>
                                             )}
                                         </div>
 
-                                        {t.system_role !== 'staff' && (
+                                        {t.system_role !== 'manager' && (
                                             <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>

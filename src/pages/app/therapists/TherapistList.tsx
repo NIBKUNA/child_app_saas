@@ -170,8 +170,19 @@ export function TherapistList() {
 
         try {
             if (!editingId) {
-                // 🚀 [Proper Fix] Edge Function이 이제 내부적으로 Role Enum 우회 처리를 수행합니다.
-                // 프론트엔드는 원본 역할을 그대로 전달하면 됩니다.
+                // 🚀 [Security] JWT 갱신 시도 (Invalid JWT 방지)
+                await supabase.auth.refreshSession();
+
+                // 🚀 [Debug] Check token before calling
+                const { data: { session } } = await supabase.auth.getSession();
+                console.log('--- Invitation Process ---');
+                console.log('Target Email:', formData.email);
+                console.log('Target Role:', formData.system_role);
+                console.log('Session Token Present:', !!session?.access_token);
+                if (session?.access_token) {
+                    console.log('Token (first 10 chars):', session.access_token.substring(0, 10));
+                }
+
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,
@@ -533,8 +544,8 @@ export function TherapistList() {
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                                 {editingId
-                                    ? ({ 'admin': '관리자 정보 수정', 'staff': '행정직원 정보 수정', 'therapist': '치료사 정보 수정', 'parent': '부모 정보 수정', 'super': '슈퍼관리자 수정', 'manager': '매니저 정보 수정', 'super_admin': '최고관리자 수정' }[formData.system_role] || '치료사 정보 수정')
-                                    : ({ 'admin': '새 관리자 등록', 'staff': '새 행정직원 등록', 'therapist': '새 치료사 등록', 'parent': '새 부모 등록', 'super': '새 슈퍼관리자 등록', 'manager': '새 매니저 등록', 'super_admin': '새 최고관리자 등록' }[formData.system_role] || '새 치료사 등록')}
+                                    ? ({ 'admin': '관리자 정보 수정', 'therapist': '치료사 정보 수정', 'parent': '부모 정보 수정', 'manager': '매니저 정보 수정', 'super_admin': '최고관리자 수정' }[formData.system_role] || '치료사 정보 수정')
+                                    : ({ 'admin': '새 관리자 등록', 'therapist': '새 치료사 등록', 'parent': '새 부모 등록', 'manager': '새 매니저 등록', 'super_admin': '새 최고관리자 등록' }[formData.system_role] || '새 치료사 등록')}
                             </h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
                         </div>

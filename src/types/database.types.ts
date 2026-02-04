@@ -31,19 +31,19 @@ export type Database = {
             user_profiles: {
                 Row: {
                     id: string; center_id: string | null; email: string; name: string; phone: string | null;
-                    role: 'admin' | 'manager' | 'therapist' | 'parent' | 'staff' | 'super' | 'super_admin';
+                    role: 'admin' | 'manager' | 'therapist' | 'parent' | 'super_admin';
                     avatar_url: string | null; status: string | null; is_active: boolean | null;
                     created_at: string; updated_at: string;
                 }
                 Insert: {
                     id: string; center_id?: string | null; email: string; name: string; phone?: string | null;
-                    role?: 'admin' | 'manager' | 'therapist' | 'parent' | 'staff' | 'super' | 'super_admin';
+                    role?: 'admin' | 'manager' | 'therapist' | 'parent' | 'super_admin';
                     avatar_url?: string | null; status?: string | null; is_active?: boolean | null;
                     created_at?: string; updated_at?: string;
                 }
                 Update: {
                     id?: string; center_id?: string | null; email?: string; name?: string; phone?: string | null;
-                    role?: 'admin' | 'manager' | 'therapist' | 'parent' | 'staff' | 'super' | 'super_admin';
+                    role?: 'admin' | 'manager' | 'therapist' | 'parent' | 'super_admin';
                     avatar_url?: string | null; status?: string | null; is_active?: boolean | null;
                     created_at?: string; updated_at?: string;
                 }
@@ -141,7 +141,7 @@ export type Database = {
             schedules: {
                 Row: {
                     id: string; center_id: string | null; child_id: string | null; therapist_id: string | null;
-                    start_time: string; end_time: string; status: string | null; created_at: string;
+                    start_time: string; end_time: string; service_type: string | null; status: string | null; created_at: string;
                 }
                 Insert: {
                     id?: string; center_id?: string | null; child_id?: string | null; therapist_id?: string | null;
@@ -163,6 +163,18 @@ export type Database = {
                 Row: { id: string; child_name: string; status: string; created_at: string }
                 Insert: { id?: string; child_name: string; status?: string; created_at?: string }
                 Update: { id?: string; child_name?: string; status?: string; created_at?: string }
+                Relationships: []
+            }
+            payments: {
+                Row: { id: string; child_id: string; amount: number; paid_at: string }
+                Insert: { id?: string; child_id: string; amount: number; paid_at: string }
+                Update: { id?: string; child_id?: string; amount?: number; paid_at?: string }
+                Relationships: []
+            }
+            admin_notifications: {
+                Row: { id: string; user_id: string; type: string; message: string; is_read: boolean; created_at: string }
+                Insert: { id?: string; user_id: string; type: string; message: string; is_read?: boolean; created_at?: string }
+                Update: { id?: string; user_id?: string; type?: string; message?: string; is_read?: boolean; created_at?: string }
                 Relationships: []
             }
         }

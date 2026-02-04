@@ -187,7 +187,7 @@ function App() {
             path="/app"
             element={
               <CenterGuard>
-                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff', 'employee', 'therapist']}>
+                <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'therapist']}>
                   <AppLayout />
                 </ProtectedRoute>
               </CenterGuard>
@@ -196,37 +196,37 @@ function App() {
             <Route index element={<AppHomeRedirect />} />
 
             <Route path="dashboard" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
 
             <Route path="leads" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
                 <ConsultationInquiryList />
               </ProtectedRoute>
             } />
 
             <Route path="schedule" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff', 'therapist']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'therapist']}>
                 <Schedule />
               </ProtectedRoute>
             } />
 
             <Route path="children" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
                 <ChildList />
               </ProtectedRoute>
             } />
 
             <Route path="parents" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
                 <ParentList />
               </ProtectedRoute>
             } />
 
             <Route path="programs" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
                 <Programs />
               </ProtectedRoute>
             } />
@@ -242,7 +242,7 @@ function App() {
             <Route path="sessions/:scheduleId/note" element={<SessionNote />} />
 
             <Route path="billing" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'staff']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>
                 <Billing />
               </ProtectedRoute>
             } />

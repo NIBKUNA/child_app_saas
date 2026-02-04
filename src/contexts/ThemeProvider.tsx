@@ -38,7 +38,7 @@ const ThemeContext = createContext<ThemeContextType>({
     isSuperAdmin: false,
     canExportData: false,
     canViewRevenue: true,
-    themeClass: 'theme-staff',
+    themeClass: 'theme-manager',
 });
 
 const THEME_STORAGE_KEY = 'zarada_theme_mode';
@@ -49,7 +49,7 @@ function getDefaultTheme(role: UserRole): ThemeMode {
         case 'admin':
             return 'dark'; // 원장: 다크 프로페셔널 테마
         case 'therapist':
-        case 'staff':
+        case 'manager':
             return 'light'; // 직원: 차분한 라이트 테마
         case 'parent':
             return 'light'; // 부모: 따뜻한 파스텔 테마
@@ -66,12 +66,12 @@ function getThemeClass(role: UserRole, theme: ThemeMode): string {
         case 'admin':
             return 'theme-admin';
         case 'therapist':
-        case 'staff':
-            return 'theme-staff';
+        case 'manager':
+            return 'theme-manager';
         case 'parent':
             return 'theme-parent';
         default:
-            return 'theme-staff';
+            return 'theme-manager';
     }
 }
 
@@ -92,7 +92,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Permission flags based on role
     const canExportData = isSuperAdmin; // Only Super Admin can export
-    const canViewRevenue = role === 'admin' || role === 'staff' || isSuperAdmin;
+    const canViewRevenue = role === 'admin' || role === 'manager' || isSuperAdmin;
 
     // Theme class for body
     const themeClass = useMemo(() => getThemeClass(role, theme), [role, theme]);
@@ -110,7 +110,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const root = document.documentElement;
 
         // Remove all theme classes first
-        root.classList.remove('dark', 'theme-admin', 'theme-staff', 'theme-parent');
+        root.classList.remove('dark', 'theme-admin', 'theme-manager', 'theme-parent');
 
         // Apply new theme class
         root.classList.add(themeClass);
