@@ -1,10 +1,8 @@
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-10
+ * 📅 Date: 2026-02-04
  * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
- * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
- * -----------------------------------------------------------
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
@@ -12,54 +10,6 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
     public: {
         Tables: {
-            leads: {
-                Row: {
-                    id: string; center_id: string | null; parent_name: string; phone: string; email: string | null;
-                    child_name: string | null; child_birth_year: number | null; child_gender: 'male' | 'female' | 'other' | null;
-                    concern: string | null; preferred_service: string[] | null; preferred_time: string | null;
-                    status: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'; source: string | null;
-                    converted_parent_id: string | null; converted_child_id: string | null; converted_at: string | null;
-                    admin_notes: string | null; assigned_to: string | null; created_at: string; updated_at: string;
-                }
-                Insert: {
-                    id?: string; center_id?: string | null; parent_name: string; phone: string; email?: string | null;
-                    child_name?: string | null; child_birth_year?: number | null; child_gender?: 'male' | 'female' | 'other' | null;
-                    concern?: string | null; preferred_service?: string[] | null; preferred_time?: string | null;
-                    status?: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'; source?: string | null;
-                    converted_parent_id?: string | null; converted_child_id?: string | null; converted_at?: string | null;
-                    admin_notes?: string | null; assigned_to?: string | null; created_at?: string; updated_at?: string;
-                }
-                Update: {
-                    id?: string; center_id?: string | null; parent_name?: string; phone?: string; email?: string | null;
-                    child_name?: string | null; child_birth_year?: number | null; child_gender?: 'male' | 'female' | 'other' | null;
-                    concern?: string | null; preferred_service?: string[] | null; preferred_time?: string | null;
-                    status?: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'; source?: string | null;
-                    converted_parent_id?: string | null; converted_child_id?: string | null; converted_at?: string | null;
-                    admin_notes?: string | null; assigned_to?: string | null; created_at?: string; updated_at?: string;
-                }
-                Relationships: []
-            }
-            blog_posts: {
-                Row: {
-                    id: string; center_id: string | null; created_at: string; updated_at: string | null; title: string;
-                    content: string; slug: string; excerpt: string | null; cover_image_url: string | null;
-                    author_id: string | null; is_published: boolean; published_at: string | null;
-                    seo_title: string | null; seo_description: string | null; keywords: string[] | null; view_count: number;
-                }
-                Insert: {
-                    id?: string; center_id?: string | null; created_at?: string; updated_at?: string | null;
-                    title: string; content: string; slug: string; excerpt?: string | null; cover_image_url?: string | null;
-                    author_id?: string | null; is_published?: boolean; published_at?: string | null;
-                    seo_title?: string | null; seo_description?: string | null; keywords?: string[] | null; view_count?: number;
-                }
-                Update: {
-                    id?: string; center_id?: string | null; created_at?: string; updated_at?: string | null;
-                    title?: string; content?: string; slug?: string; excerpt?: string | null; cover_image_url?: string | null;
-                    author_id?: string | null; is_published?: boolean; published_at?: string | null;
-                    seo_title?: string | null; seo_description?: string | null; keywords?: string[] | null; view_count?: number;
-                }
-                Relationships: []
-            }
             centers: {
                 Row: {
                     id: string; slug: string | null; name: string; address: string | null; phone: string | null;
@@ -97,7 +47,14 @@ export type Database = {
                     avatar_url?: string | null; status?: string | null; is_active?: boolean | null;
                     created_at?: string; updated_at?: string;
                 }
-                Relationships: []
+                Relationships: [
+                    {
+                        foreignKeyName: "user_profiles_center_id_fkey"
+                        columns: ["center_id"]
+                        referencedRelation: "centers"
+                        referencedColumns: ["id"]
+                    }
+                ]
             }
             therapists: {
                 Row: {
@@ -136,7 +93,20 @@ export type Database = {
                     bank_name?: string | null; account_number?: string | null; account_holder?: string | null;
                     is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
-                Relationships: []
+                Relationships: [
+                    {
+                        foreignKeyName: "therapists_center_id_fkey"
+                        columns: ["center_id"]
+                        referencedRelation: "centers"
+                        referencedColumns: ["id"]
+                    },
+                    {
+                        foreignKeyName: "therapists_profile_id_fkey"
+                        columns: ["profile_id"]
+                        referencedRelation: "user_profiles"
+                        referencedColumns: ["id"]
+                    }
+                ]
             }
             parents: {
                 Row: {
@@ -156,43 +126,43 @@ export type Database = {
             children: {
                 Row: {
                     id: string; center_id: string | null; parent_id: string | null; name: string; birth_date: string;
-                    gender: 'male' | 'female' | 'other' | null; school_name: string | null; grade: string | null;
-                    diagnosis: string | null; medical_history: string | null; notes: string | null; photo_url: string | null;
-                    is_active: boolean | null; created_at: string; updated_at: string;
+                    gender: 'male' | 'female' | 'other' | null; diagnosis: string | null; created_at: string; updated_at: string;
                 }
                 Insert: {
                     id?: string; center_id?: string | null; parent_id?: string | null; name: string; birth_date: string;
-                    gender?: 'male' | 'female' | 'other' | null; school_name?: string | null; grade?: string | null;
-                    diagnosis?: string | null; medical_history?: string | null; notes?: string | null; photo_url?: string | null;
-                    is_active?: boolean | null; created_at?: string; updated_at?: string;
+                    gender?: 'male' | 'female' | 'other' | null; diagnosis?: string | null; created_at?: string; updated_at?: string;
                 }
                 Update: {
                     id?: string; center_id?: string | null; parent_id?: string | null; name?: string; birth_date?: string;
-                    gender?: 'male' | 'female' | 'other' | null; school_name?: string | null; grade?: string | null;
-                    diagnosis?: string | null; medical_history?: string | null; notes?: string | null; photo_url?: string | null;
-                    is_active?: boolean | null; created_at?: string; updated_at?: string;
+                    gender?: 'male' | 'female' | 'other' | null; diagnosis?: string | null; created_at?: string; updated_at?: string;
                 }
                 Relationships: []
             }
             schedules: {
                 Row: {
                     id: string; center_id: string | null; child_id: string | null; therapist_id: string | null;
-                    room_id: string | null; title: string | null; service_type: string | null; start_time: string;
-                    end_time: string; status: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
-                    is_recurring: boolean | null; recurrence_rule: string | null; created_at: string; updated_at: string;
+                    start_time: string; end_time: string; status: string | null; created_at: string;
                 }
                 Insert: {
                     id?: string; center_id?: string | null; child_id?: string | null; therapist_id?: string | null;
-                    room_id?: string | null; title?: string | null; service_type?: string | null; start_time: string;
-                    end_time: string; status?: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
-                    is_recurring?: boolean | null; recurrence_rule?: string | null; created_at?: string; updated_at?: string;
+                    start_time: string; end_time: string; status?: string | null; created_at?: string;
                 }
                 Update: {
                     id?: string; center_id?: string | null; child_id?: string | null; therapist_id?: string | null;
-                    room_id?: string | null; title?: string | null; service_type?: string | null; start_time?: string;
-                    end_time?: string; status?: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
-                    is_recurring?: boolean | null; recurrence_rule?: string | null; created_at?: string; updated_at?: string;
+                    start_time?: string; end_time?: string; status?: string | null; created_at?: string;
                 }
+                Relationships: []
+            }
+            leads: {
+                Row: { id: string; parent_name: string; phone: string; status: string; created_at: string }
+                Insert: { id?: string; parent_name: string; phone: string; status?: string; created_at?: string }
+                Update: { id?: string; parent_name?: string; phone?: string; status?: string; created_at?: string }
+                Relationships: []
+            }
+            consultations: {
+                Row: { id: string; child_name: string; status: string; created_at: string }
+                Insert: { id?: string; child_name: string; status?: string; created_at?: string }
+                Update: { id?: string; child_name?: string; status?: string; created_at?: string }
                 Relationships: []
             }
         }

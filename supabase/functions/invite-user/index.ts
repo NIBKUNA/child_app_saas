@@ -78,14 +78,14 @@ serve(async (req: Request) => {
             .maybeSingle();
 
         const SUPER_ADMINS = ['anukbin@gmail.com'];
-        const isSuperAdmin = SUPER_ADMINS.includes(user.email || '');
-        const isAdmin = callerProfile?.role === 'admin';
+        const isSuperEmail = SUPER_ADMINS.includes(user.email || '');
+        const hasAdminRole = ['super_admin', 'super', 'admin'].includes(callerProfile?.role || '');
 
-        console.log(`${logTag} 🔒 Permissions: isSuperAdmin=${isSuperAdmin}, isAdmin=${isAdmin}`);
+        console.log(`${logTag} 🔒 Permissions: isSuperEmail=${isSuperEmail}, hasAdminRole=${hasAdminRole}, Role=${callerProfile?.role}`);
 
-        if (!isSuperAdmin && !isAdmin) {
-            console.error(`${logTag} ❌ Permission Denied: Caller is neither SuperAdmin nor Admin.`);
-            return new Response(JSON.stringify({ error: "Forbidden: Admin access required." }), { status: 403, headers: corsHeaders });
+        if (!isSuperEmail && !hasAdminRole) {
+            console.error(`${logTag} ❌ Permission Denied: Caller role (${callerProfile?.role}) has no invite authority.`);
+            return new Response(JSON.stringify({ error: "Forbidden: Admin or SuperAdmin access required." }), { status: 403, headers: corsHeaders });
         }
 
         // 5. [Target Info Parsing]
@@ -97,7 +97,7 @@ serve(async (req: Request) => {
         if (!email) throw new Error("Target email is required.");
 
         // 🛡️ Multi-Center Safety
-        const targetCenterId = isSuperAdmin ? center_id : callerProfile?.center_id;
+        const targetCenterId = isSuperEmail ? center_id : callerProfile?.center_id;
         if (!targetCenterId) {
             console.error(`${logTag} ❌ Center ID mission: Admin must have a center_id or be SuperAdmin.`);
             throw new Error("Target center identification failed.");
@@ -139,13 +139,19 @@ serve(async (req: Request) => {
 
         // 7. [Sync] Strict profile/center binding
         console.log(`${logTag} 🔄 Syncing profile for ${finalUserId} to center ${targetCenterId}...`);
+
+        // 🛡️ DB Enum Fallback: DB에 staff/super가 아직 추가 안 되었을 경우를 대비
+        let dbRole = role || 'therapist';
+        if (dbRole === 'staff') dbRole = 'manager'; // DB가 staff를 모르면 manager로 일단 저장
+        if (dbRole === 'super') dbRole = 'super_admin';
+
         const { error: syncError } = await supabaseAdmin
             .from("user_profiles")
             .upsert({
                 id: finalUserId,
                 email,
                 name,
-                role: role || 'therapist',
+                role: dbRole as any,
                 status: 'active',
                 center_id: targetCenterId
             }, { onConflict: 'id' });
