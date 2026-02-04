@@ -77,9 +77,11 @@ function AppHomeRedirect() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
+  if (role === 'super_admin') {
+    return <Navigate to="/master/centers" replace />;
+  }
+
   // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
-  // This allows all users to "exit" to the platform home.
-  // Logged-in users can return to their dashboard via the "Dashboard" button in the header.
   return <GlobalLanding />;
 }
 
