@@ -105,7 +105,12 @@ serve(async (req: Request) => {
             throw new Error("Target center identification failed.");
         }
 
-        console.log(`${logTag} 📧 Inviting: ${email} | Role: ${role} | Center: ${targetCenterId}`);
+        // 🛡️ [Legacy Fallback] Frontend might still send old roles
+        let finalRole = role;
+        if (role === 'staff' || role === 'employee') finalRole = 'manager';
+        if (role === 'super') finalRole = 'super_admin';
+
+        console.log(`${logTag} 📧 Inviting: ${email} | Original Role: ${role} | Final Role: ${finalRole} | Center: ${targetCenterId}`);
 
         // 6. [Send Invitation]
         console.log(`${logTag} 🔎 Attempting to invite user: ${email} with role: ${role}...`);
@@ -114,7 +119,7 @@ serve(async (req: Request) => {
 
         // 🚀 Send invitation with the requested role directly
         const { data: authData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            data: { name, role, full_name: name, center_id: targetCenterId },
+            data: { name, role: finalRole, full_name: name, center_id: targetCenterId },
             redirectTo: finalRedirectTo,
         });
 
@@ -148,7 +153,7 @@ serve(async (req: Request) => {
                 id: finalUserId,
                 email,
                 name,
-                role: role as any,
+                role: finalRole as any,
                 status: 'active',
                 center_id: targetCenterId
             }, { onConflict: 'id' });
@@ -158,15 +163,15 @@ serve(async (req: Request) => {
             throw syncError;
         }
 
-        if (role !== 'parent') {
-            console.log(`${logTag} 🩺 Syncing to therapists table for role: ${role}`);
+        if (finalRole !== 'parent') {
+            console.log(`${logTag} 🩺 Syncing to therapists table for role: ${finalRole}`);
             const { error: thError } = await supabaseAdmin
                 .from("therapists")
                 .upsert({
                     email,
                     name,
                     center_id: targetCenterId,
-                    system_role: role || 'therapist',
+                    system_role: finalRole || 'therapist',
                     system_status: 'active',
                     ...details
                 }, { onConflict: 'email' });
