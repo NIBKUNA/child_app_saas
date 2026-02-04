@@ -314,13 +314,16 @@ export function Settlement() {
                     // 1. 수업 수 = 평일(1) + 주말(1.5)
                     const base_weighted = raw_weekday + (raw_weekend * 1.5);
 
+                    // 🏗️ 상담 수당은 기본 회기 로직과 별개로 상시 합산
+                    const consult_pay = consult_count * consultPrice;
+
                     if (base_weighted > goal) {
                         // 90회 수업 초과시
                         const alpha = base_weighted - goal;
                         const excess_pay = alpha * incentivePrice;
                         const eval_bonus = eval_count * evalPrice;
-                        payout = baseSalary + excess_pay + eval_bonus;
-                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 초과수당 ${excess_pay.toLocaleString()}(${alpha.toFixed(1)}회) + 평가수당 ${eval_bonus.toLocaleString()}`;
+                        payout = baseSalary + excess_pay + eval_bonus + consult_pay;
+                        incentiveText = `기본급 ${baseSalary.toLocaleString()} + 초과수당 ${excess_pay.toLocaleString()}(${alpha.toFixed(1)}회) + 평가수당 ${eval_bonus.toLocaleString()}${consult_pay > 0 ? ` + 상담수당 ${consult_pay.toLocaleString()}` : ''}`;
                     } else {
                         // 90회 수업 전까지: 평가 X 2 로 부족한 회기수를 채움
                         const gap = goal - base_weighted;
@@ -336,15 +339,18 @@ export function Settlement() {
                         const excess_pay = alpha * incentivePrice;
                         const eval_bonus = evals_bonus_count * evalPrice;
 
-                        payout = baseSalary + excess_pay + eval_bonus;
+                        payout = baseSalary + excess_pay + eval_bonus + consult_pay;
 
-                        if (alpha > 0 || evals_bonus_count > 0) {
-                            incentiveText = `기본급 ${baseSalary.toLocaleString()} + 초과수당 ${excess_pay.toLocaleString()} + 평가수당 ${eval_bonus.toLocaleString()}`;
-                        } else {
-                            incentiveText = `기본급 ${baseSalary.toLocaleString()} (회기:${base_weighted}/보충:${evals_to_fill})`;
+                        let text = `기본급 ${baseSalary.toLocaleString()}`;
+                        if (alpha > 0) text += ` + 초과수당 ${excess_pay.toLocaleString()}`;
+                        if (evals_bonus_count > 0) text += ` + 평가수당 ${eval_bonus.toLocaleString()}`;
+                        if (consult_pay > 0) text += ` + 상담수당 ${consult_pay.toLocaleString()}`;
+                        if (alpha === 0 && evals_bonus_count === 0 && consult_pay === 0) {
+                            text += ` (회기:${base_weighted}/보충:${evals_to_fill})`;
                         }
+                        incentiveText = text;
                     }
-                    revenue = payout; // Revenue calculation removed per user preference
+                    revenue = payout;
                 } else {
                     // Freelancer Therapist (Ratio-based remains same)
                     const weekdayPrice = staff.session_price_weekday || 0;
