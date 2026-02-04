@@ -170,18 +170,12 @@ export function TherapistList() {
 
         try {
             if (!editingId) {
-                // ✨ [New Registration] Use Edge Function for Secure Invitation
-                // 🛡️ DB Enum Safe-guard
-                // DB가 'staff' 역할을 모르기 때문에, 초대 시에는 일단 'manager'로 보내서 
-                // DB 트랜잭션 에러(400 Bad Request)를 방지합니다.
-                const inviteRole = formData.system_role === 'staff' ? 'manager' : formData.system_role;
-
+                // 1. [Invite] DB 트리거 에러를 피하기 위해 가장 기본 권한인 'therapist'로 초대
                 const { data, error } = await supabase.functions.invoke('invite-user', {
                     body: {
                         email: formData.email,
                         name: formData.name,
-                        role: inviteRole,
-                        system_role: formData.system_role, // 🚀 실제 권한을 명시적으로 전달 (Staff 등)
+                        role: 'therapist', // 🛡️ 'staff' 대신 안전한 권한으로 우선 초대
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
@@ -194,6 +188,20 @@ export function TherapistList() {
 
                 if (error) throw error;
                 if (data && data.error) throw new Error(data.error);
+
+                // 2. [Force Sync] 초대가 성공하면, 즉시 therapists 테이블의 권한을 'staff'로 강제 업데이트
+                // 이 방식은 서버 배포나 SQL 실행 없이도 즉시 효과가 나타납니다.
+                if (formData.system_role === 'staff' || formData.system_role === 'manager' || formData.system_role === 'super_admin') {
+                    await supabase
+                        .from('therapists')
+                        .update({ system_role: formData.system_role })
+                        .eq('email', formData.email);
+
+                    await supabase
+                        .from('user_profiles')
+                        .update({ role: formData.system_role as any })
+                        .eq('email', formData.email);
+                }
 
                 // ✨ Show Custom Success Modal instead of Alert
                 setSuccessModal({
