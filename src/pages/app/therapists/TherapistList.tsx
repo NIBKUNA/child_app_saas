@@ -28,7 +28,7 @@ const COLORS = [
 export type HireType = 'freelancer' | 'fulltime' | 'parttime' | 'regular';
 
 // ✨ 시스템 역할 타입
-export type SystemRole = 'therapist' | 'staff' | 'admin' | 'parent' | 'super';
+export type SystemRole = 'therapist' | 'staff' | 'admin' | 'parent' | 'super' | 'manager' | 'super_admin';
 
 // ✨ 시스템 상태 타입 (active: 근무중, retired: 퇴사, rejected: 승인거절)
 export type SystemStatus = 'active' | 'retired' | 'rejected';
@@ -196,8 +196,8 @@ export function TherapistList() {
                     message: `${formData.name}님에게 이메일 초대가 발송되었습니다.\n수신함에서 스팸 메일함도 꼭 확인해주세요.`
                 });
             } else {
-                const { error: therapistError } = await (supabase
-                    .from('therapists') as any)
+                const { error: therapistError } = await supabase
+                    .from('therapists')
                     .upsert({
                         email: formData.email,
                         name: formData.name,
@@ -213,8 +213,8 @@ export function TherapistList() {
 
                 if (therapistError) throw therapistError;
 
-                const { error: profileError } = await (supabase
-                    .from('user_profiles') as any)
+                const { error: profileError } = await supabase
+                    .from('user_profiles')
                     .update({
                         name: formData.name,
                         role: formData.system_role
@@ -494,7 +494,7 @@ export function TherapistList() {
                                                     "bg-emerald-100 text-emerald-600 border-emerald-200"
                                         )}>
                                             {staff.system_status === 'retired' ? 'RETIRED' : (
-                                                { 'admin': 'ADMIN', 'staff': 'STAFF', 'therapist': 'THERAPIST', 'parent': 'PARENT', 'super': 'SUPER' }[staff.system_role] || 'THERAPIST'
+                                                { 'admin': 'ADMIN', 'staff': 'STAFF', 'therapist': 'THERAPIST', 'parent': 'PARENT', 'super': 'SUPER', 'manager': 'MANAGER', 'super_admin': 'SUPER ADMIN' }[staff.system_role] || 'THERAPIST'
                                             )}
                                         </span>
                                     </h3>
@@ -532,8 +532,8 @@ export function TherapistList() {
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                                 {editingId
-                                    ? ({ 'admin': '관리자 정보 수정', 'staff': '행정직원 정보 수정', 'therapist': '치료사 정보 수정', 'parent': '부모 정보 수정', 'super': '슈퍼관리자 수정' }[formData.system_role] || '치료사 정보 수정')
-                                    : ({ 'admin': '새 관리자 등록', 'staff': '새 행정직원 등록', 'therapist': '새 치료사 등록', 'parent': '새 부모 등록', 'super': '새 슈퍼관리자 등록' }[formData.system_role] || '새 치료사 등록')}
+                                    ? ({ 'admin': '관리자 정보 수정', 'staff': '행정직원 정보 수정', 'therapist': '치료사 정보 수정', 'parent': '부모 정보 수정', 'super': '슈퍼관리자 수정', 'manager': '매니저 정보 수정', 'super_admin': '최고관리자 수정' }[formData.system_role] || '치료사 정보 수정')
+                                    : ({ 'admin': '새 관리자 등록', 'staff': '새 행정직원 등록', 'therapist': '새 치료사 등록', 'parent': '새 부모 등록', 'super': '새 슈퍼관리자 등록', 'manager': '새 매니저 등록', 'super_admin': '새 최고관리자 등록' }[formData.system_role] || '새 치료사 등록')}
                             </h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6 text-slate-400" /></button>
                         </div>
@@ -597,7 +597,9 @@ export function TherapistList() {
                                                     'staff': '💼 행정직원 (Staff)',
                                                     'therapist': '🩺 치료사 (Therapist)',
                                                     'parent': '👨‍👩‍👧‍👦 학부모 (Parent)',
-                                                    'super': '👑 슈퍼관리자 (Super)'
+                                                    'super': '👑 슈퍼관리자 (Super)',
+                                                    'manager': '📋 매니저 (Manager)',
+                                                    'super_admin': '🔑 최고관리자 (Super Admin)'
                                                 }[formData.system_role] || '🩺 치료사 (Therapist)'
                                             }
                                         />

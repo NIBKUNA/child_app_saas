@@ -60,7 +60,7 @@ export function CenterDetailPage() {
             if (centerError) throw centerError;
 
             const { count: teacherCount } = await supabase
-                .from('profiles')
+                .from('user_profiles')
                 .select('id', { count: 'exact', head: true })
                 .eq('center_id', centerId as string)
                 .in('role', ['therapist', 'manager', 'admin']);
@@ -122,9 +122,9 @@ export function CenterDetailPage() {
         }
 
         try {
-            const { error } = await (supabase
-                .from('centers' as any) as any)
-                .update(updateData as any)
+            const { error } = await supabase
+                .from('centers')
+                .update(updateData)
                 .eq('id', centerId as string)
                 .select();
 

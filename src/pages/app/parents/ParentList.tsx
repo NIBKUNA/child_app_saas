@@ -136,8 +136,8 @@ export function ParentList() {
         if (!confirm(confirmMsg)) return;
 
         try {
-            const { error } = await (supabase
-                .from('user_profiles') as any)
+            const { error } = await supabase
+                .from('user_profiles')
                 .update({ status: newStatus })
                 .eq('id', parent.id);
 

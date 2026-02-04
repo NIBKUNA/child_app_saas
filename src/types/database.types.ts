@@ -5,8 +5,6 @@
  * 🖋️ Description: "코드와 데이터로 세상을 채색하다."
  * ⚠️ Copyright (c) 2026 안욱빈. All rights reserved.
  * -----------------------------------------------------------
- * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
- * 예술적 영감을 바탕으로 구축되었습니다.
  */
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
@@ -16,809 +14,190 @@ export type Database = {
         Tables: {
             leads: {
                 Row: {
-                    id: string
-                    center_id: string | null
-                    parent_name: string
-                    phone: string
-                    email: string | null
-                    child_name: string | null
-                    child_birth_year: number | null
-                    child_gender: 'male' | 'female' | 'other' | null
-                    concern: string | null
-                    preferred_service: string[] | null
-                    preferred_time: string | null
-                    status: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'
-                    source: string | null
-                    converted_parent_id: string | null
-                    converted_child_id: string | null
-                    converted_at: string | null
-                    admin_notes: string | null
-                    assigned_to: string | null
-                    created_at: string
-                    updated_at: string
+                    id: string; center_id: string | null; parent_name: string; phone: string; email: string | null;
+                    child_name: string | null; child_birth_year: number | null; child_gender: 'male' | 'female' | 'other' | null;
+                    concern: string | null; preferred_service: string[] | null; preferred_time: string | null;
+                    status: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'; source: string | null;
+                    converted_parent_id: string | null; converted_child_id: string | null; converted_at: string | null;
+                    admin_notes: string | null; assigned_to: string | null; created_at: string; updated_at: string;
                 }
                 Insert: {
-                    id?: string
-                    center_id?: string | null
-                    parent_name: string
-                    phone: string
-                    email?: string | null
-                    child_name?: string | null
-                    child_birth_year?: number | null
-                    child_gender?: 'male' | 'female' | 'other' | null
-                    concern?: string | null
-                    preferred_service?: string[] | null
-                    preferred_time?: string | null
-                    status?: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'
-                    source?: string | null
-                    converted_parent_id?: string | null
-                    converted_child_id?: string | null
-                    converted_at?: string | null
-                    admin_notes?: string | null
-                    assigned_to?: string | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; center_id?: string | null; parent_name: string; phone: string; email?: string | null;
+                    child_name?: string | null; child_birth_year?: number | null; child_gender?: 'male' | 'female' | 'other' | null;
+                    concern?: string | null; preferred_service?: string[] | null; preferred_time?: string | null;
+                    status?: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'; source?: string | null;
+                    converted_parent_id?: string | null; converted_child_id?: string | null; converted_at?: string | null;
+                    admin_notes?: string | null; assigned_to?: string | null; created_at?: string; updated_at?: string;
                 }
                 Update: {
-                    id?: string
-                    center_id?: string | null
-                    parent_name?: string
-                    phone?: string
-                    email?: string | null
-                    child_name?: string | null
-                    child_birth_year?: number | null
-                    child_gender?: 'male' | 'female' | 'other' | null
-                    concern?: string | null
-                    preferred_service?: string[] | null
-                    preferred_time?: string | null
-                    status?: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'
-                    source?: string | null
-                    converted_parent_id?: string | null
-                    converted_child_id?: string | null
-                    converted_at?: string | null
-                    admin_notes?: string | null
-                    assigned_to?: string | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; center_id?: string | null; parent_name?: string; phone?: string; email?: string | null;
+                    child_name?: string | null; child_birth_year?: number | null; child_gender?: 'male' | 'female' | 'other' | null;
+                    concern?: string | null; preferred_service?: string[] | null; preferred_time?: string | null;
+                    status?: 'new' | 'contacted' | 'scheduled' | 'converted' | 'cancelled'; source?: string | null;
+                    converted_parent_id?: string | null; converted_child_id?: string | null; converted_at?: string | null;
+                    admin_notes?: string | null; assigned_to?: string | null; created_at?: string; updated_at?: string;
                 }
+                Relationships: []
             }
             blog_posts: {
                 Row: {
-                    id: string
-                    center_id: string | null
-                    created_at: string
-                    updated_at: string | null
-                    title: string
-                    content: string
-                    slug: string
-                    excerpt: string | null
-                    cover_image_url: string | null
-                    author_id: string | null
-                    is_published: boolean
-                    published_at: string | null
-                    seo_title: string | null
-                    seo_description: string | null
-                    keywords: string[] | null
-                    view_count: number
+                    id: string; center_id: string | null; created_at: string; updated_at: string | null; title: string;
+                    content: string; slug: string; excerpt: string | null; cover_image_url: string | null;
+                    author_id: string | null; is_published: boolean; published_at: string | null;
+                    seo_title: string | null; seo_description: string | null; keywords: string[] | null; view_count: number;
                 }
                 Insert: {
-                    id?: string
-                    center_id?: string | null
-                    created_at?: string
-                    updated_at?: string | null
-                    title: string
-                    content: string
-                    slug: string
-                    excerpt?: string | null
-                    cover_image_url?: string | null
-                    author_id?: string | null
-                    is_published?: boolean
-                    published_at?: string | null
-                    seo_title?: string | null
-                    seo_description?: string | null
-                    keywords?: string[] | null
-                    view_count?: number
+                    id?: string; center_id?: string | null; created_at?: string; updated_at?: string | null;
+                    title: string; content: string; slug: string; excerpt?: string | null; cover_image_url?: string | null;
+                    author_id?: string | null; is_published?: boolean; published_at?: string | null;
+                    seo_title?: string | null; seo_description?: string | null; keywords?: string[] | null; view_count?: number;
                 }
                 Update: {
-                    id?: string
-                    center_id?: string | null
-                    created_at?: string
-                    updated_at?: string | null
-                    title?: string
-                    content?: string
-                    slug?: string
-                    excerpt?: string | null
-                    cover_image_url?: string | null
-                    author_id?: string | null
-                    is_published?: boolean
-                    published_at?: string | null
-                    seo_title?: string | null
-                    seo_description?: string | null
-                    keywords?: string[] | null
-                    view_count?: number
+                    id?: string; center_id?: string | null; created_at?: string; updated_at?: string | null;
+                    title?: string; content?: string; slug?: string; excerpt?: string | null; cover_image_url?: string | null;
+                    author_id?: string | null; is_published?: boolean; published_at?: string | null;
+                    seo_title?: string | null; seo_description?: string | null; keywords?: string[] | null; view_count?: number;
                 }
-                Relationships: [
-                    {
-                        foreignKeyName: "blog_posts_author_id_fkey"
-                        columns: ["author_id"]
-                        referencedRelation: "users"
-                        referencedColumns: ["id"]
-                    }
-                ]
-            }
-            admin_settings: {
-                Row: {
-                    center_id: string
-                    key: string
-                    value: string | null
-                    updated_at: string | null
-                }
-                Insert: {
-                    center_id: string
-                    key: string
-                    value?: string | null
-                    updated_at?: string | null
-                }
-                Update: {
-                    center_id?: string
-                    key?: string
-                    value?: string | null
-                    updated_at?: string | null
-                }
+                Relationships: []
             }
             centers: {
                 Row: {
-                    id: string
-                    slug: string | null
-                    name: string
-                    address: string | null
-                    phone: string | null
-                    email: string | null
-                    business_number: string | null
-                    representative: string | null
-                    logo_url: string | null
-                    is_active: boolean | null
-                    created_at: string
-                    updated_at: string
+                    id: string; slug: string | null; name: string; address: string | null; phone: string | null;
+                    email: string | null; business_number: string | null; representative: string | null;
+                    logo_url: string | null; is_active: boolean | null; created_at: string; updated_at: string;
                 }
                 Insert: {
-                    id?: string
-                    slug?: string | null
-                    name: string
-                    address?: string | null
-                    phone?: string | null
-                    email?: string | null
-                    business_number?: string | null
-                    representative?: string | null
-                    logo_url?: string | null
-                    is_active?: boolean | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; slug?: string | null; name: string; address?: string | null; phone?: string | null;
+                    email?: string | null; business_number?: string | null; representative?: string | null;
+                    logo_url?: string | null; is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
                 Update: {
-                    id?: string
-                    slug?: string | null
-                    name?: string
-                    address?: string | null
-                    phone?: string | null
-                    email?: string | null
-                    business_number?: string | null
-                    representative?: string | null
-                    logo_url?: string | null
-                    is_active?: boolean | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; slug?: string | null; name?: string; address?: string | null; phone?: string | null;
+                    email?: string | null; business_number?: string | null; representative?: string | null;
+                    logo_url?: string | null; is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
+                Relationships: []
             }
-            profiles: {
+            user_profiles: {
                 Row: {
-                    id: string
-                    center_id: string | null
-                    email: string
-                    name: string
-                    phone: string | null
-                    role: 'admin' | 'manager' | 'therapist' | 'parent'
-                    avatar_url: string | null
-                    is_active: boolean | null
-                    created_at: string
-                    updated_at: string
+                    id: string; center_id: string | null; email: string; name: string; phone: string | null;
+                    role: 'admin' | 'manager' | 'therapist' | 'parent' | 'staff' | 'super' | 'super_admin';
+                    avatar_url: string | null; status: string | null; is_active: boolean | null;
+                    created_at: string; updated_at: string;
                 }
                 Insert: {
-                    id: string
-                    center_id?: string | null
-                    email: string
-                    name: string
-                    phone?: string | null
-                    role?: 'admin' | 'manager' | 'therapist' | 'parent'
-                    avatar_url?: string | null
-                    is_active?: boolean | null
-                    created_at?: string
-                    updated_at?: string
+                    id: string; center_id?: string | null; email: string; name: string; phone?: string | null;
+                    role?: 'admin' | 'manager' | 'therapist' | 'parent' | 'staff' | 'super' | 'super_admin';
+                    avatar_url?: string | null; status?: string | null; is_active?: boolean | null;
+                    created_at?: string; updated_at?: string;
                 }
                 Update: {
-                    id?: string
-                    center_id?: string | null
-                    email?: string
-                    name?: string
-                    phone?: string | null
-                    role?: 'admin' | 'manager' | 'therapist' | 'parent'
-                    avatar_url?: string | null
-                    is_active?: boolean | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; center_id?: string | null; email?: string; name?: string; phone?: string | null;
+                    role?: 'admin' | 'manager' | 'therapist' | 'parent' | 'staff' | 'super' | 'super_admin';
+                    avatar_url?: string | null; status?: string | null; is_active?: boolean | null;
+                    created_at?: string; updated_at?: string;
                 }
-            }
-            parents: {
-                Row: {
-                    id: string
-                    profile_id: string | null
-                    center_id: string | null
-                    name: string
-                    phone: string
-                    email: string | null
-                    address: string | null
-                    emergency_contact: string | null
-                    relationship: string | null
-                    notes: string | null
-                    referral_source: string | null
-                    created_at: string
-                    updated_at: string
-                }
-                Insert: {
-                    id?: string
-                    profile_id?: string | null
-                    center_id?: string | null
-                    name: string
-                    phone: string
-                    email?: string | null
-                    address?: string | null
-                    emergency_contact?: string | null
-                    relationship?: string | null
-                    notes?: string | null
-                    referral_source?: string | null
-                    created_at?: string
-                    updated_at?: string
-                }
-                Update: {
-                    id?: string
-                    profile_id?: string | null
-                    center_id?: string | null
-                    name?: string
-                    phone?: string
-                    email?: string | null
-                    address?: string | null
-                    emergency_contact?: string | null
-                    relationship?: string | null
-                    notes?: string | null
-                    referral_source?: string | null
-                    created_at?: string
-                    updated_at?: string
-                }
+                Relationships: []
             }
             therapists: {
                 Row: {
-                    id: string
-                    profile_id: string | null
-                    center_id: string | null
-                    name: string
-                    email: string | null
-                    phone: string | null
-                    specialization: string[] | null
-                    license_number: string | null
-                    license_type: string | null
-                    hourly_rate: number | null
-                    color: string | null
-                    bio: string | null
-                    is_active: boolean | null
-                    created_at: string
-                    updated_at: string
+                    id: string; profile_id: string | null; center_id: string | null; name: string; email: string | null;
+                    phone: string | null; contact: string | null; specialization: string[] | null; license_number: string | null;
+                    license_type: string | null; hourly_rate: number | null; color: string | null; bio: string | null;
+                    career: string | null; specialties: string | null; profile_image: string | null;
+                    website_visible: boolean | null; hire_type: string | null; system_role: string | null;
+                    system_status: string | null; base_salary: number; required_sessions: number;
+                    session_price_weekday: number; session_price_weekend: number; consult_price: number;
+                    incentive_price: number; evaluation_price: number; remarks: string | null;
+                    bank_name: string | null; account_number: string | null; account_holder: string | null;
+                    is_active: boolean | null; created_at: string; updated_at: string;
                 }
                 Insert: {
-                    id?: string
-                    profile_id?: string | null
-                    center_id?: string | null
-                    name: string
-                    email?: string | null
-                    phone?: string | null
-                    specialization?: string[] | null
-                    license_number?: string | null
-                    license_type?: string | null
-                    hourly_rate?: number | null
-                    color?: string | null
-                    bio?: string | null
-                    is_active?: boolean | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; profile_id?: string | null; center_id?: string | null; name: string; email?: string | null;
+                    phone?: string | null; contact?: string | null; specialization?: string[] | null; license_number?: string | null;
+                    license_type?: string | null; hourly_rate?: number | null; color?: string | null; bio?: string | null;
+                    career?: string | null; specialties?: string | null; profile_image?: string | null;
+                    website_visible?: boolean | null; hire_type?: string | null; system_role?: string | null;
+                    system_status?: string | null; base_salary?: number; required_sessions?: number;
+                    session_price_weekday?: number; session_price_weekend?: number; consult_price?: number;
+                    incentive_price?: number; evaluation_price?: number; remarks?: string | null;
+                    bank_name?: string | null; account_number?: string | null; account_holder?: string | null;
+                    is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
                 Update: {
-                    id?: string
-                    profile_id?: string | null
-                    center_id?: string | null
-                    name?: string
-                    email?: string | null
-                    phone?: string | null
-                    specialization?: string[] | null
-                    license_number?: string | null
-                    license_type?: string | null
-                    hourly_rate?: number | null
-                    color?: string | null
-                    bio?: string | null
-                    is_active?: boolean | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; profile_id?: string | null; center_id?: string | null; name?: string; email?: string | null;
+                    phone?: string | null; contact?: string | null; specialization?: string[] | null; license_number?: string | null;
+                    license_type?: string | null; hourly_rate?: number | null; color?: string | null; bio?: string | null;
+                    career?: string | null; specialties?: string | null; profile_image?: string | null;
+                    website_visible?: boolean | null; hire_type?: string | null; system_role?: string | null;
+                    system_status?: string | null; base_salary?: number; required_sessions?: number;
+                    session_price_weekday?: number; session_price_weekend?: number; consult_price?: number;
+                    incentive_price?: number; evaluation_price?: number; remarks?: string | null;
+                    bank_name?: string | null; account_number?: string | null; account_holder?: string | null;
+                    is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
+                Relationships: []
+            }
+            parents: {
+                Row: {
+                    id: string; profile_id: string | null; center_id: string | null; name: string; phone: string;
+                    email: string | null; address: string | null; status: string | null; created_at: string; updated_at: string;
+                }
+                Insert: {
+                    id?: string; profile_id?: string | null; center_id?: string | null; name: string; phone: string;
+                    email?: string | null; address?: string | null; status?: string | null; created_at?: string; updated_at?: string;
+                }
+                Update: {
+                    id?: string; profile_id?: string | null; center_id?: string | null; name?: string; phone?: string;
+                    email?: string | null; address?: string | null; status?: string | null; created_at?: string; updated_at?: string;
+                }
+                Relationships: []
             }
             children: {
                 Row: {
-                    id: string
-                    center_id: string | null
-                    parent_id: string | null
-                    name: string
-                    birth_date: string
-                    gender: 'male' | 'female' | 'other' | null
-                    school_name: string | null
-                    grade: string | null
-                    diagnosis: string | null
-                    medical_history: string | null
-                    notes: string | null
-                    photo_url: string | null
-                    is_active: boolean | null
-                    created_at: string
-                    updated_at: string
+                    id: string; center_id: string | null; parent_id: string | null; name: string; birth_date: string;
+                    gender: 'male' | 'female' | 'other' | null; school_name: string | null; grade: string | null;
+                    diagnosis: string | null; medical_history: string | null; notes: string | null; photo_url: string | null;
+                    is_active: boolean | null; created_at: string; updated_at: string;
                 }
                 Insert: {
-                    id?: string
-                    center_id?: string | null
-                    parent_id?: string | null
-                    name: string
-                    birth_date: string
-                    gender?: 'male' | 'female' | 'other' | null
-                    school_name?: string | null
-                    grade?: string | null
-                    diagnosis?: string | null
-                    medical_history?: string | null
-                    notes?: string | null
-                    photo_url?: string | null
-                    inflow_source?: string | null
-                    is_active?: boolean | null
-                    created_at?: string | null
-                    updated_at?: string | null
+                    id?: string; center_id?: string | null; parent_id?: string | null; name: string; birth_date: string;
+                    gender?: 'male' | 'female' | 'other' | null; school_name?: string | null; grade?: string | null;
+                    diagnosis?: string | null; medical_history?: string | null; notes?: string | null; photo_url?: string | null;
+                    is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
                 Update: {
-                    id?: string
-                    center_id?: string | null
-                    parent_id?: string | null
-                    name?: string
-                    birth_date?: string
-                    gender?: 'male' | 'female' | 'other' | null
-                    school_name?: string | null
-                    grade?: string | null
-                    diagnosis?: string | null
-                    medical_history?: string | null
-                    notes?: string | null
-                    photo_url?: string | null
-                    inflow_source?: string | null
-                    is_active?: boolean | null
-                    created_at?: string | null
-                    updated_at?: string | null
+                    id?: string; center_id?: string | null; parent_id?: string | null; name?: string; birth_date?: string;
+                    gender?: 'male' | 'female' | 'other' | null; school_name?: string | null; grade?: string | null;
+                    diagnosis?: string | null; medical_history?: string | null; notes?: string | null; photo_url?: string | null;
+                    is_active?: boolean | null; created_at?: string; updated_at?: string;
                 }
-            }
-            consultations: {
-                Row: {
-                    id: string
-                    center_id: string | null
-                    child_id: string | null
-                    child_name: string
-                    child_gender: 'male' | 'female' | 'other' | null
-                    child_birth_date: string | null
-                    concern: string | null
-                    diagnosis: string | null
-                    consultation_area: string[] | null
-                    preferred_consult_schedule: string | null
-                    preferred_class_schedule: string | null
-                    guardian_name: string | null
-                    guardian_phone: string | null
-                    guardian_relationship: string | null
-                    inflow_source: string | null
-                    marketing_source: string | null
-                    status: string | null
-                    created_at: string | null
-                    updated_at: string | null
-                }
-                Insert: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    child_name: string
-                    child_gender?: 'male' | 'female' | 'other' | null
-                    child_birth_date?: string | null
-                    concern?: string | null
-                    diagnosis?: string | null
-                    consultation_area?: string[] | null
-                    preferred_consult_schedule?: string | null
-                    preferred_class_schedule?: string | null
-                    guardian_name?: string | null
-                    guardian_phone?: string | null
-                    guardian_relationship?: string | null
-                    inflow_source?: string | null
-                    marketing_source?: string | null
-                    status?: string | null
-                    created_at?: string | null
-                    updated_at?: string | null
-                }
-                Update: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    child_name?: string
-                    child_gender?: 'male' | 'female' | 'other' | null
-                    child_birth_date?: string | null
-                    concern?: string | null
-                    diagnosis?: string | null
-                    consultation_area?: string[] | null
-                    preferred_consult_schedule?: string | null
-                    preferred_class_schedule?: string | null
-                    guardian_name?: string | null
-                    guardian_phone?: string | null
-                    guardian_relationship?: string | null
-                    inflow_source?: string | null
-                    marketing_source?: string | null
-                    status?: string | null
-                    created_at?: string | null
-                    updated_at?: string | null
-                }
+                Relationships: []
             }
             schedules: {
                 Row: {
-                    id: string
-                    center_id: string | null
-                    child_id: string | null
-                    therapist_id: string | null
-                    room_id: string | null
-                    title: string | null
-                    service_type: string | null
-                    start_time: string
-                    end_time: string
-                    status: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null
-                    is_recurring: boolean | null
-                    recurrence_rule: string | null
-                    parent_schedule_id: string | null
-                    cancellation_reason: string | null
-                    makeup_for_id: string | null
-                    notes: string | null
-                    created_by: string | null
-                    created_at: string
-                    updated_at: string
+                    id: string; center_id: string | null; child_id: string | null; therapist_id: string | null;
+                    room_id: string | null; title: string | null; service_type: string | null; start_time: string;
+                    end_time: string; status: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
+                    is_recurring: boolean | null; recurrence_rule: string | null; created_at: string; updated_at: string;
                 }
                 Insert: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    room_id?: string | null
-                    title?: string | null
-                    service_type?: string | null
-                    start_time: string
-                    end_time: string
-                    status?: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null
-                    is_recurring?: boolean | null
-                    recurrence_rule?: string | null
-                    parent_schedule_id?: string | null
-                    cancellation_reason?: string | null
-                    makeup_for_id?: string | null
-                    notes?: string | null
-                    created_by?: string | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; center_id?: string | null; child_id?: string | null; therapist_id?: string | null;
+                    room_id?: string | null; title?: string | null; service_type?: string | null; start_time: string;
+                    end_time: string; status?: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
+                    is_recurring?: boolean | null; recurrence_rule?: string | null; created_at?: string; updated_at?: string;
                 }
                 Update: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    room_id?: string | null
-                    title?: string | null
-                    service_type?: string | null
-                    start_time?: string
-                    end_time?: string
-                    status?: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null
-                    is_recurring?: boolean | null
-                    recurrence_rule?: string | null
-                    parent_schedule_id?: string | null
-                    cancellation_reason?: string | null
-                    makeup_for_id?: string | null
-                    notes?: string | null
-                    created_by?: string | null
-                    created_at?: string
-                    updated_at?: string
+                    id?: string; center_id?: string | null; child_id?: string | null; therapist_id?: string | null;
+                    room_id?: string | null; title?: string | null; service_type?: string | null; start_time?: string;
+                    end_time?: string; status?: 'scheduled' | 'completed' | 'cancelled' | 'makeup' | 'carried_over' | null;
+                    is_recurring?: boolean | null; recurrence_rule?: string | null; created_at?: string; updated_at?: string;
                 }
+                Relationships: []
             }
-            counseling_logs: {
-                Row: {
-                    id: string
-                    center_id: string | null
-                    child_id: string | null
-                    therapist_id: string | null
-                    schedule_id: string | null
-                    session_date: string
-                    session_number: number | null
-                    duration_minutes: number | null
-                    objectives: string | null
-                    activities: string | null
-                    observations: string | null
-                    child_response: string | null
-                    next_plan: string | null
-                    parent_feedback: string | null
-                    attachments: string[] | null
-                    created_at: string
-                    updated_at: string
-                }
-                Insert: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    schedule_id?: string | null
-                    session_date: string
-                    session_number?: number | null
-                    duration_minutes?: number | null
-                    objectives?: string | null
-                    activities?: string | null
-                    observations?: string | null
-                    child_response?: string | null
-                    next_plan?: string | null
-                    parent_feedback?: string | null
-                    attachments?: string[] | null
-                    created_at?: string
-                    updated_at?: string
-                }
-                Update: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    schedule_id?: string | null
-                    session_date?: string
-                    session_number?: number | null
-                    duration_minutes?: number | null
-                    objectives?: string | null
-                    activities?: string | null
-                    observations?: string | null
-                    child_response?: string | null
-                    next_plan?: string | null
-                    parent_feedback?: string | null
-                    attachments?: string[] | null
-                    created_at?: string
-                    updated_at?: string
-                }
-            }
-            payments: {
-                Row: {
-                    id: string
-                    child_id: string | null
-                    amount: number
-                    method: string | null
-                    credit_used: number | null
-                    memo: string | null
-                    payment_month: string | null
-                    paid_at: string | null
-                }
-                Insert: {
-                    id?: string
-                    child_id?: string | null
-                    amount?: number
-                    method?: string | null
-                    credit_used?: number | null
-                    memo?: string | null
-                    payment_month?: string | null
-                    paid_at?: string | null
-                }
-                Update: {
-                    id?: string
-                    child_id?: string | null
-                    amount?: number
-                    method?: string | null
-                    credit_used?: number | null
-                    memo?: string | null
-                    payment_month?: string | null
-                    paid_at?: string | null
-                }
-                Relationships: [
-                    {
-                        foreignKeyName: "payments_child_id_fkey"
-                        columns: ["child_id"]
-                        referencedRelation: "children"
-                        referencedColumns: ["id"]
-                    }
-                ]
-            }
-            payment_items: {
-                Row: {
-                    id: string
-                    payment_id: string | null
-                    schedule_id: string | null
-                    amount: number | null
-                    quantity: number | null
-                    unit_price: number | null
-                    service_type: string | null
-                    service_date: string | null
-                    notes: string | null
-                    created_at: string | null
-                }
-                Insert: {
-                    id?: string
-                    payment_id?: string | null
-                    schedule_id?: string | null
-                    amount?: number | null
-                    quantity?: number | null
-                    unit_price?: number | null
-                    service_type?: string | null
-                    service_date?: string | null
-                    notes?: string | null
-                    created_at?: string | null
-                }
-                Update: {
-                    id?: string
-                    payment_id?: string | null
-                    schedule_id?: string | null
-                    amount?: number | null
-                    quantity?: number | null
-                    unit_price?: number | null
-                    service_type?: string | null
-                    service_date?: string | null
-                    notes?: string | null
-                    created_at?: string | null
-                }
-                Relationships: [
-                    {
-                        foreignKeyName: "payment_items_payment_id_fkey"
-                        columns: ["payment_id"]
-                        referencedRelation: "payments"
-                        referencedColumns: ["id"]
-                    },
-                    {
-                        foreignKeyName: "payment_items_schedule_id_fkey"
-                        columns: ["schedule_id"]
-                        referencedRelation: "schedules"
-                        referencedColumns: ["id"]
-                    }
-                ]
-            }
-            family_relationships: {
-                Row: {
-                    id: string
-                    parent_id: string
-                    child_id: string
-                    relationship_type: string | null
-                    created_at: string
-                }
-                Insert: {
-                    id?: string
-                    parent_id: string
-                    child_id: string
-                    relationship_type?: string | null
-                    created_at?: string
-                }
-                Update: {
-                    id?: string
-                    parent_id?: string
-                    child_id?: string
-                    relationship_type?: string | null
-                    created_at?: string
-                }
-            }
-            development_assessments: {
-                Row: {
-                    id: string
-                    center_id: string | null
-                    child_id: string | null
-                    therapist_id: string | null
-                    evaluation_date: string
-                    score_communication: number | null
-                    score_social: number | null
-                    score_cognitive: number | null
-                    score_motor: number | null
-                    score_adaptive: number | null
-                    evaluation_content: string | null
-                    assessment_details: Json | null
-                    summary: string | null
-                    therapist_notes: string | null
-                    created_at: string
-                }
-                Insert: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    evaluation_date: string
-                    score_communication?: number | null
-                    score_social?: number | null
-                    score_cognitive?: number | null
-                    score_motor?: number | null
-                    score_adaptive?: number | null
-                    evaluation_content?: string | null
-                    assessment_details?: Json | null
-                    summary?: string | null
-                    therapist_notes?: string | null
-                    created_at?: string
-                }
-                Update: {
-                    id?: string
-                    center_id?: string | null
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    evaluation_date?: string
-                    score_communication?: number | null
-                    score_social?: number | null
-                    score_cognitive?: number | null
-                    score_motor?: number | null
-                    score_adaptive?: number | null
-                    evaluation_content?: string | null
-                    assessment_details?: Json | null
-                    summary?: string | null
-                    therapist_notes?: string | null
-                    created_at?: string
-                }
-            }
-            parent_observations: {
-                Row: {
-                    id: string
-                    parent_id: string | null
-                    child_id: string | null
-                    content: string
-                    observation_date: string
-                    created_at: string
-                }
-                Insert: {
-                    id?: string
-                    parent_id?: string | null
-                    child_id?: string | null
-                    content: string
-                    observation_date?: string
-                    created_at?: string
-                }
-                Update: {
-                    id?: string
-                    parent_id?: string | null
-                    child_id?: string | null
-                    content?: string
-                    observation_date?: string
-                    created_at?: string
-                }
-            }
-            child_therapist: {
-                Row: {
-                    id: string
-                    child_id: string | null
-                    therapist_id: string | null
-                    is_primary: boolean | null
-                    created_at: string
-                }
-                Insert: {
-                    id?: string
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    is_primary?: boolean | null
-                    created_at?: string
-                }
-                Update: {
-                    id?: string
-                    child_id?: string | null
-                    therapist_id?: string | null
-                    is_primary?: boolean | null
-                    created_at?: string
-                }
-            }
-
         }
-        Views: {
-            [_ in never]: never
-        }
-        Functions: {
-            [_ in never]: never
-        }
-        Enums: {
-            gender_type: 'male' | 'female' | 'other'
-        }
+        Views: { [_ in never]: never }
+        Functions: { [_ in never]: never }
+        Enums: { gender_type: 'male' | 'female' | 'other' }
     }
 }
