@@ -297,6 +297,10 @@ export function TherapistList() {
     };
 
     const handleHardReset = async (staff: Therapist) => {
+        if (staff.email === 'anukbin@gmail.com') {
+            alert('최고관리자 계정은 시스템 보호를 위해 영구 삭제할 수 없습니다.');
+            return;
+        }
         const confirmMsg = `[🚨 FINAL WARNING]\n\n${staff.name}님의 정보를 DB에서 "영구 삭제" 하시겠습니까?\n\n이 작업은 퇴사가 아닌 '데이터 말소'입니다. 이 직원이 배정된 일지나 정산 기록에 문제가 생길 수 있습니다.`;
         if (!confirm(confirmMsg)) return;
 
