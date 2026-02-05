@@ -122,7 +122,12 @@ export const GlobalLanding = () => {
                 )}
             >
                 <Link to="/" className="flex items-center group">
-                    <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-16 w-auto object-contain transition-transform group-hover:scale-110" />
+                    <img
+                        src="/zarada_tree_logo.png"
+                        alt="Zarada Logo"
+                        className="h-16 w-auto object-contain transition-all duration-300 group-hover:scale-110"
+                        style={!isScrolled ? { filter: 'brightness(0) invert(1)' } : undefined}
+                    />
                 </Link>
                 <div className="flex items-center gap-6">
                     {/* Partner Login 버튼 제거 (사용자 요청) */}
