@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { LayoutDashboard, Building2, LogOut, Moon, Sun, Shield } from 'lucide-react';
+import { LayoutDashboard, Building2, Moon, Sun, Shield, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
@@ -87,8 +87,8 @@ export function MasterLayout() {
                         onClick={() => navigate('/')}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold"
                     >
-                        <LogOut className="w-4 h-4" />
-                        나가기
+                        <LayoutGrid className="w-4 h-4" />
+                        통합페이지
                     </button>
 
                     <button

@@ -77,9 +77,12 @@ function AppHomeRedirect() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  if (role === 'super_admin') {
-    return <Navigate to="/master/centers" replace />;
-  }
+  // 👑 [Super Admin] Super Admins are allowed to see the Global Landing portal at "/".
+  // Previously they were auto-redirected to /master/centers, but this made it impossible
+  // to go back to the integrated portal view.
+  // if (role === 'super_admin') {
+  //   return <Navigate to="/master/centers" replace />;
+  // }
 
   // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
   return <GlobalLanding />;
