@@ -70,7 +70,11 @@ export function Footer() {
                     <div className="md:col-span-4 space-y-6">
                         {/* Brand Logo - Corporate Branding Image */}
                         <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center group">
-                            <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-14 w-auto object-contain transition-transform group-hover:scale-110" />
+                            <img
+                                src={branding.logo_url || "/zarada_tree_logo.png"}
+                                alt={branding.name || "Zarada Logo"}
+                                className="h-14 w-auto object-contain transition-transform group-hover:scale-110"
+                            />
                         </a>
                         <p className="text-sm text-slate-500 leading-relaxed max-w-xs mt-4">
                             아이들의 <span className="text-slate-700 font-medium">무한한 가능성</span>을 <span className="text-slate-700 font-medium">데이터</span>로 증명하는<br />
