@@ -51,6 +51,9 @@ export type AdminSettingKey =
     | 'sns_blog'
     | 'about_gallery'
     | 'therapists_intro_text'
+    | 'center_weekday_hours'
+    | 'center_saturday_hours'
+    | 'center_holiday_text'
     | 'openai_api_key';
 
 export interface ProgramItem {

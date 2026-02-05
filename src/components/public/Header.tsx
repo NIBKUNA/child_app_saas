@@ -124,17 +124,13 @@ export function Header() {
                         <Link to={basePath || '/'} className={cn("flex items-center gap-2 group")}>
                             {loading ? (
                                 <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
-                            ) : branding.logo_url ? (
+                            ) : (
                                 <img
-                                    src={branding.logo_url}
-                                    alt={branding.name || ''}
-                                    className="h-12 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                                    src={branding.logo_url || "/zarada_tree_logo.png"}
+                                    alt={branding.name || "Zarada"}
+                                    className="h-16 md:h-18 w-auto object-contain transition-all duration-300 group-hover:scale-105"
                                     style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
                                 />
-                            ) : (
-                                <span className="text-xl font-black tracking-tighter" style={{ color: branding.brand_color || undefined }}>
-                                    Zarada
-                                </span>
                             )}
                         </Link>
                     </div>

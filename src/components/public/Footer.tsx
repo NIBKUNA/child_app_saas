@@ -51,10 +51,10 @@ export function Footer() {
     const centerAddress = settings?.center_address || branding.address || '본사: 서울특별시 송파구 석촌호수로 12길 (지점 운영 정보 등록 필요)';
     const centerPhone = settings?.center_phone || branding.phone || '02-000-0000';
 
-    // Hours
-    const weekdayHours = settings?.weekday_hours || branding.weekday_hours || '10:00 - 19:00';
-    const saturdayHours = settings?.saturday_hours || branding.saturday_hours || '09:00 - 16:00';
-    const holidayText = settings?.holiday_text || branding.holiday_text || '일요일/공휴일 휴무';
+    // Hours (Derived from branding hook with Priority: Admin Settings -> DB Centers -> Default)
+    const weekdayHours = branding.weekday_hours || '10:00 - 19:00';
+    const saturdayHours = branding.saturday_hours || '09:00 - 16:00';
+    const holidayText = branding.holiday_text || '일요일/공휴일 휴무';
 
     // Socials
     const hasSnsLinks = true; // ✨ Force render icons container even if empty (for layout stability)
@@ -68,15 +68,13 @@ export function Footer() {
 
                     {/* Brand Column */}
                     <div className="md:col-span-4 space-y-6">
-                        {/* Brand Logo - Fixed to Platform Brand */}
-                        <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-3 group">
-                            <span className="text-3xl font-black tracking-tighter text-slate-900 group-hover:text-indigo-600 transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                                <span className="text-indigo-600 mr-0.5">Z</span>arada
-                            </span>
+                        {/* Brand Logo - Corporate Branding Image */}
+                        <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center group">
+                            <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-14 w-auto object-contain transition-transform group-hover:scale-110" />
                         </a>
                         <p className="text-sm text-slate-500 leading-relaxed max-w-xs mt-4">
                             아이들의 <span className="text-slate-700 font-medium">무한한 가능성</span>을 <span className="text-slate-700 font-medium">데이터</span>로 증명하는<br />
-                            아동 발달 솔루션 플랫폼, <span className="text-indigo-600 font-semibold">Zarada</span>입니다.
+                            아동 발달 솔루션 플랫폼, <span className="font-semibold" style={{ color: branding.brand_color || '#4f46e5' }}>Zarada</span>입니다.
                         </p>
 
                         {/* SNS Icons */}
@@ -161,9 +159,12 @@ export function Footer() {
                     <p className="text-xs text-slate-400">
                         &copy; 2026 {branding.name}. All rights reserved.
                     </p>
-                    <p className="text-xs text-slate-300 font-medium">
-                        Powered by <span className="font-bold text-slate-400">Zarada</span>
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                        Powered by
+                        <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="flex items-center group">
+                            <img src="/zarada_tree_logo.png" alt="Zarada" className="h-6 w-auto grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                        </a>
+                    </div>
                 </div>
             </div>
         </footer>

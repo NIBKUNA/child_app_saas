@@ -22,6 +22,7 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { cn } from "@/lib/utils";
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext';
+import { useCenterBranding } from '@/hooks/useCenterBranding';
 
 // ============================================
 // 🔐 SIDEBAR STATE PERSISTENCE KEY
@@ -262,6 +263,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
     const location = useLocation();
     const { role, user, signOut } = useAuth();
     const { center } = useCenter();
+    const { branding } = useCenterBranding();
     const centerId = center?.id;
     const { isSuperAdmin } = useTheme();
 
@@ -422,10 +424,8 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                     <div className="p-6 mb-2 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col items-start gap-1">
-                                <Link to="/" className="flex items-center gap-2 group">
-                                    <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white transition-colors" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                                        <span className="text-indigo-600 dark:text-indigo-400 mr-0.5">Z</span>arada
-                                    </span>
+                                <Link to="/" className="flex items-center group">
+                                    <img src={branding.logo_url || '/zarada_tree_logo.png'} alt={branding.name} className="h-14 w-auto object-contain transition-transform group-hover:scale-110" />
                                 </Link>
                                 {isSuperAdmin && (
                                     <span className="text-[10px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-sm">

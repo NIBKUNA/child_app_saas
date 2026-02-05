@@ -5,7 +5,6 @@ import { ConsultationSurveyForm } from '@/components/public/ConsultationSurveyFo
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
-import { useAdminSettings } from '@/hooks/useAdminSettings';
 
 // Custom SVG Icons
 // ... (Icons remain same)
@@ -34,16 +33,15 @@ const Icons = {
 
 export function ContactPage() {
     const { branding, loading } = useCenterBranding();
-    const { getSetting } = useAdminSettings();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
     if (loading) return null;
 
-    const weekdayHours = getSetting('center_weekday_hours' as any) || branding?.weekday_hours || '09:00 - 19:00';
-    const saturdayHours = getSetting('center_saturday_hours' as any) || branding?.saturday_hours || '09:00 - 16:00';
+    const weekdayHours = branding?.weekday_hours || '10:00 - 19:00';
+    const saturdayHours = branding?.saturday_hours || '09:00 - 16:00';
 
-    const brandColor = branding?.brand_color || '#6366f1';
+    const brandColor = branding?.brand_color || '#4f46e5';
 
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>

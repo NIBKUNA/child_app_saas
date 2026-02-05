@@ -19,8 +19,8 @@ export interface CenterBranding {
 
 const DEFAULT_BRANDING: CenterBranding = {
     id: '',
-    name: 'Careple Center',
-    logo_url: null,
+    name: 'Zarada',
+    logo_url: '/zarada_tree_logo.png',
     phone: '',
     address: '',
     email: '',

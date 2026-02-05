@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
-import { Search, ArrowRight, LayoutGrid, MapPin, ChevronDown } from 'lucide-react';
+import { Search, ArrowRight, MapPin, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClickOutside } from '@/hooks/useClickOutside';
 
@@ -12,8 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface Center {
     id: string;
     name: string;
-    slug: string;
-    address: string;
+    slug: string | null;
+    address: string | null;
 }
 
 export const GlobalLanding = () => {
@@ -78,20 +78,21 @@ export const GlobalLanding = () => {
             const lowerKeyword = keyword.toLowerCase();
             setFilteredCenters(centers.filter(c =>
                 c.name.toLowerCase().includes(lowerKeyword) ||
-                c.slug.toLowerCase().includes(lowerKeyword) ||
+                (c.slug && c.slug.toLowerCase().includes(lowerKeyword)) ||
                 (c.address && c.address.toLowerCase().includes(lowerKeyword))
             ));
         }
     }, [keyword, centers]);
 
     const handleSelect = (center: Center) => {
-        // ✨ [Critical] Clear previous state to avoid conflict
-        localStorage.setItem('zarada_center_slug', center.slug);
+        if (center.slug) {
+            localStorage.setItem('zarada_center_slug', center.slug);
+        }
 
         // Navigation Logic
         if (role === 'super_admin' || localStorage.getItem('zarada_user_role') === 'super_admin') {
             navigate(`/app/dashboard`);
-        } else {
+        } else if (center.slug) {
             navigate(`/centers/${center.slug}?login=true`);
         }
         setIsDropdownOpen(false);
@@ -120,21 +121,8 @@ export const GlobalLanding = () => {
                         : "bg-transparent py-6"
                 )}
             >
-                <Link to="/" className="flex items-center gap-3 group">
-                    <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-xl group-hover:scale-110",
-                        isScrolled
-                            ? "bg-indigo-600 text-white shadow-indigo-100"
-                            : "bg-white text-indigo-600 shadow-indigo-100/20"
-                    )}>
-                        <LayoutGrid size={22} />
-                    </div>
-                    <span className={cn(
-                        "text-2xl font-black tracking-tighter transition-colors drop-shadow-sm",
-                        isScrolled ? "text-slate-900" : "text-white"
-                    )}>
-                        Zarada
-                    </span>
+                <Link to="/" className="flex items-center group">
+                    <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-16 w-auto object-contain transition-transform group-hover:scale-110" />
                 </Link>
                 <div className="flex items-center gap-6">
                     {/* Partner Login 버튼 제거 (사용자 요청) */}
@@ -332,12 +320,10 @@ export const GlobalLanding = () => {
                                 href="https://zarada.co.kr/"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-3 group w-fit"
+                                className="flex items-center gap-2 group w-fit"
                             >
-                                <div className="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white transition-all group-hover:scale-110 shadow-lg shadow-indigo-500/20">
-                                    <LayoutGrid size={22} />
-                                </div>
-                                <span className="text-2xl font-black tracking-tighter group-hover:text-indigo-400 transition-colors">Zarada</span>
+                                <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-10 w-auto object-contain transition-transform group-hover:scale-110" />
+                                <span className="text-2xl font-black tracking-tighter text-white group-hover:text-amber-400 transition-colors">Zarada</span>
                             </a>
                             <p className="text-sm text-slate-400 font-bold leading-relaxed max-w-xs">
                                 아이들의 무한한 가능성을 데이터로 증명하는<br />

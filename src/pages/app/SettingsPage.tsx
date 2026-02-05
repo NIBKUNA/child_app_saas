@@ -637,9 +637,9 @@ function CenterInfoSection() {
                 'address': 'center_address',
                 'email': 'center_email',
                 'naver_map_url': 'center_map_url',
-                'weekday_hours': 'notice_text',
-                'saturday_hours': 'notice_text',
-                'holiday_text': 'notice_text'
+                'weekday_hours': 'center_weekday_hours',
+                'saturday_hours': 'center_saturday_hours',
+                'holiday_text': 'center_holiday_text'
             };
 
             // Checking useAdminSettings.ts, center_email doesn't exist. center_name, center_phone, center_address do.

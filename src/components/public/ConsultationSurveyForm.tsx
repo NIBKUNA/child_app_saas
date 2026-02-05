@@ -11,6 +11,7 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTrafficSource } from '@/hooks/useTrafficSource';
+import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -75,6 +76,8 @@ interface ConsultationSurveyFormProps {
 
 export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: ConsultationSurveyFormProps) {
     const { getSource } = useTrafficSource();
+    const { branding } = useCenterBranding();
+    const brandColor = branding.brand_color || '#4f46e5';
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [loading, setLoading] = useState(false);
@@ -256,18 +259,22 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                         <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm z-10 transition-all duration-500",
                             currentStep === step
-                                ? "bg-indigo-600 text-white scale-110 shadow-lg shadow-indigo-200"
+                                ? "text-white scale-110 shadow-lg"
                                 : currentStep > step
                                     ? "bg-indigo-100 text-indigo-600"
                                     : (isDark ? "bg-slate-800 text-slate-600" : "bg-slate-100 text-slate-400")
-                        )}>
+                        )}
+                            style={currentStep === step ? { backgroundColor: brandColor, boxShadow: `0 10px 15px -3px ${brandColor}33` } : {}}
+                        >
                             {currentStep > step ? Icons.checkCircle("w-5 h-5") : step}
                         </div>
                         {step < 3 && (
                             <div className={cn(
                                 "absolute left-10 w-24 h-[2px] -z-0",
-                                currentStep > step ? "bg-indigo-600" : (isDark ? "bg-slate-800" : "bg-slate-100")
-                            )} />
+                                currentStep > step ? "" : (isDark ? "bg-slate-800" : "bg-slate-100")
+                            )}
+                                style={currentStep > step ? { backgroundColor: brandColor } : {}}
+                            />
                         )}
                     </div>
                 ))}
@@ -316,7 +323,16 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                                         <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">성별</label>
                                         <div className={cn("flex p-1.5 rounded-2xl", isDark ? "bg-slate-800" : "bg-slate-50")}>
                                             {['남아', '여아'].map(g => (
-                                                <button key={g} type="button" onClick={() => setFormData({ ...formData, child_gender: g })} className={cn("flex-1 py-3 rounded-xl font-black text-sm transition-all", formData.child_gender === g ? (isDark ? "bg-slate-700 text-indigo-400 shadow-sm" : "bg-white text-indigo-600 shadow-sm") : (isDark ? "text-slate-500" : "text-slate-400"))}>
+                                                <button
+                                                    key={g}
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, child_gender: g })}
+                                                    className={cn(
+                                                        "flex-1 py-3 rounded-xl font-black text-sm transition-all",
+                                                        formData.child_gender === g ? "bg-white shadow-sm" : (isDark ? "text-slate-500" : "text-slate-400")
+                                                    )}
+                                                    style={formData.child_gender === g ? { color: brandColor } : {}}
+                                                >
                                                     {g}
                                                 </button>
                                             ))}
@@ -349,10 +365,19 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                                     <label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">관심 있는 프로그램 (중복 선택 가능)</label>
                                     <div className="flex flex-wrap gap-2">
                                         {services.map(s => (
-                                            <button key={s} type="button" onClick={() => {
-                                                const next = formData.preferred_service.includes(s) ? formData.preferred_service.filter(i => i !== s) : [...formData.preferred_service, s];
-                                                setFormData({ ...formData, preferred_service: next });
-                                            }} className={cn("px-5 py-3 rounded-full text-sm font-black transition-all border-2", formData.preferred_service.includes(s) ? (isDark ? "bg-indigo-600 border-indigo-600 text-white" : "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100") : (isDark ? "bg-slate-800 border-slate-700 text-slate-500" : "bg-white border-slate-100 text-slate-400"))}>
+                                            <button
+                                                key={s}
+                                                type="button"
+                                                onClick={() => {
+                                                    const next = formData.preferred_service.includes(s) ? formData.preferred_service.filter(i => i !== s) : [...formData.preferred_service, s];
+                                                    setFormData({ ...formData, preferred_service: next });
+                                                }}
+                                                className={cn(
+                                                    "px-5 py-3 rounded-full text-sm font-black transition-all border-2",
+                                                    formData.preferred_service.includes(s) ? "text-white" : (isDark ? "bg-slate-800 border-slate-700 text-slate-500" : "bg-white border-slate-100 text-slate-400")
+                                                )}
+                                                style={formData.preferred_service.includes(s) ? { backgroundColor: brandColor, borderColor: brandColor } : {}}
+                                            >
                                                 {s}
                                             </button>
                                         ))}
@@ -413,7 +438,14 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                             이전
                         </button>
                     )}
-                    <button disabled={loading} type="submit" className={cn("flex-1 py-5 rounded-[24px] text-lg font-black shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50", isDark ? "bg-indigo-600 hover:bg-indigo-500 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100")}>
+                    <button
+                        disabled={loading}
+                        type="submit"
+                        className={cn(
+                            "flex-1 py-5 rounded-[24px] text-lg font-black shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-white"
+                        )}
+                        style={{ backgroundColor: brandColor }}
+                    >
                         {loading ? Icons.loader("w-6 h-6 animate-spin") : (currentStep === totalSteps ? Icons.send("w-5 h-5") : null)}
                         {currentStep === totalSteps ? "상담 예약 신청하기" : "다음 단계로"}
                     </button>
