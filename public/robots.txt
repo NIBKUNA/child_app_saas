@@ -4,4 +4,4 @@ Disallow: /app/
 Disallow: /login
 Disallow: /register
 
-Sitemap: https://zaradacenter.co.kr/sitemap.xml
+Sitemap: https://app.myparents.co.kr/sitemap.xml

@@ -18,6 +18,7 @@ import { MasterLayout } from '@/layouts/MasterLayout';
 
 // Global Landing (Center Selector)
 import { GlobalLanding } from '@/pages/public/GlobalLanding';
+import { CenterDirectory } from '@/pages/public/CenterDirectory';
 
 // 공개 페이지
 import { HomePage } from '@/pages/public/HomePage';
@@ -156,7 +157,11 @@ function App() {
           <Route path="/policy/privacy" element={<LegalPage type="privacy" />} />
           <Route path="/policy/terms" element={<LegalPage type="terms" />} />
 
-          {/* 2. Public Center Pages (/centers/:slug/...) */}
+
+          {/* 2. Public Center Pages */}
+          <Route path="/centers" element={<PublicLayout />}>
+            <Route index element={<CenterDirectory />} />
+          </Route>
           <Route path="/centers/:slug" element={<CenterGuard><PublicLayout /></CenterGuard>}>
             <Route index element={<HomePage />} />
             <Route path="about" element={<AboutPage />} />

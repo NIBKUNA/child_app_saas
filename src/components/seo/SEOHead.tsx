@@ -50,14 +50,24 @@ export function SEOHead() {
     const localKeywords = center ? serviceKeywords.map(k => `${region} ${k}`).join(', ') : '';
 
     // 🏗️ Determine Meta Data (Center Override vs Default)
-    const title = center ? `${center.name}` : defaultTitle;
+    // ✨ [SEO Tuning] Title Strategy: "Region + Category | Brand Name"
+    // Example: "잠실 아동발달센터 | 자라다 잠실점"
+
+    // 1. Core Category Keyword (e.g. 아동발달센터 or 언어치료)
+    const mainCategory = "아동발달센터";
+    const subCategory = "언어치료・놀이치료";
+
+    // 2. Center Specific Title
+    const title = center
+        ? `${region} ${mainCategory} - ${center.name} (${subCategory})`
+        : defaultTitle;
 
     const description = center
-        ? `${region} ${center.name} - 전문 아동발달센터. ${serviceKeywords.slice(0, 3).join(', ')} 전문.`
+        ? `${region} ${mainCategory} ${center.name}입니다. ${serviceKeywords.join(', ')} 전문 기관. 우리 아이의 성장을 위한 맞춤 솔루션.`
         : defaultDescription;
 
     const keywords = center
-        ? `${localKeywords}, ${defaultKeywords}`
+        ? `${region} ${mainCategory}, ${region} 언어치료, ${region} 감각통합, ${localKeywords}, ${defaultKeywords}`
         : defaultKeywords;
 
     const ogImage = center?.logo_url || defaultOgImage;
@@ -130,7 +140,9 @@ export function SEOHead() {
         else if (location.pathname.includes('/login')) pageSuffix = " - 로그인";
     }
 
-    const displayTitle = isMasterPath ? `Zarada${pageSuffix}` : `${title}${pageSuffix}`;
+    const displayTitle = isMasterPath
+        ? `Zarada${pageSuffix}`
+        : (location.pathname === '/' ? `Zarada${pageSuffix}` : `${title}${pageSuffix}`);
 
     return (
         <Helmet>

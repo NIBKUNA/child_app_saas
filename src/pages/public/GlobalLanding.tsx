@@ -329,6 +329,9 @@ export const GlobalLanding = () => {
                                 아이들의 무한한 가능성을 데이터로 증명하는<br />
                                 차세대 아동발달센터 솔루션 Zarada입니다.
                             </p>
+                            <Link to="/centers" className="inline-flex items-center text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
+                                전체 센터 찾아보기 →
+                            </Link>
                         </div>
 
                         {/* 2. Info Section (Separated by border) */}
