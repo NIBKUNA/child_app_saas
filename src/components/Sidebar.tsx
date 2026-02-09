@@ -424,7 +424,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                     <div className="p-6 mb-2 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col items-start gap-1">
-                                <Link to="/" className="flex items-center group">
+                                <Link to="/app/dashboard" className="flex items-center group">
                                     <img src={branding.logo_url || '/zarada_tree_logo.png'} alt={branding.name} className="h-14 w-auto object-contain transition-transform group-hover:scale-110" />
                                 </Link>
                                 {isSuperAdmin && (

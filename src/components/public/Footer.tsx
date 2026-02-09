@@ -71,8 +71,8 @@ export function Footer() {
                         {/* Brand Logo - Corporate Branding Image */}
                         <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center group">
                             <img
-                                src={branding.logo_url || "/zarada_tree_logo.png"}
-                                alt={branding.name || "Zarada Logo"}
+                                src="/zarada_tree_logo.png"
+                                alt="Zarada"
                                 className="h-14 w-auto object-contain transition-transform group-hover:scale-110"
                             />
                         </a>

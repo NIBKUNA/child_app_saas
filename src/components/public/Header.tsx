@@ -9,7 +9,7 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -82,6 +82,19 @@ export function Header() {
     const { user, role, signOut } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const isDark = theme === 'dark';
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // 🏡 Mode Detection: Is this the main platform home or a center home?
+    const isMainHome = location.pathname === '/';
+    const isTransparentHeader = isMainHome && !scrolled && !isDark;
 
     // 👑 [Sovereign Rule] Immediate Super Admin recognition for reliable navigation
     const isSuper = isSuperAdmin(user?.email);
@@ -112,10 +125,12 @@ export function Header() {
 
     return (
         <header className={cn(
-            "fixed top-0 left-0 right-0 z-50 w-full border-b shadow-sm transition-all duration-300",
-            isDark
-                ? "border-slate-800 bg-slate-950/80 backdrop-blur-xl"
-                : "border-slate-200/60 bg-white/80 backdrop-blur-xl"
+            "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500",
+            isTransparentHeader
+                ? "bg-transparent border-transparent"
+                : isDark
+                    ? "border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl shadow-sm"
+                    : "border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm"
         )}>
             <div className="container mx-auto px-4 md:px-6">
                 <div className="relative flex h-20 items-center justify-between">
@@ -124,20 +139,20 @@ export function Header() {
                         <Link to={basePath || '/'} className={cn("flex items-center gap-2 group")}>
                             {loading ? (
                                 <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
-                            ) : (branding.logo_url && branding.logo_url !== '/zarada_tree_logo.png') ? (
+                            ) : (branding.logo_url) ? (
                                 <img
                                     src={branding.logo_url}
                                     alt={branding.name || ''}
                                     className="h-12 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105"
-                                    style={isDark ? { filter: 'brightness(0) invert(1)' } : undefined}
+                                    style={(isDark || isTransparentHeader) ? { filter: 'brightness(0) invert(1)' } : undefined}
                                 />
                             ) : (
                                 <span
                                     className={cn(
                                         "text-xl font-black tracking-tighter transition-colors",
-                                        isDark ? "text-white" : "text-slate-900"
+                                        (isDark || isTransparentHeader) ? "text-white" : "text-slate-900"
                                     )}
-                                    style={{ color: branding.brand_color || undefined }}
+                                    style={{ color: (!isTransparentHeader && !isDark) ? (branding.brand_color || undefined) : undefined }}
                                 >
                                     {branding.name || 'Zarada'}
                                 </span>
@@ -172,8 +187,8 @@ export function Header() {
                                         className={cn(
                                             "text-[14px] font-semibold transition-all hover:opacity-100 relative group py-1",
                                             isActive(item.href)
-                                                ? (isDark ? "text-white" : "text-slate-900")
-                                                : (isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600")
+                                                ? (isDark || isTransparentHeader ? "text-white" : "text-slate-900")
+                                                : (isDark || isTransparentHeader ? "text-white/60 hover:text-white" : "text-slate-400 hover:text-slate-600")
                                         )}
                                     >
                                         {item.name}
@@ -198,14 +213,14 @@ export function Header() {
                         <button
                             onClick={toggleTheme}
                             className={cn(
-                                "p-2 rounded-xl transition-all hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 group",
-                                isDark ? "hover:text-amber-400" : "hover:text-indigo-500"
+                                "p-2 rounded-xl transition-all text-slate-400 group",
+                                isTransparentHeader ? "hover:bg-white/10 text-white/70 hover:text-white" : isDark ? "hover:bg-slate-800 hover:text-amber-400" : "hover:bg-slate-100 hover:text-indigo-500"
                             )}
                         >
                             {isDark ? Icons.sun("w-5 h-5 transition-transform group-hover:rotate-45") : Icons.moon("w-5 h-5 transition-transform group-hover:-rotate-12")}
                         </button>
 
-                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-1" />
+                        <div className={cn("w-px h-4 mx-1", isTransparentHeader ? "bg-white/20" : "bg-slate-200 dark:bg-slate-800")} />
 
                         {user ? (
                             <div className="relative flex items-center gap-2">
@@ -234,9 +249,11 @@ export function Header() {
                                                     onBlur={() => setTimeout(() => setShowUserMenu(false), 200)}
                                                     className={cn(
                                                         "p-2 rounded-xl transition-all border",
-                                                        isDark
-                                                            ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                                                            : "bg-white border-slate-200 text-slate-400 hover:text-slate-900"
+                                                        isTransparentHeader
+                                                            ? "bg-white/10 border-white/20 text-white/70 hover:text-white"
+                                                            : isDark
+                                                                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                                                                : "bg-white border-slate-200 text-slate-400 hover:text-slate-900"
                                                     )}
                                                 >
                                                     {Icons.user("w-5 h-5")}
@@ -302,7 +319,9 @@ export function Header() {
                                 to={center?.slug ? `/centers/${center.slug}/login` : "/login"}
                                 className={cn(
                                     "text-[12px] font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm",
-                                    isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-slate-900 text-white hover:bg-slate-800"
+                                    isTransparentHeader
+                                        ? "bg-white text-indigo-600 hover:bg-white/90"
+                                        : isDark ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-slate-900 text-white hover:bg-slate-800"
                                 )}
                             >
                                 로그인
@@ -315,7 +334,7 @@ export function Header() {
                             onClick={toggleTheme}
                             className={cn(
                                 "p-2 rounded-full transition-colors",
-                                isDark ? "text-yellow-400" : "text-slate-600"
+                                isTransparentHeader ? "text-white" : isDark ? "text-yellow-400" : "text-slate-600"
                             )}
                             aria-label="Toggle theme"
                         >
@@ -324,7 +343,7 @@ export function Header() {
                         <button
                             className={cn(
                                 "p-2 rounded-md transition-colors",
-                                isDark ? "text-slate-200 hover:bg-slate-800" : "text-slate-800 hover:bg-slate-100"
+                                isTransparentHeader ? "text-white hover:bg-white/10" : isDark ? "text-slate-200 hover:bg-slate-800" : "text-slate-800 hover:bg-slate-100"
                             )}
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                             aria-label="메뉴"
