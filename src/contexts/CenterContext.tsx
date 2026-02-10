@@ -59,7 +59,7 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         slug = pathParts[centerIndex + 1];
       }
 
-      const isGlobalRoute = ['/', '/login', '/register', '/auth/forgot-password'].includes(location.pathname);
+      const isGlobalRoute = ['/', '/login', '/register', '/auth/forgot-password', '/auth/update-password'].includes(location.pathname);
 
       // ✨ [Fix] If we are on a center specific route, we are definitively NOT global
       if (location.pathname.startsWith('/centers/')) {
