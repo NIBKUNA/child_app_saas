@@ -66,7 +66,7 @@ export interface Therapist {
     website_visible?: boolean;
 }
 
-// ✨ 폼 데이터 타입
+// ✨ 폼 데이터 타입 (내부 인사/정산 전용 - 사이트 전시 정보는 '치료사 배치 마스터'에서 관리)
 interface TherapistFormData {
     name: string;
     contact: string;
@@ -85,13 +85,6 @@ interface TherapistFormData {
     session_price_weekend: number;
     incentive_price: number;
     evaluation_price: number;
-
-    // 추가 필드 (초기화 편의성)
-    bio?: string;
-    career?: string;
-    specialties?: string;
-    profile_image?: string;
-    website_visible?: boolean;
 }
 
 export function TherapistList() {
@@ -109,8 +102,7 @@ export function TherapistList() {
         name: '', contact: '', email: '', hire_type: 'freelancer',
         system_role: 'therapist', system_status: 'active', remarks: '', color: '#3b82f6',
         bank_name: '', account_number: '', account_holder: '',
-        base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000,
-        bio: '', career: '', specialties: '', profile_image: '', website_visible: true
+        base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000
     });
 
     // ✨ [New] Success Modal State
@@ -424,8 +416,7 @@ export function TherapistList() {
                                 system_status: 'active',
                                 remarks: '', color: '#3b82f6',
                                 bank_name: '', account_number: '', account_holder: '',
-                                base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000,
-                                bio: '', career: '', specialties: '', profile_image: '', website_visible: true
+                                base_salary: 0, required_sessions: 0, session_price_weekday: 0, session_price_weekend: 0, incentive_price: 24000, evaluation_price: 50000
                             });
                             setIsModalOpen(true);
                         }}

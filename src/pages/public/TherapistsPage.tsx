@@ -32,13 +32,15 @@ export function TherapistsPage() {
 
     const fetchPublicTherapists = async () => {
         try {
-            // ✨ [FIX] website_visible=true인 치료사만 공개 페이지에 표시
+            // 🌐 사이트 전시용 프로필만 조회: website_visible=true & 활성 상태만 표시
+            // 치료사 배치 마스터에서 관리하는 사이트 공개 프로필 정보를 가져옴
             const { data, error } = await supabase
                 .from('therapists')
                 .select('*')
                 .eq('center_id', center!.id)
                 .eq('is_active', true)
                 .eq('website_visible', true)
+                .order('sort_order', { ascending: true })
                 .order('created_at', { ascending: true });
 
             if (error) throw error;

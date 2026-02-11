@@ -1323,6 +1323,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
         try {
             const payload: any = {
+                // 🌐 사이트 전시용 필드만 저장 (내부 인사/정산 정보는 '직원관리'에서 관리)
                 name: formData.name,
                 bio: formData.bio,
                 specialties: formData.specialties,
@@ -1331,9 +1332,6 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 website_visible: formData.website_visible,
                 sort_order: Number(formData.sort_order) || 0,
                 center_id: centerId,
-                system_status: 'active',
-                hire_type: 'freelancer',
-                system_role: 'therapist'
             };
 
             if (editingProfile) {
@@ -1349,6 +1347,10 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 // Format: display+[random]@[center_slug].local
                 const randomId = Math.random().toString(36).substring(2, 10);
                 payload.email = `display+${randomId}@zarada.local`;
+                // 새 프로필은 기본 내부 정보 설정 (실제 직원이 아니므로 기본값만 설정)
+                payload.system_status = 'active';
+                payload.hire_type = 'freelancer';
+                payload.system_role = 'therapist';
 
                 const { error } = await supabase
                     .from('therapists')
@@ -1426,7 +1428,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             <div className="flex justify-between items-center bg-indigo-50/50 dark:bg-indigo-900/10 p-8 rounded-[40px] border border-indigo-100 dark:border-indigo-900/30">
                 <div>
                     <h3 className="text-2xl font-black text-slate-900 dark:text-white">치료사 배치 마스터</h3>
-                    <p className="text-sm text-slate-500 font-bold mt-1">드래그하여 3열 배치를 자유롭게 조정하세요. (실시간 저장)</p>
+                    <p className="text-sm text-slate-500 font-bold mt-1">🌐 공개 홈페이지에 표시될 치료사 프로필을 관리합니다. (직원 인사/정산 정보는 '직원관리'에서 관리하세요)</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
