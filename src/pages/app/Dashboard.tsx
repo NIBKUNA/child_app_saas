@@ -52,6 +52,7 @@ interface DashboardChild {
     gender: string | null;
     birth_date: string | null;
     created_at: string;
+    status: string | null;
 }
 
 interface DashboardPayment {
@@ -335,8 +336,14 @@ export function Dashboard() {
             // ✨ [SECURITY] Fetch Children only for this center
             const { data: existingChildren } = await supabase
                 .from('children')
-                .select('id, name, gender, birth_date, created_at')
+                .select('id, name, gender, birth_date, created_at, status')
                 .eq('center_id', center.id); // 🔒 Security Filter
+
+            // ✨ [FIX] status enum 기반 활성 아동 필터링
+            // status가 'active'이거나, status가 null/undefined인 경우(마이그레이션 전 데이터) active로 간주
+            const activeChildren = (existingChildren as DashboardChild[])?.filter(c =>
+                c.status === 'active' || (!c.status)
+            ) || [];
 
             const validChildIds = new Set((existingChildren as DashboardChild[])?.map(c => c.id) || []);
 
@@ -398,8 +405,8 @@ export function Dashboard() {
                 }
             });
 
-            // Demographics (from existingChildren)
-            (existingChildren as DashboardChild[])?.forEach(c => {
+            // Demographics (from activeChildren only)
+            activeChildren.forEach(c => {
                 // ✨ [FIX] Match actual DB values: '남' or '여' (not '남아'/'여아')
                 if (c.gender === '남' || c.gender === '남아') mCount++;
                 else if (c.gender === '여' || c.gender === '여아') fCount++;
@@ -660,15 +667,15 @@ export function Dashboard() {
                 .sort((a, b) => b.total - a.total);
             setChannelConversionData(channelConvArr);
 
-            // ✨ [NEW CHILDREN KPI] Count children registered in the selected month
-            const newCount = (existingChildren as DashboardChild[])?.filter(c =>
+            // ✨ [NEW CHILDREN KPI] Count active children registered in the selected month
+            const newCount = activeChildren.filter(c =>
                 c.created_at && (c.created_at as string).startsWith(selectedMonth)
             ).length || 0;
 
-            // Set KPI
+            // Set KPI (✨ active 아동만 카운트)
             setKpi({
                 revenue: monthlyRevMap[selectedMonth] || 0,
-                active: existingChildren?.length || 0,
+                active: activeChildren.length,
                 sessions: statusMap.completed,
                 new: newCount
             });

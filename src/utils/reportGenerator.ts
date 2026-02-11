@@ -60,7 +60,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         ] = await Promise.all([
             // 1. Children (Master List)
             supabase.from('children').select(`
-                id, name, gender, birth_date, is_active, created_at, parent_id,
+                id, name, gender, birth_date, is_active, status, created_at, parent_id,
                 profiles:user_profiles ( name, email )
             `).eq('center_id', centerId),
             // 2. Profiles (Phone Numbers)
@@ -102,7 +102,9 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // KPI Calculations
-        const activeChildrenCount = (children || []).filter((c: { is_active: boolean | null }) => c.is_active).length;
+        const activeChildrenCount = (children || []).filter((c: { status?: string | null; is_active?: boolean | null }) =>
+            c.status === 'active' || (!c.status && c.is_active !== false)
+        ).length;
         const newChildrenCount = (children || []).filter((c: { created_at: string | null }) => c.created_at?.startsWith(selectedMonth)).length;
 
         const sessionStats = { completed: 0, cancelled: 0, scheduled: 0, total: 0 };
@@ -175,19 +177,20 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // Sheet 5: Integrated Master (Existing Logic)
-        const masterData = (children || []).map((child: { id: string; name: string; birth_date: string; gender: string | null; is_active: boolean | null; parent_id: string | null; profiles: { name: string | null; email: string }[] }) => {
+        const masterData = (children || []).map((child: { id: string; name: string; birth_date: string; gender: string | null; status?: string | null; is_active?: boolean | null; parent_id: string | null; profiles: { name: string | null; email: string }[] }) => {
             const guardianBase = child.profiles?.[0] || { name: '-', email: '-' };
             const guardianPhone = phoneMap.get(child.parent_id || '') || '-';
             const assess = assessmentMap.get(child.id);
             const totalPay = paymentMap.get(child.id) || 0;
             const genderMap: Record<string, string> = { 'male': '남', 'female': '여', 'other': '-' };
+            const statusLabel = child.status === 'active' ? '이용중' : child.status === 'waiting' ? '대기' : child.status === 'inactive' ? '종결' : (child.is_active ? '이용중' : '종결');
 
             return {
                 'ID': child.id,
                 '아동명': child.name,
                 '생년월일': child.birth_date,
                 '성별': genderMap[child.gender || ''] || child.gender || '-',
-                '상태': child.is_active ? '이용중' : '종결',
+                '상태': statusLabel,
                 '보호자명': guardianBase.name || '-',
                 '연락처': guardianPhone,
                 '이번달 결제액': totalPay,
