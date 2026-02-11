@@ -293,7 +293,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 child_id: formData.child_id || null,
                 program_id: formData.program_id || null,
                 therapist_id: formData.therapist_id || null,
-                status: formData.status,
+                status: formData.status as any,
                 service_type: formData.service_type
             };
 
@@ -340,7 +340,36 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 };
 
                 if (scheduleId) {
+                    // ⭐ [이월 크레딧 연동] 상태 변경 시 크레딧 자동 처리
+                    const { data: prevSchedule } = await supabase
+                        .from('schedules')
+                        .select('status, program_id, child_id')
+                        .eq('id', scheduleId)
+                        .single();
+
                     await supabase.from('schedules').update(payload).eq('id', scheduleId);
+
+                    // 이전 상태와 새 상태 비교
+                    const prevStatus = prevSchedule?.status as string;
+                    if (prevSchedule && prevStatus !== formData.status) {
+                        const programPrice = programsList.find(p => p.id === (prevSchedule.program_id || formData.program_id))?.price || 0;
+                        const childId = prevSchedule.child_id || formData.child_id;
+
+                        if (programPrice > 0 && childId) {
+                            // 새로 이월된 경우 → 크레딧 적립
+                            if (formData.status === 'carried_over' && prevStatus !== 'carried_over') {
+                                const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
+                                const newCredit = (child?.credit || 0) + programPrice;
+                                await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                            }
+                            // 이월에서 다른 상태로 변경 → 크레딧 차감
+                            else if (prevStatus === 'carried_over' && formData.status !== 'carried_over') {
+                                const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
+                                const newCredit = Math.max(0, (child?.credit || 0) - programPrice);
+                                await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                            }
+                        }
+                    }
                 } else {
                     const { data: _inserted, error } = await supabase.from('schedules').insert([payload]).select().single();
                     if (error) throw error;
