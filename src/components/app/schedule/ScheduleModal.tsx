@@ -173,7 +173,11 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 supabase.from('user_profiles').select('*')
             ]);
 
-            setChildrenList(childRes.data || []);
+            // ✨ [FIX] 이용중(active) 아동만 일정 등록 가능 (종결/대기 제외)
+            const activeChildrenOnly = (childRes.data || []).filter((c: any) =>
+                c.status === 'active' || (!c.status && c.is_active !== false)
+            );
+            setChildrenList(activeChildrenOnly);
             setProgramsList(progRes.data || []);
 
             // ✨ [Filter] 슈퍼 어드민 제외 및 권한별 치료사 목록 필터링

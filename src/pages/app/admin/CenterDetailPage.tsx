@@ -65,10 +65,14 @@ export function CenterDetailPage() {
                 .in('role', ['therapist', 'manager', 'admin']);
 
 
-            const { count: childCount } = await supabase
+            // ✨ [FIX] active 아동만 카운트 (status='active' 또는 null)
+            const { data: childrenData } = await supabase
                 .from('children')
-                .select('*', { count: 'exact', head: true })
+                .select('status')
                 .eq('center_id', centerId as string);
+            const childCount = (childrenData || []).filter((c: any) =>
+                c.status === 'active' || !c.status
+            ).length;
 
             setCenterData(data);
             setEditForm({
