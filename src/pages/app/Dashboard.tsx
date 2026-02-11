@@ -221,7 +221,7 @@ const ChartContainer = ({ title, icon, children, className = "", innerHeight = "
             </div>
             {title}
         </h3>
-        <div className={`w-full relative overflow-hidden ${innerHeight}`}>
+        <div className={`w-full relative ${innerHeight}`}>
             {children}
         </div>
     </div>
@@ -289,6 +289,12 @@ export function Dashboard() {
     const [channelConversionData, setChannelConversionData] = useState<{ name: string; total: number; converted: number; rate: number; color: string }[]>([]);
     const [campaignData, setCampaignData] = useState<{ name: string; value: number }[]>([]); // ✨ Campaign Performance
     const [avgLeadTime, setAvgLeadTime] = useState(0); // ✨ Lead Velocity (Days)
+
+    // ✨ [신규] 일지 미작성 & 출석률 통계
+    const [missingNotes, setMissingNotes] = useState<{ therapist: string; count: number; total: number }[]>([]);
+    const [missingNoteTotal, setMissingNoteTotal] = useState(0);
+    const [attendanceData, setAttendanceData] = useState<{ name: string; completed: number; cancelled: number; total: number; rate: number }[]>([]);
+    const [overallAttendance, setOverallAttendance] = useState(0);
 
     const [exporting, setExporting] = useState(false);
 
@@ -667,6 +673,64 @@ export function Dashboard() {
                 new: newCount
             });
 
+            // ✨ [신규] 일지 미작성 분석
+            const completedScheduleIds = (allSchedules as DashboardSchedule[])?.filter(s =>
+                s.status === 'completed' && s.start_time?.startsWith(selectedMonth)
+            ).map(s => s.id) || [];
+
+            let notesSet = new Set<string>();
+            if (completedScheduleIds.length > 0) {
+                const { data: existingNotes } = await supabase
+                    .from('counseling_logs')
+                    .select('schedule_id')
+                    .in('schedule_id', completedScheduleIds);
+                (existingNotes as { schedule_id: string }[] || []).forEach(n => notesSet.add(n.schedule_id));
+            }
+
+            const therapistMissing: Record<string, { count: number; total: number }> = {};
+            (allSchedules as DashboardSchedule[])?.filter(s =>
+                s.status === 'completed' && s.start_time?.startsWith(selectedMonth)
+            ).forEach(s => {
+                const tName = s.therapists?.name || '미배정';
+                if (!therapistMissing[tName]) therapistMissing[tName] = { count: 0, total: 0 };
+                therapistMissing[tName].total++;
+                if (!notesSet.has(s.id)) therapistMissing[tName].count++;
+            });
+
+            const missingArr = Object.entries(therapistMissing)
+                .map(([therapist, data]) => ({ therapist, ...data }))
+                .sort((a, b) => b.count - a.count);
+            setMissingNotes(missingArr);
+            setMissingNoteTotal(missingArr.reduce((acc, m) => acc + m.count, 0));
+
+            // ✨ [신규] 출석률 통계 (주차별)
+            const weeklyAttendance: Record<string, { completed: number; cancelled: number; total: number }> = {};
+            (allSchedules as DashboardSchedule[])?.filter(s =>
+                s.start_time?.startsWith(selectedMonth)
+            ).forEach(s => {
+                const day = new Date(s.start_time).getDate();
+                const weekNum = `${Math.ceil(day / 7)}주차`;
+                if (!weeklyAttendance[weekNum]) weeklyAttendance[weekNum] = { completed: 0, cancelled: 0, total: 0 };
+                weeklyAttendance[weekNum].total++;
+                if (s.status === 'completed') weeklyAttendance[weekNum].completed++;
+                else if (s.status === 'canceled' || s.status === 'cancelled') weeklyAttendance[weekNum].cancelled++;
+            });
+
+            const attendArr = Object.entries(weeklyAttendance)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([name, data]) => ({
+                    name,
+                    completed: data.completed,
+                    cancelled: data.cancelled,
+                    total: data.total,
+                    rate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0
+                }));
+            setAttendanceData(attendArr);
+
+            const totalSched = attendArr.reduce((a, d) => a + d.total, 0);
+            const totalComp = attendArr.reduce((a, d) => a + d.completed, 0);
+            setOverallAttendance(totalSched > 0 ? Math.round((totalComp / totalSched) * 100) : 0);
+
         } catch (error) {
             console.error(error);
         }
@@ -753,7 +817,7 @@ export function Dashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={revenueData} margin={{ top: 80, right: 30, left: 20, bottom: 0 }}>
+                                <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                     <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
@@ -765,7 +829,7 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
+                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
                                         {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                                     </Pie>
@@ -791,7 +855,7 @@ export function Dashboard() {
 
                     <ChartContainer title="상담 후 등록 전환율" icon={SvgIcons.activity} innerHeight="h-[450px]" brandColor={BRAND_COLOR}>
                         <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={conversionData} margin={{ top: 80, right: 30, left: 20 }}>
+                            <ComposedChart data={conversionData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                 <CartesianGrid stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                                 <YAxis yAxisId="left" axisLine={false} tickLine={false} />
@@ -807,7 +871,7 @@ export function Dashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
+                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={programData} innerRadius={50} outerRadius={80} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
                                         {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                     </Pie>
@@ -817,7 +881,7 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
+                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={ageData} innerRadius={50} outerRadius={70} dataKey="value" stroke="none">
                                         {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
                                     </Pie>
@@ -827,7 +891,7 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 80, right: 0, bottom: 0, left: 0 }}>
+                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={genderData} outerRadius={60} dataKey="value" stroke="none" label={({ name }: any) => name}>
                                         <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
                                     </Pie>
@@ -837,12 +901,105 @@ export function Dashboard() {
                         </ChartContainer>
                         <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={topChildren} layout="vertical" margin={{ top: 80, right: 30, left: 10, bottom: 0 }}>
+                                <BarChart data={topChildren} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                                     <XAxis type="number" hide /><YAxis dataKey="name" type="category" width={60} axisLine={false} tickLine={false} />
                                     <RechartsTooltip {...tooltipProps} /><Bar dataKey="value" fill="#ec4899" radius={[0, 6, 6, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </ChartContainer>
+                    </div>
+
+                    {/* ✨ [신규] 일지 미작성 알림 + 출석률 통계 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* 일지 미작성 알림 */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                                    {SvgIcons.clipboardCheck("w-5 h-5 text-rose-500")}
+                                    일지 미작성 현황
+                                </h3>
+                                {missingNoteTotal > 0 ? (
+                                    <span className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl text-sm font-black animate-pulse">
+                                        {missingNoteTotal}건 미작성
+                                    </span>
+                                ) : (
+                                    <span className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl text-sm font-black">
+                                        ✨ 모두 작성 완료
+                                    </span>
+                                )}
+                            </div>
+                            {missingNotes.length > 0 ? (
+                                <div className="space-y-3">
+                                    {missingNotes.map((item) => (
+                                        <div key={item.therapist} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                            <div className="flex-1">
+                                                <p className="font-black text-slate-900 dark:text-white text-sm">{item.therapist}</p>
+                                                <p className="text-[11px] text-slate-400 font-bold mt-0.5">
+                                                    완료 {item.total}회기 중 {item.total - item.count}건 작성
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                {item.count > 0 ? (
+                                                    <span className="text-2xl font-black text-rose-500">{item.count}</span>
+                                                ) : (
+                                                    <span className="text-sm font-black text-emerald-500">✓ 완료</span>
+                                                )}
+                                            </div>
+                                            {/* 작성률 바 */}
+                                            <div className="w-20">
+                                                <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${item.count === 0 ? 'bg-emerald-500' : item.count <= 2 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                        style={{ width: `${item.total > 0 ? ((item.total - item.count) / item.total) * 100 : 100}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <p className="font-bold">완료된 수업이 없습니다</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 출석률 통계 */}
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                                    {SvgIcons.calendar("w-5 h-5 text-blue-500")}
+                                    주차별 출석률
+                                </h3>
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-3xl font-black ${overallAttendance >= 90 ? 'text-emerald-500' : overallAttendance >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                        {overallAttendance}%
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-bold">월간 출석률</span>
+                                </div>
+                            </div>
+                            {attendanceData.length > 0 ? (
+                                <div className="h-[280px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
+                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                            <RechartsTooltip {...tooltipProps} />
+                                            <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
+                                            <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
+                                            <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
+                                            <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <p className="font-bold">수업 데이터가 없습니다</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED FROM MARKETING TO OPERATIONS */}
@@ -956,6 +1113,7 @@ export function Dashboard() {
                             </div>
                         )}
                     </div>
+
                 </div>
             )}
 
