@@ -171,12 +171,6 @@ export function ParentHomePage() {
                     if (nextConsult) setHasUpcomingConsultation(true);
                 }
 
-                // 상담 일지 가져오기
-                // [Clean] Logs fetching removed — logs are viewed in Growth Logs page
-                // const castedLogs = logs as unknown as LogContent[];
-                /* [Clean] Removed as logs are no longer displayed on Home ... */
-
-
 
 
             } else {

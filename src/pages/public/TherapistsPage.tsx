@@ -32,15 +32,14 @@ export function TherapistsPage() {
 
     const fetchPublicTherapists = async () => {
         try {
-            // Fetch therapists belonging to this center that are marked as website_visible
-            // If website_visible field doesn't exist yet, we'll fetch all active therapists as a fallback
+            // ✨ [FIX] website_visible=true인 치료사만 공개 페이지에 표시
             const { data, error } = await supabase
                 .from('therapists')
                 .select('*')
                 .eq('center_id', center!.id)
-                .eq('is_active', true) // Changed system_status to is_active based on DB types
-                // .eq('website_visible', true) // Removed until confirmed in DB schema
-                .order('created_at', { ascending: true }); // sort_order might not exist
+                .eq('is_active', true)
+                .eq('website_visible', true)
+                .order('created_at', { ascending: true });
 
             if (error) throw error;
             setTherapists((data as any[]) || []);

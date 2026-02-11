@@ -10,8 +10,8 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✨ Import useNavigate
-import { useAuth } from '@/contexts/AuthContext'; // ✨ Import useAuth
+
+
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
@@ -265,13 +265,10 @@ export function Dashboard() {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [kpi, setKpi] = useState({ revenue: 0, active: 0, sessions: 0, new: 0 });
     const { center } = useCenter();
-    const { role } = useAuth(); // ✨ Role based access control
-    const navigate = useNavigate(); // ✨ Navigation
 
-    // ✨ [Security] Access check for specific roles if needed
-    useEffect(() => {
-        // Redirection logic removed for consolidated roles
-    }, [role, navigate]);
+
+
+
 
     const { branding } = useCenterBranding();
     const BRAND_COLOR = branding?.brand_color || '#6366f1';

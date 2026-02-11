@@ -31,8 +31,7 @@ import { Register } from '@/pages/auth/Register';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { UpdatePassword } from '@/pages/auth/UpdatePassword';
 import { LegalPage } from '@/pages/public/LegalPage';
-// import { BlogPage } from '@/pages/public/BlogPage';
-// import { BlogPostPage } from '@/pages/public/BlogPostPage';
+
 
 // 부모님 전용 페이지
 import { ParentLayout } from '@/layouts/ParentLayout';
@@ -49,10 +48,7 @@ import { ParentList } from '@/pages/app/parents/ParentList';
 import { TherapistList } from '@/pages/app/therapists/TherapistList';
 import SessionList from '@/pages/app/sessions/SessionList';
 import SessionNote from '@/pages/app/sessions/SessionNote';
-// import { LeadList } from '@/pages/app/leads/LeadList';
 import ConsultationInquiryList from '@/pages/app/consultations/ConsultationInquiryList';
-// import BlogList from '@/pages/app/blog/BlogList';
-// import BlogEditor from '@/pages/app/blog/BlogEditor';
 import Programs from '@/pages/app/Programs';
 import { Billing } from '@/pages/app/Billing';
 import { Settlement } from '@/pages/app/Settlement';
@@ -78,12 +74,7 @@ function AppHomeRedirect() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  // 👑 [Super Admin] Super Admins are allowed to see the Global Landing portal at "/".
-  // Previously they were auto-redirected to /master/centers, but this made it impossible
-  // to go back to the integrated portal view.
-  // if (role === 'super_admin') {
-  //   return <Navigate to="/master/centers" replace />;
-  // }
+
 
   // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
   return <GlobalLanding />;
