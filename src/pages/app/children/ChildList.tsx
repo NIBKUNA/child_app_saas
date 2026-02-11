@@ -12,9 +12,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Helmet } from 'react-helmet-async';
-import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check, Eye } from 'lucide-react';
+import { Search, UserPlus, Pencil, Link as LinkIcon, User, Copy, Check, Eye, FileSpreadsheet } from 'lucide-react';
 import { ChildModal } from './ChildModal';
 import { ChildDetailModal } from '@/components/app/children/ChildDetailModal';
+import { ExcelImportModal } from '@/components/app/children/ExcelImportModal';
 import { cn } from '@/lib/utils';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,7 +46,7 @@ export interface Child {
 export function ChildList() {
     const [children, setChildren] = useState<Child[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(true);
+    const [, setLoading] = useState(true);
     const { center } = useCenter();
     const centerId = center?.id;
 
@@ -57,6 +58,7 @@ export function ChildList() {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [detailChild, setDetailChild] = useState<Child | null>(null);
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
+    const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
 
     // 초대 코드 복사
     const copyInvitationCode = async (code: string) => {
@@ -101,7 +103,7 @@ export function ChildList() {
             const { data, error } = await query.order('name');
 
             if (error) throw error;
-            setChildren((data || []) as Child[]);
+            setChildren((data || []) as unknown as Child[]);
         } catch (error) {
             console.error('아동 목록 로딩 실패:', error);
         } finally {
@@ -156,6 +158,15 @@ export function ChildList() {
                                 memo: '메모'
                             }}
                         />
+                        {/* ✨ [Import] 케어플 엑셀 업로드 버튼 (admin/manager만) */}
+                        {(role === 'admin' || role === 'manager' || role === 'super_admin') && (
+                            <button
+                                onClick={() => setIsExcelImportOpen(true)}
+                                className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30"
+                            >
+                                <FileSpreadsheet className="w-5 h-5" /> 엑셀 업로드
+                            </button>
+                        )}
                         <button
                             onClick={handleRegister}
                             className="flex items-center gap-2 bg-slate-900 dark:bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-lg shadow-slate-200 dark:shadow-indigo-900/30"
@@ -278,6 +289,17 @@ export function ChildList() {
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 child={detailChild}
+            />
+
+            {/* ✨ 케어플 엑셀 임포트 모달 */}
+            <ExcelImportModal
+                centerId={centerId || ''}
+                centerName={center?.name || ''}
+                isOpen={isExcelImportOpen}
+                onClose={(refresh) => {
+                    setIsExcelImportOpen(false);
+                    if (refresh) fetchChildren();
+                }}
             />
 
         </>
