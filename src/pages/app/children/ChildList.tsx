@@ -35,10 +35,13 @@ export interface Child {
     contact: string | null;
     address: string | null;
     memo: string | null;
+    notes: string | null;
     registration_number: string | null;
     invitation_code: string | null;
     parent_id: string | null;      // parents.id 참조
     center_id: string;
+    is_active: boolean | null;
+    status: 'active' | 'waiting' | 'inactive' | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -46,6 +49,7 @@ export interface Child {
 export function ChildList() {
     const [children, setChildren] = useState<Child[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'waiting' | 'inactive'>('active');
     const [, setLoading] = useState(true);
     const { center } = useCenter();
     const centerId = center?.id;
@@ -111,10 +115,20 @@ export function ChildList() {
         }
     };
 
-    const filteredChildren = children.filter((child: Child) =>
-        child.name.includes(searchTerm) ||
-        (child.guardian_name && child.guardian_name.includes(searchTerm))
-    );
+    const filteredChildren = children.filter((child: Child) => {
+        // 상태 필터 (status enum 기반)
+        if (activeFilter !== 'all') {
+            const childStatus = child.status || (child.is_active === false ? 'inactive' : 'active');
+            if (childStatus !== activeFilter) return false;
+        }
+        // 검색 필터
+        return child.name.includes(searchTerm) ||
+            (child.guardian_name && child.guardian_name.includes(searchTerm));
+    });
+
+    const activeCount = children.filter(c => (c.status || 'active') === 'active').length;
+    const waitingCount = children.filter(c => c.status === 'waiting').length;
+    const inactiveCount = children.filter(c => c.status === 'inactive' || (!c.status && c.is_active === false)).length;
 
     const handleEdit = (id: string) => {
         setSelectedChildId(id);
@@ -178,15 +192,32 @@ export function ChildList() {
 
                 <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/50">
-                        <div className="relative max-w-sm">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="아동 또는 보호자 이름 검색..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-slate-100 dark:focus:ring-indigo-500/20 transition-all"
-                            />
+                        <div className="flex items-center gap-4">
+                            <div className="relative flex-1 max-w-sm">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="아동 또는 보호자 이름 검색..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-slate-100 dark:focus:ring-indigo-500/20 transition-all"
+                                />
+                            </div>
+                            {/* ✨ 활성/비활성 필터 */}
+                            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 rounded-2xl p-1">
+                                {([['active', `이용중 (${activeCount})`], ['waiting', `대기 (${waitingCount})`], ['inactive', `종결 (${inactiveCount})`], ['all', '전체']] as const).map(([key, label]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => setActiveFilter(key)}
+                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${activeFilter === key
+                                            ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                                            }`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -195,22 +226,36 @@ export function ChildList() {
                             <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 font-black uppercase text-[11px] tracking-wider">
                                 <tr>
                                     <th className="px-6 py-5">기본 정보</th>
+                                    <th className="px-6 py-5">상태</th>
                                     <th className="px-6 py-5">생년월일/성별</th>
                                     <th className="px-6 py-5">초대 코드</th>
                                     <th className="px-6 py-5">연결된 앱 계정</th>
-                                    <th className="px-6 py-5">보호자(수동입력)</th>
+                                    <th className="px-6 py-5">보호자</th>
                                     <th className="px-6 py-5 text-center">관리</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                 {filteredChildren.length === 0 ? (
-                                    <tr><td colSpan={6} className="p-20 text-center text-slate-400 dark:text-slate-500 font-bold">등록된 아동 정보가 없습니다.</td></tr>
+                                    <tr><td colSpan={7} className="p-20 text-center text-slate-400 dark:text-slate-500 font-bold">
+                                        {activeFilter === 'inactive' ? '종결/퇴원 아동이 없습니다.' : activeFilter === 'waiting' ? '대기 아동이 없습니다.' : '등록된 아동 정보가 없습니다.'}
+                                    </td></tr>
                                 ) : (
                                     filteredChildren.map((child) => (
-                                        <tr key={child.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors group">
+                                        <tr key={child.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors group ${child.status === 'inactive' ? 'opacity-50' : ''}`}>
                                             <td className="px-6 py-5">
                                                 <div className="font-black text-slate-900 dark:text-white text-base">{child.name}</div>
                                                 <div className="text-[11px] text-slate-400 dark:text-slate-500 font-bold mt-0.5">{child.contact}</div>
+                                            </td>
+                                            <td className="px-6 py-5">
+                                                {(() => {
+                                                    const s = child.status || (child.is_active === false ? 'inactive' : 'active');
+                                                    const cfg = {
+                                                        active: { label: '이용중', cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' },
+                                                        waiting: { label: '대기', cls: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+                                                        inactive: { label: '종결', cls: 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500' },
+                                                    }[s] || { label: s, cls: 'bg-slate-100 text-slate-400' };
+                                                    return <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${cfg.cls}`}>{cfg.label}</span>;
+                                                })()}
                                             </td>
                                             <td className="px-6 py-5 text-slate-600 dark:text-slate-300 font-bold">
                                                 {child.birth_date || '-'}

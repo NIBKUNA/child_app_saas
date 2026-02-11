@@ -37,6 +37,7 @@ interface ChildFormData {
     grade: string;                  // 학년
     inflow_source: string;          // 유입경로
     medical_history: string;        // 의료이력
+    status: 'active' | 'waiting' | 'inactive';  // 이용 상태
     center_id: string;
 }
 
@@ -54,6 +55,7 @@ interface ChildSubmissionData {
     grade: string | null;
     inflow_source: string | null;
     medical_history: string | null;
+    status: 'active' | 'waiting' | 'inactive';
     center_id: string;
 }
 
@@ -74,6 +76,8 @@ interface ChildData {
     medical_history: string | null;
     center_id: string;
     invitation_code: string | null;
+    is_active: boolean | null;
+    status: 'active' | 'waiting' | 'inactive' | null;
 }
 
 export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalProps) {
@@ -97,6 +101,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
         grade: '',
         inflow_source: '',
         medical_history: '',
+        status: 'active',
         center_id: ''
     });
 
@@ -109,6 +114,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                     name: '', registration_number: '', birth_date: '', gender: '남',
                     diagnosis: '', guardian_name: '', contact: '',
                     notes: '', school_name: '', grade: '', inflow_source: '', medical_history: '',
+                    status: 'active',
                     center_id: centerId
                 });
             }
@@ -134,6 +140,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                 grade: childData.grade || '',
                 inflow_source: childData.inflow_source || '',
                 medical_history: childData.medical_history || '',
+                status: childData.status || (childData.is_active === false ? 'inactive' : 'active'),
                 center_id: childData.center_id
             });
         }
@@ -158,6 +165,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                 grade: formData.grade || null,
                 inflow_source: formData.inflow_source || null,
                 medical_history: formData.medical_history || null,
+                status: formData.status,
                 center_id: centerId
             };
 
@@ -310,6 +318,34 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                             </div>
                         </div>
                     </div>
+
+                    {/* 이용 상태 (수정 시에만 표시) */}
+                    {childId && (
+                        <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4">
+                            <div>
+                                <p className="text-sm font-black text-slate-700 dark:text-slate-200">이용 상태</p>
+                                <p className="text-[11px] text-slate-400 font-bold mt-0.5">
+                                    {formData.status === 'active' && '현재 센터를 이용 중인 아동입니다.'}
+                                    {formData.status === 'waiting' && '대기 중인 아동입니다. 수업 배정에 표시되지 않습니다.'}
+                                    {formData.status === 'inactive' && '종결/퇴원 처리된 아동입니다.'}
+                                </p>
+                            </div>
+                            <select
+                                value={formData.status}
+                                onChange={e => setFormData({ ...formData, status: e.target.value as 'active' | 'waiting' | 'inactive' })}
+                                className={`px-4 py-2 rounded-xl text-sm font-black border-none outline-none cursor-pointer transition-all ${formData.status === 'active'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                        : formData.status === 'waiting'
+                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                                            : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                                    }`}
+                            >
+                                <option value="active">이용중</option>
+                                <option value="waiting">대기</option>
+                                <option value="inactive">종결</option>
+                            </select>
+                        </div>
+                    )}
 
                     <div className="pt-4 flex gap-3">
                         {childId && (

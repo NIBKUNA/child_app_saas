@@ -251,10 +251,21 @@ export function ExcelImportModal({ centerId, centerName, isOpen, onClose }: Exce
                     continue;
                 }
 
-                // 메모 내용 구성 (주소 + 케어플 메모)
+                // 메모 내용 구성 (주소 + 케어플 메모 + 상태)
                 const notesParts: string[] = ['[케어플 이관]'];
+                if (child.careple_status && child.careple_status !== '등록') {
+                    notesParts.push(`상태: ${child.careple_status}`);
+                }
                 if (child.address) notesParts.push(`주소: ${child.address}`);
                 if (child.memo) notesParts.push(child.memo);
+
+                // 케어플 상태 → status enum 매핑
+                let childStatus: 'active' | 'waiting' | 'inactive' = 'active';
+                if (child.careple_status === '대기') {
+                    childStatus = 'waiting';
+                } else if (child.careple_status && ['종결', '퇴원', '퇴소'].includes(child.careple_status)) {
+                    childStatus = 'inactive';
+                }
 
                 inserts.push({
                     name: child.name,
@@ -267,6 +278,7 @@ export function ExcelImportModal({ centerId, centerName, isOpen, onClose }: Exce
                     guardian_name: child.guardian_name,
                     invitation_code: generateInviteCode(),
                     center_id: centerId,
+                    status: childStatus,
                 } as any);
 
                 existingSet.add(key); // Prevent in-batch duplicates
