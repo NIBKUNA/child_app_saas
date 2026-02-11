@@ -251,15 +251,19 @@ export function ExcelImportModal({ centerId, centerName, isOpen, onClose }: Exce
                     continue;
                 }
 
+                // 메모 내용 구성 (주소 + 케어플 메모)
+                const notesParts: string[] = ['[케어플 이관]'];
+                if (child.address) notesParts.push(`주소: ${child.address}`);
+                if (child.memo) notesParts.push(child.memo);
+
                 inserts.push({
                     name: child.name,
                     gender: child.gender || 'male',
                     birth_date: child.birth_date || '2000-01-01',
                     diagnosis: child.diagnosis,
                     contact: child.contact,
-                    address: child.address,
                     registration_number: child.registration_number,
-                    memo: child.memo ? `[케어플] ${child.memo}` : '[케어플 이관]',
+                    notes: notesParts.join(' | '),
                     guardian_name: child.guardian_name,
                     invitation_code: generateInviteCode(),
                     center_id: centerId,

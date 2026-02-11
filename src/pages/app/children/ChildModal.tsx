@@ -32,6 +32,11 @@ interface ChildFormData {
     diagnosis: string;
     guardian_name: string;
     contact: string;
+    notes: string;                  // 메모/비고
+    school_name: string;            // 학교명
+    grade: string;                  // 학년
+    inflow_source: string;          // 유입경로
+    medical_history: string;        // 의료이력
     center_id: string;
 }
 
@@ -44,6 +49,11 @@ interface ChildSubmissionData {
     diagnosis: string | null;
     guardian_name: string | null;
     contact: string | null;
+    notes: string | null;
+    school_name: string | null;
+    grade: string | null;
+    inflow_source: string | null;
+    medical_history: string | null;
     center_id: string;
 }
 
@@ -57,6 +67,11 @@ interface ChildData {
     diagnosis: string | null;
     guardian_name: string | null;
     contact: string | null;
+    notes: string | null;
+    school_name: string | null;
+    grade: string | null;
+    inflow_source: string | null;
+    medical_history: string | null;
     center_id: string;
     invitation_code: string | null;
 }
@@ -77,6 +92,11 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
         diagnosis: '',
         guardian_name: '',
         contact: '',
+        notes: '',
+        school_name: '',
+        grade: '',
+        inflow_source: '',
+        medical_history: '',
         center_id: ''
     });
 
@@ -86,7 +106,9 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                 loadChild();
             } else {
                 setFormData({
-                    name: '', registration_number: '', birth_date: '', gender: '남', diagnosis: '', guardian_name: '', contact: '',
+                    name: '', registration_number: '', birth_date: '', gender: '남',
+                    diagnosis: '', guardian_name: '', contact: '',
+                    notes: '', school_name: '', grade: '', inflow_source: '', medical_history: '',
                     center_id: centerId
                 });
             }
@@ -107,6 +129,11 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                 guardian_name: childData.guardian_name || '',
                 contact: childData.contact || '',
                 gender: childData.gender === 'male' ? '남' : '여',
+                notes: childData.notes || '',
+                school_name: childData.school_name || '',
+                grade: childData.grade || '',
+                inflow_source: childData.inflow_source || '',
+                medical_history: childData.medical_history || '',
                 center_id: childData.center_id
             });
         }
@@ -126,6 +153,11 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                 diagnosis: formData.diagnosis || null,
                 guardian_name: formData.guardian_name || null,
                 contact: formData.contact || null,
+                notes: formData.notes || null,
+                school_name: formData.school_name || null,
+                grade: formData.grade || null,
+                inflow_source: formData.inflow_source || null,
+                medical_history: formData.medical_history || null,
                 center_id: centerId
             };
 
@@ -183,9 +215,12 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
 
     if (!isOpen) return null;
 
+    const inputClass = "w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white";
+    const labelClass = "text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1";
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-100 dark:border-slate-800">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                     <h2 className="text-xl font-black text-slate-900 dark:text-white">아동 정보 설정</h2>
                     <button type="button" onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-slate-700/50 hover:shadow-md rounded-full transition-all">
@@ -193,43 +228,85 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto">
-                    {/* ✨ [Removed] Manual Parent Connection Dropdown */}
-
+                <form onSubmit={handleSubmit} className="p-8 space-y-5 max-h-[80vh] overflow-y-auto">
+                    {/* 기본 정보 */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">기본 정보</p>
+                        <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">아동 이름</label>
-                                <input type="text" required className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                                <label className={labelClass}>아동 이름 *</label>
+                                <input type="text" required className={inputClass} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">생년월일</label>
-                                <input type="date" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white dark:[color-scheme:dark]" value={formData.birth_date} onChange={e => setFormData({ ...formData, birth_date: e.target.value })} />
+                                <label className={labelClass}>생년월일</label>
+                                <input type="date" className={`${inputClass} dark:[color-scheme:dark]`} value={formData.birth_date} onChange={e => setFormData({ ...formData, birth_date: e.target.value })} />
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">성별</label>
-                                <select className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value as '남' | '여' })}>
+                                <label className={labelClass}>성별</label>
+                                <select className={inputClass} value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value as '남' | '여' })}>
                                     <option value="남">남성</option>
                                     <option value="여">여성</option>
                                 </select>
                             </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">진단명</label>
-                                <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.diagnosis} onChange={e => setFormData({ ...formData, diagnosis: e.target.value })} />
+                                <label className={labelClass}>진단명</label>
+                                <input type="text" className={inputClass} placeholder="예: ADHD, ASD 등" value={formData.diagnosis} onChange={e => setFormData({ ...formData, diagnosis: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className={labelClass}>보호자 성함</label>
+                                <input type="text" className={inputClass} value={formData.guardian_name} onChange={e => setFormData({ ...formData, guardian_name: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className={labelClass}>연락처</label>
+                                <input type="text" className={inputClass} placeholder="010-0000-0000" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
                             </div>
                         </div>
+                    </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                    {/* 추가 정보 */}
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">추가 정보</p>
+                        <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">보호자 성함 (수동)</label>
-                                <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.guardian_name} onChange={e => setFormData({ ...formData, guardian_name: e.target.value })} />
+                                <label className={labelClass}>학교/유치원</label>
+                                <input type="text" className={inputClass} value={formData.school_name} onChange={e => setFormData({ ...formData, school_name: e.target.value })} />
                             </div>
                             <div>
-                                <label className="text-xs font-black text-slate-500 dark:text-slate-400 mb-2 block ml-1">연락처 (수동)</label>
-                                <input type="text" className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 text-slate-900 dark:text-white" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
+                                <label className={labelClass}>학년/반</label>
+                                <input type="text" className={inputClass} placeholder="예: 초3, 6세" value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className={labelClass}>유입경로</label>
+                                <input type="text" className={inputClass} placeholder="지인소개 등" value={formData.inflow_source} onChange={e => setFormData({ ...formData, inflow_source: e.target.value })} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 의료이력 & 메모 */}
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">메모 & 특이사항</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className={labelClass}>의료 이력</label>
+                                <textarea
+                                    className={`${inputClass} min-h-[60px] resize-y`}
+                                    placeholder="수술 이력, 투약 정보 등"
+                                    value={formData.medical_history}
+                                    onChange={e => setFormData({ ...formData, medical_history: e.target.value })}
+                                    rows={2}
+                                />
+                            </div>
+                            <div>
+                                <label className={labelClass}>메모 / 비고</label>
+                                <textarea
+                                    className={`${inputClass} min-h-[60px] resize-y`}
+                                    placeholder="기타 참고 사항을 입력하세요"
+                                    value={formData.notes}
+                                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                    rows={2}
+                                />
                             </div>
                         </div>
                     </div>
