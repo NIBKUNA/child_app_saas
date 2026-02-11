@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Building2, Users, Baby, ArrowLeft, MoreHorizontal, ExternalLink, Pencil, X, Save, ShieldAlert, Trash2 } from 'lucide-react';
+import { Building2, Users, Baby, ArrowLeft, MoreHorizontal, ExternalLink, Pencil, Save, ShieldAlert, X, Trash2 } from 'lucide-react';
 import { useCenter } from '@/contexts/CenterContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import type { Database } from '@/types/database.types';
 
 type Center = Database['public']['Tables']['centers']['Row'];
-
 
 export function CenterDetailPage() {
     const { centerId } = useParams();
@@ -122,15 +121,18 @@ export function CenterDetailPage() {
         }
 
         try {
+            // ✨ [FIX] .select() 제거 → UPDATE만 수행하여 RLS SELECT 충돌 방지
             const { error } = await supabase
                 .from('centers')
                 .update(updateData)
-                .eq('id', centerId as string)
-                .select();
-
+                .eq('id', centerId as string);
 
             if (error) {
                 console.error('❌ Supabase 업데이트 오류:', error);
+                // RLS 정책 관련 에러 안내
+                if (error.message?.includes('policy') || error.code === '42501') {
+                    throw new Error('RLS 권한 오류: centers 테이블의 UPDATE 정책을 확인하세요. FIX_CENTER_UPDATE_RLS.sql을 실행해야 할 수 있습니다.');
+                }
                 throw error;
             }
 
@@ -252,7 +254,12 @@ export function CenterDetailPage() {
             <div className="bg-white dark:bg-slate-900 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
                 <div className="p-8 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
                     <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">센터 관리 정보</h2>
-                    <button className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    {/* ✨ [FIX] onClick 핸들러 추가 - 수정 모달 열기 */}
+                    <button
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                        title="센터 정보 수정"
+                    >
                         <MoreHorizontal className="w-6 h-6 text-slate-400" />
                     </button>
                 </div>
