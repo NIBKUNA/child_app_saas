@@ -309,20 +309,18 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                 const cid = centerId || 'global';
 
                 // 1. 상담문의 (어드민/슈퍼어드민만 표시)
+                // 🔔 [Fix] 대기 상태(pending/new)인 문의만 알림 표시
+                // 완료(completed)/취소(canceled) 처리된 문의는 알림에서 제외
                 if (isSuperAdmin || role === 'admin' || role === 'manager') {
-                    const lastCheck = localStorage.getItem(`last_inquiry_check_${cid}`);
-
                     let query = supabase
                         .from('consultations')
                         .select('created_at', { count: 'exact', head: true })
-                        .is('schedule_id', null);
+                        .is('schedule_id', null)
+                        // 🔔 대기 상태만 카운트: pending, new, 또는 status가 NULL인 경우
+                        .or('status.eq.pending,status.eq.new,status.is.null');
 
                     if (centerId) {
                         query = query.eq('center_id', centerId);
-                    }
-
-                    if (lastCheck) {
-                        query = query.gt('created_at', lastCheck);
                     }
 
                     const { count: inquiryCount } = await query;

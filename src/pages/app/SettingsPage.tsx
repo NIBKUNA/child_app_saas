@@ -1265,8 +1265,9 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
     const [editingProfile, setEditingProfile] = useState<any>(null);
 
     // Form State
+    // 🔒 display_name = 공개 사이트용 이름 (모자이크/별명 가능), name = 내부 실명 (직원관리에서만 사용)
     const [formData, setFormData] = useState({
-        name: '',
+        display_name: '',
         bio: '',
         specialties: '',
         career: '',
@@ -1277,10 +1278,12 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
     const fetchProfiles = async () => {
         setLoading(true);
+        // 🌐 [분리] 치료사 역할만 조회 (관리자/매니저는 공개 사이트 표시 대상이 아님)
         const { data } = await supabase
             .from('therapists')
             .select('*')
             .eq('center_id', centerId)
+            .eq('system_role', 'therapist')
             .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true });
         setProfiles(data || []);
@@ -1295,7 +1298,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         if (profile) {
             setEditingProfile(profile);
             setFormData({
-                name: profile.name,
+                // 🔒 display_name 우선 사용, 없으면 name에서 초기값 가져오기
+                display_name: profile.display_name || profile.name || '',
                 bio: profile.bio || '',
                 specialties: profile.specialties || '',
                 career: profile.career || '',
@@ -1306,7 +1310,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         } else {
             setEditingProfile(null);
             setFormData({
-                name: '',
+                display_name: '',
                 bio: '',
                 specialties: '',
                 career: '',
@@ -1319,12 +1323,13 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
     };
 
     const handleSave = async () => {
-        if (!formData.name) return alert('이름을 입력해주세요.');
+        if (!formData.display_name) return alert('표시 이름을 입력해주세요.');
 
         try {
             const payload: any = {
-                // 🌐 사이트 전시용 필드만 저장 (내부 인사/정산 정보는 '직원관리'에서 관리)
-                name: formData.name,
+                // 🔒 [완전 분리] display_name만 저장 — name(실명)은 절대 건드리지 않음
+                // 직원관리의 실명(name)과 독립적으로 공개 사이트 이름을 관리
+                display_name: formData.display_name,
                 bio: formData.bio,
                 specialties: formData.specialties,
                 career: formData.career,
@@ -1479,7 +1484,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                             {/* 4. Core Info */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3">
-                                    <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.name}</h4>
+                                    <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.display_name || profile.name}</h4>
                                     <button
                                         onClick={() => toggleVisibility(profile)}
                                         className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors",
@@ -1514,12 +1519,15 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
                         <div className="space-y-6 overflow-y-auto pr-2 custom-scrollbar flex-1">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">이름</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">표시 이름 (공개 사이트용)</label>
+                                {editingProfile && (
+                                    <p className="text-[10px] text-slate-400 ml-1">🔒 직원관리 실명: <span className="font-black text-slate-600 dark:text-slate-300">{editingProfile.name}</span></p>
+                                )}
                                 <input
                                     type="text"
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="표시될 이름"
+                                    value={formData.display_name}
+                                    onChange={e => setFormData({ ...formData, display_name: e.target.value })}
+                                    placeholder="홈페이지에 표시될 이름 (예: 김○○ 언어치료사)"
                                     className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
                                 />
                             </div>

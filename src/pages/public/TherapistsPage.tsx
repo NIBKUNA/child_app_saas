@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Shield, Award, ChevronRight } from 'lucide-react';
 import type { Database } from '@/types/database.types';
 
-type Therapist = Database['public']['Tables']['therapists']['Row'] & { profile_image?: string; system_role?: string; hire_type?: string; specialties?: string; career?: string; };
+type Therapist = Database['public']['Tables']['therapists']['Row'] & { display_name?: string; profile_image?: string; system_role?: string; hire_type?: string; specialties?: string; career?: string; };
 
 export function TherapistsPage() {
     const navigate = useNavigate();
@@ -115,7 +115,7 @@ export function TherapistsPage() {
                                         {/* Extremely Shrunk Profile Image */}
                                         <div className="w-20 h-24 shrink-0 rounded-[20px] overflow-hidden relative shadow-lg border-2 border-slate-50 dark:border-white/5 bg-slate-100">
                                             {staff.profile_image ? (
-                                                <img src={staff.profile_image} alt={staff.name} className="w-full h-full object-cover" />
+                                                <img src={staff.profile_image} alt={staff.display_name || staff.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-slate-300">
                                                     <Award className="w-6 h-6 opacity-20" />
@@ -125,7 +125,7 @@ export function TherapistsPage() {
 
                                         <div className="flex-1 pt-1">
                                             <div className="flex flex-col">
-                                                <div className="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-1">{staff.name}</div>
+                                                <div className="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-1">{staff.display_name || staff.name}</div>
                                                 <div className="inline-flex">
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-lg">
                                                         {staff.system_role === 'admin' ? '운영 원장' : staff.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
