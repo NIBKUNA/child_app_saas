@@ -54,7 +54,11 @@ export type AdminSettingKey =
     | 'center_weekday_hours'
     | 'center_saturday_hours'
     | 'center_holiday_text'
-    | 'openai_api_key';
+    | 'openai_api_key'
+    | 'home_title_size'
+    | 'home_subtitle_size'
+    | 'home_story_title_size'
+    | 'home_story_body_size';
 
 export interface ProgramItem {
     id: string;

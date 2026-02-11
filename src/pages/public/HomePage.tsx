@@ -142,7 +142,7 @@ export function HomePage() {
                         <motion.h1
                             className="text-white tracking-tighter"
                             style={{
-                                fontSize: 'clamp(2rem, 8vw, 5rem)',
+                                fontSize: `clamp(${1.2 * (Number(getSetting('home_title_size')) || 100) / 100}rem, ${8 * (Number(getSetting('home_title_size')) || 100) / 100}vw, ${5 * (Number(getSetting('home_title_size')) || 100) / 100}rem)`,
                                 fontWeight: 900,
                                 lineHeight: 1.1,
                                 textShadow: '0 4px 20px rgba(0,0,0,0.3)',
@@ -158,7 +158,10 @@ export function HomePage() {
                         {/* Remove separate h2 subtitle if title is custom or keep it as optional */}
 
                         <motion.p
-                            className="text-white/90 font-medium leading-relaxed max-w-lg whitespace-pre-line text-lg md:text-xl drop-shadow-md"
+                            className="text-white/90 font-medium leading-relaxed max-w-lg whitespace-pre-line drop-shadow-md"
+                            style={{
+                                fontSize: `clamp(${0.875 * (Number(getSetting('home_subtitle_size')) || 100) / 100}rem, ${1.25 * (Number(getSetting('home_subtitle_size')) || 100) / 100}rem, ${1.5 * (Number(getSetting('home_subtitle_size')) || 100) / 100}rem)`,
+                            }}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.8, delay: 0.5 }}

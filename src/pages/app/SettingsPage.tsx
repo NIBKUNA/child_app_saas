@@ -34,6 +34,7 @@ import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext';
+import { useTheme } from '@/contexts/ThemeProvider';
 import { AccountDeletionModal } from '@/components/AccountDeletionModal';
 import type { Database } from '@/types/database.types';
 
@@ -47,8 +48,9 @@ const VALID_TABS: TabType[] = ['home', 'about', 'programs', 'therapists', 'brand
 
 export function SettingsPage() {
     const { getSetting, loading: settingsLoading, refresh: fetchSettings } = useAdminSettings();
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const { center } = useCenter();
+    const { isSuperAdmin } = useTheme();
     const centerId = center?.id;
     const [saving, setSaving] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -124,6 +126,21 @@ export function SettingsPage() {
     const programsList: ProgramItem[] = initialProgramsJson ? JSON.parse(initialProgramsJson) : DEFAULT_PROGRAMS;
 
     if (settingsLoading) return <div className="p-20 text-center"><Loader2 className="animate-spin inline w-10 h-10 text-slate-300" /></div>;
+
+    // ✨ [Access Control] Super Admin만 사이트 설정 접근 허용
+    if (!isSuperAdmin && role !== 'super_admin') {
+        return (
+            <div className="flex flex-col items-center justify-center p-20 text-center space-y-6">
+                <div className="w-20 h-20 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center">
+                    <UserX className="w-8 h-8 text-rose-500" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">접근 권한이 없습니다</h2>
+                <p className="text-slate-500 font-bold max-w-md">
+                    사이트 설정은 슈퍼 관리자 전용 기능입니다. 필요한 경우 슈퍼 관리자에게 문의해주세요.
+                </p>
+            </div>
+        );
+    }
 
     // ✨ [Safety] Super Admin Global Mode Guard
     if (!centerId) {
@@ -795,6 +812,21 @@ function SnsLinksSection() {
 }
 
 function HomeSettingsTab({ getSetting, handleSave, saving }: { getSetting: (key: AdminSettingKey) => string | undefined; handleSave: (key: AdminSettingKey, value: string | null) => Promise<void>; saving: boolean }) {
+    // ✨ [Live Preview] 로컬 상태로 실시간 프리뷰 연동
+    const [liveTitle, setLiveTitle] = useState(getSetting('home_title') || '');
+    const [liveSubtitle, setLiveSubtitle] = useState(getSetting('home_subtitle') || '');
+    const [liveTitleSize, setLiveTitleSize] = useState(getSetting('home_title_size') || '100');
+    const [liveSubtitleSize, setLiveSubtitleSize] = useState(getSetting('home_subtitle_size') || '100');
+
+    // Settings가 로드되면 동기화
+    useEffect(() => { setLiveTitle(getSetting('home_title') || ''); }, [getSetting('home_title')]);
+    useEffect(() => { setLiveSubtitle(getSetting('home_subtitle') || ''); }, [getSetting('home_subtitle')]);
+    useEffect(() => { setLiveTitleSize(getSetting('home_title_size') || '100'); }, [getSetting('home_title_size')]);
+    useEffect(() => { setLiveSubtitleSize(getSetting('home_subtitle_size') || '100'); }, [getSetting('home_subtitle_size')]);
+
+    const titleSizePercent = Number(liveTitleSize) || 100;
+    const subtitleSizePercent = Number(liveSubtitleSize) || 100;
+
     return (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700 text-left">
             {/* 1. Large Immersive Preview (Top) */}
@@ -810,9 +842,11 @@ function HomeSettingsTab({ getSetting, handleSave, saving }: { getSetting: (key:
                 <div className="relative group">
                     <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-600/20 rounded-[50px] blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
                     <HeroPreview
-                        title={getSetting('home_title') ?? ""}
-                        subtitle={getSetting('home_subtitle') ?? ""}
+                        title={liveTitle}
+                        subtitle={liveSubtitle}
                         bgUrl={getSetting('main_banner_url')?.split(',')[0]}
+                        titleSizePercent={titleSizePercent}
+                        subtitleSizePercent={subtitleSizePercent}
                     />
                 </div>
             </div>
@@ -821,22 +855,129 @@ function HomeSettingsTab({ getSetting, handleSave, saving }: { getSetting: (key:
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                 <SectionCard icon={<LayoutTemplate className="text-indigo-500" />} title="홈페이지 타이틀 및 설명">
                     <div className="space-y-10">
-                        <SaveableTextArea
-                            label="메인 타이틀 (강조 문구)"
-                            initialValue={getSetting('home_title') ?? null}
-                            placeholder="여러 줄로 입력하면 실제 화면에서도 줄바꿈이 적용됩니다."
-                            onSave={(v) => handleSave('home_title', v)}
-                            saving={saving}
-                            rows={3}
-                        />
-                        <SaveableTextArea
-                            label="서브 타이틀 (상세 설명)"
-                            initialValue={getSetting('home_subtitle') ?? null}
-                            placeholder="예: 우리 아이의 성장을 돕는 치료 프로그램을 확인하세요."
-                            onSave={(v) => handleSave('home_subtitle', v)}
-                            saving={saving}
-                            rows={3}
-                        />
+                        {/* 메인 타이틀 에디터 + 크기 조절 */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-3 px-1">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">메인 타이틀 (강조 문구)</label>
+                                {liveTitle !== (getSetting('home_title') || '') && <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">Unsaved Changes</span>}
+                            </div>
+                            <textarea
+                                value={liveTitle}
+                                onChange={(e) => setLiveTitle(e.target.value)}
+                                rows={3}
+                                placeholder="여러 줄로 입력하면 실제 화면에서도 줄바꿈이 적용됩니다."
+                                className={cn(
+                                    "w-full p-6 bg-slate-50 dark:bg-slate-800/50 border rounded-[32px] outline-none font-bold text-lg text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all resize-none leading-relaxed",
+                                    liveTitle !== (getSetting('home_title') || '') ? "border-amber-200 dark:border-amber-900/50 ring-8 ring-amber-500/5" : "border-slate-100 dark:border-slate-800 focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/5"
+                                )}
+                            />
+
+                            {/* 글자 크기 슬라이더 */}
+                            <div className="flex items-center gap-4 px-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">글자 크기</label>
+                                <input
+                                    type="range"
+                                    min="60"
+                                    max="150"
+                                    step="5"
+                                    value={liveTitleSize}
+                                    onChange={(e) => setLiveTitleSize(e.target.value)}
+                                    className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                />
+                                <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-1 rounded-md min-w-[44px] text-center">{liveTitleSize}%</span>
+                            </div>
+
+                            <div className="flex justify-end gap-2">
+                                {liveTitleSize !== (getSetting('home_title_size') || '100') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSave('home_title_size', liveTitleSize)}
+                                        disabled={saving}
+                                        className="px-6 py-3 rounded-2xl font-black text-xs bg-slate-700 dark:bg-slate-600 text-white shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                                    >
+                                        {saving ? <Loader2 className="animate-spin w-3 h-3" /> : null}
+                                        크기 저장
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleSave('home_title', liveTitle)}
+                                    disabled={(liveTitle === (getSetting('home_title') || '')) || saving}
+                                    className={cn(
+                                        "px-10 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-3 active:scale-95 shadow-xl",
+                                        liveTitle !== (getSetting('home_title') || '')
+                                            ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-indigo-500/20"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-300 shadow-none cursor-not-allowed"
+                                    )}
+                                >
+                                    {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                                    {saving ? '저장 중...' : '변경사항 저장'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
+                        {/* 서브 타이틀 에디터 + 크기 조절 */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-3 px-1">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">서브 타이틀 (상세 설명)</label>
+                                {liveSubtitle !== (getSetting('home_subtitle') || '') && <span className="text-[9px] font-black text-amber-500 uppercase animate-pulse">Unsaved Changes</span>}
+                            </div>
+                            <textarea
+                                value={liveSubtitle}
+                                onChange={(e) => setLiveSubtitle(e.target.value)}
+                                rows={3}
+                                placeholder="예: 우리 아이의 성장을 돕는 치료 프로그램을 확인하세요."
+                                className={cn(
+                                    "w-full p-6 bg-slate-50 dark:bg-slate-800/50 border rounded-[32px] outline-none font-bold text-lg text-slate-700 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all resize-none leading-relaxed",
+                                    liveSubtitle !== (getSetting('home_subtitle') || '') ? "border-amber-200 dark:border-amber-900/50 ring-8 ring-amber-500/5" : "border-slate-100 dark:border-slate-800 focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/5"
+                                )}
+                            />
+
+                            {/* 글자 크기 슬라이더 */}
+                            <div className="flex items-center gap-4 px-2">
+                                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">글자 크기</label>
+                                <input
+                                    type="range"
+                                    min="60"
+                                    max="150"
+                                    step="5"
+                                    value={liveSubtitleSize}
+                                    onChange={(e) => setLiveSubtitleSize(e.target.value)}
+                                    className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                />
+                                <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-1 rounded-md min-w-[44px] text-center">{liveSubtitleSize}%</span>
+                            </div>
+
+                            <div className="flex justify-end gap-2">
+                                {liveSubtitleSize !== (getSetting('home_subtitle_size') || '100') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSave('home_subtitle_size', liveSubtitleSize)}
+                                        disabled={saving}
+                                        className="px-6 py-3 rounded-2xl font-black text-xs bg-slate-700 dark:bg-slate-600 text-white shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                                    >
+                                        {saving ? <Loader2 className="animate-spin w-3 h-3" /> : null}
+                                        크기 저장
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleSave('home_subtitle', liveSubtitle)}
+                                    disabled={(liveSubtitle === (getSetting('home_subtitle') || '')) || saving}
+                                    className={cn(
+                                        "px-10 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-3 active:scale-95 shadow-xl",
+                                        liveSubtitle !== (getSetting('home_subtitle') || '')
+                                            ? "bg-slate-900 dark:bg-indigo-600 text-white shadow-indigo-500/20"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-300 shadow-none cursor-not-allowed"
+                                    )}
+                                >
+                                    {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                                    {saving ? '저장 중...' : '변경사항 저장'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </SectionCard>
 
@@ -1040,7 +1181,13 @@ function SaveableTextArea({ label, initialValue, onSave, saving, placeholder = '
     );
 }
 
-function HeroPreview({ title, subtitle, bgUrl }: { title: string; subtitle: string; bgUrl?: string }) {
+function HeroPreview({ title, subtitle, bgUrl, titleSizePercent = 100, subtitleSizePercent = 100 }: { title: string; subtitle: string; bgUrl?: string; titleSizePercent?: number; subtitleSizePercent?: number }) {
+    // ✨ [Font Size] 기본 cqw 단위에 퍼센트를 곱해 크기를 동적 조절
+    const baseTitleCqw = 4.2;
+    const baseSubtitleCqw = 1.4;
+    const scaledTitleCqw = (baseTitleCqw * titleSizePercent / 100).toFixed(2);
+    const scaledSubtitleCqw = (baseSubtitleCqw * subtitleSizePercent / 100).toFixed(2);
+
     return (
         <div
             className="relative w-full aspect-[21/9] rounded-2xl md:rounded-[30px] overflow-hidden shadow-2xl border border-white/10 bg-slate-900 group"
@@ -1068,9 +1215,9 @@ function HeroPreview({ title, subtitle, bgUrl }: { title: string; subtitle: stri
 
                     {/* Scaled Title - Matches clamp(2rem, 8vw, 5rem) proportions */}
                     <h1
-                        className="text-white font-black leading-[1.1] tracking-tighter whitespace-pre-line text-left"
+                        className="text-white font-black leading-[1.1] tracking-tighter whitespace-pre-line text-left transition-all duration-200"
                         style={{
-                            fontSize: '4.2cqw',
+                            fontSize: `${scaledTitleCqw}cqw`,
                             textShadow: '0 0.5cqw 2cqw rgba(0,0,0,0.4)',
                             wordBreak: 'keep-all',
                         }}
@@ -1080,9 +1227,9 @@ function HeroPreview({ title, subtitle, bgUrl }: { title: string; subtitle: stri
 
                     {/* Scaled Subtitle - Matches md:text-xl proportions */}
                     <p
-                        className="text-white/80 font-medium leading-relaxed whitespace-pre-line text-left opacity-90"
+                        className="text-white/80 font-medium leading-relaxed whitespace-pre-line text-left opacity-90 transition-all duration-200"
                         style={{
-                            fontSize: '1.4cqw',
+                            fontSize: `${scaledSubtitleCqw}cqw`,
                             textShadow: '0 0.2cqw 1cqw rgba(0,0,0,0.3)'
                         }}
                     >
