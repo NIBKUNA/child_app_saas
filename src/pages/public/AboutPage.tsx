@@ -74,6 +74,14 @@ export function AboutPage() {
             <Helmet>
                 <title>센터 소개 - {centerName}</title>
                 <meta name="description" content={introText.slice(0, 160)} />
+                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
+                <meta property="og:title" content={`센터 소개 - ${centerName}`} />
+                <meta property="og:description" content={introText.slice(0, 160)} />
+                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content={centerName} />
+                <meta property="og:locale" content="ko_KR" />
+                {mainImage && <meta property="og:image" content={mainImage} />}
             </Helmet>
 
             <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: branding?.brand_color || undefined }}>

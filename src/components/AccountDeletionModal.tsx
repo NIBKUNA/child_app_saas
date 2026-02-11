@@ -48,13 +48,13 @@ export function AccountDeletionModal({ isOpen, onClose, userId }: AccountDeletio
             // 자녀 데이터가 CASCADE로 인해 삭제되는 것을 방지합니다.
             // (RPC 실행 시 auth.users 삭제로 인해 Cascade 될 수 있으므로 먼저 연결 해제)
             await (supabase
-                .from('children') as any)
+                .from('children'))
                 .update({ parent_id: null })
                 .eq('parent_id', userId);
 
             // 🔐 Secure RPC Call (Auth User Withdrawal)
             // This triggers the cleaned-up withdrawal process for SaaS
-            const { error: rpcError } = await (supabase.rpc as any)('user_withdraw');
+            const { error: rpcError } = await supabase.rpc('user_withdraw');
 
             if (rpcError) throw rpcError;
 

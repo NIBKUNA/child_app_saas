@@ -60,7 +60,7 @@ export function NotificationCenter() {
     const markAsRead = async (id: string) => {
         try {
             await (supabase
-                .from('admin_notifications') as any)
+                .from('admin_notifications'))
                 .update({ is_read: true })
                 .eq('id', id);
 
@@ -79,7 +79,7 @@ export function NotificationCenter() {
             if (unreadIds.length === 0) return;
 
             await (supabase
-                .from('admin_notifications') as any)
+                .from('admin_notifications'))
                 .update({ is_read: true })
                 .in('id', unreadIds);
 

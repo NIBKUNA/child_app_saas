@@ -34,20 +34,7 @@ import { useCenter } from '@/contexts/CenterContext';
 
 interface ChildInfo extends TableRow<'children'> { }
 
-interface LogContent extends TableRow<'counseling_logs'> {
-    therapists: { name: string | null } | null;
-    development_assessments: TableRow<'development_assessments'> | TableRow<'development_assessments'>[] | null;
-}
 
-/* [Clean] Removed as logs are no longer displayed on Home
-interface FormattedLog extends Partial<TableRow<'counseling_logs'>> {
-    id: string;
-    content: string;
-    domain_scores: Record<string, number | null> | null;
-    development_assessments?: TableRow<'development_assessments'> | TableRow<'development_assessments'>[] | null;
-    therapists?: { name: string | null } | null;
-}
-*/
 
 
 interface CalendarEvent {
@@ -117,7 +104,7 @@ export function ParentHomePage() {
                 const { data: directChild } = await supabase
                     .from('children')
                     .select('*')
-                    .eq('parent_id', (parentRecord as any).id)
+                    .eq('parent_id', parentRecord.id)
                     .maybeSingle();
                 if (directChild) child = directChild;
             }
@@ -130,8 +117,11 @@ export function ParentHomePage() {
                     .eq('parent_id', user?.id)
                     .maybeSingle();
 
-                if ((relationship as any)?.children) {
-                    child = (relationship as any).children as unknown as ChildInfo;
+                if (relationship) {
+                    const childData = (relationship as { children: ChildInfo | null }).children;
+                    if (childData) {
+                        child = childData;
+                    }
                 }
             }
 
@@ -153,25 +143,28 @@ export function ParentHomePage() {
                     .order('start_time', { ascending: true });
 
                 if (schedules) {
-                    const events: CalendarEvent[] = (schedules as any[]).map(s => ({
-                        id: s.id,
-                        title: s.title || '수업',
-                        start: s.start_time,
-                        end: s.end_time,
-                        backgroundColor: 'transparent',
-                        borderColor: 'transparent',
-                        textColor: '#1e293b',
-                        extendedProps: {
-                            therapistColor: s.therapists?.color || '#3b82f6',
-                            therapistName: s.therapists?.name,
-                            status: s.status // ✨ Pass status
-                        }
-                    }));
+                    const events: CalendarEvent[] = schedules.map(s => {
+                        const therapist = s.therapists as unknown as { name: string | null; color: string | null } | null;
+                        return {
+                            id: s.id,
+                            title: s.title || '수업',
+                            start: s.start_time,
+                            end: s.end_time,
+                            backgroundColor: 'transparent',
+                            borderColor: 'transparent',
+                            textColor: '#1e293b',
+                            extendedProps: {
+                                therapistColor: therapist?.color || '#3b82f6',
+                                therapistName: therapist?.name,
+                                status: s.status
+                            }
+                        };
+                    });
                     setCalendarEvents(events);
 
                     // ✨ 다가오는 상담/평가 일정 확인
                     const today = new Date().toISOString();
-                    const nextConsult = (schedules as any[]).find(s =>
+                    const nextConsult = schedules.find(s =>
                         s.start_time > today &&
                         (s.title?.includes('상담') || s.title?.includes('평가'))
                     );
@@ -179,26 +172,7 @@ export function ParentHomePage() {
                 }
 
                 // 상담 일지 가져오기
-                const { data: logs } = await supabase
-                    .from('counseling_logs')
-                    .select(`
-                        id,
-                        created_at,
-                        content,
-                        activities,
-                        child_response,
-                        next_plan,
-                        parent_feedback,
-                        therapists:therapist_id (name),
-                        development_assessments (
-                            score_communication, score_social, score_cognitive, score_motor, score_adaptive,
-                            evaluation_content
-                        )
-                    `)
-                    .eq('child_id', child.id)
-                    .order('created_at', { ascending: false })
-                    .limit(5); // Show last 5 logs
-
+                // [Clean] Logs fetching removed — logs are viewed in Growth Logs page
                 // const castedLogs = logs as unknown as LogContent[];
                 /* [Clean] Removed as logs are no longer displayed on Home ... */
 
@@ -234,7 +208,7 @@ export function ParentHomePage() {
                 content: observationText.trim(),
                 observation_date: new Date().toISOString().split('T')[0]
             };
-            const { error } = await supabase.from('parent_observations').insert(payload as any);
+            const { error } = await supabase.from('parent_observations').insert(payload as never);
             if (error) throw error;
             alert('관찰 일기가 저장되었습니다! 🌟');
             setObservationText('');
@@ -292,7 +266,7 @@ export function ParentHomePage() {
                 initialData={{
                     childName: childInfo?.name || '',
                     childBirthDate: childInfo?.birth_date || '',
-                    childGender: childInfo?.gender as any || 'other',
+                    childGender: (childInfo?.gender as 'male' | 'female' | 'other') || 'other',
                     childId: childInfo?.id || '',
                     guardianName: user?.user_metadata?.name || '',
                     guardianPhone: user?.phone || ''

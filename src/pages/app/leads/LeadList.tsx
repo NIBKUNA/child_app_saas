@@ -34,7 +34,7 @@ export function LeadList() {
         setLoading(true);
         // ✨ 스키마 확인 결과 marketing_source가 아닌 'source' 컬럼을 사용합니다.
         let query = (supabase
-            .from('leads') as any)
+            .from('leads'))
             .select('*')
             .eq('center_id', centerId) // ✨ [SECURITY] Enforce Center ID Filter
             .order('created_at', { ascending: false });
@@ -51,7 +51,7 @@ export function LeadList() {
 
     const handleStatusChange = async (id: string, newStatus: Lead['status']) => {
         const { error } = await (supabase
-            .from('leads') as any)
+            .from('leads'))
             .update({ status: newStatus })
             .eq('id', id);
 
@@ -66,7 +66,7 @@ export function LeadList() {
         if (!window.confirm('정말 이 상담 문의를 삭제하시겠습니까?')) return;
 
         const { error } = await (supabase
-            .from('leads') as any)
+            .from('leads'))
             .delete()
             .eq('id', id);
 

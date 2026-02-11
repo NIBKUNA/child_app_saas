@@ -47,7 +47,7 @@ export function BlogEditModal({ isOpen, onClose, post, onUpdate }: BlogEditModal
     const handleSave = async () => {
         setSaving(true);
         try {
-            const { error } = await (supabase as any)
+            const { error } = await supabase
                 .from('blog_posts')
                 .update({
                     title,

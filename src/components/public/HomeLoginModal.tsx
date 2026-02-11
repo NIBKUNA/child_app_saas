@@ -61,7 +61,7 @@ export function HomeLoginModal({ isOpen, onClose, centerName = "아동발달센�
                 }
 
                 // Explicitly typing the response to avoid "never" issues if local types aren't perfect
-                let { data: profile } = await (supabase as any)
+                let { data: profile } = await supabase
                     .from('user_profiles')
                     .select('role, center_id')
                     .eq('id', user.id)

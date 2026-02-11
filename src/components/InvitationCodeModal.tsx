@@ -42,7 +42,7 @@ export function InvitationCodeModal({ isOpen, onClose, onSuccess, parentId }: In
             // The previous checkProfileExists was causing false positives due to RLS/Network latency.
 
             // ✨ [Secure Code Connection] RPC 함수 사용 (RLS 우회 및 트랜잭션 보장)
-            const { data: result, error: rpcError } = await (supabase as any).rpc('connect_child_with_code', {
+            const { data: result, error: rpcError } = await supabase.rpc('connect_child_with_code', {
                 p_parent_id: parentId,
                 p_code: code.toUpperCase().trim()
             });

@@ -51,7 +51,7 @@ export function CenterDetailPage() {
 
     const fetchCenterDetails = async () => {
         try {
-            const { data, error: centerError } = await (supabase as any)
+            const { data, error: centerError } = await supabase
                 .from('centers')
                 .select('*')
                 .eq('id', centerId as string)

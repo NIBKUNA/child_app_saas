@@ -257,9 +257,17 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* ✨ Sessions are usually linked from Schedule, access control handled by logic or same as Schedule */}
-            <Route path="sessions" element={<SessionList />} />
-            <Route path="sessions/:scheduleId/note" element={<SessionNote />} />
+            {/* ✨ Sessions - Access controlled per role */}
+            <Route path="sessions" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'therapist']}>
+                <SessionList />
+              </ProtectedRoute>
+            } />
+            <Route path="sessions/:scheduleId/note" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'therapist']}>
+                <SessionNote />
+              </ProtectedRoute>
+            } />
 
             <Route path="billing" element={
               <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager']}>

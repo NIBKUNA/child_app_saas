@@ -32,7 +32,7 @@ type ScheduleStatus = 'scheduled' | 'completed' | 'canceled' | 'cancelled' | 'ca
 interface TherapistOption {
     id: string;
     name: string;
-    color: string;
+    color: string | null;
 }
 
 // ✨ FullCalendar extendedProps 타입
@@ -167,8 +167,8 @@ export function Schedule() {
                 .map(s => s.id) || [];
 
             if (pastScheduledIds.length > 0) {
-                await (supabase
-                    .from('schedules') as any)
+                await supabase
+                    .from('schedules')
                     .update({ status: 'completed' })
                     .in('id', pastScheduledIds);
 
@@ -487,8 +487,8 @@ export function Schedule() {
                                             <div
                                                 className="w-3.5 h-3.5 rounded-md border-2 transition-all flex items-center justify-center shrink-0"
                                                 style={{
-                                                    borderColor: t.color,
-                                                    backgroundColor: isSelected ? t.color : 'transparent'
+                                                    borderColor: t.color || '#94a3b8',
+                                                    backgroundColor: isSelected ? (t.color || '#94a3b8') : 'transparent'
                                                 }}
                                             >
                                                 {isSelected && <Plus className="w-2 h-2 text-white rotate-45" />}

@@ -39,7 +39,7 @@ interface ChildFormData {
 interface ChildSubmissionData {
     name: string;
     registration_number: string | null;
-    birth_date: string | null;
+    birth_date: string;              // DB에서 NOT NULL
     gender: 'male' | 'female';   // DB Enum
     diagnosis: string | null;
     guardian_name: string | null;
@@ -121,7 +121,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
             const submissionData: ChildSubmissionData = {
                 name: formData.name,
                 registration_number: formData.registration_number || null,
-                birth_date: formData.birth_date || null,
+                birth_date: formData.birth_date || new Date().toISOString().split('T')[0], // NOT NULL 보장
                 gender: formData.gender === '남' ? 'male' : 'female',
                 diagnosis: formData.diagnosis || null,
                 guardian_name: formData.guardian_name || null,
@@ -131,14 +131,12 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
 
             let result;
             if (childId) {
-                // @ts-expect-error - Supabase generated types need regeneration
                 result = await supabase.from('children').update(submissionData).eq('id', childId);
                 if (result.error) throw result.error;
                 alert('성공적으로 저장되었습니다.');
                 onSuccess();
             } else {
                 result = await supabase.from('children')
-                    // @ts-expect-error - Supabase generated types need regeneration
                     .insert([{ ...submissionData }])
                     .select('invitation_code, name')
                     .single();
@@ -146,7 +144,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                 if (result.error) throw result.error;
 
                 setNewChildName(submissionData.name);
-                setNewChildCode((result.data as { invitation_code: string }).invitation_code);
+                setNewChildCode(result.data?.invitation_code || '');
                 setShowCodeAlert(true);
             }
         } catch (error) {

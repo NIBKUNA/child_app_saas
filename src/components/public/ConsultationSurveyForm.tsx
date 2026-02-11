@@ -181,7 +181,7 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                 utmContent ? `Content: ${utmContent}` : null,
             ].filter(Boolean).join(' / ');
 
-            const { error } = await (supabase.from('consultations') as any).insert([{
+            const { error } = await (supabase.from('consultations')).insert([{
                 center_id: centerId,
                 child_name: formData.child_name,
                 child_gender: mappedGender,

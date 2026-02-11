@@ -25,7 +25,7 @@ export function ReviewModal({ isOpen, onClose, onSuccess, userId }: ReviewModalP
 
         setSubmitting(true);
         try {
-            const { error } = await (supabase.from('reviews') as any).insert({
+            const { error } = await (supabase.from('reviews')).insert({
                 center_id: center.id,
                 parent_id: userId,
                 rating,

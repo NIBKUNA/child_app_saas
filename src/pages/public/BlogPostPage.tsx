@@ -26,17 +26,17 @@ import remarkGfm from 'remark-gfm';
 
 interface BlogPost {
     id: string;
-    title: string;
-    slug: string;
-    content: string;
-    excerpt: string;
-    cover_image_url: string;
-    published_at: string;
-    view_count: number;
-    seo_title: string;
-    seo_description: string;
+    title: string | null;
+    slug: string | null;
+    content: string | null;
+    excerpt: string | null;
+    cover_image_url: string | null;
+    published_at: string | null;
+    view_count: number | null;
+    seo_title: string | null;
+    seo_description: string | null;
     keywords: string[] | string | null;
-    center_id: string; // ✨ Add center_id
+    center_id: string | null;
 }
 
 export function BlogPostPage() {
@@ -65,7 +65,7 @@ export function BlogPostPage() {
         if (!center || !slug) return;
 
         setLoading(true);
-        const { data: postData, error: postError } = await (supabase as any)
+        const { data: postData, error: postError } = await supabase
             .from('blog_posts')
             .select('*')
             .eq('slug', slug)
@@ -85,7 +85,7 @@ export function BlogPostPage() {
             setCenterInfo(center); // Use context data directly
 
             // Increment view count in background
-            await (supabase as any).from('blog_posts').update({ view_count: (postData.view_count || 0) + 1 }).eq('id', postData.id);
+            await supabase.from('blog_posts').update({ view_count: (postData.view_count || 0) + 1 }).eq('id', postData.id);
         } else {
             navigate('/blog', { replace: true });
         }
@@ -207,14 +207,14 @@ export function BlogPostPage() {
             <ConsultationSurveyModal
                 isOpen={isConsultModalOpen}
                 onClose={() => setIsConsultModalOpen(false)}
-                centerId={post.center_id} // ✨ Pass centerId from post
+                centerId={post.center_id || ''}
             />
 
             {post && (
                 <BlogEditModal
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
-                    post={post}
+                    post={post as { id: string; title: string; content: string; cover_image_url: string | null; excerpt: string | null }}
                     onUpdate={fetchPost}
                 />
             )}
@@ -295,7 +295,7 @@ export function BlogPostPage() {
                             isDark ? "text-slate-500 border-slate-800" : "text-slate-400 border-slate-100"
                         )}>
                             <span className="flex items-center gap-1.5 uppercase tracking-widest text-xs">
-                                {new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                {post.published_at ? new Date(post.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
                             </span>
                         </div>
 
@@ -346,7 +346,7 @@ export function BlogPostPage() {
                                 img: ({ ...props }) => <img {...props} className="rounded-xl shadow-lg my-12 w-full h-auto" loading="lazy" />,
                             }}
                         >
-                            {post.content}
+                            {post.content || ''}
                         </ReactMarkdown>
                     </div>
 
@@ -356,7 +356,7 @@ export function BlogPostPage() {
                             onClick={() => {
                                 const url = window.location.href;
                                 if (navigator.share) {
-                                    navigator.share({ title: post.title, url }).catch(console.error);
+                                    navigator.share({ title: post.title || '', url }).catch(console.error);
                                 } else {
                                     navigator.clipboard.writeText(url).then(() => alert('링크가 복사되었습니다!'));
                                 }

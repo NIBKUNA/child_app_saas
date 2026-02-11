@@ -284,7 +284,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 
                 // 2. DB 읽음 처리 (백그라운드)
                 if (user) {
-                    (supabase as any)
+                    supabase
                         .from('admin_notifications')
                         .update({ is_read: true })
                         .eq('user_id', user.id)
@@ -335,7 +335,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                 if (user) {
                     const lastScheduleCheck = localStorage.getItem(`last_schedule_check_${cid}`);
 
-                    let q = (supabase as any)
+                    let q = supabase
                         .from('admin_notifications')
                         .select('id', { count: 'exact', head: true })
                         .eq('user_id', user.id)

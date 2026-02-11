@@ -82,7 +82,7 @@ export function ConsultationList() {
         if (!user) return; // ✨ Check user
         setLoading(true);
         try {
-            const { data: profile } = await (supabase.from('user_profiles') as any).select('role').eq('id', user.id).maybeSingle();
+            const { data: profile } = await (supabase.from('user_profiles')).select('role').eq('id', user.id).maybeSingle();
             const role = (profile as any)?.role || 'therapist';
             setUserRole(role);
 
@@ -97,7 +97,7 @@ export function ConsultationList() {
                 // ✨ [Improved] Search by profile_id (Canonical Link)
                 // 이메일 변경 시에도 연결이 유지되도록 profile_id를 우선 사용합니다.
                 const { data: therapist } = await (supabase
-                    .from('therapists') as any)
+                    .from('therapists'))
                     .select('id')
                     .eq('profile_id', user.id)
                     .maybeSingle();
@@ -107,7 +107,7 @@ export function ConsultationList() {
                 // 🛡️ Fallback: 연결이 끊긴 경우 이메일로 재시도 (Legacy/Broken Link Support)
                 if (!currentTherapistId && user.email) {
                     const { data: legacyTherapist } = await (supabase
-                        .from('therapists') as any)
+                        .from('therapists'))
                         .select('id')
                         .eq('email', user.email)
                         .maybeSingle();
@@ -125,7 +125,7 @@ export function ConsultationList() {
             // 1. 이미 일지가 작성된 '스케줄 ID' 수집 (교차 검증)
             // counseling_logs 테이블에서 schedule_id를 가져와야 정확히 매칭됨
             const { data: writtenLogs } = await (supabase
-                .from('counseling_logs') as any)
+                .from('counseling_logs'))
                 .select('schedule_id')
                 .eq('center_id', centerId) // 🔒 Security Filter
                 .not('schedule_id', 'is', null);
@@ -142,7 +142,7 @@ export function ConsultationList() {
             const minDate = limitDate.toISOString().split('T')[0];
 
             let sessionQuery = (supabase
-                .from('schedules') as any)
+                .from('schedules'))
                 .select(`id, child_id, status, therapist_id, start_time, service_type, children!inner (id, name, center_id)`)
                 .eq('children.center_id', centerId)
                 .gte('start_time', minDate) // 🛡️ Performance Filter
@@ -161,7 +161,7 @@ export function ConsultationList() {
             // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)
             // ✨ [권한 분리] 부모님이 직접 작성한 '자가진단 기록'은 치료사 리스트에서 제외
             let assessQuery = (supabase
-                .from('development_assessments') as any)
+                .from('development_assessments'))
                 .select('*, children!inner(id, name, center_id)')
                 .eq('children.center_id', centerId)
                 .not('summary', 'eq', '부모님 자가진단 기록') // ✨ [User Request] 부모 자가진단 제외
@@ -187,7 +187,7 @@ export function ConsultationList() {
         try {
             // Find if there's an existing log for this session
             const { data: log } = await (supabase
-                .from('counseling_logs') as any)
+                .from('counseling_logs'))
                 .select('id')
                 .eq('schedule_id', session.id)
                 .maybeSingle();
@@ -231,14 +231,14 @@ export function ConsultationList() {
 
         try {
             // 1. 평가 삭제
-            const { error: assessError } = await (supabase.from('development_assessments') as any).delete().eq('id', assess.id);
+            const { error: assessError } = await (supabase.from('development_assessments')).delete().eq('id', assess.id);
             if (assessError) throw assessError;
 
             // 2. 연결된 일지가 '발달 평가용 자동 생성 일지'라면 일지도 함께 삭제하여 깨끗하게 정리
             if (assess.log_id) {
-                const { data: log } = await (supabase.from('counseling_logs') as any).select('content').eq('id', assess.log_id).maybeSingle();
+                const { data: log } = await (supabase.from('counseling_logs')).select('content').eq('id', assess.log_id).maybeSingle();
                 if ((log as any)?.content?.includes('발달 평가 작성을 위해 자동 생성')) {
-                    await (supabase.from('counseling_logs') as any).delete().eq('id', assess.log_id);
+                    await (supabase.from('counseling_logs')).delete().eq('id', assess.log_id);
                 }
             }
 

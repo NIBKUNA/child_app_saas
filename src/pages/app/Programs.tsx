@@ -49,7 +49,7 @@ export default function Programs() {
         if (!center?.id) return;
         setLoading(true);
         const { data, error } = await (supabase
-            .from('programs') as any)
+            .from('programs'))
             .select('*')
             .eq('center_id', center.id) // ✨ Filter by Center ID
             .order('category', { ascending: true });
@@ -62,9 +62,9 @@ export default function Programs() {
         if (!center?.id) return;
         try {
             if (editingId) {
-                await (supabase.from('programs') as any).update(formData).eq('id', editingId);
+                await (supabase.from('programs')).update(formData).eq('id', editingId);
             } else {
-                await (supabase.from('programs') as any).insert([{ ...formData, center_id: center.id }]); // ✨ Insert with Center ID
+                await (supabase.from('programs')).insert([{ ...formData, center_id: center.id }]); // ✨ Insert with Center ID
             }
             setIsModalOpen(false);
             setEditingId(null);
@@ -88,7 +88,7 @@ export default function Programs() {
 
     const handleDelete = async (id: string) => {
         if (!confirm('정말 삭제하시겠습니까?')) return;
-        await (supabase.from('programs') as any).delete().eq('id', id);
+        await (supabase.from('programs')).delete().eq('id', id);
         fetchPrograms();
     };
 

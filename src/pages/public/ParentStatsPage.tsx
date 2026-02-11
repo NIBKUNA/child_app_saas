@@ -45,16 +45,17 @@ export function ParentStatsPage() {
             const user = authData?.user;
             if (!user) return setError("로그인이 필요합니다.");
 
-            // ✨ profiles 테이블에서 역할 확인 (parents 테이블과 별개)
+            // ✨ user_profiles 테이블에서 역할 확인
             const { data: profile } = await supabase
-                .from('profiles')
+                .from('user_profiles')
                 .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
 
-            setRole((profile as any)?.role || 'parent');
+            const userRole = profile?.role || 'parent';
+            setRole(userRole);
 
-            if ((profile as any)?.role === 'admin' || (profile as any)?.role === 'super_admin' || (profile as any)?.role === 'manager') {
+            if (userRole === 'admin' || userRole === 'super_admin' || userRole === 'manager') {
 
                 if (!center?.id) { setLoading(false); return; }
                 const { data: childList } = await supabase.from('children').select('id, name').eq('center_id', center.id);
@@ -73,17 +74,18 @@ export function ParentStatsPage() {
                 let childId = null;
                 const { data: parentRecord } = await supabase.from('parents').select('id').eq('profile_id', user.id).maybeSingle();
                 if (parentRecord) {
-                    const { data: directChild } = await supabase.from('children').select('id, name').eq('parent_id', (parentRecord as any).id).maybeSingle();
+                    const { data: directChild } = await supabase.from('children').select('id, name').eq('parent_id', parentRecord.id).maybeSingle();
                     if (directChild) {
-                        childId = (directChild as any).id;
-                        setSelectedChildName((directChild as any).name);
+                        childId = directChild.id;
+                        setSelectedChildName(directChild.name);
                     }
                 }
                 if (!childId) {
                     const { data: rel } = await supabase.from('family_relationships').select('child_id, children(name)').eq('parent_id', user.id).maybeSingle();
                     if (rel) {
-                        childId = (rel as any).child_id;
-                        setSelectedChildName((rel as any).children?.name);
+                        childId = rel.child_id;
+                        const childData = rel.children as unknown as { name: string } | null;
+                        setSelectedChildName(childData?.name || '');
                     }
                 }
                 if (childId) {
@@ -121,7 +123,7 @@ export function ParentStatsPage() {
             .eq('is_primary', true)
             .maybeSingle();
 
-        if (ctInfo) setTherapistId((ctInfo as any).therapist_id);
+        if (ctInfo) setTherapistId(ctInfo.therapist_id);
 
 
         // ✨ 최신 리포트의 체크 항목을 부모 체크 상태로 초기화 (로드 시점)
@@ -159,13 +161,13 @@ export function ParentStatsPage() {
                 score_cognitive: (parentChecks.cognitive?.length || 0),
                 score_motor: (parentChecks.motor?.length || 0),
                 score_adaptive: (parentChecks.adaptive?.length || 0),
-                assessment_details: parentChecks as any, // Json support
+                assessment_details: parentChecks as unknown as Database['public']['Tables']['development_assessments']['Insert']['assessment_details'], // Json type
                 summary: '부모님 자가진단 기록',
                 therapist_notes: '부모님이 앱에서 직접 체크하여 저장한 발달 데이터입니다. 상담 시 참고하세요.'
             };
 
 
-            const { error } = await supabase.from('development_assessments').insert(payload as any);
+            const { error } = await supabase.from('development_assessments').insert(payload);
 
             if (error) throw error;
 

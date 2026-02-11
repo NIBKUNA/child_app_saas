@@ -62,7 +62,7 @@ interface DashboardPayment {
 
 interface SiteVisit {
     source_category: string | null;
-    visited_at: string;
+    visited_at: string | null;
     referrer_url: string | null;
     page_url: string | null;
 }
@@ -320,15 +320,15 @@ export function Dashboard() {
             }
 
             // ✨ [SECURITY] Enforce Center ID Filter using Inner Join on Children
-            const { data: allSchedules } = await (supabase
-                .from('schedules') as any)
+            const { data: allSchedules } = await supabase
+                .from('schedules')
                 .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday)`)
                 .eq('children.center_id', center.id)
                 .order('start_time', { ascending: true });
 
             // ✨ [SECURITY] Fetch Children only for this center
-            const { data: existingChildren } = await (supabase
-                .from('children') as any)
+            const { data: existingChildren } = await supabase
+                .from('children')
                 .select('id, name, gender, birth_date, created_at')
                 .eq('center_id', center.id); // 🔒 Security Filter
 
@@ -342,7 +342,7 @@ export function Dashboard() {
                 }
             });
 
-            const { data: allPayments } = await (supabase as any)
+            const { data: allPayments } = await supabase
                 .from('payments')
                 .select('amount, child_id, paid_at')
                 .in('child_id', [...validChildIds]); // 🔒 Security Filter
@@ -428,7 +428,7 @@ export function Dashboard() {
 
             // ✨ [TRAFFIC ANALYSIS] Fetch site_visits for overall visitor traffic source
             const lastDayOfMonth = new Date(selYear, selMonth, 0).getDate(); // Get last day of selected month
-            const { data: siteVisits } = await (supabase as any)
+            const { data: siteVisits } = await supabase
                 .from('site_visits')
                 .select('source_category, visited_at, referrer_url, page_url') // ✨ Added page_url
                 .eq('center_id', center.id) // 🔒 Security Filter
@@ -547,7 +547,7 @@ export function Dashboard() {
             if (marketingArr.length > 0) setBestChannel(marketingArr[0]);
 
             // ✨ [LEADS CONVERSION ANALYSIS] Fetch LEADS data (from 'consultations' table)
-            const { data: allLeads } = await (supabase as any)
+            const { data: allLeads } = await supabase
                 .from('consultations')
                 .select('id, marketing_source, inflow_source, status, created_at, child_id')
                 .eq('center_id', center.id)

@@ -136,7 +136,7 @@ function ReviewForm({ centerId, onSuccess }: { centerId: string; onSuccess: () =
 
         setSubmitting(true);
         try {
-            const { error: insertError } = await (supabase.from('reviews') as any).insert({
+            const { error: insertError } = await (supabase.from('reviews')).insert({
                 center_id: centerId,
                 author_name: authorName,
                 rating_facility: ratings.facility,

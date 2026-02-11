@@ -95,7 +95,7 @@ export function useTrafficSource() {
                 if (!center?.id) return; // ✨ Wait for center context
 
                 try {
-                    const { error } = await (supabase as any).from('site_visits').insert({
+                    const { error } = await supabase.from('site_visits').insert({
                         center_id: center.id,
                         source_category: category,
                         referrer_url: referrer || null,

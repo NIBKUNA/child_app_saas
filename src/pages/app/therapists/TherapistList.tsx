@@ -259,8 +259,8 @@ export function TherapistList() {
             if (!isRetired) {
                 // [퇴사 처리: Clean Account Removal]
                 // 1. Therapists 마스터 상태를 'retired'로 변경 (일지 보존을 위해 레코드는 유지)
-                const { error: therapistError } = await (supabase
-                    .from('therapists') as any)
+                const { error: therapistError } = await supabase
+                    .from('therapists')
                     .update({ system_status: 'retired' })
                     .eq('id', staff.id);
 
@@ -269,7 +269,6 @@ export function TherapistList() {
                 // 2. Auth 계정 및 프로필 삭제 (보안 및 DB 정리)
                 if (staff.userId) {
                     // ※ 중요: DB에서 therapists.profile_id 가 'ON DELETE SET NULL'로 설정되어 있어야 함
-                    // @ts-expect-error - RPC args mismatch
                     const { error } = await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
                     if (error) console.warn('Account removal note:', error.message);
                 }
@@ -277,8 +276,8 @@ export function TherapistList() {
                 alert('퇴사 처리가 완료되었습니다. 직원의 로그인 계정은 삭제되었으며 정보는 보관함으로 이동했습니다.');
             } else {
                 // [복귀 처리]
-                const { error: therapistError } = await (supabase
-                    .from('therapists') as any)
+                const { error: therapistError } = await supabase
+                    .from('therapists')
                     .update({ system_status: 'active' })
                     .eq('id', staff.id);
 
@@ -327,7 +326,6 @@ export function TherapistList() {
 
             // 2. 계정 삭제 (있는 경우)
             if (staff.userId) {
-                // @ts-expect-error - RPC args mismatch
                 await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
             }
 

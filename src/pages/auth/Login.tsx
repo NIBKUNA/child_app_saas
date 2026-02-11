@@ -136,8 +136,8 @@ export function Login() {
                 // 🛡️ Super Admin Whitelist check 
                 const isSuper = isSuperAdmin(user.email);
 
-                let { data: profile, error: profileError } = await (supabase
-                    .from('user_profiles') as any)
+                let { data: profile, error: profileError } = await supabase
+                    .from('user_profiles')
                     .select('role, center_id')
                     .eq('id', user.id)
                     .maybeSingle();
@@ -148,14 +148,14 @@ export function Login() {
                         profile = { role: 'super_admin', center_id: null };
                     } else {
                         // Therapist Auto-Repair
-                        const { data: therapist } = await (supabase
-                            .from('therapists') as any)
+                        const { data: therapist } = await supabase
+                            .from('therapists')
                             .select('system_role')
                             .ilike('email', user.email)
                             .maybeSingle();
 
                         if (therapist) {
-                            profile = { role: therapist.system_role || 'therapist', center_id: null };
+                            profile = { role: (therapist.system_role || 'therapist') as typeof profile extends null ? never : NonNullable<typeof profile>['role'], center_id: null };
                         } else {
                             console.error('프로필 정보를 가져올 수 없습니다:', profileError);
                             setError('회원 프로필 정보를 찾을 수 없습니다. (계정 오류)');
@@ -165,6 +165,11 @@ export function Login() {
                 } else if (isSuper) {
                     // 👑 Force clear center_id for existing Super Admin profiles to prevent captures
                     profile = { ...profile, center_id: null };
+                }
+
+                if (!profile) {
+                    setError('회원 프로필 정보를 찾을 수 없습니다.');
+                    return;
                 }
 
                 // 3. ✨ [Sovereign SaaS] Center Routing Logic
@@ -178,8 +183,8 @@ export function Login() {
                         localStorage.removeItem('zarada_center_slug');
                     }
                 } else if (profile.center_id) {
-                    const { data: centerData } = await (supabase
-                        .from('centers') as any)
+                    const { data: centerData } = await supabase
+                        .from('centers')
                         .select('slug')
                         .eq('id', profile.center_id)
                         .maybeSingle();

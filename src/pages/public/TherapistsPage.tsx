@@ -62,6 +62,14 @@ export function TherapistsPage() {
             <Helmet>
                 <title>치료사 소개 - {centerName}</title>
                 <meta name="description" content={`${centerName}의 전문 치료진을 소개합니다. ${therapists.map(t => t.name).slice(0, 3).join(', ')} 선생님 등 분야별 최고의 전문가들이 우리 아이와 함께합니다.`} />
+                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
+                <meta property="og:title" content={`치료사 소개 - ${centerName}`} />
+                <meta property="og:description" content={`${centerName}의 전문 치료진을 소개합니다. 분야별 최고의 전문가들이 함께합니다.`} />
+                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content={centerName} />
+                <meta property="og:locale" content="ko_KR" />
+                {branding?.logo_url && <meta property="og:image" content={branding.logo_url} />}
             </Helmet>
 
             {/* ✨ Premium Hero Section */}

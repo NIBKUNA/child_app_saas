@@ -20,9 +20,9 @@ interface Log {
 
 interface Observation {
     id: string;
-    created_at: string;
+    created_at: string | null;
     content: string;
-    child_id?: string;
+    child_id?: string | null;
 }
 
 export function ParentLogsPage() {
@@ -44,35 +44,35 @@ export function ParentLogsPage() {
             const user = authData?.user;
             if (!user) return;
 
-            const { data: profile } = await (supabase
-                .from('user_profiles') as any)
+            const { data: profile } = await supabase
+                .from('user_profiles')
                 .select('role')
                 .eq('id', user.id)
                 .maybeSingle();
 
             let targetChildId: string | null = null;
-            const { data: parentRecord } = await (supabase
-                .from('parents') as any)
+            const { data: parentRecord } = await supabase
+                .from('parents')
                 .select('id')
                 .eq('profile_id', user.id)
                 .maybeSingle();
 
             if (parentRecord) {
-                const { data: directChild } = await (supabase
-                    .from('children') as any)
+                const { data: directChild } = await supabase
+                    .from('children')
                     .select('id')
-                    .eq('parent_id', (parentRecord as any).id)
+                    .eq('parent_id', parentRecord.id)
                     .maybeSingle();
-                targetChildId = (directChild as any)?.id;
+                targetChildId = directChild?.id || null;
             }
 
             if (!targetChildId) {
-                const { data: rel } = await (supabase
-                    .from('family_relationships') as any)
+                const { data: rel } = await supabase
+                    .from('family_relationships')
                     .select('child_id')
                     .eq('parent_id', user.id)
                     .maybeSingle();
-                targetChildId = (rel as any)?.child_id;
+                targetChildId = rel?.child_id || null;
             }
 
             if (!targetChildId) {
@@ -80,8 +80,8 @@ export function ParentLogsPage() {
                 return;
             }
 
-            let query = (supabase
-                .from('development_assessments') as any)
+            let query = supabase
+                .from('development_assessments')
                 .select(`
                     *,
                     therapists:therapist_id (name, id),
@@ -89,10 +89,11 @@ export function ParentLogsPage() {
                 `)
             query = query
                 .eq('child_id', targetChildId)
-                .not('summary', 'eq', '부모님 자가진단 기록') // ✨ [User Request] 치료사가 작성한 것만 노출
+                .not('summary', 'eq', '부모님 자가진단 기록')
                 .order('evaluation_date', { ascending: false });
 
-            if ((profile as any)?.role === 'admin' || (profile as any)?.role === 'super_admin') {
+            const userRole = profile?.role;
+            if (userRole === 'admin' || userRole === 'super_admin') {
                 if (center?.id) {
                     query = query.eq('children.center_id', center.id);
                 }
@@ -101,17 +102,19 @@ export function ParentLogsPage() {
             const { data, error: fetchError } = await query;
             if (fetchError) throw fetchError;
 
-            const formattedLogs: Log[] = (data as any[])?.map(assessment => ({
+            const formattedLogs: Log[] = (data || []).map((assessment: Record<string, unknown>) => ({
                 ...assessment,
-                session_date: assessment.evaluation_date,
-                content: assessment.summary,
+                id: assessment.id as string,
+                session_date: assessment.evaluation_date as string,
+                content: assessment.summary as string,
+                therapists: assessment.therapists as { name: string } | undefined,
             }));
 
             setLogs(formattedLogs || []);
 
             if (targetChildId) {
-                const { data: observations } = await (supabase
-                    .from('parent_observations') as any)
+                const { data: observations } = await supabase
+                    .from('parent_observations')
                     .select('*')
                     .eq('child_id', targetChildId)
                     .order('created_at', { ascending: false })
@@ -218,7 +221,7 @@ export function ParentLogsPage() {
                             {parentObservations.map((obs) => (
                                 <div key={obs.id} className="bg-amber-50/30 p-6 rounded-[32px] border border-amber-100/30">
                                     <p className="text-[10px] font-black text-amber-400 mb-3 tracking-widest uppercase">
-                                        {new Date(obs.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        {new Date(obs.created_at || '').toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </p>
                                     <p className="text-sm font-bold text-slate-600 leading-relaxed">"{obs.content}"</p>
                                 </div>

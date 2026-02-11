@@ -36,20 +36,23 @@ export default function SessionList() {
     const fetchSessions = async () => {
         setLoading(true);
 
-        // 1. Auto-Complete Logic
+        // 1. Auto-Complete Logic (Center-Scoped)
         const now = new Date().toISOString();
-        const { data: pastSessions } = await supabase
-            .from('schedules')
-            .select('id')
-            .eq('status', 'scheduled')
-            .lt('end_time', now);
+        if (centerId) {
+            const { data: pastSessions } = await supabase
+                .from('schedules')
+                .select('id')
+                .eq('center_id', centerId)
+                .eq('status', 'scheduled')
+                .lt('end_time', now);
 
-        if (pastSessions && pastSessions.length > 0) {
-            const idsToUpdate = (pastSessions as any[]).map(s => s.id);
-            await (supabase
-                .from('schedules') as any)
-                .update({ status: 'completed' })
-                .in('id', idsToUpdate);
+            if (pastSessions && pastSessions.length > 0) {
+                const idsToUpdate = pastSessions.map(s => s.id);
+                await supabase
+                    .from('schedules')
+                    .update({ status: 'completed' } as never)
+                    .in('id', idsToUpdate);
+            }
         }
 
         // 2. Fetch all sessions (Filtered by Center)
@@ -71,7 +74,7 @@ export default function SessionList() {
         if (error) {
             console.error('Error fetching sessions:', error);
         } else {
-            setSessions((data as any) || []);
+            setSessions((data as Schedule[]) || []);
         }
         setLoading(false);
     };
@@ -88,7 +91,8 @@ export default function SessionList() {
         const { error } = await supabase
             .from('schedules')
             .delete()
-            .eq('id', scheduleId);
+            .eq('id', scheduleId)
+            .eq('center_id', centerId!);
 
         if (error) {
             alert('삭제 중 오류가 발생했습니다: ' + error.message);

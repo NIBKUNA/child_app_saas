@@ -70,8 +70,8 @@ export function SettingsPage() {
         try {
             const finalValue = (value === "" || value === null) ? null : value;
             // ✨ [Persistence Fix] Enforce center_id to prevent orphan data
-            const { error } = await (supabase
-                .from('admin_settings') as any)
+            const { error } = await supabase
+                .from('admin_settings')
                 .upsert({
                     center_id: centerId,
                     key: key,
@@ -99,7 +99,7 @@ export function SettingsPage() {
         setSaving(true);
         try {
             const jsonValue = JSON.stringify(newList);
-            const { error } = await (supabase as any).from('admin_settings').upsert({
+            const { error } = await supabase.from('admin_settings').upsert({
                 center_id: centerId,
                 key: 'programs_list',
                 value: jsonValue,
@@ -619,9 +619,9 @@ function CenterInfoSection() {
 
             // 1. Update 'centers' table (Main Schema)
             // Use type assertion to handle dynamic key update while maintaining safety
-            const { error: centersError } = await (supabase as any)
+            const { error: centersError } = await supabase
                 .from('centers')
-                .update({ [key]: finalValue })
+                .update({ [key]: finalValue } as never)
                 .eq('id', info.id);
 
             if (!centersError) {
@@ -649,7 +649,7 @@ function CenterInfoSection() {
             // Note: the original mapping had some discrepancies, I'll align them better based on available AdminSettingKey
             const settingKey = settingKeyMap[key];
             if (settingKey) {
-                const { error: settingsError } = await (supabase.from('admin_settings') as any).upsert({
+                const { error: settingsError } = await supabase.from('admin_settings').upsert({
                     center_id: info.id,
                     key: settingKey,
                     value: finalValue,
@@ -687,15 +687,15 @@ function CenterInfoSection() {
                     <SaveableInput label="대표 연락처" initialValue={info.phone || ''} onSave={(v) => handleInfoSave('phone', v)} saving={saving} placeholder="02-123-4567" />
                     <SaveableInput label="도로명 주소" initialValue={info.address || ''} onSave={(v) => handleInfoSave('address', v)} saving={saving} placeholder="주소를 입력하세요." />
                     <SaveableInput label="공식 이메일" initialValue={info.email || ''} onSave={(v) => handleInfoSave('email', v)} saving={saving} placeholder="admin@center.com" />
-                    <SaveableInput label="지도 공유 URL" initialValue={(info as any).naver_map_url || ''} onSave={(v) => handleInfoSave('naver_map_url', v)} saving={saving} placeholder="https://naver.me/..." />
+                    <SaveableInput label="지도 공유 URL" initialValue={(info as unknown as Record<string, string>).naver_map_url || ''} onSave={(v) => handleInfoSave('naver_map_url', v)} saving={saving} placeholder="https://naver.me/..." />
                 </div>
             </SectionCard>
 
             <SectionCard title="운영 시간 상세 설정" icon={<Clock className="text-emerald-500" />}>
                 <div className="space-y-6 text-left">
-                    <SaveableInput label="평일 운영 시간" initialValue={(info as any).weekday_hours || ''} placeholder="예: 09:00 - 19:00" onSave={(v) => handleInfoSave('weekday_hours', v)} saving={saving} />
-                    <SaveableInput label="토요일 운영 시간" initialValue={(info as any).saturday_hours || ''} placeholder="예: 09:00 - 16:00" onSave={(v) => handleInfoSave('saturday_hours', v)} saving={saving} />
-                    <SaveableInput label="일요일/공휴일 휴무 문구" initialValue={(info as any).holiday_text || ''} placeholder="예: 매주 일요일 정기 휴무" onSave={(v) => handleInfoSave('holiday_text', v)} saving={saving} />
+                    <SaveableInput label="평일 운영 시간" initialValue={(info as unknown as Record<string, string>).weekday_hours || ''} placeholder="예: 09:00 - 19:00" onSave={(v) => handleInfoSave('weekday_hours', v)} saving={saving} />
+                    <SaveableInput label="토요일 운영 시간" initialValue={(info as unknown as Record<string, string>).saturday_hours || ''} placeholder="예: 09:00 - 16:00" onSave={(v) => handleInfoSave('saturday_hours', v)} saving={saving} />
+                    <SaveableInput label="일요일/공휴일 휴무 문구" initialValue={(info as unknown as Record<string, string>).holiday_text || ''} placeholder="예: 매주 일요일 정기 휴무" onSave={(v) => handleInfoSave('holiday_text', v)} saving={saving} />
                 </div>
             </SectionCard>
 
@@ -726,7 +726,7 @@ function SnsLinksSection() {
         setSaving(true);
         try {
             // ✨ [Persistence Fix] Enforce center_id
-            const { error } = await (supabase.from('admin_settings') as any).upsert(
+            const { error } = await supabase.from('admin_settings').upsert(
                 {
                     center_id: centerId,
                     key,
@@ -1191,9 +1191,9 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
             if (editingProfile) {
                 // Update
-                const { error } = await (supabase as any)
+                const { error } = await supabase
                     .from('therapists')
-                    .update(payload)
+                    .update(payload as never)
                     .eq('id', editingProfile.id);
                 if (error) throw error;
             } else {
@@ -1203,9 +1203,9 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 const randomId = Math.random().toString(36).substring(2, 10);
                 payload.email = `display+${randomId}@zarada.local`;
 
-                const { error } = await (supabase as any)
+                const { error } = await supabase
                     .from('therapists')
-                    .insert(payload);
+                    .insert(payload as never);
 
                 if (error) throw error;
             }
@@ -1226,7 +1226,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             : '정말 삭제하시겠습니까?')) return;
 
         try {
-            const { error } = await (supabase.from('therapists') as any).delete().eq('id', id);
+            const { error } = await supabase.from('therapists').delete().eq('id', id);
             if (error) throw error;
             fetchProfiles();
         } catch (error) {
@@ -1237,7 +1237,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
     const toggleVisibility = async (profile: any) => {
         const newValue = !profile.website_visible;
         try {
-            await (supabase.from('therapists') as any).update({ website_visible: newValue }).eq('id', profile.id);
+            await supabase.from('therapists').update({ website_visible: newValue }).eq('id', profile.id);
             // Optimistic update
             setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, website_visible: newValue } : p));
         } catch (e) {
@@ -1261,9 +1261,9 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 system_role: p.system_role
             }));
 
-            const { error } = await (supabase
-                .from('therapists') as any)
-                .upsert(updates, { onConflict: 'id' });
+            const { error } = await supabase
+                .from('therapists')
+                .upsert(updates as never, { onConflict: 'id' });
 
             if (error) throw error;
         } catch (e) {

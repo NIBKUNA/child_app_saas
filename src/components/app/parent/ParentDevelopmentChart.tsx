@@ -63,15 +63,25 @@ const DOMAINS_META = [
 
 interface Assessment {
     evaluation_date: string;
-    score_communication: number;
-    score_social: number;
-    score_cognitive: number;
-    score_motor: number;
-    score_adaptive: number;
-    summary?: string;
-    assessment_details?: Record<string, any>;
-    [key: string]: any;
+    score_communication: number | null;
+    score_social: number | null;
+    score_cognitive: number | null;
+    score_motor: number | null;
+    score_adaptive: number | null;
+    summary?: string | null;
+    assessment_details?: Record<string, unknown> | null;
 }
+
+const getScore = (a: Assessment, domain: string): number | null => {
+    switch (domain) {
+        case 'communication': return a.score_communication;
+        case 'social': return a.score_social;
+        case 'cognitive': return a.score_cognitive;
+        case 'motor': return a.score_motor;
+        case 'adaptive': return a.score_adaptive;
+        default: return null;
+    }
+};
 
 export function ParentDevelopmentChart({
     assessments,
@@ -210,7 +220,7 @@ export function ParentDevelopmentChart({
                                 <div key={d.key} className={cn("flex flex-col items-center gap-1 p-2.5 rounded-2xl border border-transparent transition-all", d.bg)}>
                                     <d.icon className={cn("w-3.5 h-3.5", d.color)} />
                                     <span className={cn("text-xs font-black", d.color)}>
-                                        {latest[`score_${d.key}`] || 0}
+                                        {getScore(latest, d.key) || 0}
                                     </span>
                                     <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">{d.label}</span>
                                 </div>

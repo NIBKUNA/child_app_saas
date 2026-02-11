@@ -40,23 +40,22 @@ export default function ConsultationInquiryList() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const { data, error } = await (supabase
-                .from('consultations') as any)
+            const { data, error } = await supabase
+                .from('consultations')
                 .select('*')
                 .is('schedule_id', null)
-                .eq('center_id', centerId) // ✨ [SECURITY] Enforce Center ID Filter
+                .eq('center_id', centerId!) // ✨ [SECURITY] Enforce Center ID Filter
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
             setInquiries(data || []);
 
             // 초기 메모 값 설정
-            const initialMemos: { [key: string]: string | null } = {};
-            // @ts-ignore
+            const initialMemos: { [key: string]: string } = {};
             data?.forEach((inq: ConsultationInquiry) => {
-                initialMemos[inq.id] = (inq as any).notes || ''; // DB의 notes 컬럼 사용
+                initialMemos[inq.id] = inq.notes || ''; // DB의 notes 컬럼 사용
             });
-            setMemoValues(initialMemos as any);
+            setMemoValues(initialMemos);
         } catch (e) {
             console.error("Data Load Error:", e);
         } finally {
@@ -66,8 +65,8 @@ export default function ConsultationInquiryList() {
 
     // 메모 저장 함수
     const saveMemo = async (id: string) => {
-        const { error } = await (supabase
-            .from('consultations') as any)
+        const { error } = await supabase
+            .from('consultations')
             .update({ notes: memoValues[id] }) // notes 컬럼에 저장
             .eq('id', id);
 
@@ -81,8 +80,8 @@ export default function ConsultationInquiryList() {
 
     const updateStatus = async (id: string, nextStatus: string) => {
         try {
-            const { error } = await (supabase
-                .from('consultations') as any)
+            const { error } = await supabase
+                .from('consultations')
                 .update({ status: nextStatus })
                 .eq('id', id);
 
@@ -102,7 +101,7 @@ export default function ConsultationInquiryList() {
 
     const deleteInquiry = async (id: string) => {
         if (!confirm("이 상담 문의를 영구적으로 삭제하시겠습니까?")) return;
-        const { error } = await (supabase.from('consultations') as any).delete().eq('id', id);
+        const { error } = await supabase.from('consultations').delete().eq('id', id);
         if (!error) {
             setInquiries(prev => prev.filter(item => item.id !== id));
         }

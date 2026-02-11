@@ -167,7 +167,6 @@ export function ParentList() {
             // 2. Delete from auth.users via Database RPC (Secure)
             try {
                 // This calls the 'admin_delete_user' Postgres function we created
-                // @ts-expect-error - Supabase RPC types need regeneration
                 const { error: rpcError } = await supabase.rpc('admin_delete_user', { target_user_id: parent.id });
                 if (rpcError) throw rpcError;
             } catch (e) {

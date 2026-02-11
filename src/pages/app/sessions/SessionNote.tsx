@@ -42,16 +42,22 @@ export default function SessionNote() {
 
     const fetchSessionData = async (id: string) => {
         setLoading(true);
-        // 1. Fetch Schedule Info
-        const { data: schedule, error: startError } = await (supabase
-            .from('schedules') as any)
+        // 1. Fetch Schedule Info (Center-Scoped)
+        const centerId = center?.id;
+        let scheduleQuery = supabase
+            .from('schedules')
             .select(`
                 *,
                 children ( id, name, birth_date ),
                 therapists ( name )
             `)
-            .eq('id', id)
-            .maybeSingle();
+            .eq('id', id);
+
+        if (centerId) {
+            scheduleQuery = scheduleQuery.eq('center_id', centerId);
+        }
+
+        const { data: schedule, error: startError } = await scheduleQuery.maybeSingle();
 
         if (startError || !schedule) {
             alert('일정을 찾을 수 없습니다.');
@@ -64,8 +70,8 @@ export default function SessionNote() {
         setSessionDate(schedule.start_time.slice(0, 10));
 
         // 2. Fetch Existing Note if any
-        const { data: note } = await (supabase
-            .from('counseling_logs') as any)
+        const { data: note } = await supabase
+            .from('counseling_logs')
             .select('*')
             .eq('schedule_id', id)
             .maybeSingle();
@@ -106,7 +112,7 @@ export default function SessionNote() {
                         .maybeSingle();
 
                     if (myTherapist) {
-                        effectiveTherapistId = (myTherapist as any).id;
+                        effectiveTherapistId = myTherapist.id;
                     }
                 }
             }
@@ -127,13 +133,13 @@ export default function SessionNote() {
             let savedId = noteId;
 
             if (noteId) {
-                result = await (supabase.from('counseling_logs') as any)
+                result = await supabase.from('counseling_logs')
                     .update(payload)
                     .eq('id', noteId)
                     .select()
                     .single();
             } else {
-                result = await (supabase.from('counseling_logs') as any)
+                result = await supabase.from('counseling_logs')
                     .insert([payload])
                     .select()
                     .single();
@@ -147,7 +153,7 @@ export default function SessionNote() {
             }
 
             // Update Schedule Status to completed
-            await (supabase.from('schedules') as any).update({ status: 'completed' }).eq('id', sessionInfo.id);
+            await supabase.from('schedules').update({ status: 'completed' }).eq('id', sessionInfo.id);
 
             if (!silent) alert('저장되었습니다.');
             return savedId;

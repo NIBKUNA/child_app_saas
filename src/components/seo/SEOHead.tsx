@@ -164,6 +164,7 @@ export function SEOHead() {
             <meta property="og:url" content={canonicalUrl} />
             <meta property="og:type" content="website" />
             <meta property="og:site_name" content={businessName} />
+            <meta property="og:locale" content="ko_KR" />
 
             {/* Twitter */}
             <meta name="twitter:card" content="summary_large_image" />

@@ -37,7 +37,7 @@ export default function BlogList() {
         setLoading(true);
         try {
             const { data, error } = await (supabase
-                .from('blog_posts') as any)
+                .from('blog_posts'))
                 .select('*')
                 .eq('center_id', centerId) // ✨ [Security] Isolation
                 .order('created_at', { ascending: false });
@@ -59,7 +59,7 @@ export default function BlogList() {
     const handleDelete = async (id: string, title: string) => {
         if (!confirm(`"${title}" 글을 정말 삭제하시겠습니까?`)) return;
         try {
-            const { error } = await (supabase.from('blog_posts') as any).delete().eq('id', id);
+            const { error } = await (supabase.from('blog_posts')).delete().eq('id', id);
             if (error) throw error;
             setPosts(prev => prev.filter(p => p.id !== id));
             alert('삭제되었습니다.');

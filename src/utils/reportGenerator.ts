@@ -59,22 +59,22 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             { data: schedules }
         ] = await Promise.all([
             // 1. Children (Master List)
-            (supabase.from('children') as any).select(`
+            supabase.from('children').select(`
                 id, name, gender, birth_date, is_active, created_at, parent_id,
                 profiles:user_profiles ( name, email )
             `).eq('center_id', centerId),
             // 2. Profiles (Phone Numbers)
-            (supabase.from('user_profiles') as any).select('id, phone').eq('center_id', centerId),
+            supabase.from('user_profiles').select('id, phone').eq('center_id', centerId),
             // 3. Assessments (Latest)
-            (supabase.from('development_assessments') as any).select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
+            supabase.from('development_assessments').select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
             // 4. Payments (Selected Month)
-            (supabase.from('payments') as any).select('*').eq('center_id', centerId).gte('paid_at', startOfMonth).lt('paid_at', startOfNextMonth),
+            supabase.from('payments').select('*').eq('center_id', centerId).gte('paid_at', startOfMonth).lt('paid_at', startOfNextMonth),
             // 5. Leads (Marketing)
-            (supabase.from('leads') as any).select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
+            supabase.from('leads').select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
             // 6. Staff (User Profiles with roles)
-            (supabase.from('user_profiles') as any).select('*').eq('center_id', centerId).in('role', ['admin', 'therapist', 'super_admin']),
+            supabase.from('user_profiles').select('*').eq('center_id', centerId).in('role', ['admin', 'therapist', 'super_admin']),
             // 7. Schedules (Selected Month for KPI)
-            (supabase.from('schedules') as any).select('status, date').eq('center_id', centerId).like('date', `${selectedMonth}%`)
+            supabase.from('schedules').select('status, date').eq('center_id', centerId).like('date', `${selectedMonth}%`)
         ]);
 
         // ------------------------------------------------------------------
@@ -87,8 +87,8 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
 
         // Map: Latest Assessment per Child
         const assessmentMap = new Map();
-        (assessments || []).forEach((a: { child_id: string }) => {
-            if (!assessmentMap.has(a.child_id)) assessmentMap.set(a.child_id, a);
+        (assessments || []).forEach((a: { child_id: string | null }) => {
+            if (a.child_id && !assessmentMap.has(a.child_id)) assessmentMap.set(a.child_id, a);
         });
 
         // Map: Payment Aggregation
@@ -102,11 +102,11 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // KPI Calculations
-        const activeChildrenCount = (children || []).filter((c: { is_active: boolean }) => c.is_active).length;
-        const newChildrenCount = (children || []).filter((c: { created_at?: string }) => c.created_at?.startsWith(selectedMonth)).length;
+        const activeChildrenCount = (children || []).filter((c: { is_active: boolean | null }) => c.is_active).length;
+        const newChildrenCount = (children || []).filter((c: { created_at: string | null }) => c.created_at?.startsWith(selectedMonth)).length;
 
         const sessionStats = { completed: 0, cancelled: 0, scheduled: 0, total: 0 };
-        (schedules || []).forEach((s: { status: string }) => {
+        (schedules || []).forEach((s: { status: string | null }) => {
             sessionStats.total++;
             if (s.status === 'completed') sessionStats.completed++;
             else if (s.status === 'cancelled') sessionStats.cancelled++;
@@ -129,7 +129,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         ];
 
         // Sheet 2: Marketing Intelligence (Leads)
-        const marketingData = (leads || []).map((lead: { status: string; converted_at?: string; created_at?: string; parent_name: string; child_name?: string; phone: string; concern?: string; source?: string; assigned_to?: string; admin_notes?: string }) => {
+        const marketingData = (leads || []).map((lead: { status: string | null; converted_at: string | null; created_at: string | null; parent_name: string | null; child_name: string | null; phone: string | null; concern: string | null; source: string | null; assigned_to: string | null; admin_notes: string | null }) => {
             let conversionDays = '-';
             if (lead.status === 'converted' && lead.converted_at && lead.created_at) {
                 const start = new Date(lead.created_at);
@@ -140,12 +140,12 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
 
             return {
                 '접수일': formatDate(lead.created_at),
-                '보호자명': lead.parent_name,
+                '보호자명': lead.parent_name || '-',
                 '아동명': lead.child_name || '-',
-                '연락처': lead.phone,
+                '연락처': lead.phone || '-',
                 '관심 영역': lead.concern || '-',
                 '유입 경로': lead.source || '-',
-                '상태': lead.status,
+                '상태': lead.status || '-',
                 '전환 소요': conversionDays,
                 '담당자': lead.assigned_to || '-',
                 '비고': lead.admin_notes || '-'
@@ -153,8 +153,8 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // Sheet 3: Staff Information
-        const staffData = (staff || []).map((s: { name: string; role: string; email: string; status?: string; created_at?: string }) => ({
-            '이름': s.name,
+        const staffData = (staff || []).map((s: { name: string | null; role: string; email: string; status: string | null; created_at: string | null }) => ({
+            '이름': s.name || '-',
             '역할': s.role,
             '이메일': s.email,
             '상태': s.status || 'active',
@@ -162,7 +162,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         }));
 
         // Sheet 4: Payment Details
-        const paymentDetailData = (payments || []).map((p: { paid_at?: string; child_id: string; amount?: number; method?: string; status?: string; description?: string }) => {
+        const paymentDetailData = (payments || []).map((p: { paid_at: string | null; child_id: string | null; amount: number | null; method: string | null; status?: string | null; description?: string | null }) => {
             const childName = (children || []).find((c: { id: string; name: string }) => c.id === p.child_id)?.name || 'Unknown';
             return {
                 '결제일시': p.paid_at ? new Date(p.paid_at).toLocaleString() : '-',
@@ -175,20 +175,20 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         });
 
         // Sheet 5: Integrated Master (Existing Logic)
-        const masterData = (children || []).map((child: { id: string; name: string; birth_date?: string; gender?: string; is_active: boolean; parent_id?: string; profiles?: { name: string; email: string } }) => {
-            const guardianBase = child.profiles || { name: '-', email: '-' };
-            const guardianPhone = phoneMap.get(child.parent_id) || '-';
+        const masterData = (children || []).map((child: { id: string; name: string; birth_date: string; gender: string | null; is_active: boolean | null; parent_id: string | null; profiles: { name: string | null; email: string }[] }) => {
+            const guardianBase = child.profiles?.[0] || { name: '-', email: '-' };
+            const guardianPhone = phoneMap.get(child.parent_id || '') || '-';
             const assess = assessmentMap.get(child.id);
             const totalPay = paymentMap.get(child.id) || 0;
-            const genderMap: any = { 'male': '남', 'female': '여', 'other': '-' };
+            const genderMap: Record<string, string> = { 'male': '남', 'female': '여', 'other': '-' };
 
             return {
                 'ID': child.id,
                 '아동명': child.name,
                 '생년월일': child.birth_date,
-                '성별': genderMap[child.gender] || child.gender,
+                '성별': genderMap[child.gender || ''] || child.gender || '-',
                 '상태': child.is_active ? '이용중' : '종결',
-                '보호자명': guardianBase.name,
+                '보호자명': guardianBase.name || '-',
                 '연락처': guardianPhone,
                 '이번달 결제액': totalPay,
                 '언어(점)': assess?.score_communication || 0,

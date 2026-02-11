@@ -44,8 +44,8 @@ export function BlogPage() {
     const fetchPosts = async () => {
         if (!center) return;
 
-        const { data, error } = await (supabase
-            .from('blog_posts') as any)
+        const { data, error } = await supabase
+            .from('blog_posts')
             .select('id, title, slug, excerpt, cover_image_url, published_at')
             .eq('is_published', true)
             .eq('center_id', center.id) // ✨ Strict Tenant Filtering
@@ -70,6 +70,13 @@ export function BlogPage() {
             <Helmet>
                 <title>마음 성장 칼럼 | {centerName}</title>
                 <meta name="description" content={`${centerName} 전문가들이 전하는 우리 아이의 건강한 성장을 위한 따뜻한 조언과 발달 정보를 확인하세요.`} />
+                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
+                <meta property="og:title" content={`마음 성장 칼럼 | ${centerName}`} />
+                <meta property="og:description" content={`${centerName} 전문가들이 전하는 발달 정보와 조언.`} />
+                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content={centerName} />
+                <meta property="og:locale" content="ko_KR" />
             </Helmet>
 
             {/* Spacious Centered Header */}

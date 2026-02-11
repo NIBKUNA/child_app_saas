@@ -69,8 +69,8 @@ export default function BlogEditor() {
     }, [id]);
 
     const fetchPost = async (postId: string) => {
-        // Force Execution with (supabase as any)
-        const { data, error } = await (supabase as any)
+        // Force Execution with supabase
+        const { data, error } = await supabase
             .from('blog_posts')
             .select('*')
             .eq('id', postId)
@@ -150,13 +150,13 @@ export default function BlogEditor() {
         }
 
         if (id) {
-            const { error: updateError } = await (supabase as any)
+            const { error: updateError } = await supabase
                 .from('blog_posts')
                 .update(payload)
                 .eq('id', id);
             error = updateError;
         } else {
-            const { error: insertError } = await (supabase as any)
+            const { error: insertError } = await supabase
                 .from('blog_posts')
                 .insert([payload]);
             error = insertError;

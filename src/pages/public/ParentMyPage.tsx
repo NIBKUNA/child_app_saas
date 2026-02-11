@@ -54,25 +54,25 @@ export function ParentMyPage() {
         setLoading(true);
         try {
             // 1. Fetch connected children via family_relationships
-            const { data: relationships } = await (supabase
-                .from('family_relationships') as any)
+            const { data: relationships } = await supabase
+                .from('family_relationships')
                 .select('child_id, children:child_id(name, birth_date)')
                 .eq('parent_id', user.id);
 
             // 2. Fetch connected children via parents table (Legacy)
-            const { data: parentRecord } = await (supabase
-                .from('parents') as any)
+            const { data: parentRecord } = await supabase
+                .from('parents')
                 .select('id')
                 .eq('profile_id', user.id)
                 .maybeSingle();
 
             let legacyChildren: Child[] = [];
             if (parentRecord) {
-                const { data } = await (supabase
-                    .from('children') as any)
+                const { data } = await supabase
+                    .from('children')
                     .select('name, birth_date')
                     .eq('parent_id', parentRecord.id);
-                legacyChildren = data || [];
+                legacyChildren = (data || []) as Child[];
             }
 
             // 3. Merge and deduplicate

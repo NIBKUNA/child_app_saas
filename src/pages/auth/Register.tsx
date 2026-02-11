@@ -60,8 +60,8 @@ export function Register() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 // ✨ [기존 가입자 확인] 이미 프로필이 있는지 체크
-                const { data: existingProfile } = await (supabase
-                    .from('user_profiles') as any)
+                const { data: existingProfile } = await supabase
+                    .from('user_profiles')
                     .select('role, center_id, status, email, name')
                     .eq('id', session.user.id)
                     .maybeSingle();
@@ -105,7 +105,7 @@ export function Register() {
         // ✨ [Safeguard] Resolve Center ID Robustly (Just-In-Time)
         let effectiveCenterId = centerId;
         if (!effectiveCenterId && slug) {
-            const { data } = await (supabase.from('centers') as any).select('id').eq('slug', slug).maybeSingle();
+            const { data } = await supabase.from('centers').select('id').eq('slug', slug).maybeSingle();
             if (data) effectiveCenterId = data.id;
         }
 
@@ -120,8 +120,8 @@ export function Register() {
             let finalRole = 'parent';
 
             // ✨ [Security] 하이재킹 방지 및 권한 자동 할당
-            const { data: preRegistered } = await (supabase
-                .from('therapists') as any)
+            const { data: preRegistered } = await supabase
+                .from('therapists')
                 .select('system_role')
                 .ilike('email', email)
                 .maybeSingle();
@@ -283,7 +283,7 @@ export function Register() {
                                                 if (!window.confirm(`${email} 계정을 초기화하고 다시 가입하시겠습니까?`)) return;
                                                 setLoading(true);
                                                 try {
-                                                    const { error: cleanupError } = await (supabase.rpc as any)('force_cleanup_user_by_email', { target_email: email });
+                                                    const { error: cleanupError } = await supabase.rpc('force_cleanup_user_by_email' as never, { target_email: email } as never);
                                                     if (cleanupError) throw cleanupError;
                                                     alert('계정이 초기화되었습니다. 다시 가입 버튼을 눌러주세요.');
                                                     setError(null);

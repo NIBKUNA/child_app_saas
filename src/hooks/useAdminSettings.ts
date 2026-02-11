@@ -116,8 +116,8 @@ export const useAdminSettings = () => {
 
         try {
             setLoading(true);
-            const { data, error } = await (supabase
-                .from('admin_settings') as any)
+            const { data, error } = await supabase
+                .from('admin_settings')
                 .select('*')
                 .eq('center_id', center.id);
 
@@ -125,7 +125,7 @@ export const useAdminSettings = () => {
 
             if (data) {
                 const settingsMap: Record<string, string | null> = {};
-                data.forEach((item: any) => {
+                data.forEach((item) => {
                     settingsMap[item.key] = item.value;
                 });
                 setSettings(settingsMap);
@@ -146,8 +146,8 @@ export const useAdminSettings = () => {
         if (!center?.id) return { success: false, error: 'No center selected' };
 
         try {
-            const { error } = await (supabase
-                .from('admin_settings') as any)
+            const { error } = await supabase
+                .from('admin_settings')
                 .upsert({
                     center_id: center.id,
                     key,

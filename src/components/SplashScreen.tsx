@@ -41,15 +41,15 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                     return;
                 }
 
-                const { data: settings } = await (supabase
-                    .from('admin_settings') as any)
+                const { data: settings } = await supabase
+                    .from('admin_settings')
                     .select('*')
                     .eq('key', 'center_name');
 
                 const name = settings?.[0]?.value;
                 if (!name) {
-                    const { data: center } = await (supabase
-                        .from('centers') as any)
+                    const { data: center } = await supabase
+                        .from('centers')
                         .select('name')
                         .limit(1)
                         .maybeSingle();
