@@ -820,7 +820,7 @@ export function Dashboard() {
                 <div ref={operationsRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                 <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                     <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -832,7 +832,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
                                         {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
@@ -844,7 +844,7 @@ export function Dashboard() {
                     </div>
 
                     <ChartContainer title="치료사별 매출 기여도" icon={SvgIcons.stethoscope} innerHeight="h-[250px]" brandColor={BRAND_COLOR}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                             <BarChart data={therapistData} layout="vertical" margin={{ top: 20, right: 50, left: 20, bottom: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                 <XAxis type="number" hide />
@@ -858,7 +858,7 @@ export function Dashboard() {
                     </ChartContainer>
 
                     <ChartContainer title="상담 후 등록 전환율" icon={SvgIcons.activity} innerHeight="h-[450px]" brandColor={BRAND_COLOR}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                             <ComposedChart data={conversionData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                 <CartesianGrid stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
@@ -874,7 +874,7 @@ export function Dashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={programData} innerRadius={50} outerRadius={80} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
                                         {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -884,7 +884,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={ageData} innerRadius={50} outerRadius={70} dataKey="value" stroke="none">
                                         {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
@@ -894,7 +894,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={genderData} outerRadius={60} dataKey="value" stroke="none" label={({ name }: any) => name}>
                                         <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
@@ -904,7 +904,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                 <BarChart data={topChildren} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                                     <XAxis type="number" hide /><YAxis dataKey="name" type="category" width={60} axisLine={false} tickLine={false} />
                                     <RechartsTooltip {...tooltipProps} /><Bar dataKey="value" fill="#ec4899" radius={[0, 6, 6, 0]} />
@@ -984,7 +984,7 @@ export function Dashboard() {
                             </div>
                             {attendanceData.length > 0 ? (
                                 <div className="h-[280px]">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                         <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
                                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
@@ -1023,7 +1023,7 @@ export function Dashboard() {
                                 {/* Chart 1: Conversion Rate (Main) */}
                                 <div className="h-[400px]">
                                     <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 추이 및 전환율</h4>
-                                    <ResponsiveContainer width="100%" height="90%">
+                                    <ResponsiveContainer width="100%" height="90%" minHeight={1}>
                                         <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                                             <CartesianGrid stroke="#f1f5f9" vertical={false} />
                                             <XAxis
@@ -1051,7 +1051,7 @@ export function Dashboard() {
                                     {/* Chart 2: Inquiry Volume (New) */}
                                     <div className="h-[250px]">
                                         <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중 분석 (Inflow)</h4>
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                             <PieChart>
                                                 <Pie
                                                     data={channelConversionData}
@@ -1197,7 +1197,7 @@ export function Dashboard() {
                             {campaignData.length > 0 ? (
                                 <div className="space-y-4">
                                     <div className="h-[200px]">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
                                             <BarChart data={campaignData} layout="vertical" margin={{ left: 0, right: 30 }}>
                                                 <XAxis type="number" hide />
                                                 <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />

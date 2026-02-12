@@ -180,12 +180,16 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             setChildrenList(activeChildrenOnly);
             setProgramsList(progRes.data || []);
 
-            // ✨ [Filter] 슈퍼 어드민 제외 및 권한별 치료사 목록 필터링
+            // ✨ [Filter] 슈퍼 어드민 제외, display-only 프로필 제외, 퇴사자 제외
             const profiles = profileRes.data || [];
             const rawTherapists = therRes.data || [];
 
             let filteredTherapists = rawTherapists.filter((t: any) => {
                 if (t.email && isSuperAdmin(t.email)) return false;
+                // ⚠️ 치료사 배치 마스터 전시용 프로필 제외
+                if (t.email && t.email.startsWith('display+')) return false;
+                // ⚠️ 퇴사자 제외
+                if (t.system_status === 'retired' || t.system_status === 'rejected') return false;
                 if (t.profile_id) {
                     const profile = profiles.find((p: { id: string; role?: string }) => p.id === t.profile_id);
                     if (profile?.role === 'super_admin') return false;

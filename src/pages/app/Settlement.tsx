@@ -227,12 +227,15 @@ export function Settlement() {
         setLoading(true);
         try {
             // 1. Get Staff for this Center
+            // ⚠️ 직원관리에서 정식 등록된 활성 직원만 (배치마스터 전시용 프로필 & 퇴사자 제외)
             const superAdminListHost = `("${SUPER_ADMIN_EMAILS.join('","')}")`;
             const { data: staffDataRaw } = await supabase
                 .from('therapists')
                 .select('*')
                 .eq('center_id', centerId)
-                .filter('email', 'not.in', superAdminListHost);
+                .eq('system_status', 'active')
+                .filter('email', 'not.in', superAdminListHost)
+                .not('email', 'like', 'display+%');
             const staffData = (staffDataRaw || []) as TherapistData[];
 
             // 2. Get Sessions for Month (Table: schedules)

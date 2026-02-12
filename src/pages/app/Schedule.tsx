@@ -109,14 +109,18 @@ export function Schedule() {
     }, [centerId, authTherapistId, role]); // ✨ Added auth deps
 
     // ✨ [Therapist List] 치료사 목록 가져오기
+    // ⚠️ 직원관리에서 정식 등록/초대된 활성 직원만 표시
+    // 치료사 배치 마스터(display+xxx@zarada.local)의 전시용 프로필은 제외
     const fetchTherapists = async (targetId: string) => {
         if (!targetId || targetId.length < 32) return;
         const superAdminList = `("${SUPER_ADMIN_EMAILS.join('","')}")`;
         let query = supabase
             .from('therapists')
-            .select('id, name, color')
+            .select('id, name, color, email, system_status')
             .eq('center_id', targetId)
+            .eq('system_status', 'active')
             .filter('email', 'not.in', superAdminList)
+            .not('email', 'like', 'display+%')
             .order('name');
 
         // ✨ [권한 분리] 치료사는 카테고리 필터에서 자기 자신만 보거나 필터링 제한
