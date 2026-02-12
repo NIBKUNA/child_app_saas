@@ -35,13 +35,14 @@ export function TherapistsPage() {
     }, [center?.id]);
 
     const fetchPublicTherapists = async () => {
+        if (!center?.id) return;
         try {
             // 🌐 사이트 전시용 프로필만 조회: website_visible=true & 활성 상태만 표시
             // 치료사 배치 마스터에서 관리하는 사이트 공개 프로필 정보를 가져옴
             const { data, error } = await supabase
                 .from('therapists')
                 .select('*')
-                .eq('center_id', center!.id)
+                .eq('center_id', center.id)
                 .eq('is_active', true)
                 .eq('website_visible', true)
                 .order('sort_order', { ascending: true })

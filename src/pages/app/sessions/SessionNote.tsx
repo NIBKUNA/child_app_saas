@@ -42,22 +42,22 @@ export default function SessionNote() {
 
     const fetchSessionData = async (id: string) => {
         setLoading(true);
-        // 1. Fetch Schedule Info (Center-Scoped)
         const centerId = center?.id;
-        let scheduleQuery = supabase
+        if (!centerId) {
+            alert('센터 정보를 불러오는 중입니다.');
+            return;
+        }
+        // 1. Fetch Schedule Info (Center-Scoped)
+        const { data: schedule, error: startError } = await supabase
             .from('schedules')
             .select(`
                 *,
                 children ( id, name, birth_date ),
                 therapists ( name )
             `)
-            .eq('id', id);
-
-        if (centerId) {
-            scheduleQuery = scheduleQuery.eq('center_id', centerId);
-        }
-
-        const { data: schedule, error: startError } = await scheduleQuery.maybeSingle();
+            .eq('id', id)
+            .eq('center_id', centerId) // 🔒 [Security] 센터 격리 필수
+            .maybeSingle();
 
         if (startError || !schedule) {
             alert('일정을 찾을 수 없습니다.');

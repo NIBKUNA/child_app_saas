@@ -266,3 +266,41 @@ console.warn = (...args: any[]) => {
 
 *보고서 작성: Antigravity AI Assistant*  
 *Zarada ERP v2026.02.12*
+
+---
+
+## 6. 센터 데이터 격리 보안 강화 (2차 패치)
+
+### 배경
+전체 앱 진단 결과, `center_id` 필터가 조건부로만 적용되거나 DELETE/SELECT 쿼리에서 누락된 **8건의 보안 취약점**을 발견하여 일괄 수정했습니다.
+
+### 🔴 CRITICAL 수정 (3건)
+
+| # | 파일 | 문제 | 수정 |
+|---|------|------|------|
+| 1 | `SessionList.tsx` | `centerId`가 없으면 center_id 필터 없이 전체 센터 일정 조회 | `if (!centerId) return` 조기 반환 + 필수 필터로 변경 |
+| 2 | `SessionNote.tsx` | `centerId`가 없으면 URL의 scheduleId만으로 타 센터 세션 노트 접근 가능 | `if (!centerId)` 조기 반환 + `.eq('center_id', centerId)` 필수 |
+| 3 | `ConsultationSurveyForm.tsx` | branding 미로드 시 `center_id: undefined`로 상담 문의 생성 → 어느 센터에도 안 보임 | `if (!centerId)` 제출 차단 + 사용자 안내 |
+
+### 🟠 WARNING 수정 (5건)
+
+| # | 파일 | 문제 | 수정 |
+|---|------|------|------|
+| 4 | `Programs.tsx` | 삭제 시 center_id 미검증 | `.eq('center_id', center.id)` 추가 |
+| 5 | `ConsultationInquiryList.tsx` | 삭제 시 center_id 미검증 | `.eq('center_id', centerId)` 추가 |
+| 6 | `ChildModal.tsx` | 아동 조회 시 center_id 필터 없음 | `.eq('center_id', centerId)` 추가 |
+| 7 | `ChildModal.tsx` | 아동 삭제 시 center_id 미검증 | `.eq('center_id', centerId)` 추가 |
+| 8 | `SettingsPage.tsx` | 배치 마스터 프로필 삭제 시 center_id 미검증 | `.eq('center_id', centerId)` 추가 |
+
+### 추가 수정
+
+| # | 파일 | 수정 |
+|---|------|------|
+| 9 | `TherapistList.tsx` | display 프로필 필터링 추가 (`@zarada.local`) |
+| 10 | `TherapistsPage.tsx` | `center!.id` non-null assertion → optional chaining |
+| 11 | `Programs.tsx` | TypeScript lint 에러 수정 (nullable 타입 정합) |
+
+### 빌드 검증
+- ✅ `vite build` 성공 (exit code: 0)
+- ✅ TypeScript 컴파일 에러 0개
+

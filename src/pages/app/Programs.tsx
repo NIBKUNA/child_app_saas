@@ -16,10 +16,10 @@ import { Plus, Edit2, Trash2, Briefcase, ClipboardList, MessageCircle, X } from 
 interface Program {
     id: string;
     name: string;
-    duration: number;
-    price: number;
-    category: string;
-    center_id: string;
+    duration: number | null;
+    price: number | null;
+    category: string | null;
+    center_id: string | null;
 }
 
 export default function Programs() {
@@ -79,8 +79,8 @@ export default function Programs() {
         setEditingId(p.id);
         setFormData({
             name: p.name,
-            duration: p.duration,
-            price: p.price,
+            duration: p.duration ?? 40,
+            price: p.price ?? 0,
             category: p.category || 'therapy'
         });
         setIsModalOpen(true);
@@ -88,7 +88,8 @@ export default function Programs() {
 
     const handleDelete = async (id: string) => {
         if (!confirm('정말 삭제하시겠습니까?')) return;
-        await (supabase.from('programs')).delete().eq('id', id);
+        if (!center?.id) return;
+        await (supabase.from('programs')).delete().eq('id', id).eq('center_id', center.id);
         fetchPrograms();
     };
 
@@ -118,7 +119,7 @@ export default function Programs() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {programs.map((p) => {
-                    const style = getCategoryStyle(p.category);
+                    const style = getCategoryStyle(p.category || 'therapy');
                     const Icon = style.icon;
                     return (
                         <div key={p.id} className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
@@ -138,8 +139,8 @@ export default function Programs() {
                                 </span>
                             </div>
                             <div className="flex justify-between items-center text-sm font-medium text-slate-500 dark:text-slate-400 border-t dark:border-slate-700 pt-3 mt-1">
-                                <span>{p.duration}분</span>
-                                <span className="text-slate-900 dark:text-white font-bold">{p.price.toLocaleString()}원</span>
+                                <span>{p.duration ?? 0}분</span>
+                                <span className="text-slate-900 dark:text-white font-bold">{(p.price ?? 0).toLocaleString()}원</span>
                             </div>
                         </div>
                     );

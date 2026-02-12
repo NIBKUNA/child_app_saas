@@ -101,7 +101,8 @@ export default function ConsultationInquiryList() {
 
     const deleteInquiry = async (id: string) => {
         if (!confirm("이 상담 문의를 영구적으로 삭제하시겠습니까?")) return;
-        const { error } = await supabase.from('consultations').delete().eq('id', id);
+        if (!centerId) return;
+        const { error } = await supabase.from('consultations').delete().eq('id', id).eq('center_id', centerId);
         if (!error) {
             setInquiries(prev => prev.filter(item => item.id !== id));
         }

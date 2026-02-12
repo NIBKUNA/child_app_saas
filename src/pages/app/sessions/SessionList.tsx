@@ -34,42 +34,37 @@ export default function SessionList() {
     }, [centerId]);
 
     const fetchSessions = async () => {
+        if (!centerId) return; // 🔒 [Security] center_id 없으면 조회 차단
         setLoading(true);
 
         // 1. Auto-Complete Logic (Center-Scoped)
         const now = new Date().toISOString();
-        if (centerId) {
-            const { data: pastSessions } = await supabase
-                .from('schedules')
-                .select('id')
-                .eq('center_id', centerId)
-                .eq('status', 'scheduled')
-                .lt('end_time', now);
+        const { data: pastSessions } = await supabase
+            .from('schedules')
+            .select('id')
+            .eq('center_id', centerId)
+            .eq('status', 'scheduled')
+            .lt('end_time', now);
 
-            if (pastSessions && pastSessions.length > 0) {
-                const idsToUpdate = pastSessions.map(s => s.id);
-                await supabase
-                    .from('schedules')
-                    .update({ status: 'completed' } as never)
-                    .in('id', idsToUpdate);
-            }
+        if (pastSessions && pastSessions.length > 0) {
+            const idsToUpdate = pastSessions.map(s => s.id);
+            await supabase
+                .from('schedules')
+                .update({ status: 'completed' } as never)
+                .in('id', idsToUpdate);
         }
 
         // 2. Fetch all sessions (Filtered by Center)
-        let query = supabase
+        const { data, error } = await supabase
             .from('schedules')
             .select(`
                 *,
                 children ( name ),
                 therapists ( name ),
                 counseling_logs ( created_at, session_date )
-            `);
-
-        if (centerId) {
-            query = query.eq('center_id', centerId); // ✨ Data Isolation: Strict Filter
-        }
-
-        const { data, error } = await query.order('start_time', { ascending: false });
+            `)
+            .eq('center_id', centerId) // 🔒 [Security] 센터 격리 필수 필터
+            .order('start_time', { ascending: false });
 
         if (error) {
             console.error('Error fetching sessions:', error);
@@ -88,11 +83,12 @@ export default function SessionList() {
             return;
         }
 
+        if (!centerId) return alert('센터 정보가 없습니다.');
         const { error } = await supabase
             .from('schedules')
             .delete()
             .eq('id', scheduleId)
-            .eq('center_id', centerId!);
+            .eq('center_id', centerId);
 
         if (error) {
             alert('삭제 중 오류가 발생했습니다: ' + error.message);

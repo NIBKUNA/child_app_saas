@@ -124,7 +124,8 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
     // ✨ [Removed] fetchParentAccounts logic
 
     const loadChild = async () => {
-        const { data } = await supabase.from('children').select('*').eq('id', childId!).single();
+        if (!centerId) return;
+        const { data } = await supabase.from('children').select('*').eq('id', childId!).eq('center_id', centerId).single();
         const childData = data as ChildData | null;
         if (childData) {
             setFormData({
@@ -208,7 +209,8 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
             // ✨ [Cleanup] 
             // DB 스키마에 ON DELETE CASCADE가 설정되어 있어, 
             // children 테이블에서 삭제하면 연결된 모든 데이터(일정, 일지, 결제 등)가 자동 삭제됩니다.
-            const { error } = await supabase.from('children').delete().eq('id', childId!);
+            if (!centerId) { alert('센터 정보가 없습니다.'); return; }
+            const { error } = await supabase.from('children').delete().eq('id', childId!).eq('center_id', centerId);
             if (error) throw error;
 
             alert('아동 및 관련 데이터가 모두 삭제되었습니다.');
@@ -334,10 +336,10 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
                                 value={formData.status}
                                 onChange={e => setFormData({ ...formData, status: e.target.value as 'active' | 'waiting' | 'inactive' })}
                                 className={`px-4 py-2 rounded-xl text-sm font-black border-none outline-none cursor-pointer transition-all ${formData.status === 'active'
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
-                                        : formData.status === 'waiting'
-                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-                                            : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                    : formData.status === 'waiting'
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                                        : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                                     }`}
                             >
                                 <option value="active">이용중</option>

@@ -1413,7 +1413,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             : '정말 삭제하시겠습니까?')) return;
 
         try {
-            const { error } = await supabase.from('therapists').delete().eq('id', id);
+            if (!centerId) return;
+            const { error } = await supabase.from('therapists').delete().eq('id', id).eq('center_id', centerId);
             if (error) throw error;
             fetchProfiles();
         } catch (error) {

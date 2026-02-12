@@ -181,6 +181,12 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
                 utmContent ? `Content: ${utmContent}` : null,
             ].filter(Boolean).join(' / ');
 
+            if (!centerId) {
+                alert('센터 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+                setLoading(false);
+                return;
+            }
+
             const { error } = await (supabase.from('consultations')).insert([{
                 center_id: centerId,
                 child_name: formData.child_name,
