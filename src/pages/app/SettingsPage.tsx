@@ -457,15 +457,10 @@ export function SettingsPage() {
                                         ))}
 
                                         {/* Custom Color Input */}
-                                        <div className="flex flex-col items-center gap-2 p-2">
-                                            <input
-                                                type="color"
-                                                value={getSetting('brand_color') || '#4f46e5'}
-                                                onChange={(e) => handleSave('brand_color', e.target.value)}
-                                                className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 overflow-hidden"
-                                            />
-                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">CUSTOM</span>
-                                        </div>
+                                        <CustomColorPicker
+                                            currentColor={getSetting('brand_color') || '#4f46e5'}
+                                            onSave={(hex: string) => handleSave('brand_color', hex)}
+                                        />
                                     </div>
                                 </div>
 
@@ -595,6 +590,44 @@ export function SettingsPage() {
                 }
             </div >
         </div >
+    );
+}
+
+// --- 🎨 Custom Color Picker (pick freely, save explicitly) ---
+function CustomColorPicker({ currentColor, onSave }: { currentColor: string; onSave: (hex: string) => void }) {
+    const [localColor, setLocalColor] = useState(currentColor);
+    const [isDirty, setIsDirty] = useState(false);
+
+    return (
+        <div className="flex flex-col items-center gap-2 p-2">
+            <div className="relative">
+                <input
+                    type="color"
+                    value={localColor}
+                    onChange={(e) => {
+                        setLocalColor(e.target.value);
+                        setIsDirty(true);
+                    }}
+                    className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-none p-0 overflow-hidden"
+                />
+            </div>
+            {isDirty ? (
+                <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full border border-slate-200" style={{ backgroundColor: localColor }} />
+                        <span className="text-[9px] font-black text-slate-500 uppercase">{localColor}</span>
+                    </div>
+                    <button
+                        onClick={() => { onSave(localColor); setIsDirty(false); }}
+                        className="px-3 py-1 bg-indigo-500 text-white text-[9px] font-black rounded-lg hover:bg-indigo-600 transition-colors uppercase tracking-wide"
+                    >
+                        저장
+                    </button>
+                </div>
+            ) : (
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">CUSTOM</span>
+            )}
+        </div>
     );
 }
 

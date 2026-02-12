@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { supabase } from '@/lib/supabase';
-import { Shield, Award, ChevronRight } from 'lucide-react';
+import { Shield, Award, ChevronRight, ChevronDown } from 'lucide-react';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
 import type { Database } from '@/types/database.types';
 
@@ -103,80 +103,7 @@ export function TherapistsPage() {
                             </div>
                         ) : (
                             therapists.map((staff, idx) => (
-                                <motion.div
-                                    key={staff.id}
-                                    className={cn(
-                                        "group flex flex-col gap-6 p-8 rounded-[50px] border transition-all duration-500 hover:-translate-y-2",
-                                        isDark ? "bg-[#141620] border-white/5 hover:border-white/10" : "bg-white border-slate-100 shadow-2xl shadow-slate-200/50"
-                                    )}
-                                    initial={{ opacity: 0, y: 40 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: idx * 0.1 }}
-                                >
-                                    {/* 🎨 New Text-Focused Header */}
-                                    <div className="flex items-start gap-5">
-                                        {/* Extremely Shrunk Profile Image */}
-                                        <div className="w-20 h-24 shrink-0 rounded-[20px] overflow-hidden relative shadow-lg border-2 border-slate-50 dark:border-white/5 bg-slate-100">
-                                            {staff.profile_image ? (
-                                                <img src={staff.profile_image} alt={staff.display_name || staff.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                                    <Award className="w-6 h-6 opacity-20" />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="flex-1 pt-1">
-                                            <div className="flex flex-col">
-                                                <div className="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-1">{staff.display_name || staff.name}</div>
-                                                <div className="inline-flex">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-lg">
-                                                        {staff.system_role === 'admin' ? '운영 원장' : staff.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 📜 Content Box (Expanded Career Area) */}
-                                    <div className="flex-1 space-y-7 flex flex-col">
-                                        {/* Bio - Subdued */}
-                                        <p className={cn("text-xs font-bold leading-relaxed opacity-40 line-clamp-2 px-1 italic border-l-2 pl-4",
-                                            isDark ? "text-slate-400 border-white/10" : "text-slate-600 border-slate-100")}>
-                                            "{staff.bio || `아이들의 행복한 내일을 위해 진심을 다해 소통하겠습니다.`}"
-                                        </p>
-
-                                        <div className="space-y-7 flex-1 flex flex-col pt-2">
-                                            {/* Career - The Real Hero */}
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                                                    Professional Career
-                                                </div>
-                                                <ul className="space-y-3.5">
-                                                    {(staff.career || '관련 학과 졸업\n임상 경력 보유').split('\n').filter(line => line.trim()).slice(0, 6).map((line, i) => (
-                                                        <li key={i} className="flex gap-3 text-[14px] font-black leading-snug group/line">
-                                                            <div className="w-1.5 h-1.5 rounded-full mt-[7px] shrink-0" style={{ backgroundColor: brandColor }}></div>
-                                                            <span className={cn(isDark ? "text-slate-200" : "text-slate-800")}>{line.trim()}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-
-                                            {/* Specialties - Modern Chips */}
-                                            <div className="mt-auto pt-6 border-t border-slate-50 dark:border-white/5">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {(staff.specialties || '언어치료, 발달지원').split(',').map((s, i) => (
-                                                        <span key={i} className={cn("px-3 py-1.5 rounded-xl text-[10px] font-black tracking-tight",
-                                                            isDark ? "bg-white/5 text-slate-400" : "bg-slate-50 text-slate-500")}>
-                                                            {s.trim()}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
+                                <TherapistCard key={staff.id} staff={staff} idx={idx} brandColor={brandColor} isDark={isDark} />
                             ))
                         )}
                     </div>
@@ -212,5 +139,150 @@ export function TherapistsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// ✨ Bio 미작성 시 자동 표시될 다양한 기본 멘트
+const DEFAULT_BIOS = [
+    '아이들의 행복한 내일을 위해 진심을 다해 소통하겠습니다.',
+    '한 걸음 한 걸음, 아이의 속도에 맞춰 함께 걸어갑니다.',
+    '아이 한 명 한 명의 가능성을 믿고, 최선을 다합니다.',
+    '따뜻한 눈높이로 아이의 세상을 이해하겠습니다.',
+    '작은 변화가 큰 성장이 되는 순간을 함께합니다.',
+    '아이의 웃음이 저의 가장 큰 보람입니다.',
+    '전문성과 따뜻함으로 아이의 발달을 지원합니다.',
+    '부모님과 함께 아이의 내일을 설계합니다.',
+];
+
+// --- ✨ [Collapsible] Therapist Profile Card ---
+function TherapistCard({ staff, idx, brandColor, isDark }: { staff: Therapist; idx: number; brandColor: string; isDark: boolean }) {
+    const [expanded, setExpanded] = useState(false);
+
+    // 경력 데이터를 섹션별로 파싱
+    const careerLines = (staff.career || '관련 학과 졸업\n임상 경력 보유').split('\n').filter(line => line.trim());
+
+    // 섹션 분리: "현)", "전)", "자격)" 등의 헤더를 기준으로 그룹핑
+    const sections: { header: string | null; items: string[] }[] = [];
+    let currentSection: { header: string | null; items: string[] } = { header: null, items: [] };
+
+    careerLines.forEach(line => {
+        const trimmed = line.trim();
+        const isHeader = trimmed.endsWith(')') && trimmed.length <= 10;
+        if (isHeader) {
+            if (currentSection.header !== null || currentSection.items.length > 0) {
+                sections.push(currentSection);
+            }
+            currentSection = { header: trimmed, items: [] };
+        } else {
+            currentSection.items.push(trimmed.replace(/^[-·•]\s*/, ''));
+        }
+    });
+    if (currentSection.header !== null || currentSection.items.length > 0) {
+        sections.push(currentSection);
+    }
+
+    const PREVIEW_SECTIONS = 1; // 기본 표시 섹션 수
+    const hasMore = sections.length > PREVIEW_SECTIONS;
+    const visibleSections = expanded ? sections : sections.slice(0, PREVIEW_SECTIONS);
+
+    return (
+        <motion.div
+            className={cn(
+                "group flex flex-col gap-6 p-8 rounded-[50px] border transition-all duration-500 hover:-translate-y-2",
+                isDark ? "bg-[#141620] border-white/5 hover:border-white/10" : "bg-white border-slate-100 shadow-2xl shadow-slate-200/50"
+            )}
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: idx * 0.1 }}
+        >
+            {/* Header */}
+            <div className="flex items-start gap-5">
+                <div className="w-20 h-24 shrink-0 rounded-[20px] overflow-hidden relative shadow-lg border-2 border-slate-50 dark:border-white/5 bg-slate-100">
+                    {staff.profile_image ? (
+                        <img src={staff.profile_image} alt={staff.display_name || staff.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <Award className="w-6 h-6 opacity-20" />
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1 pt-1">
+                    <div className="flex flex-col">
+                        <div className="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-1">{staff.display_name || staff.name}</div>
+                        <div className="inline-flex">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-lg">
+                                {staff.system_role === 'admin' ? '운영 원장' : staff.hire_type === 'fulltime' ? '수석 치료사' : '치료사'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 space-y-7 flex flex-col">
+                <p className={cn("text-xs font-bold leading-relaxed opacity-40 line-clamp-2 px-1 italic border-l-2 pl-4",
+                    isDark ? "text-slate-400 border-white/10" : "text-slate-600 border-slate-100")}>
+                    "{staff.bio || DEFAULT_BIOS[idx % DEFAULT_BIOS.length]}"
+                </p>
+
+                <div className="space-y-4 flex-1 flex flex-col pt-2">
+                    {/* Career Sections */}
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                            Professional Career
+                        </div>
+
+                        {visibleSections.map((section, si) => (
+                            <div key={si} className="space-y-2">
+                                {section.header && (
+                                    <div className={cn("pt-3 first:pt-0 pb-1", si > 0 && "border-t border-slate-100 dark:border-white/5")}>
+                                        <span className={cn("text-[11px] font-black uppercase tracking-[0.15em]", isDark ? "text-indigo-400" : "text-indigo-600")}>
+                                            {section.header}
+                                        </span>
+                                    </div>
+                                )}
+                                <ul className="space-y-2">
+                                    {section.items.map((item, ii) => (
+                                        <li key={ii} className="flex gap-3 text-[13px] font-bold leading-snug pl-1">
+                                            <div className="w-1.5 h-1.5 rounded-full mt-[6px] shrink-0 opacity-40" style={{ backgroundColor: brandColor }} />
+                                            <span className={cn(isDark ? "text-slate-300" : "text-slate-700")}>{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+
+                        {/* 더보기/접기 토글 */}
+                        {hasMore && (
+                            <button
+                                onClick={() => setExpanded(!expanded)}
+                                className={cn(
+                                    "w-full mt-3 py-2.5 rounded-2xl text-[11px] font-black tracking-wide flex items-center justify-center gap-1.5 transition-all",
+                                    isDark
+                                        ? "bg-white/5 text-slate-400 hover:bg-white/10"
+                                        : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                )}
+                            >
+                                {expanded ? '접기' : `약력 더보기 (+${sections.length - PREVIEW_SECTIONS})`}
+                                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expanded && "rotate-180")} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Specialties */}
+                    <div className="mt-auto pt-6 border-t border-slate-50 dark:border-white/5">
+                        <div className="flex flex-wrap gap-2">
+                            {(staff.specialties || '언어치료, 발달지원').split(',').map((s, i) => (
+                                <span key={i} className={cn("px-3 py-1.5 rounded-xl text-[10px] font-black tracking-tight",
+                                    isDark ? "bg-white/5 text-slate-400" : "bg-slate-50 text-slate-500")}>
+                                    {s.trim()}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
     );
 }
