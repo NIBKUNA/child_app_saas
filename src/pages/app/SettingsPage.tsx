@@ -19,13 +19,11 @@ import {
     Bell,
     BookOpen,
     Palette,
-    GripVertical,
     Heart,
     UserX,
     Pencil
 } from 'lucide-react';
 import { useAdminSettings, type AdminSettingKey, type ProgramItem } from '@/hooks/useAdminSettings';
-import { Reorder } from 'framer-motion';
 import { ImageUploader } from '@/components/common/ImageUploader';
 import { MultiImageUploader } from '@/components/common/MultiImageUploader';
 import { ProgramListEditor } from '@/components/admin/ProgramListEditor';
@@ -1434,15 +1432,19 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         }
     };
 
-    const handleReorder = async (newOrder: any[]) => {
+    const moveProfile = async (fromIndex: number, direction: number) => {
+        const toIndex = fromIndex + direction;
+        if (toIndex < 0 || toIndex >= profiles.length) return;
+
+        const newOrder = [...profiles];
+        // Swap
+        [newOrder[fromIndex], newOrder[toIndex]] = [newOrder[toIndex], newOrder[fromIndex]];
         setProfiles(newOrder); // Optimistic UI update
 
         try {
-            // Prepare batch update
             const updates = newOrder.map((p, index) => ({
                 id: p.id,
                 sort_order: index,
-                // Include required fields if needed, but update only targets these rows by ID
                 center_id: centerId,
                 name: p.name,
                 system_status: p.system_status,
@@ -1478,34 +1480,49 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 </button>
             </div>
 
-            <Reorder.Group
-                axis="y"
-                values={profiles}
-                onReorder={handleReorder}
-                className="space-y-4 max-w-5xl mx-auto"
-            >
+            <div className="space-y-4 max-w-5xl mx-auto">
                 {profiles.map((profile, index) => {
                     const isDisplayOnly = profile.email?.includes('@zarada.local');
                     return (
-                        <Reorder.Item
+                        <div
                             key={profile.id}
-                            value={profile}
                             className={cn(
                                 "group flex items-center gap-6 p-5 rounded-[32px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
                                 profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50" : "border-dashed border-slate-200 opacity-50"
                             )}
                         >
-                            {/* 1. Precise Rank Badge */}
+                            {/* 1. Rank Badge */}
                             <div className="w-12 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg shrink-0">
                                 {index + 1}
                             </div>
 
-                            {/* 2. Drag Handle */}
-                            <div className="cursor-grab active:cursor-grabbing p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-2xl transition-colors shrink-0">
-                                <GripVertical className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                            {/* 2. Move Up/Down Buttons */}
+                            <div className="flex flex-col gap-1 shrink-0">
+                                <button
+                                    onClick={() => moveProfile(index, -1)}
+                                    disabled={index === 0}
+                                    className={cn("p-1.5 rounded-xl transition-all",
+                                        index === 0
+                                            ? "text-slate-200 dark:text-slate-700 cursor-not-allowed"
+                                            : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-700 active:scale-90"
+                                    )}
+                                >
+                                    <ChevronRight className="w-5 h-5 -rotate-90" />
+                                </button>
+                                <button
+                                    onClick={() => moveProfile(index, 1)}
+                                    disabled={index === profiles.length - 1}
+                                    className={cn("p-1.5 rounded-xl transition-all",
+                                        index === profiles.length - 1
+                                            ? "text-slate-200 dark:text-slate-700 cursor-not-allowed"
+                                            : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-700 active:scale-90"
+                                    )}
+                                >
+                                    <ChevronRight className="w-5 h-5 rotate-90" />
+                                </button>
                             </div>
 
-                            {/* 3. Small Fixed Thumbnail */}
+                            {/* 3. Thumbnail */}
                             <div className="w-20 h-24 shrink-0 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden relative shadow-inner border border-slate-100 dark:border-slate-700">
                                 {profile.profile_image ? (
                                     <img src={profile.profile_image} className="w-full h-full object-cover" />
@@ -1540,10 +1557,10 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
-                        </Reorder.Item>
+                        </div>
                     );
                 })}
-            </Reorder.Group>
+            </div>
 
             {isModalOpen && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
@@ -1639,4 +1656,3 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         </div>
     );
 }
-
