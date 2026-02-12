@@ -190,29 +190,44 @@ export function TherapistList() {
                     message: `${formData.name}님에게 이메일 초대가 발송되었습니다.\n수신함에서 스팸 메일함도 꼭 확인해주세요.`
                 });
             } else {
+                // ✨ [SECURITY] 슈퍼 어드민이 아닌 경우 역할 변경 차단 (서버 레벨 방어)
+                const currentIsSuper = isSuperAdmin(user?.email);
+                const originalStaff = staffs.find(s => s.id === editingId);
+                const safeRole = currentIsSuper ? formData.system_role : (originalStaff?.system_role || formData.system_role);
+
+                // ✨ [FIX] upsert 대신 update 사용 - upsert는 명시하지 않은 컬럼을 덮어쓸 수 있으므로
+                // 모든 정산 필드도 포함하여 데이터 손실 방지
                 const { error: therapistError } = await supabase
                     .from('therapists')
-                    .upsert({
-                        email: formData.email,
+                    .update({
                         name: formData.name,
                         hire_type: formData.hire_type,
                         color: formData.color,
                         bank_name: formData.bank_name,
                         account_number: formData.account_number,
                         account_holder: formData.account_holder,
-                        system_role: formData.system_role,
-                        system_status: 'active', // Ensure they are active
-                        center_id: centerId,
-                    }, { onConflict: 'email' });
+                        system_role: safeRole,
+                        system_status: formData.system_status,
+                        base_salary: formData.base_salary,
+                        required_sessions: formData.required_sessions,
+                        session_price_weekday: formData.session_price_weekday,
+                        session_price_weekend: formData.session_price_weekend,
+                        incentive_price: formData.incentive_price,
+                        evaluation_price: formData.evaluation_price,
+                    })
+                    .eq('id', editingId);
 
                 if (therapistError) throw therapistError;
 
+                // user_profiles 동기화 (역할 변경은 슈퍼 어드민만)
+                const profileUpdate: Record<string, any> = { name: formData.name };
+                if (currentIsSuper) {
+                    profileUpdate.role = safeRole;
+                }
+
                 const { error: profileError } = await supabase
                     .from('user_profiles')
-                    .update({
-                        name: formData.name,
-                        role: formData.system_role
-                    })
+                    .update(profileUpdate)
                     .eq('email', formData.email);
 
                 if (profileError) throw profileError;
@@ -578,24 +593,54 @@ export function TherapistList() {
 
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">부여 권한 (System Role)</label>
-                                        <input
-                                            readOnly
-                                            className={cn(
-                                                "w-full px-5 py-3.5 border rounded-2xl font-black outline-none transition-all cursor-not-allowed",
-                                                formData.system_role === 'admin'
-                                                    ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-900/50 dark:text-rose-400"
-                                                    : "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-900/50 dark:text-indigo-400"
-                                            )}
-                                            value={
-                                                {
-                                                    'admin': '🛡️ 관리자 (Admin)',
-                                                    'manager': '📋 매니저/행정 (Manager)',
-                                                    'therapist': '🩺 치료사 (Therapist)',
-                                                    'parent': '👨‍👩‍👧‍👦 학부모 (Parent)',
-                                                    'super_admin': '🔑 최고관리자 (Super Admin)'
-                                                }[formData.system_role] || '🩺 치료사 (Therapist)'
-                                            }
-                                        />
+                                        {editingId && isSuper ? (
+                                            /* ✨ [SECURITY] 슈퍼 어드민만 역할 변경 가능 */
+                                            <div className="relative">
+                                                <select
+                                                    className={cn(
+                                                        "w-full px-5 py-3.5 border rounded-2xl font-black outline-none transition-all appearance-none cursor-pointer",
+                                                        formData.system_role === 'admin'
+                                                            ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-900/50 dark:text-rose-400"
+                                                            : formData.system_role === 'manager'
+                                                                ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-400"
+                                                                : "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-900/50 dark:text-indigo-400"
+                                                    )}
+                                                    value={formData.system_role}
+                                                    onChange={e => setFormData({ ...formData, system_role: e.target.value as SystemRole })}
+                                                >
+                                                    <option value="therapist">🩺 치료사 (Therapist)</option>
+                                                    <option value="manager">📋 매니저/행정 (Manager)</option>
+                                                    <option value="admin">🛡️ 관리자 (Admin)</option>
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            /* 신규 등록 시 또는 일반 admin 수정 시: readOnly */
+                                            <input
+                                                readOnly
+                                                className={cn(
+                                                    "w-full px-5 py-3.5 border rounded-2xl font-black outline-none transition-all cursor-not-allowed",
+                                                    formData.system_role === 'admin'
+                                                        ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-900/50 dark:text-rose-400"
+                                                        : formData.system_role === 'manager'
+                                                            ? "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-900/50 dark:text-amber-400"
+                                                            : "bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-900/50 dark:text-indigo-400"
+                                                )}
+                                                value={
+                                                    {
+                                                        'admin': '🛡️ 관리자 (Admin)',
+                                                        'manager': '📋 매니저/행정 (Manager)',
+                                                        'therapist': '🩺 치료사 (Therapist)',
+                                                        'parent': '👨‍👩‍👧‍👦 학부모 (Parent)',
+                                                        'super_admin': '🔑 최고관리자 (Super Admin)'
+                                                    }[formData.system_role] || '🩺 치료사 (Therapist)'
+                                                }
+                                            />
+                                        )}
+                                        {editingId && isSuper && <p className="text-[11px] text-amber-500 font-bold px-1">⚠️ 역할 변경 시 해당 직원의 접근 권한이 즉시 변경됩니다.</p>}
+                                        {editingId && !isSuper && <p className="text-[11px] text-slate-400 font-medium px-1">🔒 역할 변경은 최고관리자만 가능합니다.</p>}
                                     </div>
                                 </div>
 

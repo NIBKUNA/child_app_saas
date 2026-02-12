@@ -300,11 +300,31 @@ export function Settlement() {
                 let incentiveText = '';
 
                 const hireType = staff.hire_type || 'freelancer';
-                const baseSalary = staff.base_salary || 1900000;
-                const evalPrice = staff.evaluation_price || 50000;
-                const consultPrice = staff.consult_price || 0;
+                // ✨ [FIX] base_salary가 0인 경우를 올바르게 처리
+                // || 연산자는 0을 falsy로 취급하므로, ?? 연산자를 사용하여
+                // null/undefined일 때만 기본값을 적용
+                const baseSalary = staff.base_salary ?? 0;
+                const evalPrice = staff.evaluation_price ?? 50000;
+                const consultPrice = staff.consult_price ?? 0;
 
-                if (staff.system_role === 'manager') {
+                // ✨ [FIX] 프리랜서는 hire_type을 최우선으로 체크
+                // system_role이 'manager'여도, hire_type이 'freelancer'이면
+                // 반드시 회기당 급여로 정산해야 함
+                if (hireType === 'freelancer') {
+                    // Freelancer Therapist (회기당 급여 정산)
+                    const weekdayPrice = staff.session_price_weekday || 0;
+                    const weekendPrice = staff.session_price_weekend || 0;
+
+                    const weekdayPay = raw_weekday * weekdayPrice;
+                    const weekendPay = raw_weekend * weekendPrice;
+                    const evalPay = eval_count * evalPrice;
+                    const consultPay = consult_count * consultPrice;
+
+                    payout = weekdayPay + weekendPay + evalPay + consultPay;
+                    revenue = payout;
+                    incentiveText = `평일(${raw_weekday})${weekdayPay.toLocaleString()} + 주말(${raw_weekend})${weekendPay.toLocaleString()} + 평가(${eval_count})${evalPay.toLocaleString()} + 상담(${consult_count})${consultPay.toLocaleString()}`;
+                } else if (staff.system_role === 'manager') {
+                    // 행정직/매니저 (고정 급여)
                     payout = baseSalary;
                     revenue = payout;
                     incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정/매니저)`;
@@ -355,7 +375,7 @@ export function Settlement() {
                     }
                     revenue = payout;
                 } else {
-                    // Freelancer Therapist (Ratio-based remains same)
+                    // 기타 고용 형태 (안전 fallback — 프리랜서 로직 적용)
                     const weekdayPrice = staff.session_price_weekday || 0;
                     const weekendPrice = staff.session_price_weekend || 0;
 
