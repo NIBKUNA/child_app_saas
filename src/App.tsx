@@ -16,11 +16,11 @@ import { PublicLayout } from '@/layouts/PublicLayout';
 import { AppLayout } from '@/layouts/AppLayout';
 import { MasterLayout } from '@/layouts/MasterLayout';
 
-// Global Landing (Center Selector)
+// Global Landing (Center Selector) - always loaded
 import { GlobalLanding } from '@/pages/public/GlobalLanding';
 import { CenterDirectory } from '@/pages/public/CenterDirectory';
 
-// 공개 페이지
+// 공개 페이지 - always loaded (SEO critical)
 import { HomePage } from '@/pages/public/HomePage';
 import { AboutPage } from '@/pages/public/AboutPage';
 import { ProgramsPage } from '@/pages/public/ProgramsPage';
@@ -32,32 +32,44 @@ import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { UpdatePassword } from '@/pages/auth/UpdatePassword';
 import { LegalPage } from '@/pages/public/LegalPage';
 
-
-// 부모님 전용 페이지
+// 부모님 전용 페이지 - always loaded (lightweight)
 import { ParentLayout } from '@/layouts/ParentLayout';
 import { ParentMyPage } from '@/pages/public/ParentMyPage';
 import { ParentHomePage } from '@/pages/public/ParentHomePage';
 import { ParentStatsPage } from '@/pages/public/ParentStatsPage';
 import { ParentLogsPage } from '@/pages/public/ParentLogsPage';
 
-// 앱 페이지들
-import { Dashboard } from '@/pages/app/Dashboard';
-import { Schedule } from '@/pages/app/Schedule';
-import { ChildList } from '@/pages/app/children/ChildList';
-import { ParentList } from '@/pages/app/parents/ParentList';
-import { TherapistList } from '@/pages/app/therapists/TherapistList';
-import SessionList from '@/pages/app/sessions/SessionList';
-import SessionNote from '@/pages/app/sessions/SessionNote';
-import ConsultationInquiryList from '@/pages/app/consultations/ConsultationInquiryList';
-import Programs from '@/pages/app/Programs';
-import { Billing } from '@/pages/app/Billing';
-import { Settlement } from '@/pages/app/Settlement';
-import { ConsultationList } from '@/pages/app/consultations/ConsultationList';
-import { SettingsPage } from '@/pages/app/SettingsPage';
-import { CenterList } from '@/pages/app/admin/CenterList';
-import { CenterDetailPage } from '@/pages/app/admin/CenterDetailPage';
+// ⚡ [Code Splitting] 앱 관리 페이지 — Lazy Loading
+// 로그인 후 접근하는 관리 페이지들을 동적 import로 분리하여 초기 로딩 속도를 개선합니다.
+import { lazy, Suspense, useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+
+const Dashboard = lazy(() => import('@/pages/app/Dashboard').then(m => ({ default: m.Dashboard })));
+const Schedule = lazy(() => import('@/pages/app/Schedule').then(m => ({ default: m.Schedule })));
+const ChildList = lazy(() => import('@/pages/app/children/ChildList').then(m => ({ default: m.ChildList })));
+const ParentList = lazy(() => import('@/pages/app/parents/ParentList').then(m => ({ default: m.ParentList })));
+const TherapistList = lazy(() => import('@/pages/app/therapists/TherapistList').then(m => ({ default: m.TherapistList })));
+const SessionList = lazy(() => import('@/pages/app/sessions/SessionList'));
+const SessionNote = lazy(() => import('@/pages/app/sessions/SessionNote'));
+const ConsultationInquiryList = lazy(() => import('@/pages/app/consultations/ConsultationInquiryList'));
+const Programs = lazy(() => import('@/pages/app/Programs'));
+const Billing = lazy(() => import('@/pages/app/Billing').then(m => ({ default: m.Billing })));
+const Settlement = lazy(() => import('@/pages/app/Settlement').then(m => ({ default: m.Settlement })));
+const ConsultationList = lazy(() => import('@/pages/app/consultations/ConsultationList').then(m => ({ default: m.ConsultationList })));
+const SettingsPage = lazy(() => import('@/pages/app/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const CenterList = lazy(() => import('@/pages/app/admin/CenterList').then(m => ({ default: m.CenterList })));
+const CenterDetailPage = lazy(() => import('@/pages/app/admin/CenterDetailPage').then(m => ({ default: m.CenterDetailPage })));
+
 import { SplashScreen } from '@/components/SplashScreen';
-import { useState, useEffect } from 'react';
+
+// ⚡ Lazy Loading Fallback
+function LazyFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center py-20">
+      <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+    </div>
+  );
+}
 
 function AppHomeRedirect() {
   const { role, loading } = useAuth();
@@ -199,7 +211,9 @@ function App() {
             element={
               <CenterGuard>
                 <ProtectedRoute allowedRoles={['super_admin', 'admin', 'manager', 'therapist']}>
-                  <AppLayout />
+                  <Suspense fallback={<LazyFallback />}>
+                    <AppLayout />
+                  </Suspense>
                 </ProtectedRoute>
               </CenterGuard>
             }
@@ -292,14 +306,15 @@ function App() {
           <Route path="/app/admin/centers/*" element={<Navigate to="/master/centers" replace />} />
 
           {/* 6. Master Console (Super Admin Only) - Dedicated Layout & Context */}
-          <Route path="/master" element={<MasterLayout />}>
+          <Route path="/master" element={<Suspense fallback={<LazyFallback />}><MasterLayout /></Suspense>}>
             <Route index element={<div className="text-slate-400 font-bold p-8">Master Dashboard (Coming Soon)</div>} />
             <Route path="centers" element={<CenterList />} />
             <Route path="centers/:centerId" element={<CenterDetailPage />} />
           </Route>
-        </Routes>
-      )}
-    </CenterProvider>
+        </Routes >
+      )
+      }
+    </CenterProvider >
   );
 }
 

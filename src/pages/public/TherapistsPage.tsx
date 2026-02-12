@@ -24,6 +24,8 @@ export function TherapistsPage() {
 
     const [therapists, setTherapists] = useState<Therapist[]>([]);
     const [loading, setLoading] = useState(true);
+    // ✨ [Hook Order Fix] All hooks MUST be called before any early return
+    const seo = useLocalSEO();
 
     useEffect(() => {
         if (center?.id) {
@@ -57,7 +59,6 @@ export function TherapistsPage() {
 
     const brandColor = branding?.brand_color || '#6366f1';
     const introText = getSetting('therapists_intro_text' as any) || "우리 아이의 성장을 함께할,\n분야별 최고의 전문가들을 소개합니다.";
-    const seo = useLocalSEO();
 
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
