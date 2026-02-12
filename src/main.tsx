@@ -17,8 +17,6 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
-
-// ✨ [Developer Signature] - Removed for production cleanliness
 // Uncomment in development if needed:
 // console.log(
 //   "%c 🎨 Zarada ERP System %c Designed & Developed by 안욱빈 ",

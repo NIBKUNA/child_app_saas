@@ -277,7 +277,7 @@ export const GlobalLanding = () => {
                     >
                         <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 opacity-40 mix-blend-overlay group-hover:opacity-60 transition-opacity" />
                         <div className="w-full h-full bg-[#111827] rounded-[30px] flex items-center justify-center overflow-hidden">
-                            {/* Fake Dashboard Elements or Generated Graphics */}
+                            {/* 대시보드 디자인 프리뷰 (마케팅 데코레이션) */}
                             <div className="grid grid-cols-12 gap-4 w-full h-full p-8">
                                 <div className="col-span-3 space-y-4">
                                     <div className="h-8 w-32 bg-slate-800 rounded-lg animate-pulse" />

@@ -110,14 +110,14 @@ export function ContactPage() {
                                         <div className="group">
                                             <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400">주소</p>
                                             <p className={cn("text-lg font-bold leading-relaxed", isDark ? "text-slate-300" : "text-slate-700")}>
-                                                {branding?.address || '서울특별시 송파구 위례로...'}
+                                                {branding?.address || '주소 정보를 등록해주세요'}
                                             </p>
                                         </div>
 
                                         <div className="group">
                                             <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400">전화</p>
                                             <p className="text-3xl font-black tracking-tight" style={{ color: brandColor }}>
-                                                {branding?.phone || '02-000-0000'}
+                                                {branding?.phone || '연락처 미등록'}
                                             </p>
                                         </div>
 

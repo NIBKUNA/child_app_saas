@@ -39,7 +39,7 @@ function extractRegion(address: string): string {
     return '';
 }
 
-type PageType = 'home' | 'about' | 'programs' | 'therapists' | 'contact';
+export type PageType = 'home' | 'about' | 'programs' | 'therapists' | 'contact';
 
 export function useLocalSEO() {
     const { center } = useCenter();
@@ -117,31 +117,41 @@ export function useLocalSEO() {
         `${baseUrl}/centers/${slug}${subPath}`;
 
     // 📌 JSON-LD 구조화 데이터 (LocalBusiness)
-    const structuredData = (type: PageType) => ({
-        "@context": "https://schema.org",
-        "@type": "MedicalBusiness",
-        "name": centerName,
-        "url": canonical(),
-        "telephone": phone,
-        "image": center?.logo_url || '',
-        "address": {
-            "@type": "PostalAddress",
-            "streetAddress": address,
-            "addressLocality": region || "서울",
-            "addressCountry": "KR"
-        },
-        "openingHoursSpecification": {
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-            "opens": "09:00",
-            "closes": "19:00"
-        },
-        "medicalSpecialty": ["SpeechPathology", "Pediatrics"],
-        "priceRange": "$$",
-        ...(type === 'contact' && address && {
-            "hasMap": `https://map.naver.com/search/${encodeURIComponent(address)}`
-        })
-    });
+    const structuredData = (type: PageType) => {
+        // 운영시간 동적 파싱 (예: "09:00 - 19:00" → opens: "09:00", closes: "19:00")
+        const rawHours = (center as Record<string, unknown>)?.weekday_hours as string || '';
+        const hoursParts = rawHours.split(/\s*[-~]\s*/);
+        const opens = hoursParts[0]?.trim() || '09:00';
+        const closes = hoursParts[1]?.trim() || '19:00';
+
+        return {
+            "@context": "https://schema.org",
+            "@type": "MedicalBusiness",
+            "name": centerName,
+            "url": canonical(),
+            ...(phone && { "telephone": phone }),
+            "image": center?.logo_url || '',
+            ...(address && {
+                "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": address,
+                    "addressLocality": region || "서울",
+                    "addressCountry": "KR"
+                }
+            }),
+            "openingHoursSpecification": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": opens,
+                "closes": closes
+            },
+            "medicalSpecialty": ["SpeechPathology", "Pediatrics"],
+            "priceRange": "$$",
+            ...(type === 'contact' && address && {
+                "hasMap": `https://map.naver.com/search/${encodeURIComponent(address)}`
+            })
+        };
+    };
 
     return {
         region,

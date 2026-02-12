@@ -42,7 +42,7 @@ export function ParentMyPage() {
     const [modalType, setModalType] = useState<'terms' | 'privacy' | null>(null);
 
     // Center Info (could be dynamic or from settings)
-    const centerPhone = getSetting('center_phone') || '02-1234-5678';
+    const centerPhone = getSetting('center_phone') || '';
     const centerName = getSetting('center_name') || 'Zarada';
 
     useEffect(() => {
@@ -220,13 +220,15 @@ export function ParentMyPage() {
                     "rounded-[32px] overflow-hidden border custom-button-action",
                     isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-sm"
                 )}>
-                    <a href={`tel:${centerPhone}`} className="flex items-center justify-between p-5 border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-green-50 text-green-600 rounded-xl"><Phone className="w-5 h-5" /></div>
-                            <span className="font-bold text-sm">센터 전화 문의</span>
-                        </div>
-                        <span className="text-slate-400 text-xs font-medium">{centerPhone}</span>
-                    </a>
+                    {centerPhone && (
+                        <a href={`tel:${centerPhone}`} className="flex items-center justify-between p-5 border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-green-50 text-green-600 rounded-xl"><Phone className="w-5 h-5" /></div>
+                                <span className="font-bold text-sm">센터 전화 문의</span>
+                            </div>
+                            <span className="text-slate-400 text-xs font-medium">{centerPhone}</span>
+                        </a>
+                    )}
                     <button onClick={handleShare} className="w-full flex items-center justify-between p-5 border-b border-slate-50 hover:bg-slate-50/50 transition-colors text-left">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><Share2 className="w-5 h-5" /></div>

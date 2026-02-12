@@ -129,6 +129,9 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         setCenter(data);
         setError(null);
+        if (import.meta.env.DEV) {
+          console.log(`✅ [센터 로드] ${data.name} (${data.slug}) | ID: ${data.id}`);
+        }
       } catch (err: any) {
         console.error('Error fetching center:', err);
         setError('Center not found');

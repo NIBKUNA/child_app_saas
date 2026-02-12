@@ -48,8 +48,8 @@ export function Footer() {
     // Use settings directly if branding mapping fails, or fallback to branding
     // Priority: DB Settings -> Branding Hook Mapping -> Hardcoded Fallback
     const centerEmail = settings?.center_email || branding.email || '';
-    const centerAddress = settings?.center_address || branding.address || '본사: 서울특별시 송파구 석촌호수로 12길 (지점 운영 정보 등록 필요)';
-    const centerPhone = settings?.center_phone || branding.phone || '02-000-0000';
+    const centerAddress = settings?.center_address || branding.address || '주소 정보를 등록해주세요';
+    const centerPhone = settings?.center_phone || branding.phone || '';
 
     // Hours (Derived from branding hook with Priority: Admin Settings -> DB Centers -> Default)
     const weekdayHours = branding.weekday_hours || '10:00 - 19:00';
