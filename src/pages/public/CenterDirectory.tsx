@@ -39,9 +39,35 @@ export function CenterDirectory() {
     return (
         <div className="min-h-screen bg-slate-50 py-20 px-4 md:px-8">
             <Helmet>
-                <title>전체 센터 찾기 - 자라다(Zarada)</title>
-                <meta name="description" content="전국의 자라다 아동발달센터 지점 정보를 확인하세요. 언어치료, 감각통합, 놀이치료 전문 센터 찾기." />
+                <title>전국 아동발달센터 찾기 - 자라다(Zarada) | 언어치료・감각통합</title>
+                <meta name="description" content="전국의 자라다 아동발달센터 지점 정보를 확인하세요. 언어치료, 감각통합, 놀이치료, 미술치료 전문 센터를 지역별로 찾아보세요." />
+                <meta name="keywords" content="아동발달센터 찾기, 언어치료센터, 감각통합치료, 놀이치료, 발달센터 위치, 자라다" />
                 <link rel="canonical" href="https://app.myparents.co.kr/centers" />
+                <meta property="og:title" content="전국 아동발달센터 찾기 - 자라다(Zarada)" />
+                <meta property="og:description" content="전국의 자라다 아동발달센터 지점 정보를 확인하세요." />
+                <meta property="og:url" content="https://app.myparents.co.kr/centers" />
+                <meta property="og:type" content="website" />
+                <meta property="og:locale" content="ko_KR" />
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "ItemList",
+                        "name": "자라다 아동발달센터 목록",
+                        "description": "전국의 자라다 아동발달센터 지점 안내",
+                        "numberOfItems": centers.length,
+                        "itemListElement": centers.map((c, i) => ({
+                            "@type": "ListItem",
+                            "position": i + 1,
+                            "item": {
+                                "@type": "LocalBusiness",
+                                "name": c.name,
+                                "address": c.address || '',
+                                "telephone": c.phone || '',
+                                "url": `https://app.myparents.co.kr/centers/${c.slug || c.id}`
+                            }
+                        }))
+                    })}
+                </script>
             </Helmet>
 
             <div className="max-w-5xl mx-auto">

@@ -6,6 +6,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
+import { useLocalSEO } from '@/hooks/useLocalSEO';
 
 // Custom SVG Icons
 const Icons = {
@@ -46,6 +47,7 @@ export function AboutPage() {
     const { center } = useCenter();
     const { theme } = useTheme();
     const { branding, loading } = useCenterBranding();
+    const seo = useLocalSEO();
     const isDark = theme === 'dark';
 
     // ✨ [Anti-Flicker] Prevent showing hardcoded defaults before branding/settings are ready
@@ -72,16 +74,18 @@ export function AboutPage() {
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-slate-950" : "bg-[#F8FAFC]")}>
             <Helmet>
-                <title>센터 소개 - {centerName}</title>
-                <meta name="description" content={introText.slice(0, 160)} />
-                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
-                <meta property="og:title" content={`센터 소개 - ${centerName}`} />
-                <meta property="og:description" content={introText.slice(0, 160)} />
-                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <title>{seo.pageTitle('about')}</title>
+                <meta name="description" content={seo.pageDesc('about')} />
+                <meta name="keywords" content={seo.pageKeywords('about')} />
+                <link rel="canonical" href={seo.canonical('/about')} />
+                <meta property="og:title" content={seo.pageTitle('about')} />
+                <meta property="og:description" content={seo.pageDesc('about')} />
+                <meta property="og:url" content={seo.canonical('/about')} />
                 <meta property="og:type" content="website" />
-                <meta property="og:site_name" content={centerName} />
+                <meta property="og:site_name" content={seo.centerName} />
                 <meta property="og:locale" content="ko_KR" />
                 {mainImage && <meta property="og:image" content={mainImage} />}
+                <script type="application/ld+json">{JSON.stringify(seo.structuredData('about'))}</script>
             </Helmet>
 
             <section className="relative py-24 px-6 overflow-hidden" style={{ backgroundColor: branding?.brand_color || undefined }}>

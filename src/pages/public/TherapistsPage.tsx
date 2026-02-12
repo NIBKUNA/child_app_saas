@@ -9,6 +9,7 @@ import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { supabase } from '@/lib/supabase';
 import { Shield, Award, ChevronRight } from 'lucide-react';
+import { useLocalSEO } from '@/hooks/useLocalSEO';
 import type { Database } from '@/types/database.types';
 
 type Therapist = Database['public']['Tables']['therapists']['Row'] & { display_name?: string; profile_image?: string; system_role?: string; hire_type?: string; specialties?: string; career?: string; };
@@ -55,22 +56,24 @@ export function TherapistsPage() {
     if (brandingLoading || loading) return null;
 
     const brandColor = branding?.brand_color || '#6366f1';
-    const centerName = branding?.name || center?.name || '아동발달센터';
     const introText = getSetting('therapists_intro_text' as any) || "우리 아이의 성장을 함께할,\n분야별 최고의 전문가들을 소개합니다.";
+    const seo = useLocalSEO();
 
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
             <Helmet>
-                <title>치료사 소개 - {centerName}</title>
-                <meta name="description" content={`${centerName}의 전문 치료진을 소개합니다. ${therapists.map(t => t.name).slice(0, 3).join(', ')} 선생님 등 분야별 최고의 전문가들이 우리 아이와 함께합니다.`} />
-                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
-                <meta property="og:title" content={`치료사 소개 - ${centerName}`} />
-                <meta property="og:description" content={`${centerName}의 전문 치료진을 소개합니다. 분야별 최고의 전문가들이 함께합니다.`} />
-                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <title>{seo.pageTitle('therapists')}</title>
+                <meta name="description" content={seo.pageDesc('therapists')} />
+                <meta name="keywords" content={seo.pageKeywords('therapists')} />
+                <link rel="canonical" href={seo.canonical('/therapists')} />
+                <meta property="og:title" content={seo.pageTitle('therapists')} />
+                <meta property="og:description" content={seo.pageDesc('therapists')} />
+                <meta property="og:url" content={seo.canonical('/therapists')} />
                 <meta property="og:type" content="website" />
-                <meta property="og:site_name" content={centerName} />
+                <meta property="og:site_name" content={seo.centerName} />
                 <meta property="og:locale" content="ko_KR" />
                 {branding?.logo_url && <meta property="og:image" content={branding.logo_url} />}
+                <script type="application/ld+json">{JSON.stringify(seo.structuredData('therapists'))}</script>
             </Helmet>
 
             {/* ✨ Premium Hero Section */}

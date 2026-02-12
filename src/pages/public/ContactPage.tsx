@@ -5,6 +5,7 @@ import { ConsultationSurveyForm } from '@/components/public/ConsultationSurveyFo
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
+import { useLocalSEO } from '@/hooks/useLocalSEO';
 
 // Custom SVG Icons
 // ... (Icons remain same)
@@ -35,6 +36,7 @@ export function ContactPage() {
     const { branding, loading } = useCenterBranding();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const seo = useLocalSEO();
 
     if (loading) return null;
 
@@ -46,16 +48,18 @@ export function ContactPage() {
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
             <Helmet>
-                <title>문의 및 오시는 길 - {branding?.name || '센터'}</title>
-                <meta name="description" content={`${branding?.name || '센터'} 위치 안내, 운영 시간(평일 ${weekdayHours}), 상담 예약 문의 방법을 안내해드립니다. ${branding?.address || ''}`} />
-                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
-                <meta property="og:title" content={`문의 및 오시는 길 - ${branding?.name || '센터'}`} />
-                <meta property="og:description" content={`${branding?.name || '센터'} 위치 안내 및 상담 예약. ${branding?.address || ''}`} />
-                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <title>{seo.pageTitle('contact')}</title>
+                <meta name="description" content={seo.pageDesc('contact')} />
+                <meta name="keywords" content={seo.pageKeywords('contact')} />
+                <link rel="canonical" href={seo.canonical('/contact')} />
+                <meta property="og:title" content={seo.pageTitle('contact')} />
+                <meta property="og:description" content={seo.pageDesc('contact')} />
+                <meta property="og:url" content={seo.canonical('/contact')} />
                 <meta property="og:type" content="website" />
-                <meta property="og:site_name" content={branding?.name || '센터'} />
+                <meta property="og:site_name" content={seo.centerName} />
                 <meta property="og:locale" content="ko_KR" />
                 {branding?.logo_url && <meta property="og:image" content={branding.logo_url} />}
+                <script type="application/ld+json">{JSON.stringify(seo.structuredData('contact'))}</script>
             </Helmet>
 
             {/* ✨ Premium Hero Section (Uniform Branding) */}

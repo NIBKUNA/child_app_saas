@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
+import { useLocalSEO } from '@/hooks/useLocalSEO';
 import {
     SpeechTherapyIcon,
     PlayTherapyIcon,
@@ -49,6 +50,7 @@ export function ProgramsPage() {
     const { center } = useCenter();
     const { theme } = useTheme();
     const { branding, loading } = useCenterBranding(); // ✨ Added loading
+    const seo = useLocalSEO();
     const isDark = theme === 'dark';
 
     // ✨ [Anti-Flicker] Prevent showing hardcoded defaults before branding/settings are ready
@@ -65,14 +67,15 @@ export function ProgramsPage() {
     return (
         <div className={cn("min-h-screen transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
             <Helmet>
-                <title>치료 프로그램 - {centerName}</title>
-                <meta name="description" content={`${centerName}의 맞춤형 발달 지원 프로그램을 소개합니다. ${programs.map((p: any) => p.title).slice(0, 3).join(', ')} 등 전문적인 치료 서비스를 확인하세요.`} />
-                <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
-                <meta property="og:title" content={`치료 프로그램 - ${centerName}`} />
-                <meta property="og:description" content={`${centerName}의 발달 지원 프로그램: ${programs.map((p: any) => p.title).slice(0, 3).join(', ')}`} />
-                <meta property="og:url" content={`${window.location.origin}${window.location.pathname}`} />
+                <title>{seo.pageTitle('programs')}</title>
+                <meta name="description" content={seo.pageDesc('programs')} />
+                <meta name="keywords" content={seo.pageKeywords('programs')} />
+                <link rel="canonical" href={seo.canonical('/programs')} />
+                <meta property="og:title" content={seo.pageTitle('programs')} />
+                <meta property="og:description" content={seo.pageDesc('programs')} />
+                <meta property="og:url" content={seo.canonical('/programs')} />
                 <meta property="og:type" content="website" />
-                <meta property="og:site_name" content={centerName} />
+                <meta property="og:site_name" content={seo.centerName} />
                 <meta property="og:locale" content="ko_KR" />
                 {branding?.logo_url && <meta property="og:image" content={branding.logo_url} />}
                 <script type="application/ld+json">
