@@ -211,6 +211,53 @@ const KpiCard = ({ title, value, icon, trend, trendUp, color, bg, border }: { ti
 
 
 
+// ✨ [FIX] SafeChart: Recharts 경고 근본 해결
+// 컨테이너 DOM 크기가 확보된 후에만 차트를 렌더링합니다.
+const SafeChart = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        // 이미 크기가 있으면 즉시 렌더
+        if (el.clientWidth > 0 && el.clientHeight > 0) {
+            setReady(true);
+            return;
+        }
+
+        // ResizeObserver로 크기 확보 후 렌더
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                    setReady(true);
+                    observer.disconnect();
+                    break;
+                }
+            }
+        });
+        observer.observe(el);
+
+        // 안전 타임아웃 (500ms 후 강제 렌더)
+        const timeout = setTimeout(() => {
+            setReady(true);
+            observer.disconnect();
+        }, 500);
+
+        return () => {
+            observer.disconnect();
+            clearTimeout(timeout);
+        };
+    }, []);
+
+    return (
+        <div ref={containerRef} className={`w-full h-full ${className}`}>
+            {ready ? children : null}
+        </div>
+    );
+};
+
 const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; brandColor?: string }) => (
     <div className={`bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
         <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3 relative z-10 text-left">
@@ -223,7 +270,7 @@ const ChartContainer = ({ title, icon, children, className = "", innerHeight = "
             {title}
         </h3>
         <div className={`w-full relative ${innerHeight}`}>
-            {children}
+            <SafeChart>{children}</SafeChart>
         </div>
     </div>
 );
@@ -820,7 +867,7 @@ export function Dashboard() {
                 <div ref={operationsRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
-                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                 <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                     <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -832,7 +879,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
-                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={statusData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
                                         {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
@@ -844,7 +891,7 @@ export function Dashboard() {
                     </div>
 
                     <ChartContainer title="치료사별 매출 기여도" icon={SvgIcons.stethoscope} innerHeight="h-[250px]" brandColor={BRAND_COLOR}>
-                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
                             <BarChart data={therapistData} layout="vertical" margin={{ top: 20, right: 50, left: 20, bottom: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                 <XAxis type="number" hide />
@@ -858,7 +905,7 @@ export function Dashboard() {
                     </ChartContainer>
 
                     <ChartContainer title="상담 후 등록 전환율" icon={SvgIcons.activity} innerHeight="h-[450px]" brandColor={BRAND_COLOR}>
-                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
                             <ComposedChart data={conversionData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
                                 <CartesianGrid stroke="#f1f5f9" vertical={false} />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
@@ -874,7 +921,7 @@ export function Dashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={programData} innerRadius={50} outerRadius={80} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
                                         {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -884,7 +931,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={ageData} innerRadius={50} outerRadius={70} dataKey="value" stroke="none">
                                         {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
@@ -894,7 +941,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                 <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
                                     <Pie data={genderData} outerRadius={60} dataKey="value" stroke="none" label={({ name }: any) => name}>
                                         <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
@@ -904,7 +951,7 @@ export function Dashboard() {
                             </ResponsiveContainer>
                         </ChartContainer>
                         <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                 <BarChart data={topChildren} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                                     <XAxis type="number" hide /><YAxis dataKey="name" type="category" width={60} axisLine={false} tickLine={false} />
                                     <RechartsTooltip {...tooltipProps} /><Bar dataKey="value" fill="#ec4899" radius={[0, 6, 6, 0]} />
@@ -984,19 +1031,21 @@ export function Dashboard() {
                             </div>
                             {attendanceData.length > 0 ? (
                                 <div className="h-[280px]">
-                                    <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-                                        <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
-                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                            <RechartsTooltip {...tooltipProps} />
-                                            <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
-                                            <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
-                                            <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
-                                            <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} />
-                                        </ComposedChart>
-                                    </ResponsiveContainer>
+                                    <SafeChart>
+                                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                            <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
+                                                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                                <RechartsTooltip {...tooltipProps} />
+                                                <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
+                                                <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
+                                                <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
+                                                <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} />
+                                            </ComposedChart>
+                                        </ResponsiveContainer>
+                                    </SafeChart>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-slate-400">
@@ -1023,27 +1072,29 @@ export function Dashboard() {
                                 {/* Chart 1: Conversion Rate (Main) */}
                                 <div className="h-[400px]">
                                     <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 추이 및 전환율</h4>
-                                    <ResponsiveContainer width="100%" height="90%" minHeight={1}>
-                                        <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                                            <CartesianGrid stroke="#f1f5f9" vertical={false} />
-                                            <XAxis
-                                                dataKey="name"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fontWeight: 'bold' }}
-                                                angle={-45}
-                                                textAnchor="end"
-                                                height={80}
-                                            />
-                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} />
-                                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
-                                            <RechartsTooltip {...tooltipProps} />
-                                            <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                            <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={35} radius={[6, 6, 0, 0]} />
-                                            <Bar yAxisId="left" dataKey="converted" name="예약 확정" fill="#10b981" barSize={35} radius={[6, 6, 0, 0]} />
-                                            <Line yAxisId="right" type="monotone" dataKey="rate" name="예약 전환율(%)" stroke="#f59e0b" strokeWidth={4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 6 }} />
-                                        </ComposedChart>
-                                    </ResponsiveContainer>
+                                    <SafeChart>
+                                        <ResponsiveContainer width="100%" height="90%" debounce={100}>
+                                            <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                                <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                                                <XAxis
+                                                    dataKey="name"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fontSize: 11, fontWeight: 'bold' }}
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={80}
+                                                />
+                                                <YAxis yAxisId="left" axisLine={false} tickLine={false} />
+                                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+                                                <RechartsTooltip {...tooltipProps} />
+                                                <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
+                                                <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={35} radius={[6, 6, 0, 0]} />
+                                                <Bar yAxisId="left" dataKey="converted" name="예약 확정" fill="#10b981" barSize={35} radius={[6, 6, 0, 0]} />
+                                                <Line yAxisId="right" type="monotone" dataKey="rate" name="예약 전환율(%)" stroke="#f59e0b" strokeWidth={4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 6 }} />
+                                            </ComposedChart>
+                                        </ResponsiveContainer>
+                                    </SafeChart>
                                 </div>
 
                                 {/* Right Column: Volume Chart + Stats */}
@@ -1051,30 +1102,32 @@ export function Dashboard() {
                                     {/* Chart 2: Inquiry Volume (New) */}
                                     <div className="h-[250px]">
                                         <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중 분석 (Inflow)</h4>
-                                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-                                            <PieChart>
-                                                <Pie
-                                                    data={channelConversionData}
-                                                    dataKey="total"
-                                                    nameKey="name"
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={45}
-                                                    outerRadius={75}
-                                                    paddingAngle={5}
-                                                    stroke="none"
-                                                    label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
-                                                >
-                                                    {channelConversionData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                                    ))}
-                                                </Pie>
-                                                <RechartsTooltip
-                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                                    itemStyle={{ fontWeight: '800', fontSize: '12px' }}
-                                                />
-                                            </PieChart>
-                                        </ResponsiveContainer>
+                                        <SafeChart>
+                                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                                <PieChart>
+                                                    <Pie
+                                                        data={channelConversionData}
+                                                        dataKey="total"
+                                                        nameKey="name"
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={45}
+                                                        outerRadius={75}
+                                                        paddingAngle={5}
+                                                        stroke="none"
+                                                        label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                                                    >
+                                                        {channelConversionData.map((entry, index) => (
+                                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    <RechartsTooltip
+                                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                                                        itemStyle={{ fontWeight: '800', fontSize: '12px' }}
+                                                    />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </SafeChart>
                                     </div>
 
                                     {/* Stats Cards (Scrollable if too many) */}
@@ -1197,15 +1250,17 @@ export function Dashboard() {
                             {campaignData.length > 0 ? (
                                 <div className="space-y-4">
                                     <div className="h-[200px]">
-                                        <ResponsiveContainer width="100%" height="100%" minHeight={1}>
-                                            <BarChart data={campaignData} layout="vertical" margin={{ left: 0, right: 30 }}>
-                                                <XAxis type="number" hide />
-                                                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                                <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={12}>
-                                                    <LabelList dataKey="value" position="right" style={{ fontSize: '10px', fontWeight: 'bold' }} />
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
+                                        <SafeChart>
+                                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                                <BarChart data={campaignData} layout="vertical" margin={{ left: 0, right: 30 }}>
+                                                    <XAxis type="number" hide />
+                                                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                                    <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={12}>
+                                                        <LabelList dataKey="value" position="right" style={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </SafeChart>
                                     </div>
                                     <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                                         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">

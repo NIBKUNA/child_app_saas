@@ -17,6 +17,24 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeProvider'
 import './index.css'
 import App from './App.tsx'
+
+// ✨ [Recharts Warning Suppression]
+// Recharts ResponsiveContainer에서 마운트 시 발생하는 크기 관련 경고 필터링
+// 이 경고는 차트 기능에 영향을 주지 않는 cosmetic 경고입니다.
+// 참고: https://github.com/recharts/recharts/issues/3615
+const RECHARTS_FILTER = 'should be greater than 0';
+
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  if (typeof args[0] === 'string' && args[0].includes(RECHARTS_FILTER)) return;
+  originalConsoleError.apply(console, args);
+};
+
+const originalConsoleWarn = console.warn;
+console.warn = (...args: any[]) => {
+  if (typeof args[0] === 'string' && args[0].includes(RECHARTS_FILTER)) return;
+  originalConsoleWarn.apply(console, args);
+};
 // Uncomment in development if needed:
 // console.log(
 //   "%c 🎨 Zarada ERP System %c Designed & Developed by 안욱빈 ",
