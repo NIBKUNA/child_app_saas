@@ -1352,6 +1352,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
                 // Format: display+[random]@[center_slug].local
                 const randomId = Math.random().toString(36).substring(2, 10);
                 payload.email = `display+${randomId}@zarada.local`;
+                // 🔒 name 컬럼은 NOT NULL이므로 display_name과 동일한 값을 설정
+                payload.name = formData.display_name;
                 // 새 프로필은 기본 내부 정보 설정 (실제 직원이 아니므로 기본값만 설정)
                 payload.system_status = 'active';
                 payload.hire_type = 'freelancer';
