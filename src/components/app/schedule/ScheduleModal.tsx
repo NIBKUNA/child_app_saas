@@ -184,8 +184,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             const profiles = profileRes.data || [];
             const rawTherapists = therRes.data || [];
 
-            let filteredTherapists = rawTherapists.filter((t: { email: string; profile_id?: string; id: string }) => {
-                if (isSuperAdmin(t.email)) return false;
+            let filteredTherapists = rawTherapists.filter((t: any) => {
+                if (t.email && isSuperAdmin(t.email)) return false;
                 if (t.profile_id) {
                     const profile = profiles.find((p: { id: string; role?: string }) => p.id === t.profile_id);
                     if (profile?.role === 'super_admin') return false;
@@ -230,13 +230,13 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         if (eTime && eTime.includes('T')) eTime = eTime.split('T')[1].slice(0, 5);
 
                         setFormData({
-                            child_id: data.child_id,
-                            program_id: data.program_id,
-                            therapist_id: data.therapist_id,
+                            child_id: data.child_id ?? '',
+                            program_id: data.program_id ?? '',
+                            therapist_id: data.therapist_id ?? '',
                             date: data.date || (data.start_time ? data.start_time.split('T')[0] : ''),
                             start_time: sTime || '10:00',
                             end_time: eTime || '10:40',
-                            status: data.status,
+                            status: data.status ?? 'scheduled',
                             service_type: data.service_type || 'therapy'
                         });
                     }
@@ -409,7 +409,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             let deleteFuture = forceFuture;
 
             // 결제 여부 확인 (Ghost Credit 방지)
-            const { data: payItems } = await supabase.from('payment_items').select('id, payment_id').eq('schedule_id', scheduleId);
+            const { data: payItems } = await supabase.from('payment_items').select('id, payment_id').eq('schedule_id', scheduleId!);
 
             if (payItems && payItems.length > 0) {
                 if (!confirm(
@@ -474,7 +474,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 const { data: logs } = await supabase
                     .from('counseling_logs')
                     .select('id')
-                    .eq('schedule_id', scheduleId);
+                    .eq('schedule_id', scheduleId!);
 
                 if (logs && logs.length > 0) {
                     const logIds = logs.map((l: any) => l.id);
@@ -482,12 +482,12 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 }
 
                 // 1. 참조 데이터 수동 삭제
-                await supabase.from('consultations').delete().eq('schedule_id', scheduleId);
-                await supabase.from('payment_items').delete().eq('schedule_id', scheduleId);
-                await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId);
+                await supabase.from('consultations').delete().eq('schedule_id', scheduleId!);
+                await supabase.from('payment_items').delete().eq('schedule_id', scheduleId!);
+                await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId!);
 
                 // 2. 본 일정 삭제
-                const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
+                const { error } = await supabase.from('schedules').delete().eq('id', scheduleId!);
                 if (error) throw error;
             }
 

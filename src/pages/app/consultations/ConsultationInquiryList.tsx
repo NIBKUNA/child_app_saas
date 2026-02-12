@@ -13,12 +13,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import type { Database } from '@/types/database.types'; // ✨ Import Types
-import { useAuth } from '@/contexts/AuthContext';
+
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
-    MessageCircle, Phone, Clock, FileText, UserPlus,
-    ShieldCheck, RefreshCcw, AlertCircle, Trash2,
-    Calendar, CheckCircle2, XCircle, Hourglass, Save, StickyNote
+    Phone, Clock,
+    RefreshCcw, Trash2,
+    CheckCircle2, XCircle, Hourglass, Save, StickyNote
 } from 'lucide-react';
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
