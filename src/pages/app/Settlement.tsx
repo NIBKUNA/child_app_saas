@@ -150,6 +150,7 @@ export function Settlement() {
     };
 
     const saveEdit = async (id: string) => {
+        if (!centerId) return;
         if (!window.confirm('저장하시겠습니까?')) return;
         try {
             const updatePayload = {
@@ -163,7 +164,7 @@ export function Settlement() {
                 incentive_price: Number(editForm.incentive) || 0,
                 remarks: editForm.remarks
             };
-            const { error } = await supabase.from('therapists').update(updatePayload as never).eq('id', id);
+            const { error } = await supabase.from('therapists').update(updatePayload as never).eq('id', id).eq('center_id', centerId);
             if (error) throw error;
             alert('저장되었습니다.');
             setEditingId(null);

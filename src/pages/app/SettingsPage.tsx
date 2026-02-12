@@ -1425,7 +1425,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
     const toggleVisibility = async (profile: any) => {
         const newValue = !profile.website_visible;
         try {
-            await supabase.from('therapists').update({ website_visible: newValue }).eq('id', profile.id);
+            await supabase.from('therapists').update({ website_visible: newValue }).eq('id', profile.id).eq('center_id', centerId);
             // Optimistic update
             setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, website_visible: newValue } : p));
         } catch (e) {

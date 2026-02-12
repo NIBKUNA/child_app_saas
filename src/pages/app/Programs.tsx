@@ -24,7 +24,6 @@ interface Program {
 
 export default function Programs() {
     const [programs, setPrograms] = useState<Program[]>([]);
-    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const { center } = useCenter(); // ✨ Use Center Context for SaaS capability
@@ -47,14 +46,12 @@ export default function Programs() {
 
     const fetchPrograms = async () => {
         if (!center?.id) return;
-        setLoading(true);
         const { data, error } = await (supabase
             .from('programs'))
             .select('*')
             .eq('center_id', center.id) // ✨ Filter by Center ID
             .order('category', { ascending: true });
         if (!error) setPrograms(data || []);
-        setLoading(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +59,7 @@ export default function Programs() {
         if (!center?.id) return;
         try {
             if (editingId) {
-                await (supabase.from('programs')).update(formData).eq('id', editingId);
+                await (supabase.from('programs')).update(formData).eq('id', editingId).eq('center_id', center.id);
             } else {
                 await (supabase.from('programs')).insert([{ ...formData, center_id: center.id }]); // ✨ Insert with Center ID
             }

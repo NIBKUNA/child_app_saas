@@ -264,6 +264,7 @@ export function TherapistList() {
             : `${staff.name}님을 퇴사 처리하시겠습니까?\n(로그인 권한 및 계정 정보가 즉시 삭제되지만, 기존 일지/기록 데이터는 보존됩니다)`;
 
         if (!confirm(message)) return;
+        if (!centerId) return;
 
         try {
             setLoading(true);
@@ -274,7 +275,8 @@ export function TherapistList() {
                 const { error: therapistError } = await supabase
                     .from('therapists')
                     .update({ system_status: 'retired' })
-                    .eq('id', staff.id);
+                    .eq('id', staff.id)
+                    .eq('center_id', centerId);
 
                 if (therapistError) throw therapistError;
 
@@ -291,7 +293,8 @@ export function TherapistList() {
                 const { error: therapistError } = await supabase
                     .from('therapists')
                     .update({ system_status: 'active' })
-                    .eq('id', staff.id);
+                    .eq('id', staff.id)
+                    .eq('center_id', centerId);
 
                 if (therapistError) throw therapistError;
 
@@ -322,6 +325,7 @@ export function TherapistList() {
         }
 
         try {
+            if (!centerId) return;
             setLoading(true);
 
             // 1. 활성 일정 확인 (데이터 무결성 보호)
@@ -329,6 +333,7 @@ export function TherapistList() {
                 .from('schedules')
                 .select('id')
                 .eq('therapist_id', staff.id)
+                .eq('center_id', centerId)
                 .limit(1);
 
             if (activeSchedules && activeSchedules.length > 0) {
@@ -345,7 +350,8 @@ export function TherapistList() {
             const { error: deleteError } = await supabase
                 .from('therapists')
                 .delete()
-                .eq('id', staff.id);
+                .eq('id', staff.id)
+                .eq('center_id', centerId);
 
             if (deleteError) throw deleteError;
 
