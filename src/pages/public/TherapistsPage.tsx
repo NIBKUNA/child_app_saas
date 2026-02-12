@@ -24,6 +24,7 @@ export function TherapistsPage() {
 
     const [therapists, setTherapists] = useState<Therapist[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeFilter, setActiveFilter] = useState<string>('전체');
     // ✨ [Hook Order Fix] All hooks MUST be called before any early return
     const seo = useLocalSEO();
 
@@ -95,6 +96,61 @@ export function TherapistsPage() {
 
             <div className={cn("relative -mt-12 z-20 rounded-t-[50px] px-4 pb-40 transition-colors", isDark ? "bg-[#0a0c10]" : "bg-[#f8fafc]")}>
                 <div className="container mx-auto max-w-7xl pt-24">
+
+                    {/* 🏷️ Specialty Filter Tabs */}
+                    {(() => {
+                        // Extract unique specialties from therapists
+                        const specialtySet = new Set<string>();
+                        therapists.forEach(t => {
+                            if (t.specialties) {
+                                t.specialties.split(',').forEach(s => {
+                                    const trimmed = s.trim();
+                                    if (trimmed) specialtySet.add(trimmed);
+                                });
+                            }
+                        });
+                        const categories = ['전체', ...Array.from(specialtySet)];
+
+                        // Only show tabs if there are 2+ categories
+                        if (categories.length <= 2) return null;
+
+                        return (
+                            <div className="flex flex-wrap justify-center gap-3 mb-16">
+                                {categories.map(cat => {
+                                    const count = cat === '전체'
+                                        ? therapists.length
+                                        : therapists.filter(t => t.specialties?.includes(cat)).length;
+                                    const isActive = activeFilter === cat;
+
+                                    return (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setActiveFilter(cat)}
+                                            className={cn(
+                                                "px-6 py-3 rounded-full font-black text-sm transition-all duration-300 border-2",
+                                                isActive
+                                                    ? "text-white shadow-lg scale-105"
+                                                    : isDark
+                                                        ? "bg-slate-800/50 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200"
+                                                        : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 hover:text-slate-700 shadow-sm"
+                                            )}
+                                            style={isActive ? { backgroundColor: brandColor, borderColor: brandColor } : undefined}
+                                        >
+                                            {cat}
+                                            <span className={cn(
+                                                "ml-2 text-[10px] font-black px-1.5 py-0.5 rounded-full",
+                                                isActive ? "bg-white/20" : isDark ? "bg-slate-700" : "bg-slate-100"
+                                            )}>
+                                                {count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
+
+                    {/* Therapist Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
                         {therapists.length === 0 ? (
                             <div className="text-center py-20 opacity-30 col-span-full">
@@ -102,9 +158,11 @@ export function TherapistsPage() {
                                 <p className="text-xl font-bold">등록된 선생님 정보가 없습니다.</p>
                             </div>
                         ) : (
-                            therapists.map((staff, idx) => (
-                                <TherapistCard key={staff.id} staff={staff} idx={idx} brandColor={brandColor} isDark={isDark} />
-                            ))
+                            therapists
+                                .filter(staff => activeFilter === '전체' || staff.specialties?.includes(activeFilter))
+                                .map((staff, idx) => (
+                                    <TherapistCard key={staff.id} staff={staff} idx={idx} brandColor={brandColor} isDark={isDark} />
+                                ))
                         )}
                     </div>
 
