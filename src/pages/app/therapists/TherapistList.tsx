@@ -145,7 +145,12 @@ export function TherapistList() {
                     system_status: t.system_status || 'active',
                     hire_type: t.hire_type || (profile?.role === 'admin' ? 'fulltime' : 'freelancer')
                 };
-            }).filter(u => u.system_role !== 'parent' && u.system_role !== 'super_admin');
+            }).filter(u =>
+                u.system_role !== 'parent' &&
+                u.system_role !== 'super_admin' &&
+                // ✨ [Fix] 치료사 배치 마스터에서 생성한 display 전용 프로필은 직원 관리에서 제외
+                !u.email?.includes('@zarada.local')
+            );
 
             setStaffs((mergedData || []) as Therapist[]);
 
