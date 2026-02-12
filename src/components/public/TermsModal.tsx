@@ -2,9 +2,11 @@ import { X } from 'lucide-react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 
 export function TermsModal({ isOpen, onClose, type = 'terms' }: { isOpen: boolean; onClose: () => void; type: 'terms' | 'privacy' }) {
-    if (!isOpen) return null;
+    // ✨ [Hook Order Fix] All hooks MUST be called before any early return
     const { getSetting } = useAdminSettings();
     const centerName = getSetting('center_name') || 'Zarada';
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
