@@ -396,7 +396,7 @@ export function Settlement() {
                     revenue,
                     payout,
                     incentiveText,
-                    remarks: '',
+                    remarks: staff.remarks || '',
                     counts: {
                         weekday: raw_weekday,
                         weekend: raw_weekend,

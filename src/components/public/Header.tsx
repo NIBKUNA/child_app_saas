@@ -479,7 +479,7 @@ export function Header() {
                                     ) : (
                                         <div className="flex flex-col gap-3">
                                             <Link
-                                                to="/login"
+                                                to={center?.slug ? `/centers/${center.slug}/login` : "/login"}
                                                 className={cn("w-full py-4 text-center text-lg font-medium transition-colors rounded-2xl border-2",
                                                     isDark ? "border-slate-800 text-white hover:bg-slate-800" : "border-slate-100 text-slate-900 hover:bg-slate-50"
                                                 )}
