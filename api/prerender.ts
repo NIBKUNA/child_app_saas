@@ -61,6 +61,100 @@ function escapeHtml(str: string): string {
 // 페이지별 렌더러
 // ============================================
 
+/** 글로벌 랜딩 페이지 (/) */
+async function renderGlobalLanding(supabase: any): Promise<string> {
+    const { data: centers } = await supabase
+        .from('centers')
+        .select('name, slug, address')
+        .eq('is_active', true)
+        .order('name');
+
+    const centerList = (centers || []) as { name: string; slug: string; address: string | null }[];
+
+    const title = '자라다(Zarada) | 아동발달센터 통합 관리 솔루션 - 언어치료·놀이치료·감각통합치료';
+    const description = '우리 아이가 다니는 아동발달센터를 검색하세요. 자라다는 아동발달센터의 효율적인 운영과 아이들의 성장을 돕는 차세대 ERP 솔루션입니다. 언어치료, 놀이치료, 감각통합치료, 인지치료 센터를 한 곳에서 관리하세요.';
+    const url = BASE_URL;
+
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: '자라다(Zarada)',
+        description: description,
+        url: url,
+        logo: `${BASE_URL}/og-image.jpg`,
+        sameAs: [],
+        contactPoint: {
+            '@type': 'ContactPoint',
+            contactType: 'customer service',
+            availableLanguage: 'Korean',
+        },
+    };
+
+    const faqData = {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: [
+            {
+                '@type': 'Question',
+                name: '자라다(Zarada)는 어떤 서비스인가요?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: '자라다는 아동발달센터의 운영을 위한 통합 관리 솔루션입니다. 상담 예약, 수업 스케줄, 발달 평가, 수납 관리 등 센터 운영에 필요한 모든 기능을 제공합니다.',
+                },
+            },
+            {
+                '@type': 'Question',
+                name: '어떤 치료 프로그램을 지원하나요?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: '언어치료, 놀이치료, 감각통합치료, 미술치료, 인지치료, 심리상담 등 다양한 아동발달 치료 프로그램을 관리할 수 있습니다.',
+                },
+            },
+            {
+                '@type': 'Question',
+                name: '학부모도 이용할 수 있나요?',
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: '네, 학부모 전용 앱을 통해 우리 아이의 발달 평가 결과 확인, 수업 일정 조회, 상담 기록 열람이 가능합니다.',
+                },
+            },
+        ],
+    };
+
+    const centerLinks = centerList.map(c =>
+        `<li><a href="${BASE_URL}/centers/${c.slug}">${escapeHtml(c.name)}</a>${c.address ? ` - ${escapeHtml(c.address)}` : ''}</li>`
+    ).join('\n            ');
+
+    return buildHtml({
+        title, description, url,
+        structuredData: [structuredData, faqData],
+        body: `
+            <h1>자라다(Zarada) - 아동발달센터 통합 관리 솔루션</h1>
+            <p>${escapeHtml(description)}</p>
+
+            <h2>주요 기능</h2>
+            <ul>
+                <li>온라인 상담 접수 및 예약 관리</li>
+                <li>아동 수업 스케줄 및 출결 관리</li>
+                <li>전문 발달 평가 (언어, 인지, 사회성, 운동, 적응행동)</li>
+                <li>수납 및 청구 관리</li>
+                <li>학부모 전용 앱 - 우리 아이 발달 현황 실시간 확인</li>
+                <li>치료사 배치 및 프로그램 관리</li>
+            </ul>
+
+            <h2>지원 치료 프로그램</h2>
+            <p>언어치료, 놀이치료, 감각통합치료, 미술치료, 인지치료, 심리상담, 사회성 그룹치료</p>
+
+            <h2>자라다 파트너 센터</h2>
+            <p>전국 ${centerList.length}개의 아동발달센터가 자라다와 함께하고 있습니다.</p>
+            <ul>
+            ${centerLinks}
+            </ul>
+            <p><a href="${BASE_URL}/centers">전체 센터 목록 보기 →</a></p>
+        `,
+    });
+}
+
 /** 센터 디렉토리 (/centers) */
 async function renderCenterDirectory(supabase: any): Promise<string> {
     const { data: centers } = await supabase
@@ -445,14 +539,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
     }
 
-    if (!rawPath) rawPath = '/centers';
+    if (!rawPath) rawPath = '/';
     const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
 
     try {
         let html: string | null = null;
 
+        // / - 글로벌 랜딩 (메인 페이지)
+        if (path === '/' || path === '') {
+            html = await renderGlobalLanding(supabase);
+        }
         // /centers - 디렉토리
-        if (path === '/centers' || path === '/centers/') {
+        else if (path === '/centers' || path === '/centers/') {
             html = await renderCenterDirectory(supabase);
         }
         // /centers/:slug/therapists
