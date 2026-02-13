@@ -92,10 +92,14 @@ function AppHomeRedirect() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  // ✨ [Custom Domain] 커스텀 도메인에서 접속 시 센터 홈페이지로 이동
-  // Super Admin은 통합페이지를 봐야 하므로 리다이렉트 제외
-  if (center?.slug && role !== 'super_admin') {
-    return <Navigate to={`/centers/${center.slug}`} replace />;
+  // ✨ [Custom Domain / Center Redirect]
+  // 커스텀 도메인에서는 항상 센터 페이지로 이동 (super_admin 포함)
+  // SaaS 도메인에서는 super_admin만 통합페이지(GlobalLanding) 표시
+  if (center?.slug) {
+    const skipForSuperAdmin = isSaaSDomain && role === 'super_admin';
+    if (!skipForSuperAdmin) {
+      return <Navigate to={`/centers/${center.slug}`} replace />;
+    }
   }
 
   // 🚨 [Safety] If on a custom domain but NO center found, DO NOT show Global Landing.
