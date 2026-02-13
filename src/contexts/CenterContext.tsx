@@ -43,6 +43,31 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fetchCenter = async () => {
       const pathParts = location.pathname.split('/');
 
+      // ✨ [Custom Domain] 커스텀 도메인 감지
+      // app.myparents.co.kr, localhost 등이 아니면 커스텀 도메인으로 판단
+      const hostname = window.location.hostname;
+      const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
+        || hostname.endsWith('.vercel.app');
+
+      if (!isDefaultDomain && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
+        try {
+          const { data: domainCenter, error: domainError } = await supabase
+            .from('centers')
+            .select('*')
+            .eq('custom_domain', hostname)
+            .maybeSingle();
+
+          if (!domainError && domainCenter) {
+            setCenter(domainCenter);
+            setLoading(false);
+            return;
+          }
+          // 도메인 매칭 실패 시 기본 로직으로 폴백
+        } catch (e) {
+          console.warn('Custom domain lookup failed, falling back to slug', e);
+        }
+      }
+
       // ✨ [Master Console] Skip any center loading for master routes
       if (location.pathname.startsWith('/master')) {
         setCenterState(null);

@@ -71,6 +71,38 @@
             "destination": "/api/prerender?path=/centers"
         },
         {
+            "source": "/:path(therapists|programs|about|contact)",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                },
+                {
+                    "type": "header",
+                    "key": "host",
+                    "value": "^(?!app\\.myparents\\.co\\.kr).*$"
+                }
+            ],
+            "destination": "/api/prerender?path=/:path"
+        },
+        {
+            "source": "/",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                },
+                {
+                    "type": "header",
+                    "key": "host",
+                    "value": "^(?!app\\.myparents\\.co\\.kr).*$"
+                }
+            ],
+            "destination": "/api/prerender?path=/"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

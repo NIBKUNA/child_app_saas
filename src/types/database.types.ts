@@ -163,6 +163,7 @@ export type Database = {
           address: string | null
           business_number: string | null
           created_at: string | null
+          custom_domain: string | null
           email: string | null
           holiday_text: string | null
           id: string
@@ -181,6 +182,7 @@ export type Database = {
           address?: string | null
           business_number?: string | null
           created_at?: string | null
+          custom_domain?: string | null
           email?: string | null
           holiday_text?: string | null
           id?: string
@@ -199,6 +201,7 @@ export type Database = {
           address?: string | null
           business_number?: string | null
           created_at?: string | null
+          custom_domain?: string | null
           email?: string | null
           holiday_text?: string | null
           id?: string

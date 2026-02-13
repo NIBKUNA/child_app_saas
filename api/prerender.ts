@@ -418,10 +418,35 @@ function buildHtml({ title, description, url, structuredData, body }: HtmlOption
 // ============================================
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const rawPath = (req.query.path as string) || '/centers';
-    const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
-
     const supabase = getSupabase();
+    const host = (req.headers.host || '').replace(/:\d+$/, ''); // Remove port
+
+    // ✨ 커스텀 도메인 감지
+    const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(host)
+        || host.endsWith('.vercel.app');
+
+    let rawPath = (req.query.path as string) || '';
+
+    // 커스텀 도메인에서 접속 시, DB에서 slug를 찾아서 path를 자동 설정
+    if (!isDefaultDomain && !rawPath.startsWith('/centers/')) {
+        try {
+            const { data: domainCenter } = await supabase
+                .from('centers')
+                .select('slug')
+                .eq('custom_domain', host)
+                .maybeSingle();
+
+            if (domainCenter?.slug) {
+                const subPath = rawPath === '/' || rawPath === '' ? '' : rawPath;
+                rawPath = `/centers/${domainCenter.slug}${subPath}`;
+            }
+        } catch (e) {
+            // 도메인 매칭 실패 시 기본 로직으로 폴백
+        }
+    }
+
+    if (!rawPath) rawPath = '/centers';
+    const path = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
 
     try {
         let html: string | null = null;
