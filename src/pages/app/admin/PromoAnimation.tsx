@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Maximize2, Users, Brain, Wallet, CalendarDays, TrendingUp } from 'lucide-react';
+import { Users, Brain, Wallet, CalendarDays, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ============================================================
@@ -48,22 +48,14 @@ function CountUp({ target, duration = 1500, prefix = '', suffix = '' }: { target
 }
 
 export function PromoAnimation() {
-    const [isPlaying, setIsPlaying] = useState(false);
     const [elapsed, setElapsed] = useState(0);
-    const [isFullscreen, setIsFullscreen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const animationRef = useRef<number | null>(null);
     const startTimeRef = useRef<number>(0);
 
     const currentScene = SCENES.find(s => elapsed >= s.start && elapsed < s.end) || SCENES[SCENES.length - 1];
-    const progress = (elapsed / TOTAL_DURATION) * 100;
 
     useEffect(() => {
-        if (!isPlaying) {
-            if (animationRef.current) cancelAnimationFrame(animationRef.current);
-            return;
-        }
-
         startTimeRef.current = Date.now() - elapsed;
 
         const tick = () => {
@@ -71,8 +63,8 @@ export function PromoAnimation() {
             const newElapsed = now - startTimeRef.current;
 
             if (newElapsed >= TOTAL_DURATION) {
-                setElapsed(TOTAL_DURATION);
-                setIsPlaying(false);
+                startTimeRef.current = Date.now();
+                setElapsed(0);
                 return;
             }
 
@@ -82,23 +74,7 @@ export function PromoAnimation() {
 
         animationRef.current = requestAnimationFrame(tick);
         return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
-    }, [isPlaying]);
-
-    const reset = () => {
-        setIsPlaying(false);
-        setElapsed(0);
-    };
-
-    const toggleFullscreen = () => {
-        if (!containerRef.current) return;
-        if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen();
-            setIsFullscreen(true);
-        } else {
-            document.exitFullscreen();
-            setIsFullscreen(false);
-        }
-    };
+    }, []);
 
     const sceneProgress = (sceneId: string) => {
         const scene = SCENES.find(s => s.id === sceneId);
@@ -113,32 +89,11 @@ export function PromoAnimation() {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                        홍보 콘텐츠
-                    </h1>
-                    <p className="text-slate-500 font-bold mt-1 text-sm">인포그래픽 애니메이션 · 19.5초</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={reset} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <RotateCcw className="w-4 h-4" />
-                    </button>
-                    <button onClick={toggleFullscreen} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <Maximize2 className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-
+        <div>
             {/* Player */}
             <div
                 ref={containerRef}
-                className={cn(
-                    "relative bg-[#0a0818] rounded-3xl overflow-hidden shadow-2xl border border-white/5",
-                    isFullscreen ? "rounded-none" : ""
-                )}
+                className="relative bg-[#0a0818] rounded-3xl overflow-hidden shadow-2xl border border-white/5"
                 style={{ aspectRatio: '16/9' }}
             >
                 {/* ===== SCENE: INTRO ===== */}
@@ -505,61 +460,6 @@ export function PromoAnimation() {
                     </div>
                 </div>
 
-                {/* ===== PLAY OVERLAY (when not started) ===== */}
-                {!isPlaying && elapsed === 0 && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer"
-                        onClick={() => setIsPlaying(true)}>
-                        <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center hover:scale-110 transition-transform">
-                            <Play className="w-8 h-8 text-white ml-1" />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4">
-                <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shrink-0"
-                >
-                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                </button>
-
-                {/* Progress bar */}
-                <div className="flex-1 relative">
-                    <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-[width] duration-100"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    {/* Scene markers */}
-                    <div className="flex justify-between mt-2">
-                        {SCENES.map(s => (
-                            <button
-                                key={s.id}
-                                onClick={() => { setElapsed(s.start); setIsPlaying(true); }}
-                                className={cn(
-                                    "text-[10px] font-bold transition-colors cursor-pointer",
-                                    currentScene.id === s.id ? "text-indigo-500" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                )}
-                            >
-                                {s.id === 'intro' ? '인트로' :
-                                    s.id === 'kpi' ? 'KPI' :
-                                        s.id === 'dashboard' ? '대시보드' :
-                                            s.id === 'schedule' ? '스케줄' :
-                                                s.id === 'multicenter' ? '멀티센터' : 'CTA'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Timer */}
-                <div className="text-xs font-mono text-slate-400 shrink-0 tabular-nums">
-                    {String(Math.floor(elapsed / 60000)).padStart(2, '0')}:
-                    {String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0')} /
-                    0:{String(Math.floor(TOTAL_DURATION / 1000)).padStart(2, '0')}
-                </div>
             </div>
         </div>
     );

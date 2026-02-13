@@ -3,10 +3,11 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
-import { Search, ArrowRight, MapPin, Users, Brain, Wallet, CalendarDays } from 'lucide-react';
+import { Search, ArrowRight, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import { motion } from 'framer-motion';
+import { PromoAnimation } from '@/pages/app/admin/PromoAnimation';
 
 interface Center {
     id: string;
@@ -294,148 +295,9 @@ export const GlobalLanding = () => {
                     )}
                 </div>
 
-                {/* 📊 Interactive Dashboard Infographic */}
+                {/* 🎬 Promo Animation */}
                 <div className="relative mt-12 px-4 md:px-8 max-w-5xl mx-auto w-full">
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 1 }}
-                        className="bg-gradient-to-br from-slate-900 via-[#0f172a] to-indigo-950 rounded-[32px] md:rounded-[40px] shadow-2xl overflow-hidden p-6 md:p-10 border border-slate-700/50 relative"
-                    >
-                        {/* Ambient glow */}
-                        <div className="absolute top-0 right-0 w-60 h-60 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
-                        <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/10 rounded-full blur-[60px] pointer-events-none" />
-
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-8 relative z-10">
-                            <div>
-                                <p className="text-indigo-400 text-xs font-black uppercase tracking-[0.3em]">Zarada ERP Dashboard</p>
-                                <h3 className="text-white text-lg md:text-xl font-black mt-1">센터 운영의 모든 것, 한눈에</h3>
-                            </div>
-                        </div>
-
-                        {/* 4 Stat Cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 relative z-10">
-                            {[
-                                { label: '아이 관리', value: '1,247', sub: '+23 이번 달', IconComp: Users, color: 'from-violet-500/20 to-violet-600/10', border: 'border-violet-500/20', accent: 'text-violet-400', iconColor: 'text-violet-400' },
-                                { label: '치료 세션', value: '8,432', sub: '월 평균', IconComp: Brain, color: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/20', accent: 'text-blue-400', iconColor: 'text-blue-400' },
-                                { label: '자동 정산', value: '₩92M', sub: '이번 달 매출', IconComp: Wallet, color: 'from-emerald-500/20 to-emerald-600/10', border: 'border-emerald-500/20', accent: 'text-emerald-400', iconColor: 'text-emerald-400' },
-                                { label: '스케줄 관리', value: '324', sub: '이번 주 예약', IconComp: CalendarDays, color: 'from-amber-500/20 to-amber-600/10', border: 'border-amber-500/20', accent: 'text-amber-400', iconColor: 'text-amber-400' },
-                            ].map((stat, i) => (
-                                <motion.div
-                                    key={stat.label}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }}
-                                    className={`bg-gradient-to-br ${stat.color} border ${stat.border} rounded-2xl p-4 md:p-5`}
-                                >
-                                    <stat.IconComp size={22} className={`${stat.iconColor} mb-2`} />
-                                    <div className="text-white font-black text-xl md:text-2xl tracking-tight">{stat.value}</div>
-                                    <div className="text-slate-400 text-[11px] font-bold mt-0.5">{stat.label}</div>
-                                    <div className={`${stat.accent} text-[10px] font-bold mt-1`}>{stat.sub}</div>
-                                </motion.div>
-                            ))}
-                        </div>
-
-                        {/* Bottom Row: Chart + Schedule */}
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative z-10">
-                            {/* Bar Chart — 주간 세션 추이 */}
-                            <div className="md:col-span-3 bg-slate-800/40 border border-slate-700/40 rounded-2xl p-5">
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-slate-300 text-xs font-black">주간 세션 추이</span>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-indigo-500" /><span className="text-slate-500 text-[9px] font-bold">언어</span></div>
-                                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-violet-500" /><span className="text-slate-500 text-[9px] font-bold">감각</span></div>
-                                        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-emerald-500" /><span className="text-slate-500 text-[9px] font-bold">놀이</span></div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="text-white text-lg font-black">152</span>
-                                    <span className="text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">+12.5% ↑</span>
-                                </div>
-                                {/* Chart area with grid lines */}
-                                <div className="relative h-32">
-                                    {/* Horizontal grid lines */}
-                                    {[0, 1, 2, 3].map(i => (
-                                        <div key={i} className="absolute left-0 right-0 border-t border-slate-700/30" style={{ bottom: `${i * 33.3}%` }} />
-                                    ))}
-                                    {/* Trend line (SVG overlay) */}
-                                    <svg className="absolute inset-0 w-full h-full z-10 pointer-events-none" viewBox="0 0 600 128" preserveAspectRatio="none">
-                                        <defs>
-                                            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                                                <stop offset="0%" stopColor="#818cf8" />
-                                                <stop offset="100%" stopColor="#a78bfa" />
-                                            </linearGradient>
-                                        </defs>
-                                        <polyline
-                                            fill="none"
-                                            stroke="url(#lineGrad)"
-                                            strokeWidth="2.5"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            points="50,105 150,70 250,82 350,45 450,22 550,58"
-                                            className="chart-line"
-                                        />
-                                        {/* Data points */}
-                                        {[[50, 105], [150, 70], [250, 82], [350, 45], [450, 22], [550, 58]].map(([cx, cy], i) => (
-                                            <circle key={i} cx={cx} cy={cy} r="4" fill="#818cf8" stroke="#0f172a" strokeWidth="2" className="chart-dot" style={{ animationDelay: `${1 + i * 0.1}s` }} />
-                                        ))}
-                                    </svg>
-                                    {/* Bars */}
-                                    <div className="flex items-end gap-2 h-full relative z-0">
-                                        {[
-                                            { h: 25, day: '월', colors: 'from-indigo-600 via-indigo-500 to-indigo-400' },
-                                            { h: 50, day: '화', colors: 'from-indigo-600 via-indigo-500 to-violet-400' },
-                                            { h: 38, day: '수', colors: 'from-violet-600 via-violet-500 to-indigo-400' },
-                                            { h: 70, day: '목', colors: 'from-violet-600 via-purple-500 to-indigo-400' },
-                                            { h: 92, day: '금', colors: 'from-indigo-600 via-purple-500 to-violet-400' },
-                                            { h: 48, day: '토', colors: 'from-slate-600 via-slate-500 to-slate-400' },
-                                        ].map((bar, i) => (
-                                            <div key={bar.day} className="flex-1 flex flex-col items-center gap-1">
-                                                <div className="w-full rounded-lg relative overflow-hidden" style={{ height: `${bar.h}%` }}>
-                                                    <div
-                                                        className={`absolute bottom-0 left-0 right-0 rounded-lg bg-gradient-to-t ${bar.colors} opacity-80`}
-                                                        style={{ animation: `barGrow 0.8s ease-out ${0.8 + i * 0.08}s both` }}
-                                                    />
-                                                    {/* Shine effect */}
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 rounded-lg" style={{ animation: `barGrow 0.8s ease-out ${0.8 + i * 0.08}s both` }} />
-                                                </div>
-                                                <span className="text-slate-500 text-[9px] font-bold">{bar.day}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Schedule Timeline */}
-                            <div className="md:col-span-2 bg-slate-800/40 border border-slate-700/40 rounded-2xl p-5">
-                                <span className="text-slate-300 text-xs font-black block mb-4">오늘의 일정</span>
-                                <div className="space-y-3">
-                                    {[
-                                        { time: '09:00', name: '김○○', type: '언어치료', color: 'bg-blue-400' },
-                                        { time: '10:30', name: '이○○', type: '감각통합', color: 'bg-violet-400' },
-                                        { time: '13:00', name: '박○○', type: '놀이치료', color: 'bg-emerald-400' },
-                                        { time: '14:30', name: '최○○', type: '인지치료', color: 'bg-amber-400' },
-                                    ].map((item, i) => (
-                                        <motion.div
-                                            key={item.time}
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 1.0 + i * 0.12, duration: 0.4 }}
-                                            className="flex items-center gap-3"
-                                        >
-                                            <span className="text-slate-500 text-[10px] font-mono font-bold w-10 shrink-0">{item.time}</span>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${item.color} shrink-0`} />
-                                            <div className="min-w-0 flex-1">
-                                                <span className="text-white text-xs font-bold">{item.name}</span>
-                                                <span className="text-slate-500 text-[10px] font-bold ml-2">{item.type}</span>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
+                    <PromoAnimation />
                 </div>
             </main>
 
@@ -555,29 +417,7 @@ export const GlobalLanding = () => {
                     animation-play-state: paused;
                 }
 
-                @keyframes barGrow {
-                    0% { height: 0%; }
-                    100% { height: 100%; }
-                }
 
-                .chart-line {
-                    stroke-dasharray: 1200;
-                    stroke-dashoffset: 1200;
-                    animation: drawLine 1.5s ease-out 0.8s forwards;
-                }
-                @keyframes drawLine {
-                    to { stroke-dashoffset: 0; }
-                }
-
-                .chart-dot {
-                    opacity: 0;
-                    transform-origin: center;
-                    animation: dotAppear 0.3s ease-out forwards;
-                }
-                @keyframes dotAppear {
-                    0% { opacity: 0; r: 0; }
-                    100% { opacity: 1; r: 4; }
-                }
             `}} />
         </div>
     );
