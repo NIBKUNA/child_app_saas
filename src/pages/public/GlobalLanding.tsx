@@ -3,11 +3,10 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
-import { Search, ArrowRight, MapPin, ChevronDown } from 'lucide-react';
+import { Search, ArrowRight, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useClickOutside } from '@/hooks/useClickOutside';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface Center {
     id: string;
@@ -22,7 +21,7 @@ export const GlobalLanding = () => {
     const [keyword, setKeyword] = useState('');
     const [centers, setCenters] = useState<Center[]>([]);
     const [filteredCenters, setFilteredCenters] = useState<Center[]>([]);
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -38,10 +37,7 @@ export const GlobalLanding = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // ✨ [Hook] Close dropdown on outside click
-    useClickOutside(dropdownRef, () => {
-        setIsDropdownOpen(false);
-    });
+
 
     // ✨ [Data] Fetch All Active Centers
     useEffect(() => {
@@ -95,7 +91,7 @@ export const GlobalLanding = () => {
         } else if (center.slug) {
             navigate(`/centers/${center.slug}?login=true`);
         }
-        setIsDropdownOpen(false);
+
     };
 
     const handleEnter = (e: React.FormEvent) => {
@@ -177,94 +173,83 @@ export const GlobalLanding = () => {
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2, duration: 0.8 }}
-                            className={cn(
-                                "relative z-[60] bg-white rounded-[40px] p-2 md:p-3 shadow-[0_30px_100px_rgba(0,0,0,0.15)] flex items-center transition-all duration-500",
-                                isDropdownOpen ? "scale-[1.03] ring-12 ring-indigo-500/10" : "hover:scale-[1.01]"
-                            )}
+                            className="relative z-[60] bg-white rounded-full p-2 md:p-3 shadow-[0_30px_100px_rgba(0,0,0,0.15)] flex items-center hover:scale-[1.01] transition-all duration-500"
                         >
                             <form onSubmit={handleEnter} className="flex-1 flex items-center pl-6">
                                 <Search className="w-7 h-7 text-indigo-500" />
                                 <input
                                     type="text"
                                     value={keyword}
-                                    onChange={(e) => {
-                                        setKeyword(e.target.value);
-                                        if (!isDropdownOpen) setIsDropdownOpen(true);
-                                    }}
-                                    onFocus={() => setIsDropdownOpen(true)}
+                                    onChange={(e) => setKeyword(e.target.value)}
                                     className="w-full bg-transparent border-none outline-none px-6 py-6 text-slate-800 font-extrabold text-2xl placeholder-slate-300"
-                                    placeholder="지금 센터 이름을 입력하세요"
+                                    placeholder="센터 이름을 검색하세요"
                                 />
                             </form>
-                            <button
-                                type="button"
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="hidden md:flex flex-col items-center justify-center px-8 border-l border-slate-100 text-slate-300 hover:text-indigo-600 transition-all gap-1"
-                            >
-                                <ChevronDown className={cn("w-6 h-6 transition-transform duration-500", isDropdownOpen && "rotate-180")} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Select</span>
-                            </button>
-                        </motion.div>
-
-                        {/* ✨ Clean Context-Aware Dropdown */}
-                        <AnimatePresence>
-                            {isDropdownOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 10 }}
-                                    className="absolute top-[85%] left-4 right-4 bg-white rounded-b-[48px] shadow-[0_40px_120px_rgba(0,0,0,0.2)] border border-t-0 border-slate-50 pt-16 pb-6 z-50"
-                                >
-                                    <div className="max-h-[360px] overflow-y-auto px-4 custom-scrollbar">
-                                        {fetchError && (
-                                            <div className="mx-4 mb-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-500 text-sm font-bold text-center">
-                                                {fetchError}
-                                            </div>
-                                        )}
-                                        {isInitialLoading ? (
-                                            <div className="py-20 flex flex-col items-center gap-6">
-                                                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                                                <p className="text-slate-400 font-black tracking-tight">센터 데이터를 불러오고 있습니다...</p>
-                                            </div>
-                                        ) : filteredCenters.length > 0 ? (
-                                            <div className="grid gap-2">
-                                                {filteredCenters.map(center => (
-                                                    <button
-                                                        key={center.id}
-                                                        onMouseDown={(e) => {
-                                                            e.preventDefault();
-                                                            handleSelect(center);
-                                                        }}
-                                                        className="group w-full p-6 text-left rounded-[32px] hover:bg-indigo-50 transition-all flex items-center justify-between"
-                                                    >
-                                                        <div className="flex items-center gap-6">
-                                                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm border border-slate-100">
-                                                                <MapPin size={28} />
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-black text-slate-900 text-2xl group-hover:text-indigo-600 transition-colors line-clamp-1">{center.name}</div>
-                                                                <p className="text-slate-400 font-bold mt-1 line-clamp-1">{center.address || '대한민국'}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:translate-x-0 -translate-x-4 transition-all text-indigo-600">
-                                                            <ArrowRight size={24} />
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="py-24 text-center">
-                                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
-                                                    <Search size={40} />
-                                                </div>
-                                                <p className="text-slate-400 font-black text-xl">검색 결과와 일치하는 센터가 없습니다.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
+                            {centers.length > 0 && (
+                                <div className="hidden md:flex items-center justify-center px-6 border-l border-slate-100">
+                                    <span className="text-sm font-black text-indigo-600 whitespace-nowrap">{centers.length}개 센터</span>
+                                </div>
                             )}
-                        </AnimatePresence>
+                        </motion.div>
                     </div>
+
+                    {/* ✨ Always Visible Center Grid */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.8 }}
+                        className="mt-16 w-full max-w-5xl mx-auto px-4"
+                    >
+                        {fetchError && (
+                            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-500 text-sm font-bold text-center">
+                                {fetchError}
+                            </div>
+                        )}
+                        {isInitialLoading ? (
+                            <div className="py-20 flex flex-col items-center gap-6">
+                                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                                <p className="text-white/60 font-black tracking-tight">센터 데이터를 불러오고 있습니다...</p>
+                            </div>
+                        ) : filteredCenters.length > 0 ? (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {(keyword ? filteredCenters : filteredCenters.slice(0, 6)).map((center, idx) => (
+                                        <motion.button
+                                            key={center.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.05 * idx, duration: 0.4 }}
+                                            onClick={() => handleSelect(center)}
+                                            className="group w-full p-6 text-left rounded-[28px] bg-white/95 backdrop-blur-md shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/50 flex items-center gap-5"
+                                        >
+                                            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shrink-0">
+                                                <MapPin size={22} />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors truncate">{center.name}</div>
+                                                <p className="text-slate-400 text-sm font-bold mt-0.5 truncate">{center.address || '대한민국'}</p>
+                                            </div>
+                                            <ArrowRight size={18} className="text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all shrink-0" />
+                                        </motion.button>
+                                    ))}
+                                </div>
+                                {!keyword && filteredCenters.length > 6 && (
+                                    <div className="mt-6 text-center">
+                                        <Link
+                                            to="/centers"
+                                            className="inline-flex items-center gap-2 px-8 py-4 bg-white/20 backdrop-blur-md text-white font-black rounded-full hover:bg-white/30 transition-all border border-white/20"
+                                        >
+                                            전체 {filteredCenters.length}개 센터 보기 <ArrowRight size={18} />
+                                        </Link>
+                                    </div>
+                                )}
+                            </>
+                        ) : keyword ? (
+                            <div className="py-16 text-center">
+                                <p className="text-white/50 font-black text-xl">'{keyword}'와 일치하는 센터가 없습니다.</p>
+                            </div>
+                        ) : null}
+                    </motion.div>
                 </div>
 
                 {/* Dashboard Preview or Graphics (Inspired by Image 2) */}
@@ -327,8 +312,7 @@ export const GlobalLanding = () => {
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 group w-fit"
                             >
-                                <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-10 w-auto object-contain transition-transform group-hover:scale-110" />
-                                <span className="text-2xl font-black tracking-tighter text-white group-hover:text-amber-400 transition-colors">Zarada</span>
+                                <img src="/zarada_tree_logo.png" alt="Zarada Logo" className="h-12 w-auto object-contain transition-transform group-hover:scale-110" style={{ filter: 'brightness(0) invert(1)' }} />
                             </a>
                             <p className="text-sm text-slate-400 font-bold leading-relaxed max-w-xs">
                                 아이들의 무한한 가능성을 데이터로 증명하는<br />
