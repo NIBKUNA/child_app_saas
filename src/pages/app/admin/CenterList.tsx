@@ -15,7 +15,7 @@ export function CenterList() {
     const [centers, setCenters] = useState<Center[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [newCenter, setNewCenter] = useState({ name: '', slug: '' });
+    const [newCenter, setNewCenter] = useState({ name: '', slug: '', custom_domain: '' });
     const navigate = useNavigate();
 
     // ✨ Super Admin Security Check
@@ -64,6 +64,7 @@ export function CenterList() {
                 .insert({
                     name: newCenter.name,
                     slug: finalSlug,
+                    custom_domain: newCenter.custom_domain || null,
                     is_active: true
                 } as any) // ✨ Temporarily using any to bypass the strange inference issue while maintaining schema sync
                 .select()
@@ -77,7 +78,7 @@ export function CenterList() {
 
             alert('✅ 새로운 센터가 등록되었습니다!');
             setIsCreateModalOpen(false);
-            setNewCenter({ name: '', slug: '' });
+            setNewCenter({ name: '', slug: '', custom_domain: '' });
             fetchCenters(); // Refresh list
         } catch (error: any) {
             console.error('Create Error:', error);
@@ -205,6 +206,18 @@ export function CenterList() {
                                         />
                                     </div>
                                 </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">커스텀 도메인 (선택)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="예: jamsil-center.co.kr (http 제외)"
+                                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl font-bold text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
+                                        value={newCenter.custom_domain}
+                                        onChange={e => setNewCenter({ ...newCenter, custom_domain: e.target.value })}
+                                    />
+                                    <p className="text-[10px] text-slate-400 font-bold ml-2">입력하지 않으면 기본 도메인만 사용합니다.</p>
+                                </div>
                             </div>
 
                             <button
@@ -222,8 +235,9 @@ export function CenterList() {
                             </button>
                         </form>
                     </div>
-                </div>
-            )}
-        </div>
+                </div >
+            )
+            }
+        </div >
     );
 }

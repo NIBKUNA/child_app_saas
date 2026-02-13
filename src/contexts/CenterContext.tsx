@@ -24,6 +24,17 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { profile, loading: authLoading } = useAuth();
 
   const setCenter = (data: any) => {
+    // 🔍 [Verification] Log Center ID and Code for validation
+    if (data) {
+      const isDomainMatch = window.location.hostname === data?.custom_domain;
+      console.log(`✅ [CenterContext] Loaded: ${data.name}`, {
+        id: data.id,
+        slug: data.slug,
+        domain: data.custom_domain || 'N/A',
+        source: isDomainMatch ? 'Custom Domain' : 'Slug/Path'
+      });
+    }
+
     if (data?.slug) {
       localStorage.setItem('zarada_center_slug', data.slug);
     }
