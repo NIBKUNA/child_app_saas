@@ -345,7 +345,7 @@ function App() {
 
           {/* 6. Master Console (Super Admin Only) - Dedicated Layout & Context */}
           <Route path="/master" element={<Suspense fallback={<LazyFallback />}><MasterLayout /></Suspense>}>
-            <Route index element={<div className="text-slate-400 font-bold p-8">Master Dashboard (Coming Soon)</div>} />
+            <Route index element={<Navigate to="/master/centers" replace />} />
             <Route path="centers" element={<CenterList />} />
             <Route path="centers/:centerId" element={<CenterDetailPage />} />
           </Route>

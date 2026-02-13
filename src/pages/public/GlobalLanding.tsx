@@ -139,7 +139,7 @@ export const GlobalLanding = () => {
                     <div className="absolute bottom-0 left-0 right-0 h-32 bg-white" style={{ borderRadius: '100% 100% 0 0 / 100% 100% 0 0' }} />
                 </div>
 
-                <div className="relative z-10 flex flex-col items-center pt-48 pb-32 px-4 text-center">
+                <div className="relative z-10 flex flex-col items-center pt-32 md:pt-48 pb-20 md:pb-32 px-4 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -153,19 +153,19 @@ export const GlobalLanding = () => {
                         </div>
 
                         {/* High-Impact Headline */}
-                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tight leading-[1.05] drop-shadow-2xl">
+                        <h1 className="text-4xl md:text-7xl lg:text-8xl font-black text-white tracking-tight leading-[1.05] drop-shadow-2xl">
                             아동발달센터의<br />
                             확실한 파트너.
                         </h1>
 
-                        <p className="text-xl md:text-2xl text-indigo-100/90 font-medium max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-lg md:text-2xl text-indigo-100/90 font-medium max-w-2xl mx-auto leading-relaxed">
                             우리 아이가 다니는 센터를 검색하고<br />
                             성장을 위한 자라다의 모든 솔루션을 경험하세요.
                         </p>
                     </motion.div>
 
                     {/* ✨ The Grand Search Box */}
-                    <div className="mt-16 w-full max-w-3xl relative">
+                    <div className="mt-10 md:mt-16 w-full max-w-3xl relative">
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -178,7 +178,7 @@ export const GlobalLanding = () => {
                                     type="text"
                                     value={keyword}
                                     onChange={(e) => setKeyword(e.target.value)}
-                                    className="w-full bg-transparent border-none outline-none px-6 py-6 text-slate-800 font-extrabold text-2xl placeholder-slate-300"
+                                    className="w-full bg-transparent border-none outline-none px-4 md:px-6 py-4 md:py-6 text-slate-800 font-extrabold text-lg md:text-2xl placeholder-slate-300"
                                     placeholder="센터 이름을 검색하세요"
                                 />
                             </form>
@@ -467,13 +467,13 @@ export const GlobalLanding = () => {
                                 아이들의 무한한 가능성을 데이터로 증명하는<br />
                                 차세대 아동발달센터 솔루션 Zarada입니다.
                             </p>
-                            <Link to="/centers" className="inline-flex items-center text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
-                                전체 센터 찾아보기 →
-                            </Link>
+                            <a href="https://zarada.co.kr/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors">
+                                컨설팅/마케팅 문의 →
+                            </a>
                         </div>
 
                         {/* 2. Info Section (Separated by border) */}
-                        <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-10 gap-12 md:pl-16 md:border-l md:border-white/5">
+                        <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-12 gap-10 md:gap-12 md:pl-16 md:border-l md:border-white/5">
 
                             {/* OFFICE */}
                             <div className="sm:col-span-5 space-y-6">
@@ -491,13 +491,13 @@ export const GlobalLanding = () => {
                             </div>
 
                             {/* CORP NO. */}
-                            <div className="sm:col-span-2 space-y-6">
+                            <div className="sm:col-span-3 space-y-6">
                                 <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-indigo-400/80">Corp No.</h4>
-                                <p className="text-[13px] text-slate-300 font-bold tracking-wider">188 - 87 - 02240</p>
+                                <p className="text-[13px] text-slate-300 font-bold tracking-wider whitespace-nowrap">188 - 87 - 02240</p>
                             </div>
 
                             {/* CONTACT */}
-                            <div className="sm:col-span-3 space-y-6">
+                            <div className="sm:col-span-4 space-y-6">
                                 <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-indigo-400/80">Contact</h4>
                                 <div className="space-y-4 text-[13px] text-slate-300 font-bold">
                                     <div className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-3">
@@ -523,12 +523,12 @@ export const GlobalLanding = () => {
                     <p className="text-xs font-black text-slate-500 tracking-tight">
                         © Zarada Co., Ltd. All Rights Reserved.
                     </p>
-                    <div className="flex items-center gap-8">
-                        <Link to="/policy/privacy" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Privacy Policy</Link>
-                        <Link to="/policy/terms" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest">Terms of Service</Link>
+                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 md:gap-8">
+                        <Link to="/policy/privacy" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest py-2">Privacy Policy</Link>
+                        <Link to="/policy/terms" className="text-[10px] font-black text-slate-500 hover:text-white transition-colors uppercase tracking-widest py-2">Terms of Service</Link>
                         <Link
                             to={!role ? "/login" : (role === 'super_admin' ? "/master/centers" : (role === 'parent' ? "/parent/home" : "/app/dashboard"))}
-                            className="px-4 py-1.5 rounded-full border border-white/5 text-[10px] font-black text-slate-500 hover:bg-white/5 hover:text-white transition-all uppercase tracking-widest"
+                            className="px-4 py-2 rounded-full border border-white/5 text-[10px] font-black text-slate-500 hover:bg-white/5 hover:text-white transition-all uppercase tracking-widest"
                         >
                             {!role ? "Partner Portal" : "Workspace"}
                         </Link>

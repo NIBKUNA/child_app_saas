@@ -261,10 +261,10 @@ export function ConsultationList() {
     if (loading) return <div className="p-20 text-center font-black text-slate-300 dark:text-slate-500 animate-pulse">데이터 동기화 중...</div>;
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-12 selection:bg-primary/10">
-            <header className="flex justify-between items-end bg-white dark:bg-slate-800 p-10 rounded-[48px] border border-slate-100 dark:border-slate-700 shadow-sm">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 md:space-y-12 selection:bg-primary/10">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white dark:bg-slate-800 p-6 md:p-10 rounded-3xl md:rounded-[48px] border border-slate-100 dark:border-slate-700 shadow-sm">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">발달 평가 및 상담 관리</h1>
+                    <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">발달 평가 및 상담 관리</h1>
                     <p className="text-slate-500 dark:text-slate-400 font-bold mt-3 text-sm">
                         {userRole === 'admin' || userRole === 'super_admin'
                             ? '센터 전체 발달 평가 현황을 실시간으로 확인합니다.'

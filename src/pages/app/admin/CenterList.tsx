@@ -89,33 +89,33 @@ export function CenterList() {
     };
 
     return (
-        <div className="space-y-8 p-8 max-w-7xl mx-auto">
+        <div className="space-y-6 md:space-y-8 p-4 md:p-8 max-w-7xl mx-auto">
             <Helmet>
                 <title>Zarada - 전체 센터 관리</title>
             </Helmet>
-            <div className="flex justify-between items-end border-b border-slate-200 pb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6 md:pb-8">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">전체 센터 관리</h1>
-                    <p className="text-slate-500 font-bold mt-2">Zarada Multi-Center SaaS Control Tower</p>
+                    <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter">전체 센터 관리</h1>
+                    <p className="text-sm md:text-base text-slate-500 font-bold mt-1 md:mt-2">Zarada Multi-Center SaaS Control Tower</p>
                 </div>
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-lg shadow-indigo-200 transition-all active:scale-95"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-lg shadow-indigo-200 transition-all active:scale-95 w-full md:w-auto justify-center"
                 >
-                    <Plus className="w-6 h-6" /> 새 지점 개설
+                    <Plus className="w-5 h-5 md:w-6 md:h-6" /> 새 지점 개설
                 </button>
             </div>
 
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {centers.map((center) => (
                     <div
                         key={center.id}
                         onClick={() => navigate(`/master/centers/${center.id}`)}
-                        className="bg-white dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden"
+                        className="bg-white dark:bg-slate-900 p-5 md:p-8 rounded-2xl md:rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:-translate-y-1 md:hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden"
                     >
-                        <div className="flex items-start justify-between mb-6 relative z-10">
-                            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                                <Building2 className="w-8 h-8" />
+                        <div className="flex items-start justify-between mb-4 md:mb-6 relative z-10">
+                            <div className="p-3 md:p-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl md:rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                                <Building2 className="w-6 h-6 md:w-8 md:h-8" />
                             </div>
                             <div className="flex flex-col items-end">
                                 <span className={cn(
@@ -131,27 +131,27 @@ export function CenterList() {
                             </div>
                         </div>
 
-                        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 line-clamp-1">{center.name}</h3>
+                        <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mb-3 md:mb-4 line-clamp-1">{center.name}</h3>
 
-                        <div className="space-y-4 text-sm text-slate-500 font-bold mb-6">
+                        <div className="space-y-3 md:space-y-4 text-xs md:text-sm text-slate-500 font-bold mb-4 md:mb-6">
                             <div className="flex items-center gap-2">
-                                <Globe className="w-4 h-4 text-indigo-400" />
-                                <span className="text-indigo-600">/centers/{center.slug}</span>
+                                <Globe className="w-4 h-4 text-indigo-400 shrink-0" />
+                                <span className="text-indigo-600 truncate">/centers/{center.slug}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-slate-300" />
+                                <MapPin className="w-4 h-4 text-slate-300 shrink-0" />
                                 <span className="line-clamp-1">{center.address || '주소 정보 없음'}</span>
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center">
+                        <div className="pt-4 md:pt-6 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center">
                             <div className="flex -space-x-2">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200" />
+                                    <div key={i} className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200" />
                                 ))}
-                                <div className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-indigo-50 text-[10px] font-bold flex items-center justify-center text-indigo-600">+12</div>
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white dark:border-slate-900 bg-indigo-50 text-[10px] font-bold flex items-center justify-center text-indigo-600">+12</div>
                             </div>
-                            <span className="text-sm font-black text-indigo-600 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all">
+                            <span className="text-xs md:text-sm font-black text-indigo-600 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all">
                                 DETAILS →
                             </span>
                         </div>
@@ -162,23 +162,23 @@ export function CenterList() {
             {/* Create Center Modal */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl animate-in fade-in">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-xl p-10 rounded-[50px] shadow-2xl space-y-8 relative overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-xl p-6 md:p-10 rounded-3xl md:rounded-[50px] shadow-2xl space-y-6 md:space-y-8 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-blue-500" />
 
                         <div className="flex justify-between items-center">
                             <div className="space-y-1">
-                                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">새 지점 개설</h2>
-                                <p className="text-slate-400 font-bold text-sm">새로운 센터의 기본 정보를 입력하세요.</p>
+                                <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">새 지점 개설</h2>
+                                <p className="text-slate-400 font-bold text-xs md:text-sm">새로운 센터의 기본 정보를 입력하세요.</p>
                             </div>
                             <button
                                 onClick={() => setIsCreateModalOpen(false)}
-                                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all"
+                                className="p-2.5 md:p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl md:rounded-2xl transition-all"
                             >
-                                <X className="w-6 h-6 text-slate-400" />
+                                <X className="w-5 h-5 md:w-6 md:h-6 text-slate-400" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateCenter} className="space-y-6">
+                        <form onSubmit={handleCreateCenter} className="space-y-5 md:space-y-6">
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">센터 공식 명칭</label>
@@ -186,7 +186,7 @@ export function CenterList() {
                                         required
                                         type="text"
                                         placeholder="예: 자라다 아동발달센터 잠실점"
-                                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl font-bold text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
+                                        className="w-full px-4 md:px-6 py-3.5 md:py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl md:rounded-3xl font-bold text-base md:text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
                                         value={newCenter.name}
                                         onChange={e => setNewCenter({ ...newCenter, name: e.target.value })}
                                     />
@@ -195,12 +195,12 @@ export function CenterList() {
                                 <div className="space-y-2">
                                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">고유 주소 (Slug)</label>
                                     <div className="relative">
-                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold">/centers/</div>
+                                        <div className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm md:text-base">/centers/</div>
                                         <input
                                             required
                                             type="text"
                                             placeholder="jamsil"
-                                            className="w-full pl-28 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl font-bold text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
+                                            className="w-full pl-24 md:pl-28 pr-4 md:pr-6 py-3.5 md:py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl md:rounded-3xl font-bold text-base md:text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
                                             value={newCenter.slug}
                                             onChange={e => setNewCenter({ ...newCenter, slug: e.target.value })}
                                         />
@@ -212,7 +212,7 @@ export function CenterList() {
                                     <input
                                         type="text"
                                         placeholder="예: jamsil-center.co.kr (http 제외)"
-                                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl font-bold text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
+                                        className="w-full px-4 md:px-6 py-3.5 md:py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl md:rounded-3xl font-bold text-base md:text-lg outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/10 transition-all"
                                         value={newCenter.custom_domain}
                                         onChange={e => setNewCenter({ ...newCenter, custom_domain: e.target.value })}
                                     />
@@ -223,13 +223,13 @@ export function CenterList() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-3xl font-black text-xl shadow-xl shadow-slate-200 dark:shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                className="w-full py-4 md:py-5 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-xl shadow-xl shadow-slate-200 dark:shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                             >
                                 {loading ? (
                                     <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <Save className="w-6 h-6" /> 지점 생성하기
+                                        <Save className="w-5 h-5 md:w-6 md:h-6" /> 지점 생성하기
                                     </>
                                 )}
                             </button>

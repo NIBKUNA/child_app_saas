@@ -210,7 +210,7 @@ export function ProgramsPage() {
 
                     {/* ✨ Bottom Call to Action */}
                     <motion.div
-                        className="mt-32 rounded-[60px] p-16 relative overflow-hidden text-center shadow-2xl shadow-indigo-200/50"
+                        className="mt-16 md:mt-32 rounded-[32px] md:rounded-[60px] p-8 md:p-16 relative overflow-hidden text-center shadow-2xl shadow-indigo-200/50"
                         style={{ backgroundColor: brandColor }}
                         initial={{ opacity: 0, y: 40 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -230,7 +230,7 @@ export function ProgramsPage() {
                             </p>
                             <Link to={center?.slug ? `/centers/${center.slug}/contact` : '/contact'}>
                                 <motion.button
-                                    className="px-12 py-6 bg-white rounded-full font-black text-xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-4"
+                                    className="px-8 md:px-12 py-4 md:py-6 bg-white rounded-full font-black text-lg md:text-xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-3 md:gap-4"
                                     style={{ color: brandColor }}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}

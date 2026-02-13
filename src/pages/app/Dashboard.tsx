@@ -192,22 +192,22 @@ const SvgIcons = {
 };
 
 const KpiCard = ({ title, value, icon, trend, trendUp, color, bg, border }: { title: string; value: string; icon: any; trend: string; trendUp: boolean; color: string; bg: string; border: string }) => (
-    <div className={`p-6 rounded-3xl border ${border} ${bg} relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+    <div className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border ${border} ${bg} relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-white/30 dark:from-white/5 dark:to-white/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex justify-between items-start mb-3 md:mb-6">
             <div>
-                <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1 tracking-wide">{title}</p>
-                <h3 className="text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{value}</h3>
+                <p className="text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400 mb-0.5 md:mb-1 tracking-wide">{title}</p>
+                <h3 className="text-xl md:text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{value}</h3>
             </div>
-            <div className={`p-4 rounded-2xl bg-white/90 dark:bg-slate-800 ${color} shadow-sm border border-slate-100/50 dark:border-slate-700 backdrop-blur-sm`}>
-                {icon("w-7 h-7")}
+            <div className={`p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-white/90 dark:bg-slate-800 ${color} shadow-sm border border-slate-100/50 dark:border-slate-700 backdrop-blur-sm`}>
+                {icon("w-5 h-5 md:w-7 md:h-7")}
             </div>
         </div>
-        <div className="flex items-center gap-2">
-            <span className={`flex items-center text-xs font-bold px-2 py-1 rounded-lg ${trendUp ? 'bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100/80 dark:bg-rose-900/50 text-rose-700 dark:text-rose-400'}`}>
-                {trendUp ? SvgIcons.arrowUp("w-3.5 h-3.5 mr-1") : SvgIcons.arrowDown("w-3.5 h-3.5 mr-1")}{trend}
+        <div className="flex items-center gap-1.5 md:gap-2">
+            <span className={`flex items-center text-[10px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-md md:rounded-lg ${trendUp ? 'bg-emerald-100/80 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100/80 dark:bg-rose-900/50 text-rose-700 dark:text-rose-400'}`}>
+                {trendUp ? SvgIcons.arrowUp("w-3 h-3 md:w-3.5 md:h-3.5 mr-0.5 md:mr-1") : SvgIcons.arrowDown("w-3 h-3 md:w-3.5 md:h-3.5 mr-0.5 md:mr-1")}{trend}
             </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">전월 대비</span>
+            <span className="text-[10px] md:text-xs text-slate-400 dark:text-slate-500 font-medium hidden md:inline">전월 대비</span>
         </div>
     </div>
 );
@@ -829,22 +829,22 @@ export function Dashboard() {
                 </div>
             )}
 
-            <div className="flex justify-between items-end flex-wrap gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div className="text-left">
-                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight hero-text">지능형 센터 인사이트 허브</h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-bold mt-2">AI 기반 운영 & 마케팅 통합 분석 시스템</p>
+                    <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight hero-text">지능형 센터 인사이트 허브</h1>
+                    <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-bold mt-1 md:mt-2">AI 기반 운영 & 마케팅 통합 분석 시스템</p>
                 </div>
-                <div className="flex gap-2 items-center bg-white dark:bg-slate-900 p-2 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="flex gap-2 items-center bg-white dark:bg-slate-900 p-1.5 md:p-2 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar w-full md:w-auto">
                     <input
                         type="month"
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="px-4 py-3 rounded-2xl border-none bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="px-3 md:px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl border-none bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none text-sm shrink-0"
                     />
-                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
+                    <div className="w-px h-6 md:h-8 bg-slate-200 dark:bg-slate-700 mx-0.5 md:mx-1 shrink-0" />
                     <button
                         onClick={() => setSlide(0)}
-                        className={cn("px-6 py-3 rounded-2xl font-black transition-all gpu-accelerate", slide === 0 ? "text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800")}
+                        className={cn("px-4 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-black transition-all gpu-accelerate text-sm shrink-0", slide === 0 ? "text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800")}
                         style={slide === 0 ? { backgroundColor: BRAND_COLOR } : undefined}
                     >
                         운영 지표
@@ -852,7 +852,7 @@ export function Dashboard() {
                     {isSuperAdmin && (
                         <button
                             onClick={() => setSlide(1)}
-                            className={cn("px-6 py-3 rounded-2xl font-black transition-all gpu-accelerate", slide === 1 ? "text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800")}
+                            className={cn("px-4 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-black transition-all gpu-accelerate text-sm shrink-0", slide === 1 ? "text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800")}
                             style={slide === 1 ? { backgroundColor: BRAND_COLOR } : undefined}
                         >
                             마케팅 지능
@@ -861,7 +861,7 @@ export function Dashboard() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <KpiCard title="확정 매출" value={`₩${kpi.revenue.toLocaleString()}`} icon={SvgIcons.dollar} trend="확정" trendUp={true} color="text-blue-600 dark:text-blue-400" bg="bg-white dark:bg-slate-900" border="border-slate-200 dark:border-slate-800" />
                 <KpiCard title="활성 아동" value={`${kpi.active}명`} icon={SvgIcons.users} trend="현재원" trendUp={true} color="text-indigo-600 dark:text-indigo-400" bg="bg-white dark:bg-slate-900" border="border-slate-200 dark:border-slate-800" />
                 <KpiCard title="완료 수업" value={`${kpi.sessions}건`} icon={SvgIcons.calendar} trend="실적" trendUp={true} color="text-emerald-600 dark:text-emerald-400" bg="bg-white dark:bg-slate-900" border="border-slate-200 dark:border-slate-800" />
@@ -871,7 +871,7 @@ export function Dashboard() {
             {slide === 0 && (
                 <div ref={operationsRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     {/* ✨ 운영 지표 서브탭 */}
-                    <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 w-fit">
+                    <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 w-full md:w-fit overflow-x-auto no-scrollbar">
                         {['매출·수업', '아동·프로그램', '운영 현황'].map((label, i) => (
                             <button
                                 key={i}
@@ -1255,7 +1255,7 @@ export function Dashboard() {
                         <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-20 -mt-20" />
                         <div className="relative z-10 space-y-4">
                             <div>
-                                <h3 className="text-3xl font-black mb-2 flex items-center gap-3">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
+                                <h3 className="text-xl md:text-3xl font-black mb-2 flex items-center gap-3 flex-wrap">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
                                 <p className="text-indigo-200 font-bold text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
                             </div>
                             <div className="flex gap-10 pt-6 border-t border-white/10">
