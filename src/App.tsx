@@ -103,6 +103,7 @@ function AppHomeRedirect() {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-gray-50">
         <h1 className="text-xl font-bold text-gray-800">센터 정보를 불러오는 중입니다...</h1>
+        <div className="mt-2 text-xs text-gray-400">Target: {hostname}</div>
         <p className="text-sm text-gray-500">잠시만 기다려주세요.</p>
         <button
           onClick={() => window.location.reload()}

@@ -46,15 +46,16 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // ✨ [Custom Domain] 커스텀 도메인 감지
       // app.myparents.co.kr, localhost 등이 아니면 커스텀 도메인으로 판단
       const hostname = window.location.hostname;
-      const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
-        || hostname.endsWith('.vercel.app');
+      const cleanHostname = hostname.replace(/^www\./, '');
+      const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(cleanHostname)
+        || cleanHostname.endsWith('.vercel.app');
 
       if (!isDefaultDomain && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
         try {
           const { data: domainCenter, error: domainError } = await supabase
             .from('centers')
             .select('*')
-            .eq('custom_domain', hostname)
+            .in('custom_domain', [hostname, cleanHostname])
             .maybeSingle();
 
           if (!domainError && domainCenter) {
