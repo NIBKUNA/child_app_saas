@@ -397,7 +397,7 @@ export function CenterDetailPage() {
                                             onChange={e => setEditForm({ ...editForm, custom_domain: e.target.value })}
                                         />
                                     </div>
-                                    <p className="text-[10px] text-slate-400 font-bold ml-2">도메인 연결 시 DNS CNAME 레코드를 zarada.co.kr로 설정해야 합니다.</p>
+                                    <p className="text-[10px] text-slate-400 font-bold ml-2">DNS 설정: CNAME → cname.vercel-dns.com / A레코드 → 76.76.21.21 (Vercel에도 도메인 추가 필요)</p>
                                 </div>
 
                                 <div className="space-y-2">
