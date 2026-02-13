@@ -1,0 +1,703 @@
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box
+    }
+
+    :root {
+        --bi: #6366f1;
+        --bg: #0f0b1e;
+        --cb: rgba(255, 255, 255, 0.04);
+        --cd: rgba(255, 255, 255, 0.06);
+        --t1: #fff;
+        --t2: rgba(255, 255, 255, 0.6);
+        --t3: rgba(255, 255, 255, 0.35)
+    }
+
+    body,
+    html {
+        margin: 0;
+        padding: 0
+    }
+
+    .z-wrap {
+        font-family: -apple-system, 'Malgun Gothic', '맑은 고딕', sans-serif;
+        background: var(--bg);
+        color: var(--t1);
+        overflow-x: hidden;
+        min-height: 100vh
+    }
+
+    .z-hero {
+        position: relative;
+        padding: 80px 24px 60px;
+        text-align: center;
+        overflow: hidden
+    }
+
+    .z-hero::before {
+        content: '';
+        position: absolute;
+        top: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 700px;
+        height: 700px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+        pointer-events: none
+    }
+
+    .z-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 20px;
+        border-radius: 100px;
+        background: rgba(99, 102, 241, 0.12);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--bi);
+        margin-bottom: 28px;
+        position: relative
+    }
+
+    .z-badge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: zp 2s infinite
+    }
+
+    .z-h1 {
+        font-size: clamp(32px, 7vw, 64px);
+        font-weight: 900;
+        line-height: 1.15;
+        letter-spacing: -2px;
+        margin-bottom: 20px;
+        position: relative
+    }
+
+    .z-gr {
+        background: linear-gradient(135deg, #818cf8, #c084fc, #f0abfc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text
+    }
+
+    .z-sub {
+        font-size: clamp(14px, 2vw, 18px);
+        color: var(--t2);
+        max-width: 480px;
+        margin: 0 auto 40px;
+        line-height: 1.7;
+        position: relative
+    }
+
+    .z-cta {
+        display: inline-block;
+        padding: 16px 36px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--bi), #7c3aed);
+        color: #fff;
+        font-weight: 800;
+        font-size: 15px;
+        text-decoration: none;
+        box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+        position: relative
+    }
+
+    .z-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4)
+    }
+
+    .z-sec {
+        padding: 100px 48px;
+        max-width: 1280px;
+        margin: 0 auto;
+        border-top: 1px solid rgba(255, 255, 255, 0.04)
+    }
+
+    .z-sl {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--bi);
+        margin-bottom: 14px
+    }
+
+    .z-st {
+        font-size: clamp(26px, 4vw, 44px);
+        font-weight: 900;
+        letter-spacing: -1.5px;
+        line-height: 1.2;
+        margin-bottom: 14px;
+        -webkit-text-stroke: 1px rgba(255, 255, 255, 0.9);
+        color: #fff
+    }
+
+    .z-sd {
+        font-size: 15px;
+        color: var(--t2);
+        line-height: 1.7;
+        margin-bottom: 48px
+    }
+
+    .z-kg {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px
+    }
+
+    .z-kc {
+        background: var(--cb);
+        border: 1px solid var(--cd);
+        border-radius: 16px;
+        padding: 22px;
+        transition: transform .3s
+    }
+
+    .z-kc:hover {
+        transform: translateY(-3px)
+    }
+
+    .z-kc em {
+        font-style: normal;
+        font-size: 18px;
+        display: block;
+        margin-bottom: 14px
+    }
+
+    .z-kc b {
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: -1px;
+        display: block;
+        margin-bottom: 2px
+    }
+
+    .z-kc small {
+        font-size: 12px;
+        color: var(--t2);
+        display: block
+    }
+
+    .z-kc span {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 100px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #34d399
+    }
+
+    .z-fg {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px
+    }
+
+    .z-fc {
+        background: var(--cb);
+        border: 1px solid var(--cd);
+        border-radius: 16px;
+        padding: 28px 18px;
+        text-align: center;
+        transition: transform .3s
+    }
+
+    .z-fc:hover {
+        transform: translateY(-3px);
+        border-color: rgba(99, 102, 241, 0.15)
+    }
+
+    .z-fc em {
+        font-style: normal;
+        font-size: 24px;
+        display: block;
+        margin-bottom: 10px
+    }
+
+    .z-fc b {
+        font-size: 14px;
+        font-weight: 800;
+        display: block;
+        margin-bottom: 4px
+    }
+
+    .z-fc small {
+        font-size: 11px;
+        color: var(--t3);
+        display: block
+    }
+
+    .z-fr {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 120px;
+        align-items: center;
+        margin-bottom: 120px
+    }
+
+    .z-fr.rv {
+        direction: rtl
+    }
+
+    .z-fr.rv>* {
+        direction: ltr
+    }
+
+    .z-ft {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--bi);
+        background: rgba(99, 102, 241, 0.1);
+        padding: 5px 12px;
+        border-radius: 100px;
+        margin-bottom: 16px
+    }
+
+    .z-fti {
+        font-size: clamp(22px, 3vw, 34px);
+        font-weight: 900;
+        letter-spacing: -1px;
+        line-height: 1.25;
+        margin-bottom: 12px;
+        -webkit-text-stroke: 1px rgba(255, 255, 255, 0.9);
+        color: #fff
+    }
+
+    .z-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), rgba(255, 255, 255, 0.06), rgba(99, 102, 241, 0.2), transparent);
+        margin: 20px 0
+    }
+
+    .z-fd {
+        font-size: 14px;
+        color: var(--t2);
+        line-height: 1.8
+    }
+
+    .z-fiw {
+        border-radius: 14px;
+        border: 1px solid var(--cd);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+        overflow: hidden
+    }
+
+    .z-ctas {
+        padding: 100px 24px;
+        text-align: center;
+        position: relative
+    }
+
+    .z-ctas::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(124, 58, 237, 0.12), transparent 70%);
+        pointer-events: none
+    }
+
+    .z-foot {
+        padding: 32px 24px;
+        text-align: center;
+        border-top: 1px solid var(--cd)
+    }
+
+    .z-foot b {
+        font-size: 18px;
+        font-weight: 900;
+        display: block;
+        margin-bottom: 6px
+    }
+
+    .z-foot small {
+        font-size: 10px;
+        color: var(--t3);
+        display: block
+    }
+
+    @keyframes zp {
+
+        0%,
+        100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: .4
+        }
+    }
+
+    @media(max-width:768px) {
+        .z-kg {
+            grid-template-columns: repeat(2, 1fr)
+        }
+
+        .z-fg {
+            grid-template-columns: repeat(2, 1fr)
+        }
+
+        .z-fr,
+        .z-fr.rv {
+            grid-template-columns: 1fr;
+            direction: ltr;
+            gap: 24px
+        }
+    }
+
+    @media(max-width:480px) {
+        .z-fg {
+            grid-template-columns: 1fr
+        }
+    }
+</style>
+
+<div class="z-wrap">
+    <!-- HERO -->
+    <div class="z-hero">
+        <div class="z-badge">NEXT-GEN ERP FOR CHILD CENTERS</div>
+        <h1 class="z-h1">아동발달센터의<br><span class="z-gr">확실한 파트너.</span></h1>
+        <p class="z-sub">스케줄, 상담, 수납, 정산까지<br>센터 운영의 모든 것을 하나의 플랫폼으로 관리하세요.</p>
+        <a href="tel:02-2039-1167" class="z-cta">무료 상담 신청</a>
+    </div>
+
+    <!-- KPI -->
+    <div class="z-sec">
+        <div class="z-sl">Why Zarada</div>
+        <h2 class="z-st">센터 운영의 모든 것, 한눈에</h2>
+        <p class="z-sd">복잡한 센터 운영을 하나의 대시보드로 통합합니다.</p>
+        <div class="z-kg">
+            <div class="z-kc"><em>👶</em><b>1,247</b><small>등록 아동 관리</small><span>+23 이번 달</span></div>
+            <div class="z-kc"><em>🧠</em><b>8,432</b><small>월 치료 세션</small><span>+12.5% ↑</span></div>
+            <div class="z-kc"><em>💰</em><b>₩92M</b><small>자동 정산 처리</small><span>실시간 집계</span></div>
+            <div class="z-kc"><em>📅</em><b>324</b><small>주간 스케줄 관리</small><span>이번 주 예약</span></div>
+        </div>
+    </div>
+
+    <!-- 핵심 기능 -->
+    <div class="z-sec" style="text-align:center">
+        <div class="z-sl">Core Features</div>
+        <h2 class="z-st" style="margin:0 auto 14px">Zarada가 제공하는 핵심 기능</h2>
+        <p class="z-sd" style="margin:0 auto 48px;text-align:center">센터 운영에 필요한 모든 기능을 하나의 플랫폼에서 제공합니다.</p>
+        <div class="z-fg">
+            <div class="z-fc"><em>📊</em><b>실시간 대시보드</b><small>매출·수업 현황 한눈에</small></div>
+            <div class="z-fc"><em>📅</em><b>스마트 스케줄링</b><small>치료사 일정 자동 배정</small></div>
+            <div class="z-fc"><em>📋</em><b>발달 평가 관리</b><small>표준화된 상담일지</small></div>
+            <div class="z-fc"><em>💰</em><b>수납/정산 관리</b><small>자동 집계 · 엑셀 내보내기</small></div>
+            <div class="z-fc"><em>🌐</em><b>센터 전용 홈페이지</b><small>브랜딩 · 프로그램 · 상담</small></div>
+            <div class="z-fc"><em>👶</em><b>아동 관리</b><small>등록 · 출석 · 활동 기록</small></div>
+        </div>
+    </div>
+
+    <!-- 기능 상세 -->
+    <div class="z-sec">
+
+        <!-- 대시보드 -->
+        <div class="z-fr">
+            <div><span class="z-ft">통합 대시보드</span>
+                <h3 class="z-fti">운영 현황을<br>실시간으로 파악</h3>
+                <p class="z-fd">매출 추이, 수업 점유율 등 핵심 지표를 한눈에 확인하세요.</p>
+            </div>
+            <div class="z-fiw" style="padding:20px;background:rgba(255,255,255,0.02)">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
+                    <div
+                        style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.12);border-radius:8px;padding:10px">
+                        <div style="font-size:8px;color:rgba(255,255,255,0.35)">등록 아동</div>
+                        <div style="font-size:16px;font-weight:900;color:#a78bfa;margin-top:3px">1,247</div>
+                    </div>
+                    <div
+                        style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.12);border-radius:8px;padding:10px">
+                        <div style="font-size:8px;color:rgba(255,255,255,0.35)">월 세션</div>
+                        <div style="font-size:16px;font-weight:900;color:#60a5fa;margin-top:3px">8,432</div>
+                    </div>
+                    <div
+                        style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.12);border-radius:8px;padding:10px">
+                        <div style="font-size:8px;color:rgba(255,255,255,0.35)">매출</div>
+                        <div style="font-size:16px;font-weight:900;color:#34d399;margin-top:3px">₩92M</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:end;gap:2px;height:48px">
+                    <div
+                        style="flex:1;height:30%;background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.2));border-radius:2px 2px 0 0">
+                    </div>
+                    <div
+                        style="flex:1;height:42%;background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.2));border-radius:2px 2px 0 0">
+                    </div>
+                    <div
+                        style="flex:1;height:55%;background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3));border-radius:2px 2px 0 0">
+                    </div>
+                    <div
+                        style="flex:1;height:62%;background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3));border-radius:2px 2px 0 0">
+                    </div>
+                    <div
+                        style="flex:1;height:72%;background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3));border-radius:2px 2px 0 0">
+                    </div>
+                    <div
+                        style="flex:1;height:85%;background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.4));border-radius:2px 2px 0 0">
+                    </div>
+                    <div
+                        style="flex:1;height:95%;background:linear-gradient(to top,#818cf8,rgba(99,102,241,0.5));border-radius:2px 2px 0 0">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="z-divider"></div>
+
+        <!-- 스케줄 -->
+        <div class="z-fr rv">
+            <div><span class="z-ft">스마트 스케줄링</span>
+                <h3 class="z-fti">치료사 배정부터<br>일정 관리까지</h3>
+                <p class="z-fd">치료사별 필터와 드래그 앤 드롭으로 빠르고 직관적인 스케줄 운영이 가능합니다.</p>
+            </div>
+            <div class="z-fiw" style="padding:16px;background:rgba(255,255,255,0.02)">
+                <div
+                    style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;font-size:8px;color:rgba(255,255,255,0.3);text-align:center;margin-bottom:4px">
+                    <div>월</div>
+                    <div>화</div>
+                    <div>수</div>
+                    <div>목</div>
+                    <div>금</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px">
+                    <div
+                        style="background:rgba(139,92,246,0.15);border-radius:5px;padding:5px;font-size:8px;color:#a78bfa;font-weight:600">
+                        09:00 언어<br><span style="opacity:.5">김민지T</span></div>
+                    <div
+                        style="background:rgba(59,130,246,0.15);border-radius:5px;padding:5px;font-size:8px;color:#60a5fa;font-weight:600">
+                        10:00 놀이<br><span style="opacity:.5">이준호T</span></div>
+                    <div
+                        style="background:rgba(245,158,11,0.15);border-radius:5px;padding:5px;font-size:8px;color:#fbbf24;font-weight:600">
+                        09:30 미술<br><span style="opacity:.5">박소영T</span></div>
+                    <div
+                        style="background:rgba(16,185,129,0.15);border-radius:5px;padding:5px;font-size:8px;color:#34d399;font-weight:600">
+                        11:00 심리<br><span style="opacity:.5">최영수T</span></div>
+                    <div
+                        style="background:rgba(139,92,246,0.15);border-radius:5px;padding:5px;font-size:8px;color:#a78bfa;font-weight:600">
+                        10:00 언어<br><span style="opacity:.5">김민지T</span></div>
+                    <div
+                        style="background:rgba(16,185,129,0.15);border-radius:5px;padding:5px;font-size:8px;color:#34d399;font-weight:600">
+                        14:00 심리<br><span style="opacity:.5">최영수T</span></div>
+                    <div
+                        style="background:rgba(245,158,11,0.15);border-radius:5px;padding:5px;font-size:8px;color:#fbbf24;font-weight:600">
+                        13:00 미술<br><span style="opacity:.5">박소영T</span></div>
+                    <div
+                        style="background:rgba(59,130,246,0.15);border-radius:5px;padding:5px;font-size:8px;color:#60a5fa;font-weight:600">
+                        15:00 놀이<br><span style="opacity:.5">이준호T</span></div>
+                    <div
+                        style="background:rgba(139,92,246,0.15);border-radius:5px;padding:5px;font-size:8px;color:#a78bfa;font-weight:600">
+                        14:00 언어<br><span style="opacity:.5">김민지T</span></div>
+                    <div
+                        style="background:rgba(16,185,129,0.15);border-radius:5px;padding:5px;font-size:8px;color:#34d399;font-weight:600">
+                        16:00 심리<br><span style="opacity:.5">최영수T</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="z-divider"></div>
+
+        <!-- 회기일지 부모 연동 -->
+        <div class="z-fr">
+            <div><span class="z-ft">회기일지 · 부모 연동</span>
+                <h3 class="z-fti">회기일지 작성부터<br>부모님 공유까지</h3>
+                <p class="z-fd">치료사가 작성한 회기일지가 부모님 앱에 실시간으로 전달됩니다. 아이의 치료 경과를 투명하게 공유하세요.</p>
+            </div>
+            <div class="z-fiw" style="padding:20px;background:rgba(255,255,255,0.02)">
+                <!-- 치료사 측 -->
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                    <div
+                        style="width:28px;height:28px;border-radius:8px;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:13px">
+                        ✍️</div>
+                    <div>
+                        <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.85)">치료사 회기일지</div>
+                        <div style="font-size:9px;color:rgba(255,255,255,0.35)">김민지 선생님 · 언어치료</div>
+                    </div>
+                </div>
+                <div
+                    style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.1);border-radius:10px;padding:12px;margin-bottom:14px">
+                    <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:4px">2026.02.13 (목) 14:00 · 30분
+                    </div>
+                    <div style="font-size:11px;color:rgba(255,255,255,0.75);line-height:1.6;margin-bottom:8px">오늘 수업에서
+                        3어절 문장 표현이 크게 향상되었습니다. 그림카드를 활용한 자발화 훈련에 적극적으로 참여했고...</div>
+                    <div style="display:flex;gap:6px">
+                        <div
+                            style="font-size:8px;color:#a78bfa;background:rgba(139,92,246,0.1);padding:3px 8px;border-radius:100px">
+                            📎 활동사진 2장</div>
+                        <div
+                            style="font-size:8px;color:#60a5fa;background:rgba(59,130,246,0.1);padding:3px 8px;border-radius:100px">
+                            📊 평가 첨부</div>
+                    </div>
+                </div>
+                <!-- 연결 화살표 -->
+                <div style="text-align:center;margin:8px 0;color:rgba(99,102,241,0.4);font-size:16px">⬇️</div>
+                <!-- 부모님 측 -->
+                <div
+                    style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.1);border-radius:10px;padding:12px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <div
+                            style="width:22px;height:22px;border-radius:6px;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;font-size:10px">
+                            👨‍👩‍👧</div>
+                        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7)">부모님 앱 알림</div>
+                        <div
+                            style="margin-left:auto;font-size:8px;color:#34d399;background:rgba(16,185,129,0.12);padding:2px 8px;border-radius:100px;font-weight:700">
+                            NEW</div>
+                    </div>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.6);line-height:1.5">회기일지가 도착했습니다 📩<br>오늘 수업 내용을
+                        확인해보세요!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="z-divider"></div>
+
+        <!-- 수납 -->
+        <div class="z-fr rv">
+            <div><span class="z-ft">수납·정산 자동화</span>
+                <h3 class="z-fti">수납 대장부터<br>엑셀 내보내기까지</h3>
+                <p class="z-fd">정산 업무 시간을 90% 이상 절감합니다.</p>
+            </div>
+            <div class="z-fiw" style="padding:20px;background:rgba(255,255,255,0.02)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div
+                            style="width:28px;height:28px;border-radius:8px;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;font-size:13px">
+                            💰</div>
+                        <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,0.85)">2월 정산</div>
+                    </div>
+                    <div
+                        style="font-size:9px;color:#34d399;font-weight:700;background:rgba(16,185,129,0.1);padding:3px 8px;border-radius:100px">
+                        엑셀</div>
+                </div>
+                <div
+                    style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+                    <div>이름</div>
+                    <div style="text-align:right">수업료</div>
+                    <div style="text-align:right">수납</div>
+                    <div style="text-align:right">상태</div>
+                </div>
+                <div
+                    style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:10px;color:rgba(255,255,255,0.7);padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                    <div style="font-weight:700">김○○</div>
+                    <div style="text-align:right">₩480K</div>
+                    <div style="text-align:right">₩480K</div>
+                    <div style="text-align:right;color:#34d399;font-weight:700">완납</div>
+                </div>
+                <div
+                    style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:10px;color:rgba(255,255,255,0.7);padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                    <div style="font-weight:700">박○○</div>
+                    <div style="text-align:right">₩360K</div>
+                    <div style="text-align:right">₩240K</div>
+                    <div style="text-align:right;color:#fbbf24;font-weight:700">미수</div>
+                </div>
+                <div
+                    style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;font-size:10px;color:rgba(255,255,255,0.7);padding:8px 0">
+                    <div style="font-weight:700">이○○</div>
+                    <div style="text-align:right">₩600K</div>
+                    <div style="text-align:right">₩600K</div>
+                    <div style="text-align:right;color:#34d399;font-weight:700">완납</div>
+                </div>
+                <div
+                    style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">
+                    <div style="font-size:9px;color:rgba(255,255,255,0.3)">총 12건</div>
+                    <div style="font-size:11px;font-weight:900;color:rgba(255,255,255,0.85)">₩5,280,000</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 멀티센터 -->
+    <div class="z-sec" style="text-align:center">
+        <div class="z-sl">Multi-Center SaaS</div>
+        <h2 class="z-st" style="margin:0 auto 14px">각 센터만의 전용 홈페이지</h2>
+        <p class="z-sd" style="margin:0 auto 48px;text-align:center">하나의 플랫폼에서 각 센터별 독립 홈페이지를 운영하세요.</p>
+        <div style="display:flex;gap:14px;max-width:720px;margin:0 auto">
+            <!-- 센터 A -->
+            <div
+                style="flex:1;background:linear-gradient(to bottom,rgba(99,102,241,0.10),var(--bg));border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden">
+                <div
+                    style="height:56px;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15));display:flex;align-items:center;padding:0 12px;gap:8px">
+                    <div style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.15)"></div>
+                    <div style="height:8px;width:52px;background:rgba(255,255,255,0.12);border-radius:4px"></div>
+                </div>
+                <div style="padding:12px">
+                    <div
+                        style="height:6px;width:80%;background:rgba(255,255,255,0.08);border-radius:3px;margin-bottom:6px">
+                    </div>
+                    <div
+                        style="height:6px;width:60%;background:rgba(255,255,255,0.05);border-radius:3px;margin-bottom:10px">
+                    </div>
+                    <div style="display:flex;gap:4px">
+                        <div style="height:24px;flex:1;background:rgba(99,102,241,0.12);border-radius:4px"></div>
+                        <div style="height:24px;flex:1;background:rgba(99,102,241,0.08);border-radius:4px"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- 센터 B -->
+            <div
+                style="flex:1;background:linear-gradient(to bottom,rgba(16,185,129,0.10),var(--bg));border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden">
+                <div
+                    style="height:56px;background:linear-gradient(135deg,rgba(16,185,129,0.25),rgba(52,211,153,0.15));display:flex;align-items:center;padding:0 12px;gap:8px">
+                    <div style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.15)"></div>
+                    <div style="height:8px;width:48px;background:rgba(255,255,255,0.12);border-radius:4px"></div>
+                </div>
+                <div style="padding:12px">
+                    <div
+                        style="height:6px;width:75%;background:rgba(255,255,255,0.08);border-radius:3px;margin-bottom:6px">
+                    </div>
+                    <div
+                        style="height:6px;width:55%;background:rgba(255,255,255,0.05);border-radius:3px;margin-bottom:10px">
+                    </div>
+                    <div style="display:flex;gap:4px">
+                        <div style="height:24px;flex:1;background:rgba(16,185,129,0.12);border-radius:4px"></div>
+                        <div style="height:24px;flex:1;background:rgba(16,185,129,0.08);border-radius:4px"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- 센터 C -->
+            <div
+                style="flex:1;background:linear-gradient(to bottom,rgba(245,158,11,0.10),var(--bg));border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden">
+                <div
+                    style="height:56px;background:linear-gradient(135deg,rgba(245,158,11,0.25),rgba(251,191,36,0.15));display:flex;align-items:center;padding:0 12px;gap:8px">
+                    <div style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.15)"></div>
+                    <div style="height:8px;width:56px;background:rgba(255,255,255,0.12);border-radius:4px"></div>
+                </div>
+                <div style="padding:12px">
+                    <div
+                        style="height:6px;width:70%;background:rgba(255,255,255,0.08);border-radius:3px;margin-bottom:6px">
+                    </div>
+                    <div
+                        style="height:6px;width:50%;background:rgba(255,255,255,0.05);border-radius:3px;margin-bottom:10px">
+                    </div>
+                    <div style="display:flex;gap:4px">
+                        <div style="height:24px;flex:1;background:rgba(245,158,11,0.12);border-radius:4px"></div>
+                        <div style="height:24px;flex:1;background:rgba(245,158,11,0.08);border-radius:4px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:40px">
+            <a href="https://app.myparents.co.kr" target="_blank" class="z-cta"
+                style="font-size:14px;padding:14px 32px">센터 홈페이지 둘러보기 →</a>
+        </div>
+    </div>
+
+</div>

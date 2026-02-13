@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zarada | 아동발달센터 통합 관리 솔루션</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --brand-indigo: #6366f1;
+            --brand-violet: #7c3aed;
+            --brand-purple: #9333ea;
+            --dark-bg: #0f0b1e;
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-muted: rgba(255, 255, 255, 0.35);
+            --glow-indigo: rgba(99, 102, 241, 0.3);
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ============== HERO SECTION ============== */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px 60px;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 900px;
+            background: radial-gradient(circle, var(--glow-indigo) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, var(--dark-bg), transparent);
+            z-index: 1;
+        }
+
+        .hero-badge {
+            position: relative;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            border-radius: 100px;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--brand-indigo);
+            margin-bottom: 32px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        .hero-title {
+            position: relative;
+            z-index: 2;
+            font-size: clamp(36px, 6vw, 72px);
+            font-weight: 900;
+            text-align: center;
+            line-height: 1.15;
+            letter-spacing: -2px;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease 0.1s both;
+        }
+
+        .hero-title .gradient-text {
+            background: linear-gradient(135deg, #818cf8, #c084fc, #f0abfc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            position: relative;
+            z-index: 2;
+            font-size: clamp(15px, 2vw, 20px);
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 560px;
+            line-height: 1.7;
+            margin-bottom: 48px;
+            font-weight: 400;
+            animation: fadeInUp 0.8s ease 0.2s both;
+        }
+
+        .hero-cta-group {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            gap: 16px;
+            margin-bottom: 72px;
+            animation: fadeInUp 0.8s ease 0.3s both;
+        }
+
+        .btn-primary {
+            padding: 16px 36px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--brand-indigo), var(--brand-violet));
+            color: white;
+            font-weight: 800;
+            font-size: 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-outline {
+            padding: 16px 36px;
+            border-radius: 14px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 15px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .btn-outline:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* Device Frame */
+        .device-showcase {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 1100px;
+            animation: floatIn 1s ease 0.4s both;
+        }
+
+        .device-frame {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                0 32px 80px rgba(0, 0, 0, 0.5),
+                0 0 120px rgba(99, 102, 241, 0.1);
+        }
+
+        .device-frame img {
+            width: 100%;
+            display: block;
+        }
+
+        .device-bar {
+            height: 36px;
+            background: #1e1b2e;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            gap: 7px;
+        }
+
+        .device-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .device-dot.red {
+            background: #ff5f57;
+        }
+
+        .device-dot.yellow {
+            background: #ffbd2e;
+        }
+
+        .device-dot.green {
+            background: #28c840;
+        }
+
+        /* ============== KPI SECTION ============== */
+        .kpi-section {
+            padding: 100px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--brand-indigo);
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: clamp(28px, 4vw, 48px);
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .section-desc {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-width: 520px;
+            margin-bottom: 56px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-icon.purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+        }
+
+        .kpi-icon.blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .kpi-icon.emerald {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .kpi-icon.amber {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+        .kpi-value {
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 4px;
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .kpi-change {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 100px;
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+        }
+
+        /* ============== FEATURES SECTION ============== */
+        .features-section {
+            padding: 100px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .feature-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+            margin-bottom: 100px;
+        }
+
+        .feature-row.reverse {
+            direction: rtl;
+        }
+
+        .feature-row.reverse>* {
+            direction: ltr;
+        }
+
+        .feature-content {
+            padding: 20px 0;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--brand-indigo);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 6px 14px;
+            border-radius: 100px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: clamp(24px, 3vw, 36px);
+            font-weight: 900;
+            letter-spacing: -1px;
+            line-height: 1.25;
+            margin-bottom: 16px;
+        }
+
+        .feature-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .feature-img-wrap {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .feature-img-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), transparent);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .feature-img-wrap img {
+            width: 100%;
+            display: block;
+        }
+
+        /* ============== MULTI-CENTER SHOWCASE ============== */
+        .centers-section {
+            padding: 100px 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .centers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 56px;
+        }
+
+        .center-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s;
+        }
+
+        .center-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .center-card img {
+            width: 100%;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            object-position: top;
+            display: block;
+        }
+
+        .center-card-info {
+            padding: 20px 24px;
+            text-align: left;
+        }
+
+        .center-card-name {
+            font-size: 16px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .center-card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ============== CTA FINAL ============== */
+        .cta-section {
+            padding: 120px 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-title {
+            font-size: clamp(28px, 4vw, 48px);
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .cta-desc {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        /* ============== FOOTER ============== */
+        .promo-footer {
+            padding: 40px 24px;
+            text-align: center;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .footer-logo {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .footer-copy {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ============== ANIMATIONS ============== */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: translateY(60px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Scroll reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ============== RESPONSIVE ============== */
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .feature-row,
+            .feature-row.reverse {
+                grid-template-columns: 1fr;
+                direction: ltr;
+                gap: 32px;
+            }
+
+            .centers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-cta-group {
+                flex-direction: column;
+                width: 100%;
+                max-width: 320px;
+            }
+
+            .btn-primary,
+            .btn-outline {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero">
+        <div class="hero-badge">NEXT-GEN ERP FOR CHILD CENTERS</div>
+        <h1 class="hero-title">
+            아동발달센터의<br>
+            <span class="gradient-text">확실한 파트너.</span>
+        </h1>
+        <p class="hero-subtitle">
+            스케줄, 상담, 수납, 정산까지<br>
+            센터 운영의 모든 것을 하나의 플랫폼으로 관리하세요.
+        </p>
+        <div class="hero-cta-group">
+            <a href="https://zarada.co.kr" class="btn-primary" target="_blank">무료 상담 신청</a>
+            <a href="#features" class="btn-outline">기능 살펴보기 ↓</a>
+        </div>
+
+        <!-- Hero Image (AI-generated) -->
+        <div class="device-showcase" style="display:flex; justify-content:center;">
+            <img src="ai_hero.png" alt="Zarada 아동발달센터의 확실한 파트너"
+                style="width:100%; max-width:700px; border-radius:20px; box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 120px rgba(99,102,241,0.1);">
+        </div>
+    </section>
+
+    <!-- ========== KPI SECTION ========== -->
+    <section class="kpi-section reveal">
+        <div class="section-label">Why Zarada</div>
+        <h2 class="section-title">센터 운영의 모든 것,<br>한눈에</h2>
+        <p class="section-desc">
+            복잡한 센터 운영을 하나의 대시보드로 통합합니다.
+            실시간 데이터로 더 나은 의사결정을 내리세요.
+        </p>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon purple">👶</div>
+                <div class="kpi-value">1,247</div>
+                <div class="kpi-label">등록 아동 관리</div>
+                <span class="kpi-change">+23 이번 달</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon blue">🧠</div>
+                <div class="kpi-value">8,432</div>
+                <div class="kpi-label">월 치료 세션</div>
+                <span class="kpi-change">+12.5% ↑</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon emerald">💰</div>
+                <div class="kpi-value">₩92M</div>
+                <div class="kpi-label">자동 정산 처리</div>
+                <span class="kpi-change">실시간 집계</span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon amber">📅</div>
+                <div class="kpi-value">324</div>
+                <div class="kpi-label">주간 스케줄 관리</div>
+                <span class="kpi-change">이번 주 예약</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== 핵심 기능 ========== -->
+    <section class="kpi-section reveal" style="text-align:center;">
+        <div class="section-label">Core Features</div>
+        <h2 class="section-title" style="margin:0 auto 16px;">Zarada가 제공하는<br>핵심 기능</h2>
+        <p class="section-desc" style="margin:0 auto 56px; text-align:center;">센터 운영에 필요한 모든 기능을 하나의 플랫폼에서 제공합니다.</p>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; max-width:720px; margin:0 auto;">
+            <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:32px 20px; transition:all 0.3s;"
+                onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                onmouseout="this.style.transform=''; this.style.borderColor='';">
+                <div style="font-size:28px; margin-bottom:12px;">📊</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">실시간 대시보드
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">매출·수업 현황을 한눈에</div>
+            </div>
+            <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:32px 20px; transition:all 0.3s;"
+                onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                onmouseout="this.style.transform=''; this.style.borderColor='';">
+                <div style="font-size:28px; margin-bottom:12px;">📅</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">스마트 스케줄링
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">치료사 일정 자동 배정</div>
+            </div>
+            <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:32px 20px; transition:all 0.3s;"
+                onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                onmouseout="this.style.transform=''; this.style.borderColor='';">
+                <div style="font-size:28px; margin-bottom:12px;">📋</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">발달 평가 관리
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">표준화된 상담일지 시스템</div>
+            </div>
+            <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:32px 20px; transition:all 0.3s;"
+                onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                onmouseout="this.style.transform=''; this.style.borderColor='';">
+                <div style="font-size:28px; margin-bottom:12px;">💰</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">수납/정산 관리
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">자동 매출 집계 · 엑셀 내보내기</div>
+            </div>
+            <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:32px 20px; transition:all 0.3s;"
+                onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                onmouseout="this.style.transform=''; this.style.borderColor='';">
+                <div style="font-size:28px; margin-bottom:12px;">🌐</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">센터 전용 홈페이지
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">브랜딩 · 프로그램 · 상담 문의</div>
+            </div>
+            <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:20px; padding:32px 20px; transition:all 0.3s;"
+                onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='rgba(99,102,241,0.2)';"
+                onmouseout="this.style.transform=''; this.style.borderColor='';">
+                <div style="font-size:28px; margin-bottom:12px;">👶</div>
+                <div style="font-size:15px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">아동 관리</div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">등록 · 출석 · 활동 기록</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== FEATURES ========== -->
+    <section class="features-section" id="features">
+        <!-- Feature 1: Dashboard -->
+        <div class="feature-row reveal">
+            <div class="feature-content">
+                <span class="feature-tag">통합 대시보드</span>
+                <h3 class="feature-title">운영 현황을<br>실시간으로 파악</h3>
+                <p class="feature-desc">
+                    매출 추이, 수업 점유율, 상담 전환율 등
+                    핵심 지표를 한눈에 확인하고 데이터 기반으로
+                    센터를 운영하세요.
+                </p>
+            </div>
+            <div class="feature-img-wrap"
+                style="max-width:520px; margin:0 auto; padding:24px; background:rgba(255,255,255,0.03);">
+                <!-- CSS Mock: Dashboard -->
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                    <div style="width:8px; height:8px; border-radius:50%; background:#6366f1;"></div>
+                    <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.8);">대시보드</div>
+                    <div style="flex:1;"></div>
+                    <div style="font-size:9px; color:rgba(255,255,255,0.3);">실시간</div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px;">
+                    <div
+                        style="background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.12); border-radius:10px; padding:12px;">
+                        <div style="font-size:9px; color:rgba(255,255,255,0.35);">등록 아동</div>
+                        <div style="font-size:18px; font-weight:900; color:#a78bfa; margin-top:4px;">1,247</div>
+                    </div>
+                    <div
+                        style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.12); border-radius:10px; padding:12px;">
+                        <div style="font-size:9px; color:rgba(255,255,255,0.35);">월 세션</div>
+                        <div style="font-size:18px; font-weight:900; color:#60a5fa; margin-top:4px;">8,432</div>
+                    </div>
+                    <div
+                        style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.12); border-radius:10px; padding:12px;">
+                        <div style="font-size:9px; color:rgba(255,255,255,0.35);">매출</div>
+                        <div style="font-size:18px; font-weight:900; color:#34d399; margin-top:4px;">₩92M</div>
+                    </div>
+                </div>
+                <!-- Mini chart -->
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+                    <div style="font-size:10px; font-weight:700; color:rgba(255,255,255,0.6);">📈 매출 추이</div>
+                    <div style="flex:1;"></div>
+                    <div style="font-size:9px; color:#34d399; font-weight:700;">+18.3%</div>
+                </div>
+                <div style="display:flex; align-items:end; gap:3px; height:60px;">
+                    <div
+                        style="flex:1; height:30%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:42%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:38%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:55%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:62%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:72%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.3)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:85%; background:linear-gradient(to top,#6366f1,rgba(99,102,241,0.4)); border-radius:3px 3px 0 0;">
+                    </div>
+                    <div
+                        style="flex:1; height:95%; background:linear-gradient(to top,#818cf8,rgba(99,102,241,0.5)); border-radius:3px 3px 0 0;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 2: Schedule -->
+        <div class="feature-row reverse reveal">
+            <div class="feature-content">
+                <span class="feature-tag">스마트 스케줄링</span>
+                <h3 class="feature-title">치료사 배정부터<br>일정 관리까지</h3>
+                <p class="feature-desc">
+                    월간/주간/일간 뷰로 모든 치료 일정을 관리하세요.
+                    치료사별 필터와 드래그 앤 드롭으로
+                    빠르고 직관적인 스케줄 운영이 가능합니다.
+                </p>
+            </div>
+            <div class="feature-img-wrap" style="max-width:520px; margin:0 auto;">
+                <img src="ai_schedule.png" alt="스마트 스케줄 관리">
+            </div>
+        </div>
+
+        <!-- Feature 3: Consultation (CSS-based UI) -->
+        <div class="feature-row reveal">
+            <div class="feature-content">
+                <span class="feature-tag">발달 상담 관리</span>
+                <h3 class="feature-title">전문적인<br>발달 평가 시스템</h3>
+                <p class="feature-desc">
+                    표준화된 발달 평가 도구로 아동의 성장을
+                    체계적으로 기록하고, 학부모에게 신뢰감 있는
+                    평가 리포트를 제공합니다.
+                </p>
+            </div>
+            <div class="feature-img-wrap"
+                style="max-width:520px; margin:0 auto; padding:28px; background:rgba(255,255,255,0.03);">
+                <!-- CSS Mock: Consultation Report -->
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                    <div
+                        style="width:36px; height:36px; border-radius:10px; background:rgba(139,92,246,0.2); display:flex; align-items:center; justify-content:center; font-size:16px;">
+                        📋</div>
+                    <div>
+                        <div style="font-size:13px; font-weight:800; color:rgba(255,255,255,0.85);">발달 평가 리포트</div>
+                        <div style="font-size:10px; color:rgba(255,255,255,0.35);">2026년 2월 · 김○○ 아동</div>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                    <div
+                        style="background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.15); border-radius:12px; padding:14px;">
+                        <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-bottom:6px;">언어 발달</div>
+                        <div style="font-size:20px; font-weight:900; color:#a78bfa;">87<span
+                                style="font-size:11px; font-weight:600;">점</span></div>
+                        <div style="height:4px; background:rgba(255,255,255,0.06); border-radius:4px; margin-top:8px;">
+                            <div
+                                style="height:100%; width:87%; background:linear-gradient(90deg,#8b5cf6,#a78bfa); border-radius:4px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.15); border-radius:12px; padding:14px;">
+                        <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-bottom:6px;">인지 발달</div>
+                        <div style="font-size:20px; font-weight:900; color:#60a5fa;">92<span
+                                style="font-size:11px; font-weight:600;">점</span></div>
+                        <div style="height:4px; background:rgba(255,255,255,0.06); border-radius:4px; margin-top:8px;">
+                            <div
+                                style="height:100%; width:92%; background:linear-gradient(90deg,#3b82f6,#60a5fa); border-radius:4px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); border-radius:12px; padding:14px;">
+                        <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-bottom:6px;">사회성 발달</div>
+                        <div style="font-size:20px; font-weight:900; color:#34d399;">78<span
+                                style="font-size:11px; font-weight:600;">점</span></div>
+                        <div style="height:4px; background:rgba(255,255,255,0.06); border-radius:4px; margin-top:8px;">
+                            <div
+                                style="height:100%; width:78%; background:linear-gradient(90deg,#10b981,#34d399); border-radius:4px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.15); border-radius:12px; padding:14px;">
+                        <div style="font-size:10px; color:rgba(255,255,255,0.4); margin-bottom:6px;">운동 발달</div>
+                        <div style="font-size:20px; font-weight:900; color:#fbbf24;">85<span
+                                style="font-size:11px; font-weight:600;">점</span></div>
+                        <div style="height:4px; background:rgba(255,255,255,0.06); border-radius:4px; margin-top:8px;">
+                            <div
+                                style="height:100%; width:85%; background:linear-gradient(90deg,#f59e0b,#fbbf24); border-radius:4px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="font-size:10px; color:rgba(255,255,255,0.25); text-align:center;">종합 평가 · 자동 생성 리포트</div>
+            </div>
+        </div>
+
+        <!-- Feature 4: Settlement (CSS-based UI) -->
+        <div class="feature-row reverse reveal">
+            <div class="feature-content">
+                <span class="feature-tag">수납·정산 자동화</span>
+                <h3 class="feature-title">수납 대장부터<br>엑셀 내보내기까지</h3>
+                <p class="feature-desc">
+                    아동별 수업료, 미수금, 이월 크레딧을 자동 집계하고
+                    월별 수납 대장을 엑셀로 내보내세요.
+                    정산 업무 시간을 90% 이상 절감합니다.
+                </p>
+            </div>
+            <div class="feature-img-wrap"
+                style="max-width:520px; margin:0 auto; padding:28px; background:rgba(255,255,255,0.03);">
+                <!-- CSS Mock: Settlement Table -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div
+                            style="width:36px; height:36px; border-radius:10px; background:rgba(16,185,129,0.2); display:flex; align-items:center; justify-content:center; font-size:16px;">
+                            💰</div>
+                        <div style="font-size:13px; font-weight:800; color:rgba(255,255,255,0.85);">2월 정산 현황</div>
+                    </div>
+                    <div
+                        style="font-size:10px; color:#34d399; font-weight:700; background:rgba(16,185,129,0.1); padding:4px 10px; border-radius:100px;">
+                        엑셀 내보내기</div>
+                </div>
+                <!-- Table header -->
+                <div
+                    style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:1px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.35); padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06);">
+                    <div>아동명</div>
+                    <div style="text-align:right;">수업료</div>
+                    <div style="text-align:right;">수납액</div>
+                    <div style="text-align:right;">상태</div>
+                </div>
+                <!-- Table rows -->
+                <div
+                    style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:1px; font-size:11px; color:rgba(255,255,255,0.7); padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <div style="font-weight:700;">김○○</div>
+                    <div style="text-align:right;">₩480,000</div>
+                    <div style="text-align:right;">₩480,000</div>
+                    <div style="text-align:right;"><span
+                            style="color:#34d399; font-size:10px; font-weight:700;">완납</span></div>
+                </div>
+                <div
+                    style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:1px; font-size:11px; color:rgba(255,255,255,0.7); padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <div style="font-weight:700;">박○○</div>
+                    <div style="text-align:right;">₩360,000</div>
+                    <div style="text-align:right;">₩240,000</div>
+                    <div style="text-align:right;"><span
+                            style="color:#fbbf24; font-size:10px; font-weight:700;">미수</span></div>
+                </div>
+                <div
+                    style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:1px; font-size:11px; color:rgba(255,255,255,0.7); padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+                    <div style="font-weight:700;">이○○</div>
+                    <div style="text-align:right;">₩600,000</div>
+                    <div style="text-align:right;">₩600,000</div>
+                    <div style="text-align:right;"><span
+                            style="color:#34d399; font-size:10px; font-weight:700;">완납</span></div>
+                </div>
+                <div
+                    style="display:flex; justify-content:space-between; margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08);">
+                    <div style="font-size:10px; color:rgba(255,255,255,0.35);">총 12건</div>
+                    <div style="font-size:12px; font-weight:900; color:rgba(255,255,255,0.85);">합계 ₩5,280,000</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== MULTI-CENTER SHOWCASE ========== -->
+    <section class="centers-section reveal">
+        <div class="section-label">Multi-Center SaaS</div>
+        <h2 class="section-title">각 센터만의<br>전용 홈페이지를 제공합니다</h2>
+        <p class="section-desc" style="margin: 0 auto 0; max-width: 520px;">
+            하나의 플랫폼에서 각 센터별 독립 홈페이지를 운영하세요.
+            센터 소개, 프로그램, 치료사 소개, 상담 문의까지 모두 가능합니다.
+        </p>
+        <div style="margin-top: 56px; text-align:center;">
+            <img src="ai_multicenter.png" alt="하나의 플랫폼, 무한한 센터"
+                style="width:100%; max-width:600px; border-radius:20px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);">
+        </div>
+    </section>
+
+    <!-- ========== CTA ========== -->
+    <section class="cta-section reveal">
+        <h2 class="cta-title">지금 바로 시작하세요</h2>
+        <p class="cta-desc">
+            Zarada와 함께 센터 운영의 새로운 기준을 경험하세요.
+        </p>
+        <a href="https://zarada.co.kr" class="btn-primary" target="_blank" style="display:inline-block;">
+            무료 컨설팅 문의 →
+        </a>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="promo-footer">
+        <div class="footer-logo">Zarada</div>
+        <div class="footer-copy">© 2026 Zarada Co., Ltd. All Rights Reserved.</div>
+    </footer>
+
+    <!-- Scroll Reveal Script -->
+    <script>
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        reveals.forEach(el => observer.observe(el));
+    </script>
+</body>
+
+</html>
