@@ -50,7 +50,7 @@ export function TherapistsPage() {
         try {
             // 🔒 [완전 분리] therapist_profiles 테이블에서 조회
             // therapists(직원관리)와 완전 독립 — 배치 마스터에서 관리하는 공개 프로필
-            const { data, error } = await (supabase.from as any)('therapist_profiles')
+            const { data, error } = await (supabase.from)('therapist_profiles')
                 .select('*')
                 .eq('center_id', center.id)
                 .eq('website_visible', true)

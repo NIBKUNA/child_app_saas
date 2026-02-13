@@ -1311,7 +1311,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         setLoading(true);
         // 🔒 [완전 분리] therapist_profiles 테이블에서 조회
         // therapists(직원관리)와 완전 독립 — 삭제/수정이 급여/일정에 영향 없음
-        const { data } = await (supabase.from as any)('therapist_profiles')
+        const { data } = await (supabase.from)('therapist_profiles')
             .select('*')
             .eq('center_id', centerId)
             .order('sort_order', { ascending: true })
@@ -1368,13 +1368,13 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             };
 
             if (editingProfile) {
-                const { error } = await (supabase.from as any)('therapist_profiles')
+                const { error } = await (supabase.from)('therapist_profiles')
                     .update(payload as never)
                     .eq('id', editingProfile.id)
                     .eq('center_id', centerId);
                 if (error) throw error;
             } else {
-                const { error } = await (supabase.from as any)('therapist_profiles')
+                const { error } = await (supabase.from)('therapist_profiles')
                     .insert(payload as never);
                 if (error) throw error;
             }
@@ -1393,7 +1393,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         if (!confirm('정말 삭제하시겠습니까?')) return;
         try {
             if (!centerId) return;
-            const { error } = await (supabase.from as any)('therapist_profiles').delete().eq('id', id).eq('center_id', centerId);
+            const { error } = await (supabase.from)('therapist_profiles').delete().eq('id', id).eq('center_id', centerId);
             if (error) throw error;
             fetchProfiles();
         } catch (error) {
@@ -1404,7 +1404,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
     const toggleVisibility = async (profile: any) => {
         const newValue = !profile.website_visible;
         try {
-            await (supabase.from as any)('therapist_profiles').update({ website_visible: newValue }).eq('id', profile.id).eq('center_id', centerId);
+            await (supabase.from)('therapist_profiles').update({ website_visible: newValue }).eq('id', profile.id).eq('center_id', centerId);
             setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, website_visible: newValue } : p));
         } catch (e) {
             console.error(e);
@@ -1422,7 +1422,7 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
         try {
             const updatePromises = newOrder.map((p, index) =>
-                (supabase.from as any)('therapist_profiles')
+                (supabase.from)('therapist_profiles')
                     .update({ sort_order: index })
                     .eq('id', p.id)
                     .eq('center_id', centerId)
