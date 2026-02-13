@@ -44,6 +44,9 @@ interface DashboardSchedule {
         name: string;
         session_price_weekday: number | null;
     } | null;
+    programs: {
+        name: string;
+    } | null;
 }
 
 interface DashboardChild {
@@ -259,7 +262,7 @@ const SafeChart = ({ children, className = '' }: { children: React.ReactNode; cl
 };
 
 const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; brandColor?: string }) => (
-    <div className={`bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
+    <div className={`bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
         <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3 relative z-10 text-left">
             <div
                 className="p-2 rounded-xl transition-colors"
@@ -374,7 +377,7 @@ export function Dashboard() {
             // ✨ [SECURITY] Enforce Center ID Filter using Inner Join on Children
             const { data: allSchedules } = await supabase
                 .from('schedules')
-                .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday)`)
+                .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday), programs (name)`)
                 .eq('children.center_id', center.id)
                 .order('start_time', { ascending: true });
 
@@ -439,8 +442,8 @@ export function Dashboard() {
                         const sessionPrice = s.therapists?.session_price_weekday || 60000;
                         therapistRevMap[tName] = (therapistRevMap[tName] || 0) + sessionPrice;
 
-                        // Program / Service Type
-                        const pName = s.service_type || '치료 세션';
+                        // Program / Service Type — ✨ [FIX] programs.name 우선 사용
+                        const pName = s.programs?.name || s.service_type || '치료 세션';
                         progCountMap[pName] = (progCountMap[pName] || 0) + 1;
 
                         // Child Contribution
@@ -452,9 +455,10 @@ export function Dashboard() {
 
             // Demographics (from activeChildren only)
             activeChildren.forEach(c => {
-                // ✨ [FIX] Match actual DB values: '남' or '여' (not '남아'/'여아')
-                if (c.gender === '남' || c.gender === '남아') mCount++;
-                else if (c.gender === '여' || c.gender === '여아') fCount++;
+                // ✨ [FIX] 다양한 성별 포맷 지원 (케어플 이관 데이터 포함)
+                const gRaw = (c.gender || '').trim().toLowerCase();
+                if (gRaw === '남' || gRaw === '남아' || gRaw === 'male' || gRaw === 'm' || gRaw === '남자') mCount++;
+                else if (gRaw === '여' || gRaw === '여아' || gRaw === 'female' || gRaw === 'f' || gRaw === '여자') fCount++;
                 // else: unknown gender, skip count
 
                 if (c.birth_date) {
@@ -982,45 +986,45 @@ export function Dashboard() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                 <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
-                                            <Pie data={programData} cx="50%" cy="55%" innerRadius={45} outerRadius={70} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
+                                        <PieChart margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
+                                            <Pie data={programData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
                                                 {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                             </Pie>
-                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} iconSize={8} />
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ bottom: 0 }} iconSize={8} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
-                                            <Pie data={ageData} cx="50%" cy="55%" innerRadius={45} outerRadius={65} dataKey="value" stroke="none">
+                                        <PieChart margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
+                                            <Pie data={ageData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" stroke="none">
                                                 {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
                                             </Pie>
-                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} iconSize={8} />
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ bottom: 0 }} iconSize={8} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                                 <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
-                                            <Pie data={genderData} cx="50%" cy="55%" outerRadius={55} dataKey="value" stroke="none" label={({ name }: any) => name}>
+                                        <PieChart margin={{ top: 5, right: 30, bottom: 5, left: 30 }}>
+                                            <Pie data={genderData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} dataKey="value" stroke="none" label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}>
                                                 <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
                                             </Pie>
-                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} />
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ bottom: 0 }} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
                             </div>
 
-                            <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[220px]" brandColor="#ec4899">
+                            <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]" brandColor="#ec4899">
                                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                    <BarChart data={topChildren} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+                                    <BarChart data={topChildren} margin={{ top: 30, right: 30, left: 10, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fontSize: 12 }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                                        <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`${val?.toLocaleString?.() ?? 0}회`, '수업']} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v.toLocaleString()} />
+                                        <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`₩${val?.toLocaleString?.() ?? 0}`, '기여 매출']} />
                                         <Bar dataKey="value" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={36}>
-                                            <LabelList dataKey="value" position="top" style={{ fontWeight: 'bold', fill: '#64748b', fontSize: 12 }} />
+                                            <LabelList dataKey="value" position="top" style={{ fontWeight: 'bold', fill: '#64748b', fontSize: 12 }} formatter={(v: any) => `₩${Number(v)?.toLocaleString?.()}`} />
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
