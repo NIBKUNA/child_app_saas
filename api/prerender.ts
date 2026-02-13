@@ -521,8 +521,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let rawPath = (req.query.path as string) || '';
 
-    // 커스텀 도메인에서 접속 시, DB에서 slug를 찾아서 path를 자동 설정
-    if (!isDefaultDomain && !rawPath.startsWith('/centers/')) {
+    // 🔒 커스텀 도메인에서 접속 시, DB에서 slug를 찾아서 path를 자동 설정
+    // 다른 센터 slug로의 접근도 차단하고 매핑된 센터로 강제 전환
+    if (!isDefaultDomain) {
         try {
             const { data: domainCenter } = await supabase
                 .from('centers')
@@ -531,8 +532,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .maybeSingle();
 
             if (domainCenter?.slug) {
-                const subPath = rawPath === '/' || rawPath === '' ? '' : rawPath;
-                rawPath = `/centers/${domainCenter.slug}${subPath}`;
+                // 다른 센터 slug 접근 차단
+                const slugMatch = rawPath.match(/^\/centers\/([^/]+)(\/.*)?$/);
+                if (slugMatch && slugMatch[1] !== domainCenter.slug) {
+                    // 다른 센터 slug → 매핑된 센터의 동일 하위페이지로 전환
+                    const subPage = slugMatch[2] || '';
+                    rawPath = `/centers/${domainCenter.slug}${subPage}`;
+                } else if (!rawPath.startsWith('/centers/')) {
+                    const subPath = rawPath === '/' || rawPath === '' ? '' : rawPath;
+                    rawPath = `/centers/${domainCenter.slug}${subPath}`;
+                }
             }
         } catch (e) {
             // 도메인 매칭 실패 시 기본 로직으로 폴백

@@ -60,17 +60,14 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const pathParts = location.pathname.split('/');
 
       // ✨ [Custom Domain] 커스텀 도메인 감지
-      // app.myparents.co.kr, localhost 등이 아니면 커스텀 도메인으로 판단
       const hostname = window.location.hostname;
       const cleanHostname = hostname.replace(/^www\./, '');
       const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(cleanHostname)
         || cleanHostname.endsWith('.vercel.app');
 
-      // ✨ [Critical Fix] /centers/{slug} 경로가 명시된 경우, 커스텀 도메인 로직을 건너뛰고 slug 기반으로 센터를 결정
-      // 이렇게 해야 zaradacenter.co.kr/centers/dasan_withme 접속 시 다산 센터가 정상 로드됨
-      const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
-
-      if (!isDefaultDomain && !hasExplicitSlugPath && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
+      // ✨ [Custom Domain Protection] 커스텀 도메인에서는 항상 매핑된 센터만 허용
+      // zaradacenter.co.kr/centers/dasan_withme 같은 접근을 차단하고 잠실점으로 리다이렉트
+      if (!isDefaultDomain && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
         try {
           const { data: domainCenter, error: domainError } = await supabase
             .from('centers')
@@ -79,6 +76,17 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             .maybeSingle();
 
           if (!domainError && domainCenter) {
+            // 🔒 URL에 다른 센터의 slug가 있는 경우, 매핑된 센터의 홈으로 강제 리다이렉트
+            const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
+            if (hasExplicitSlugPath) {
+              const urlSlug = pathParts[pathParts.indexOf('centers') + 1];
+              if (urlSlug !== domainCenter.slug) {
+                // 다른 센터 slug 접근 → 매핑된 센터 홈으로 리다이렉트
+                window.location.replace(`/centers/${domainCenter.slug}`);
+                return;
+              }
+            }
+
             setCenter(domainCenter);
             setLoading(false);
             return;
