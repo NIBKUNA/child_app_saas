@@ -19,7 +19,7 @@ export function SEOHead() {
     const canonicalUrl = `${baseUrl}${location.pathname}`;
 
     const businessName = center?.name || '아동발달센터';
-    const ogImage = center?.logo_url || `${baseUrl}/og-image.jpg`;
+    const ogImage = center?.logo_url || `${baseUrl}/zaradalogo.png`;
 
     // Naver/Google Verification (env에서만)
     const naverVerification = import.meta.env.VITE_NAVER_VERIFICATION || '';

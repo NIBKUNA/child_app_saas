@@ -213,7 +213,7 @@ export default function SessionNote() {
                 </div>
                 <div className="text-left md:text-right w-full md:w-auto border-t md:border-t-0 pt-2 md:pt-0 mt-1 md:mt-0 border-slate-200">
                     <div className="font-medium">
-                        {new Date(sessionInfo?.start_time).toLocaleDateString()}
+                        {toLocalDateStr(sessionInfo?.start_time)}
                     </div>
                     <div className="text-slate-500">
                         {new Date(sessionInfo?.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ~

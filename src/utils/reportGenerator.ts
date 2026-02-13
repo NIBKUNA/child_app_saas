@@ -11,7 +11,9 @@ import * as XLSX from 'xlsx';
 // Helper: Format Date
 const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
-    return dateString.slice(0, 10);
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString.slice(0, 10);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 interface AssessmentDetails {
@@ -111,7 +113,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         (schedules || []).forEach((s: { status: string | null }) => {
             sessionStats.total++;
             if (s.status === 'completed') sessionStats.completed++;
-            else if (s.status === 'cancelled') sessionStats.cancelled++;
+            else if (s.status === 'cancelled' || s.status === 'canceled') sessionStats.cancelled++;
             else if (s.status === 'scheduled') sessionStats.scheduled++;
         });
 

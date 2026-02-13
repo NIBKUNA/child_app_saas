@@ -81,7 +81,7 @@ async function renderGlobalLanding(supabase: any): Promise<string> {
         name: '자라다(Zarada)',
         description: description,
         url: url,
-        logo: `${BASE_URL}/og-image.jpg`,
+        logo: `${BASE_URL}/zaradalogo.png`,
         sameAs: [],
         contactPoint: {
             '@type': 'ContactPoint',
@@ -474,7 +474,7 @@ function buildHtml({ title, description, url, structuredData, body }: HtmlOption
     <meta property="og:url" content="${url}">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
-    <meta property="og:image" content="${BASE_URL}/og-image.jpg">
+    <meta property="og:image" content="${BASE_URL}/zaradalogo.png">
     <meta property="og:locale" content="ko_KR">
     <meta property="og:site_name" content="자라다(Zarada) 아동발달센터">
 

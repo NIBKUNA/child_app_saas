@@ -102,6 +102,7 @@ export default function SessionList() {
         switch (status) {
             case 'completed':
                 return <span className="flex items-center text-green-600"><CheckCircle className="w-4 h-4 mr-1" /> 완료</span>;
+            case 'canceled':
             case 'cancelled':
                 return <span className="flex items-center text-red-500 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium">취소됨</span>;
             case 'carried_over':
@@ -174,7 +175,7 @@ export default function SessionList() {
                                     {/* 작성일 표시 (완료된 경우) */}
                                     {session.counseling_logs?.[0]?.created_at && (
                                         <div className="text-xs text-slate-400 mt-0.5">
-                                            (작성: {session.counseling_logs[0].created_at.slice(0, 10)})
+                                            (작성: {toLocalDateStr(session.counseling_logs[0].created_at)})
                                         </div>
                                     )}
                                 </div>
@@ -200,7 +201,7 @@ export default function SessionList() {
                                         >
                                             수정하기
                                         </button>
-                                    ) : session.status === 'cancelled' || session.status === 'carried_over' ? (
+                                    ) : session.status === 'cancelled' || session.status === 'canceled' || session.status === 'carried_over' ? (
                                         <span className="text-xs text-slate-400">-</span>
                                     ) : (
                                         <button
