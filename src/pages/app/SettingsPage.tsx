@@ -1309,11 +1309,9 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
     const fetchProfiles = async () => {
         setLoading(true);
-        // 🌐 [Fix] 모든 역할의 프로필을 조회하여 배치 마스터에서 관리
-        // 공개 사이트(TherapistsPage)는 website_visible=true인 모든 역할을 표시하므로,
-        // 배치 마스터도 동일하게 전체 프로필을 보여줘야 관리 가능
-        const { data } = await supabase
-            .from('therapists')
+        // 🔒 [완전 분리] therapist_profiles 테이블에서 조회
+        // therapists(직원관리)와 완전 독립 — 삭제/수정이 급여/일정에 영향 없음
+        const { data } = await (supabase.from as any)('therapist_profiles')
             .select('*')
             .eq('center_id', centerId)
             .order('sort_order', { ascending: true })
@@ -1330,13 +1328,12 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         if (profile) {
             setEditingProfile(profile);
             setFormData({
-                // 🔒 display_name 우선 사용, 없으면 name에서 초기값 가져오기
-                display_name: profile.display_name || profile.name || '',
+                display_name: profile.display_name || '',
                 bio: profile.bio || '',
                 specialties: profile.specialties || '',
                 career: profile.career || '',
                 profile_image: profile.profile_image || '',
-                website_visible: profile.website_visible,
+                website_visible: profile.website_visible ?? true,
                 sort_order: profile.sort_order || 0
             });
         } else {
@@ -1358,9 +1355,8 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         if (!formData.display_name) return alert('표시 이름을 입력해주세요.');
 
         try {
-            const payload: any = {
-                // 🔒 [완전 분리] display_name만 저장 — name(실명)은 절대 건드리지 않음
-                // 직원관리의 실명(name)과 독립적으로 공개 사이트 이름을 관리
+            // 🔒 [완전 분리] therapist_profiles 테이블 — 직원관리와 무관
+            const payload = {
                 display_name: formData.display_name,
                 bio: formData.bio,
                 specialties: formData.specialties,
@@ -1372,36 +1368,19 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             };
 
             if (editingProfile) {
-                // Update — center_id 필터 추가로 교차센터 수정 방지
-                const { error } = await supabase
-                    .from('therapists')
+                const { error } = await (supabase.from as any)('therapist_profiles')
                     .update(payload as never)
                     .eq('id', editingProfile.id)
                     .eq('center_id', centerId);
                 if (error) throw error;
             } else {
-                // Insert New
-                // ✨ Generate a placeholder email for "Display Only" profiles to satisfy unique constraints & separate from auth
-                // Format: display+[random]@[center_slug].local
-                const randomId = Math.random().toString(36).substring(2, 10);
-                payload.email = `display+${randomId}@zarada.local`;
-                // 🔒 name 컬럼은 NOT NULL이므로 display_name과 동일한 값을 설정
-                payload.name = formData.display_name;
-                // 새 프로필은 기본 내부 정보 설정 (실제 직원이 아니므로 기본값만 설정)
-                payload.system_status = 'active';
-                payload.hire_type = 'freelancer';
-                payload.system_role = 'therapist';
-
-                const { error } = await supabase
-                    .from('therapists')
+                const { error } = await (supabase.from as any)('therapist_profiles')
                     .insert(payload as never);
-
                 if (error) throw error;
             }
 
             setIsModalOpen(false);
             fetchProfiles();
-            // ✨ [Sync] Notify visual components
             window.dispatchEvent(new Event('settings-updated'));
         } catch (error: any) {
             console.error(error);
@@ -1409,26 +1388,23 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         }
     };
 
-    const handleDelete = async (id: string, isRealUser: boolean) => {
-        if (!confirm(isRealUser
-            ? '⚠️ 이 프로필은 실제 직원 계정과 연결되어 있을 수 있습니다.\n삭제 시 급여/일정 데이터에 영향이 갈 수 있습니다.\n정말 삭제하시겠습니까? (권장: "숨김" 처리)'
-            : '정말 삭제하시겠습니까?')) return;
-
+    // 🔒 [완전 분리] 직원관리와 무관 — 자유롭게 삭제 가능
+    const handleDelete = async (id: string) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
         try {
             if (!centerId) return;
-            const { error } = await supabase.from('therapists').delete().eq('id', id).eq('center_id', centerId);
+            const { error } = await (supabase.from as any)('therapist_profiles').delete().eq('id', id).eq('center_id', centerId);
             if (error) throw error;
             fetchProfiles();
         } catch (error) {
-            alert('삭제 실패. 데이터가 연결되어 있을 수 있습니다. 대신 숨김 처리를 권장합니다.');
+            alert('삭제 실패');
         }
     };
 
     const toggleVisibility = async (profile: any) => {
         const newValue = !profile.website_visible;
         try {
-            await supabase.from('therapists').update({ website_visible: newValue }).eq('id', profile.id).eq('center_id', centerId);
-            // Optimistic update
+            await (supabase.from as any)('therapist_profiles').update({ website_visible: newValue }).eq('id', profile.id).eq('center_id', centerId);
             setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, website_visible: newValue } : p));
         } catch (e) {
             console.error(e);
@@ -1445,24 +1421,18 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         setProfiles(newOrder); // Optimistic UI update
 
         try {
-            // 🔒 [Critical Fix] upsert → 개별 update로 변경
-            // upsert는 payload에 없는 컬럼(bio, career, specialties 등)을 NULL로 덮어써서
-            // 기존 데이터가 유실되는 치명적 버그가 있었음
             const updatePromises = newOrder.map((p, index) =>
-                supabase
-                    .from('therapists')
-                    .update({ sort_order: index } as never)
+                (supabase.from as any)('therapist_profiles')
+                    .update({ sort_order: index })
                     .eq('id', p.id)
                     .eq('center_id', centerId)
             );
-
             const results = await Promise.all(updatePromises);
             const error = results.find(r => r.error)?.error;
-
             if (error) throw error;
         } catch (e) {
             console.error('Reorder save failed:', e);
-            fetchProfiles(); // Rollback on error
+            fetchProfiles();
         }
     };
 
@@ -1484,85 +1454,82 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             </div>
 
             <div className="space-y-4 max-w-5xl mx-auto">
-                {profiles.map((profile, index) => {
-                    const isDisplayOnly = profile.email?.includes('@zarada.local');
-                    return (
-                        <div
-                            key={profile.id}
-                            className={cn(
-                                "group flex items-center gap-6 p-5 rounded-[32px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
-                                profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50" : "border-dashed border-slate-200 opacity-50"
-                            )}
-                        >
-                            {/* 1. Rank Badge */}
-                            <div className="w-12 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg shrink-0">
-                                {index + 1}
-                            </div>
-
-                            {/* 2. Move Up/Down Buttons */}
-                            <div className="flex flex-col gap-1 shrink-0">
-                                <button
-                                    onClick={() => moveProfile(index, -1)}
-                                    disabled={index === 0}
-                                    className={cn("p-1.5 rounded-xl transition-all",
-                                        index === 0
-                                            ? "text-slate-200 dark:text-slate-700 cursor-not-allowed"
-                                            : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-700 active:scale-90"
-                                    )}
-                                >
-                                    <ChevronRight className="w-5 h-5 -rotate-90" />
-                                </button>
-                                <button
-                                    onClick={() => moveProfile(index, 1)}
-                                    disabled={index === profiles.length - 1}
-                                    className={cn("p-1.5 rounded-xl transition-all",
-                                        index === profiles.length - 1
-                                            ? "text-slate-200 dark:text-slate-700 cursor-not-allowed"
-                                            : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-700 active:scale-90"
-                                    )}
-                                >
-                                    <ChevronRight className="w-5 h-5 rotate-90" />
-                                </button>
-                            </div>
-
-                            {/* 3. Thumbnail */}
-                            <div className="w-20 h-24 shrink-0 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden relative shadow-inner border border-slate-100 dark:border-slate-700">
-                                {profile.profile_image ? (
-                                    <img src={profile.profile_image} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50 dark:bg-slate-900">
-                                        <Award className="w-8 h-8 opacity-20" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* 4. Core Info */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3">
-                                    <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.display_name || profile.name}</h4>
-                                    <button
-                                        onClick={() => toggleVisibility(profile)}
-                                        className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors",
-                                            profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
-                                    >
-                                        {profile.website_visible ? 'Public' : 'Hidden'}
-                                    </button>
-                                </div>
-                                <p className="text-xs text-slate-500 font-bold mt-1 line-clamp-1">{profile.bio || '한줄 소개가 없습니다.'}</p>
-                            </div>
-
-                            {/* 5. Quick Controls */}
-                            <div className="flex items-center gap-2 shrink-0 pr-2">
-                                <button onClick={() => handleOpenModal(profile)} className="p-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-200 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => handleDelete(profile.id, !isDisplayOnly)} className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
+                {profiles.map((profile, index) => (
+                    <div
+                        key={profile.id}
+                        className={cn(
+                            "group flex items-center gap-6 p-5 rounded-[32px] border transition-all duration-300 relative bg-white dark:bg-slate-800",
+                            profile.website_visible ? "border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50" : "border-dashed border-slate-200 opacity-50"
+                        )}
+                    >
+                        {/* 1. Rank Badge */}
+                        <div className="w-12 h-12 flex items-center justify-center bg-indigo-600 text-white rounded-2xl font-black text-xl shadow-lg shrink-0">
+                            {index + 1}
                         </div>
-                    );
-                })}
+
+                        {/* 2. Move Up/Down Buttons */}
+                        <div className="flex flex-col gap-1 shrink-0">
+                            <button
+                                onClick={() => moveProfile(index, -1)}
+                                disabled={index === 0}
+                                className={cn("p-1.5 rounded-xl transition-all",
+                                    index === 0
+                                        ? "text-slate-200 dark:text-slate-700 cursor-not-allowed"
+                                        : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-700 active:scale-90"
+                                )}
+                            >
+                                <ChevronRight className="w-5 h-5 -rotate-90" />
+                            </button>
+                            <button
+                                onClick={() => moveProfile(index, 1)}
+                                disabled={index === profiles.length - 1}
+                                className={cn("p-1.5 rounded-xl transition-all",
+                                    index === profiles.length - 1
+                                        ? "text-slate-200 dark:text-slate-700 cursor-not-allowed"
+                                        : "text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-700 active:scale-90"
+                                )}
+                            >
+                                <ChevronRight className="w-5 h-5 rotate-90" />
+                            </button>
+                        </div>
+
+                        {/* 3. Thumbnail */}
+                        <div className="w-20 h-24 shrink-0 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden relative shadow-inner border border-slate-100 dark:border-slate-700">
+                            {profile.profile_image ? (
+                                <img src={profile.profile_image} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50 dark:bg-slate-900">
+                                    <Award className="w-8 h-8 opacity-20" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 4. Core Info */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3">
+                                <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">{profile.display_name}</h4>
+                                <button
+                                    onClick={() => toggleVisibility(profile)}
+                                    className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors",
+                                        profile.website_visible ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400")}
+                                >
+                                    {profile.website_visible ? 'Public' : 'Hidden'}
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 font-bold mt-1 line-clamp-1">{profile.bio || '한줄 소개가 없습니다.'}</p>
+                        </div>
+
+                        {/* 5. Quick Controls — 모든 프로필 자유롭게 편집/삭제 가능 */}
+                        <div className="flex items-center gap-2 shrink-0 pr-2">
+                            <button onClick={() => handleOpenModal(profile)} className="p-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-200 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
+                                <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(profile.id)} className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {isModalOpen && createPortal(
