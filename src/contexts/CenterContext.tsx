@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
@@ -18,6 +18,7 @@ const CenterContext = createContext<CenterContextType | undefined>(undefined);
 
 export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [center, setCenterState] = useState<Center | null>(null);
+  const lastLoggedId = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
@@ -26,13 +27,17 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const setCenter = (data: any) => {
     // 🔍 [Verification] Log Center ID and Code for validation
     if (data) {
-      const isDomainMatch = window.location.hostname === data?.custom_domain;
-      console.log(`✅ [CenterContext] Loaded: ${data.name}`, {
-        id: data.id,
-        slug: data.slug,
-        domain: data.custom_domain || 'N/A',
-        source: isDomainMatch ? 'Custom Domain' : 'Slug/Path'
-      });
+      // ✨ Use ref to force-prevent duplicates even in Strict Mode / Redirects
+      if (lastLoggedId.current !== data.id) {
+        lastLoggedId.current = data.id;
+        const isDomainMatch = window.location.hostname === data?.custom_domain;
+        console.log(`✅ [CenterContext] Loaded: ${data.name}`, {
+          id: data.id,
+          slug: data.slug,
+          domain: data.custom_domain || 'N/A',
+          source: isDomainMatch ? 'Custom Domain' : 'Slug/Path'
+        });
+      }
     }
 
     if (data?.slug) {
@@ -166,9 +171,7 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         setCenter(data);
         setError(null);
-        if (import.meta.env.DEV) {
-          console.log(`✅ [센터 로드] ${data.name} (${data.slug}) | ID: ${data.id}`);
-        }
+
       } catch (err: any) {
         console.error('Error fetching center:', err);
         setError('Center not found');
