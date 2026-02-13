@@ -59,12 +59,33 @@ export function AppLayout() {
     const { center } = useCenter();
     const { theme } = useTheme();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+    const [showUpdateBanner, setShowUpdateBanner] = React.useState(false);
 
     // Theme-aware background
     const mainBg = theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50';
 
     // ✨ [Hook Order Fix] All hooks MUST be called before any early return
     const [notif, setNotif] = React.useState<{ title: string, msg: string, visible: boolean } | null>(null);
+
+    // ✨ [SW Update Listener] SW가 업데이트되면 배너 표시
+    React.useEffect(() => {
+        if (!('serviceWorker' in navigator)) return;
+
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'SW_UPDATED') {
+                setShowUpdateBanner(true);
+            }
+        };
+        navigator.serviceWorker.addEventListener('message', handleMessage);
+        return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+    }, []);
+
+    const handleUpdate = React.useCallback(() => {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+        }
+        setTimeout(() => window.location.reload(), 300);
+    }, []);
 
     React.useEffect(() => {
         // ✨ [Notification API] Request Permission on mount
@@ -78,7 +99,19 @@ export function AppLayout() {
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
-                .then(() => { })
+                .then((reg) => {
+                    // 업데이트 감지
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'activated') {
+                                    setShowUpdateBanner(true);
+                                }
+                            });
+                        }
+                    });
+                })
                 .catch(() => { });
         }
 
@@ -251,6 +284,22 @@ export function AppLayout() {
         <div className={`flex flex-col h-screen ${mainBg} font-sans relative overflow-hidden`}>
             {/* 👑 Super Admin Impersonation Indicator (Static, pushes content down) */}
             <SuperAdminBadge />
+
+            {/* 🔄 SW Update Banner */}
+            {showUpdateBanner && (
+                <div className="relative z-[100] w-full h-10 bg-gradient-to-r from-emerald-500 to-teal-600 flex items-center justify-center gap-4 px-4 shadow-md shrink-0 animate-in slide-in-from-top duration-300">
+                    <div className="flex items-center gap-2 text-white font-black text-xs">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>새로운 버전이 있습니다!</span>
+                    </div>
+                    <button
+                        onClick={handleUpdate}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-black transition-all active:scale-95"
+                    >
+                        지금 업데이트
+                    </button>
+                </div>
+            )}
 
             {/* ✨ [Mobile Header] Restored Hamburger Menu - Integrated into Flow */}
             <div className="md:hidden flex items-center justify-between px-6 h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
