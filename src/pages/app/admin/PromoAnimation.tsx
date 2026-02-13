@@ -63,9 +63,8 @@ export function PromoAnimation() {
             const newElapsed = now - startTimeRef.current;
 
             if (newElapsed >= TOTAL_DURATION) {
-                startTimeRef.current = Date.now();
-                setElapsed(0);
-                return;
+                setElapsed(TOTAL_DURATION - 1);
+                return; // 마지막 씬에서 정지
             }
 
             setElapsed(newElapsed);
