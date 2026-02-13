@@ -73,9 +73,9 @@ function LazyFallback() {
 
 function AppHomeRedirect() {
   const { role, loading } = useAuth();
-  const { center } = useCenter();
+  const { center, loading: centerLoading } = useCenter();
 
-  if (loading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
+  if (loading || centerLoading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
 
   // ✨ [Sovereign SaaS] Smart Redirection
   // If a center-affiliated staff/admin logs in, take them to their workspace.
@@ -86,7 +86,11 @@ function AppHomeRedirect() {
     return <Navigate to="/app/dashboard" replace />;
   }
 
-
+  // ✨ [Custom Domain] 커스텀 도메인에서 접속 시 센터 홈페이지로 이동
+  // CenterContext가 도메인으로 센터를 찾아서 center에 세팅한 경우
+  if (center?.slug) {
+    return <Navigate to={`/centers/${center.slug}`} replace />;
+  }
 
   // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
   return <GlobalLanding />;
@@ -118,7 +122,13 @@ function App() {
     const isMasterOrRoot = window.location.pathname === '/' || window.location.pathname.startsWith('/master');
     if (!isMasterOrRoot) return false;
 
-    // 3. Only show once per session
+    // 3. Skip splash on custom domains (center-specific sites)
+    const hostname = window.location.hostname;
+    const isCustomDomain = !['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
+      && !hostname.endsWith('.vercel.app');
+    if (isCustomDomain) return false;
+
+    // 4. Only show once per session
     const hasSeenSplash = sessionStorage.getItem('splash_shown');
     return !hasSeenSplash;
   });
