@@ -125,8 +125,13 @@ export function SettingsPage() {
 
     if (settingsLoading) return <div className="p-20 text-center"><Loader2 className="animate-spin inline w-10 h-10 text-slate-300" /></div>;
 
-    // ✨ [Access Control] Super Admin만 사이트 설정 접근 허용
-    if (!isSuperAdmin && role !== 'super_admin') {
+    // ✨ [Access Control] 탭별 권한 분리
+    // - admin / manager: 프로그램, 치료사, 운영정보 접근 가능
+    // - super_admin: 전체 접근 가능
+    const isAdminOrManager = role === 'admin' || role === 'manager';
+    const hasAccess = isSuperAdmin || role === 'super_admin' || isAdminOrManager;
+
+    if (!hasAccess) {
         return (
             <div className="flex flex-col items-center justify-center p-20 text-center space-y-6">
                 <div className="w-20 h-20 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center">
@@ -134,7 +139,7 @@ export function SettingsPage() {
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">접근 권한이 없습니다</h2>
                 <p className="text-slate-500 font-bold max-w-md">
-                    사이트 설정은 슈퍼 관리자 전용 기능입니다. 필요한 경우 슈퍼 관리자에게 문의해주세요.
+                    사이트 설정은 관리자 이상 권한이 필요합니다. 필요한 경우 슈퍼 관리자에게 문의해주세요.
                 </p>
             </div>
         );
@@ -155,6 +160,28 @@ export function SettingsPage() {
         );
     }
 
+    // ✨ [Tab Filter] admin/manager는 프로그램·치료사·운영정보만 접근 가능
+    const isSuperOnly = !isSuperAdmin && role !== 'super_admin';
+    const allTabs = [
+        { id: 'home', label: '홈', icon: <LayoutTemplate className="w-4 h-4" />, superOnly: true },
+        { id: 'about', label: '소개', icon: <Info className="w-4 h-4" />, superOnly: true },
+        { id: 'programs', label: '프로그램', icon: <BookOpen className="w-4 h-4" />, superOnly: false },
+        { id: 'therapists', label: '치료사', icon: <Heart className="w-4 h-4" />, superOnly: false },
+        { id: 'center_info', label: '운영정보', icon: <Clock className="w-4 h-4" />, superOnly: false },
+        { id: 'branding', label: '브랜드/SEO', icon: <Palette className="w-4 h-4" />, superOnly: true },
+        { id: 'account', label: '계정', icon: <UserX className="w-4 h-4" />, superOnly: false },
+    ];
+    const visibleTabs = isSuperOnly ? allTabs.filter(t => !t.superOnly) : allTabs;
+
+    // admin/manager가 super-only 탭 URL로 직접 접근 시 첫 허용 탭으로 리다이렉트
+    const currentTabAllowed = visibleTabs.some(t => t.id === activeTab);
+    const effectiveTab = currentTabAllowed ? activeTab : (visibleTabs[0]?.id as TabType || 'programs');
+
+    // 유효하지 않은 탭이면 URL 보정
+    if (!currentTabAllowed && effectiveTab !== activeTab) {
+        setActiveTab(effectiveTab);
+    }
+
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-20 px-4 text-left font-bold">
             <Helmet><title>사이트 관리</title></Helmet>
@@ -165,21 +192,13 @@ export function SettingsPage() {
             </div>
 
             <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl overflow-x-auto gap-1 no-scrollbar">
-                {[
-                    { id: 'home', label: '홈', icon: <LayoutTemplate className="w-4 h-4" /> },
-                    { id: 'about', label: '소개', icon: <Info className="w-4 h-4" /> },
-                    { id: 'programs', label: '프로그램', icon: <BookOpen className="w-4 h-4" /> },
-                    { id: 'therapists', label: '치료사', icon: <Heart className="w-4 h-4" /> },
-                    { id: 'center_info', label: '운영정보', icon: <Clock className="w-4 h-4" /> },
-                    { id: 'branding', label: '브랜드/SEO', icon: <Palette className="w-4 h-4" /> },
-                    { id: 'account', label: '계정', icon: <UserX className="w-4 h-4" /> },
-                ].map((tab) => (
+                {visibleTabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as TabType)}
                         className={cn(
                             "flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex-1 hover:bg-white/50 dark:hover:bg-slate-700/50",
-                            activeTab === tab.id
+                            effectiveTab === tab.id
                                 ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
                                 : "text-slate-500 dark:text-slate-400"
                         )}
@@ -191,7 +210,7 @@ export function SettingsPage() {
             </div>
 
             <div className="space-y-10 pt-4 text-left">
-                {activeTab === 'home' && (
+                {effectiveTab === 'home' && (
                     <HomeSettingsTab
                         getSetting={getSetting}
                         handleSave={handleSave}
@@ -199,7 +218,7 @@ export function SettingsPage() {
                     />
                 )}
 
-                {activeTab === 'about' && (
+                {effectiveTab === 'about' && (
                     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-6 duration-700">
                         {/* 1. ✨ Hero Intro Section (Top) */}
                         <div className="space-y-6">
@@ -384,7 +403,7 @@ export function SettingsPage() {
                     </div>
                 )}
 
-                {activeTab === 'programs' && (
+                {effectiveTab === 'programs' && (
                     <SectionCard title="프로그램 리스트" icon={<LayoutTemplate className="text-indigo-500" />}>
                         <SaveableTextArea label="페이지 안내" initialValue={getSetting('programs_intro_text') ?? null} onSave={(v) => handleSave('programs_intro_text', v)} saving={saving} rows={2} />
                         <div className="mt-8 border-t pt-8">
@@ -393,7 +412,7 @@ export function SettingsPage() {
                     </SectionCard>
                 )}
 
-                {activeTab === 'therapists' && (
+                {effectiveTab === 'therapists' && (
                     <SectionCard title="치료사 소개 관리" icon={<Heart className="text-rose-500" />}>
                         <SaveableTextArea label="페이지 인트로 문구" initialValue={getSetting('therapists_intro_text') ?? null} onSave={(v) => handleSave('therapists_intro_text', v)} saving={saving} rows={2} />
                         <div className="pt-6 border-t mt-6 space-y-4">
@@ -405,7 +424,7 @@ export function SettingsPage() {
                     </SectionCard>
                 )}
 
-                {activeTab === 'branding' && (
+                {effectiveTab === 'branding' && (
                     <div className="space-y-10">
                         <SectionCard title="사이트 정체성 설정" icon={<Palette className="text-indigo-500" />}>
                             <div className="space-y-10">
@@ -540,13 +559,13 @@ export function SettingsPage() {
                 }
 
                 {/* ✨ 정보/운영 탭 통합 섹션 - 원본 UI 보존 및 필드 추가 */}
-                {activeTab === 'center_info' && <CenterInfoSection />}
+                {effectiveTab === 'center_info' && <CenterInfoSection />}
 
 
 
                 {/* ✨ 계정 관리 탭 */}
                 {
-                    activeTab === 'account' && (
+                    effectiveTab === 'account' && (
                         <>
                             <SectionCard title="계정 정보" icon={<UserX className="text-rose-500" />}>
                                 <div className="space-y-4">
