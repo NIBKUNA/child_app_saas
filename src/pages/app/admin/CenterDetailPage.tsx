@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Building2, Users, Baby, ArrowLeft, MoreHorizontal, ExternalLink, Pencil, Save, ShieldAlert, X, Trash2 } from 'lucide-react';
+import { Building2, Users, Baby, ArrowLeft, MoreHorizontal, ExternalLink, Pencil, Save, ShieldAlert, X, Trash2, Globe } from 'lucide-react';
 import { useCenter } from '@/contexts/CenterContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
@@ -39,7 +39,8 @@ export function CenterDetailPage() {
         address: '',
         phone: '',
         business_number: '',
-        email: ''
+        email: '',
+        custom_domain: ''
     });
 
     useEffect(() => {
@@ -82,7 +83,8 @@ export function CenterDetailPage() {
                 address: data.address || '',
                 phone: data.phone || '',
                 business_number: data.business_number || '',
-                email: data.email || ''
+                email: data.email || '',
+                custom_domain: data.custom_domain || ''
             });
             setStats({ teachers: teacherCount || 0, children: childCount || 0 });
         } catch (error) {
@@ -116,6 +118,7 @@ export function CenterDetailPage() {
         if (hasChanged(editForm.phone, centerData.phone)) updateData.phone = editForm.phone;
         if (hasChanged(editForm.business_number, centerData.business_number)) updateData.business_number = editForm.business_number;
         if (hasChanged(editForm.email, centerData.email)) updateData.email = editForm.email;
+        if (hasChanged(editForm.custom_domain, centerData.custom_domain)) updateData.custom_domain = editForm.custom_domain || null;
 
         // 변경된 사항이 없으면 바로 종료
         if (Object.keys(updateData).length <= 1) {
@@ -288,6 +291,13 @@ export function CenterDetailPage() {
                             <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3">공식 이메일</p>
                             <p className="font-bold text-slate-900 dark:text-slate-200 text-xl">{centerData.email || '미등록'}</p>
                         </div>
+                        <div>
+                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3">커스텀 도메인</p>
+                            <div className="flex items-center gap-2">
+                                <Globe className="w-5 h-5 text-indigo-500" />
+                                <p className="font-bold text-slate-900 dark:text-slate-200 text-xl">{centerData.custom_domain || '미등록'}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -373,6 +383,21 @@ export function CenterDetailPage() {
                                         value={editForm.business_number}
                                         onChange={e => setEditForm({ ...editForm, business_number: e.target.value })}
                                     />
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">커스텀 도메인</label>
+                                    <div className="relative">
+                                        <Globe className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="예: jamsil-center.co.kr (http 제외)"
+                                            className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl font-bold outline-none focus:border-indigo-500 transition-all text-slate-900 dark:text-white"
+                                            value={editForm.custom_domain}
+                                            onChange={e => setEditForm({ ...editForm, custom_domain: e.target.value })}
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-bold ml-2">도메인 연결 시 DNS CNAME 레코드를 zarada.co.kr로 설정해야 합니다.</p>
                                 </div>
 
                                 <div className="space-y-2">
