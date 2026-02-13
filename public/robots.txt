@@ -1,7 +1,13 @@
 User-agent: *
 Allow: /
+Allow: /centers
+Allow: /centers/
 Disallow: /app/
 Disallow: /login
 Disallow: /register
+Disallow: /master/
+
+# 센터별 공개 페이지는 적극 크롤링 허용
+Allow: /centers/*
 
 Sitemap: https://app.myparents.co.kr/sitemap.xml

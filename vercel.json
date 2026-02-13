@@ -5,6 +5,72 @@
             "destination": "/api/sitemap"
         },
         {
+            "source": "/centers/:slug/therapists",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                }
+            ],
+            "destination": "/api/prerender?path=/centers/:slug/therapists"
+        },
+        {
+            "source": "/centers/:slug/programs",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                }
+            ],
+            "destination": "/api/prerender?path=/centers/:slug/programs"
+        },
+        {
+            "source": "/centers/:slug/about",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                }
+            ],
+            "destination": "/api/prerender?path=/centers/:slug/about"
+        },
+        {
+            "source": "/centers/:slug/contact",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                }
+            ],
+            "destination": "/api/prerender?path=/centers/:slug/contact"
+        },
+        {
+            "source": "/centers/:slug",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                }
+            ],
+            "destination": "/api/prerender?path=/centers/:slug"
+        },
+        {
+            "source": "/centers",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "(?i).*(googlebot|bingbot|yandex|baiduspider|naverbot|yeti|daumoa|slurp|facebookexternalhit|twitterbot|linkedinbot|kakaotalk-scrap|telegrambot).*"
+                }
+            ],
+            "destination": "/api/prerender?path=/centers"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
