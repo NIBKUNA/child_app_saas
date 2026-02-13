@@ -305,8 +305,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 service_type: formData.service_type
             };
 
-            // ✨ [핵심 수정] 타임존 계산 없이 문자열 결합 ("2026-01-07" + "T" + "10:00" + ":00")
-            const makeIsoString = (date: string, time: string) => `${date}T${time}:00`;
+            // ✨ [핵심 수정] KST 타임존 명시 — TIMESTAMPTZ에 UTC로 해석되는 것을 방지
+            const makeIsoString = (date: string, time: string) => `${date}T${time}:00+09:00`;
 
             if (!scheduleId && isRecurring && repeatWeeks > 1) {
                 const schedulesToInsert = [];
