@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Maximize2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Maximize2, Users, Brain, Wallet, CalendarDays, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ============================================================
@@ -7,14 +7,14 @@ import { cn } from '@/lib/utils';
 // 자동 재생 인포그래픽 "영상" (15~20초, CSS/JS 애니메이션)
 // ============================================================
 
-const TOTAL_DURATION = 18000; // 18 seconds total
+const TOTAL_DURATION = 19500; // 19.5 seconds total
 const SCENES = [
     { id: 'intro', start: 0, end: 3000 },
     { id: 'kpi', start: 3000, end: 6500 },
     { id: 'dashboard', start: 6500, end: 9500 },
-    { id: 'schedule', start: 9500, end: 12000 },
-    { id: 'multicenter', start: 12000, end: 15000 },
-    { id: 'cta', start: 15000, end: 18000 },
+    { id: 'schedule', start: 9500, end: 13500 },
+    { id: 'multicenter', start: 13500, end: 16500 },
+    { id: 'cta', start: 16500, end: 19500 },
 ];
 
 function CountUp({ target, duration = 1500, prefix = '', suffix = '' }: { target: number; duration?: number; prefix?: string; suffix?: string }) {
@@ -120,7 +120,7 @@ export function PromoAnimation() {
                     <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
                         홍보 콘텐츠
                     </h1>
-                    <p className="text-slate-500 font-bold mt-1 text-sm">인포그래픽 애니메이션 · 18초</p>
+                    <p className="text-slate-500 font-bold mt-1 text-sm">인포그래픽 애니메이션 · 19.5초</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={reset} className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -231,10 +231,10 @@ export function PromoAnimation() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 w-full max-w-3xl">
                         {[
-                            { icon: '👶', value: 1247, label: '등록 아동', change: '+23', color: 'from-violet-500/20 to-violet-600/5', delay: 0 },
-                            { icon: '🧠', value: 8432, label: '월 치료 세션', change: '+12.5%', color: 'from-blue-500/20 to-blue-600/5', delay: 0.1 },
-                            { icon: '💰', value: 92, label: '정산 (백만원)', change: '실시간', color: 'from-emerald-500/20 to-emerald-600/5', prefix: '₩', suffix: 'M', delay: 0.2 },
-                            { icon: '📅', value: 324, label: '주간 예약', change: '이번 주', color: 'from-amber-500/20 to-amber-600/5', delay: 0.3 },
+                            { icon: <Users className="w-5 h-5 text-violet-400" />, value: 1247, label: '등록 아동', change: '+23', color: 'from-violet-500/20 to-violet-600/5', delay: 0 },
+                            { icon: <Brain className="w-5 h-5 text-pink-400" />, value: 8432, label: '월 치료 세션', change: '+12.5%', color: 'from-blue-500/20 to-blue-600/5', delay: 0.1 },
+                            { icon: <Wallet className="w-5 h-5 text-amber-400" />, value: 92, label: '정산 (백만원)', change: '실시간', color: 'from-emerald-500/20 to-emerald-600/5', prefix: '₩', suffix: 'M', delay: 0.2 },
+                            { icon: <CalendarDays className="w-5 h-5 text-blue-400" />, value: 324, label: '주간 예약', change: '이번 주', color: 'from-amber-500/20 to-amber-600/5', delay: 0.3 },
                         ].map((kpi, i) => (
                             <div
                                 key={i}
@@ -294,7 +294,7 @@ export function PromoAnimation() {
                         }}
                     >
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="text-xs font-bold text-white/80">📈 월별 매출 추이</div>
+                            <div className="text-xs font-bold text-white/80 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-indigo-400" /> 월별 매출 추이</div>
                             <div className="flex-1" />
                             <div className="text-[10px] text-emerald-400 font-bold">+18.3% ↑</div>
                         </div>

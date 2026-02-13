@@ -95,14 +95,18 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                     >
-                        {/* Logo Text Only - Clean */}
-                        <h1 className="text-5xl md:text-6xl font-black tracking-tight text-slate-900">
-                            <span className="text-indigo-600">Z</span>arada
-                        </h1>
-                        {/* ✨ Center Name Integration */}
-                        <p className="mt-4 text-sm font-bold text-slate-400 tracking-widest uppercase opacity-80 text-center">
-                            {displayName}
-                        </p>
+                        {/* Logo Image - Official Zarada Tree Logo */}
+                        <img
+                            src="/zarada_tree_logo.png"
+                            alt="Zarada"
+                            className="h-24 md:h-32 w-auto object-contain"
+                        />
+                        {/* ✨ Center Name Integration (only for center paths) */}
+                        {isCenterPath && (
+                            <p className="mt-4 text-sm font-bold text-slate-400 tracking-widest uppercase opacity-80 text-center">
+                                {displayName}
+                            </p>
+                        )}
                     </motion.div>
                 </motion.div>
             )}

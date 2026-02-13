@@ -144,23 +144,7 @@ function App() {
     }
   }, []);
 
-  const [showSplash, setShowSplash] = useState<boolean>(() => {
-    // ✨ [Optimization] Splash logic:
-    // 1. Only show on the main portal ('/') or Master Console ('/master')
-    // 2. Do NOT show on specific center landing pages to speed up marketing conversions
-    const isMasterOrRoot = window.location.pathname === '/' || window.location.pathname.startsWith('/master');
-    if (!isMasterOrRoot) return false;
-
-    // 3. Skip splash on custom domains (center-specific sites)
-    const hostname = window.location.hostname;
-    const isCustomDomain = !['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
-      && !hostname.endsWith('.vercel.app');
-    if (isCustomDomain) return false;
-
-    // 4. Only show once per session
-    const hasSeenSplash = sessionStorage.getItem('splash_shown');
-    return !hasSeenSplash;
-  });
+  const [showSplash, setShowSplash] = useState<boolean>(false);
 
   // ✨ [UTM Tracking] URL 파라미터 캡처 및 세션 저장
   useEffect(() => {
