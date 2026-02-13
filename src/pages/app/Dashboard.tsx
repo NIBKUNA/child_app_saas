@@ -309,6 +309,7 @@ export function Dashboard() {
     const marketingRef = useRef<HTMLDivElement>(null);
     const dashboardRef = useRef<HTMLDivElement>(null);
     const [slide, setSlide] = useState(0);
+    const [opsPage, setOpsPage] = useState(0);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [kpi, setKpi] = useState({ revenue: 0, active: 0, sessions: 0, new: 0 });
     const { center } = useCenter();
@@ -865,312 +866,382 @@ export function Dashboard() {
 
             {slide === 0 && (
                 <div ref={operationsRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
-                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
-                                    <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={v => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v} />
-                                    <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`₩${val?.toLocaleString?.() ?? 0}`, '매출']} />
-                                    <Area type="monotone" dataKey="value" stroke={BRAND_COLOR} strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[350px]" brandColor={BRAND_COLOR}>
-                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
-                                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={80} outerRadius={110} paddingAngle={4} dataKey="value" stroke="none">
-                                        {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
-                                    </Pie>
-                                    <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </div>
-
-                    <ChartContainer title="치료사별 매출 기여도" icon={SvgIcons.stethoscope} innerHeight="h-[250px]" brandColor={BRAND_COLOR}>
-                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                            <BarChart data={therapistData} layout="vertical" margin={{ top: 20, right: 50, left: 20, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={100} tick={{ fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                <RechartsTooltip formatter={(val: any) => [`${val?.toLocaleString?.() ?? 0}원`, '매출']} {...tooltipProps} />
-                                <Bar dataKey="value" fill={BRAND_COLOR} radius={[0, 8, 8, 0]} barSize={32}>
-                                    <LabelList dataKey="value" position="right" formatter={(v: any) => `₩${(v || 0).toLocaleString()}`} style={{ fontWeight: 'bold', fill: '#64748b' }} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-
-                    <ChartContainer title="상담 후 등록 전환율" icon={SvgIcons.activity} innerHeight="h-[450px]" brandColor={BRAND_COLOR}>
-                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                            <ComposedChart data={conversionData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
-                                <CartesianGrid stroke="#f1f5f9" vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                <YAxis yAxisId="left" axisLine={false} tickLine={false} />
-                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" />
-                                <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                <Bar yAxisId="left" dataKey="consults" name="상담 진행" fill="#e2e8f0" barSize={50} radius={[6, 6, 0, 0]} />
-                                <Bar yAxisId="left" dataKey="converted" name="최종 등록" fill={BRAND_COLOR} barSize={50} radius={[6, 6, 0, 0]} />
-                                <Line yAxisId="right" type="monotone" dataKey="rate" name="전환율(%)" stroke="#f59e0b" strokeWidth={4} />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </ChartContainer>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
-                                    <Pie data={programData} innerRadius={50} outerRadius={80} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
-                                        {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                                    </Pie>
-                                    <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} iconSize={8} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
-                                    <Pie data={ageData} innerRadius={50} outerRadius={70} dataKey="value" stroke="none">
-                                        {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
-                                    </Pie>
-                                    <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} iconSize={8} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                <PieChart margin={{ top: 10, right: 0, bottom: 0, left: 0 }}>
-                                    <Pie data={genderData} outerRadius={60} dataKey="value" stroke="none" label={({ name }: any) => name}>
-                                        <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
-                                    </Pie>
-                                    <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                        <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                <BarChart data={topChildren} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
-                                    <XAxis type="number" hide /><YAxis dataKey="name" type="category" width={60} axisLine={false} tickLine={false} />
-                                    <RechartsTooltip {...tooltipProps} /><Bar dataKey="value" fill="#ec4899" radius={[0, 6, 6, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </div>
-
-                    {/* ✨ [신규] 일지 미작성 알림 + 출석률 통계 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* 일지 미작성 알림 */}
-                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                                    {SvgIcons.clipboardCheck("w-5 h-5 text-rose-500")}
-                                    일지 미작성 현황
-                                </h3>
-                                {missingNoteTotal > 0 ? (
-                                    <span className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl text-sm font-black animate-pulse">
-                                        {missingNoteTotal}건 미작성
-                                    </span>
-                                ) : (
-                                    <span className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl text-sm font-black">
-                                        ✨ 모두 작성 완료
-                                    </span>
+                    {/* ✨ 운영 지표 서브탭 */}
+                    <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 w-fit">
+                        {['매출·수업', '아동·프로그램', '운영 현황'].map((label, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setOpsPage(i)}
+                                className={cn(
+                                    'px-5 py-2.5 rounded-xl text-sm font-black transition-all',
+                                    opsPage === i
+                                        ? 'text-white shadow-md'
+                                        : 'text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
                                 )}
-                            </div>
-                            {missingNotes.length > 0 ? (
-                                <div className="space-y-3">
-                                    {missingNotes.map((item) => (
-                                        <div key={item.therapist} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                                            <div className="flex-1">
-                                                <p className="font-black text-slate-900 dark:text-white text-sm">{item.therapist}</p>
-                                                <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                                                    완료 {item.total}회기 중 {item.total - item.count}건 작성
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                {item.count > 0 ? (
-                                                    <span className="text-2xl font-black text-rose-500">{item.count}</span>
-                                                ) : (
-                                                    <span className="text-sm font-black text-emerald-500">✓ 완료</span>
-                                                )}
-                                            </div>
-                                            {/* 작성률 바 */}
-                                            <div className="w-20">
-                                                <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full transition-all ${item.count === 0 ? 'bg-emerald-500' : item.count <= 2 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                                        style={{ width: `${item.total > 0 ? ((item.total - item.count) / item.total) * 100 : 100}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                                    <p className="font-bold">완료된 수업이 없습니다</p>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 출석률 통계 */}
-                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                                    {SvgIcons.calendar("w-5 h-5 text-blue-500")}
-                                    주차별 출석률
-                                </h3>
-                                <div className="flex items-center gap-3">
-                                    <span className={`text-3xl font-black ${overallAttendance >= 90 ? 'text-emerald-500' : overallAttendance >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                        {overallAttendance}%
-                                    </span>
-                                    <span className="text-xs text-slate-400 font-bold">월간 출석률</span>
-                                </div>
-                            </div>
-                            {attendanceData.length > 0 ? (
-                                <div className="h-[280px]">
-                                    <SafeChart>
-                                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                            <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
-                                                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                                <RechartsTooltip {...tooltipProps} />
-                                                <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
-                                                <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
-                                                <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
-                                                <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} />
-                                            </ComposedChart>
-                                        </ResponsiveContainer>
-                                    </SafeChart>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                                    <p className="font-bold">수업 데이터가 없습니다</p>
-                                </div>
-                            )}
-                        </div>
+                                style={opsPage === i ? { backgroundColor: BRAND_COLOR } : undefined}
+                            >
+                                {label}
+                            </button>
+                        ))}
                     </div>
 
-                    {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED FROM MARKETING TO OPERATIONS */}
-                    <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-8">
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
-                                <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
-                                    {SvgIcons.trendingUp("w-6 h-6 text-emerald-600 dark:text-emerald-400")}
-                                    채널별 유입 및 성과 분석
-                                </h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">마케팅 채널별 유입 규모와 실제 상담 예약 전환 성과</p>
-                            </div>
-                        </div>
+                    {/* ───── 서브탭 1: 매출·수업 ───── */}
+                    {opsPage === 0 && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                            {/* Row 1: 매출 추이 (2col) + 치료사 순위 리스트 (1col) */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[320px]" brandColor={BRAND_COLOR}>
+                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                        <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
+                                            <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={v => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v} />
+                                            <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`₩${val?.toLocaleString?.() ?? 0}`, '매출']} />
+                                            <Area type="monotone" dataKey="value" stroke={BRAND_COLOR} strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
 
-                        {channelConversionData.length > 0 ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Chart 1: Conversion Rate (Main) */}
-                                <div className="h-[400px]">
-                                    <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 추이 및 전환율</h4>
-                                    <SafeChart>
-                                        <ResponsiveContainer width="100%" height="90%" debounce={100}>
-                                            <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                                                <CartesianGrid stroke="#f1f5f9" vertical={false} />
-                                                <XAxis
-                                                    dataKey="name"
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fontSize: 11, fontWeight: 'bold' }}
-                                                    angle={-45}
-                                                    textAnchor="end"
-                                                    height={80}
-                                                />
-                                                <YAxis yAxisId="left" axisLine={false} tickLine={false} />
-                                                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
-                                                <RechartsTooltip {...tooltipProps} />
-                                                <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                                <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={35} radius={[6, 6, 0, 0]} />
-                                                <Bar yAxisId="left" dataKey="converted" name="예약 확정" fill="#10b981" barSize={35} radius={[6, 6, 0, 0]} />
-                                                <Line yAxisId="right" type="monotone" dataKey="rate" name="예약 전환율(%)" stroke="#f59e0b" strokeWidth={4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 6 }} />
-                                            </ComposedChart>
-                                        </ResponsiveContainer>
-                                    </SafeChart>
-                                </div>
-
-                                {/* Right Column: Volume Chart + Stats */}
-                                <div className="space-y-8">
-                                    {/* Chart 2: Inquiry Volume (New) */}
-                                    <div className="h-[250px]">
-                                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중 분석 (Inflow)</h4>
-                                        <SafeChart>
-                                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                                <PieChart>
-                                                    <Pie
-                                                        data={channelConversionData}
-                                                        dataKey="total"
-                                                        nameKey="name"
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={45}
-                                                        outerRadius={75}
-                                                        paddingAngle={5}
-                                                        stroke="none"
-                                                        label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                                {/* 치료사별 매출 – 리더보드 스타일 */}
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col text-left group hover:shadow-2xl transition-all duration-500">
+                                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-3">
+                                        <div className="p-2 rounded-xl" style={{ backgroundColor: BRAND_COLOR + '10', color: BRAND_COLOR }}>
+                                            {SvgIcons.stethoscope("w-5 h-5")}
+                                        </div>
+                                        치료사별 매출
+                                    </h3>
+                                    <div className="flex-1 overflow-y-auto space-y-2 max-h-[280px] pr-1 custom-scrollbar">
+                                        {therapistData.length > 0 ? therapistData.map((t, i) => {
+                                            const maxVal = Math.max(...therapistData.map(d => d.value), 1);
+                                            const pct = (t.value / maxVal) * 100;
+                                            return (
+                                                <div key={t.name} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
+                                                    <div
+                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0 shadow-sm"
+                                                        style={{ backgroundColor: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#cd7f32' : BRAND_COLOR + '80' }}
                                                     >
-                                                        {channelConversionData.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                                        ))}
-                                                    </Pie>
-                                                    <RechartsTooltip
-                                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                                        itemStyle={{ fontWeight: '800', fontSize: '12px' }}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                        </SafeChart>
-                                    </div>
-
-                                    {/* Stats Cards (Scrollable if too many) */}
-                                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {channelConversionData.map((channel, idx) => (
-                                            <div key={channel.name} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                                <div
-                                                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md shrink-0"
-                                                    style={{ backgroundColor: channel.color }}
-                                                >
-                                                    {idx + 1}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{channel.name}</h4>
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                            문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}건</span>
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-300">|</span>
-                                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                                                            확정 {channel.converted}
-                                                        </span>
+                                                        {i + 1}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{t.name}</span>
+                                                            <span className="text-xs font-black text-slate-600 dark:text-slate-300 shrink-0 ml-2">₩{t.value.toLocaleString()}</span>
+                                                        </div>
+                                                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full rounded-full transition-all duration-700"
+                                                                style={{ width: `${pct}%`, backgroundColor: BRAND_COLOR }}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className={`px-3 py-1.5 rounded-lg font-black text-sm shrink-0 ${channel.rate >= 50 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' :
-                                                    channel.rate >= 25 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400' :
-                                                        'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                                                    }`}>
-                                                    {channel.rate ?? 0}%
-                                                </div>
+                                            );
+                                        }) : (
+                                            <div className="flex items-center justify-center py-8 text-slate-400">
+                                                <p className="text-sm font-bold">매출 데이터 없음</p>
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500">
-                                <p className="font-bold text-lg">상담 예약 데이터가 없습니다</p>
-                                <p className="text-sm mt-1">문의가 접수되면 채널별 현황이 표시됩니다</p>
-                            </div>
-                        )}
-                    </div>
 
+                            {/* Row 2: 수업 상태 (1col) + 전환율 (2col) */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[300px]" brandColor={BRAND_COLOR}>
+                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
+                                            <Pie data={statusData} cx="50%" cy="55%" innerRadius={60} outerRadius={85} dataKey="value" stroke="none">
+                                                {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                                            </Pie>
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+
+                                <ChartContainer title="상담 후 등록 전환율" icon={SvgIcons.activity} className="lg:col-span-2" innerHeight="h-[300px]" brandColor={BRAND_COLOR}>
+                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                        <ComposedChart data={conversionData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+                                            <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" tick={{ fontSize: 11 }} />
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
+                                            <Bar yAxisId="left" dataKey="consults" name="상담 진행" fill="#e2e8f0" barSize={30} radius={[6, 6, 0, 0]} />
+                                            <Bar yAxisId="left" dataKey="converted" name="최종 등록" fill={BRAND_COLOR} barSize={30} radius={[6, 6, 0, 0]} />
+                                            <Line yAxisId="right" type="monotone" dataKey="rate" name="전환율(%)" stroke="#f59e0b" strokeWidth={3} />
+                                        </ComposedChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </div>
+                        </div>)}
+
+                    {/* ───── 서브탭 2: 아동·프로그램 ───── */}
+                    {opsPage === 1 && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
+                                            <Pie data={programData} cx="50%" cy="55%" innerRadius={45} outerRadius={70} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
+                                                {programData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                            </Pie>
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} iconSize={8} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                                <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
+                                            <Pie data={ageData} cx="50%" cy="55%" innerRadius={45} outerRadius={65} dataKey="value" stroke="none">
+                                                {ageData.map((_, i) => <Cell key={i} fill={AGE_COLORS[i % AGE_COLORS.length]} />)}
+                                            </Pie>
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} iconSize={8} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                                <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                        <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
+                                            <Pie data={genderData} cx="50%" cy="55%" outerRadius={55} dataKey="value" stroke="none" label={({ name }: any) => name}>
+                                                <Cell fill="#3b82f6" /><Cell fill="#ec4899" />
+                                            </Pie>
+                                            <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
+                            </div>
+
+                            <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[220px]" brandColor="#ec4899">
+                                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                    <BarChart data={topChildren} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fontSize: 12 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                        <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`${val?.toLocaleString?.() ?? 0}회`, '수업']} />
+                                        <Bar dataKey="value" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={36}>
+                                            <LabelList dataKey="value" position="top" style={{ fontWeight: 'bold', fill: '#64748b', fontSize: 12 }} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                        </div>)}
+
+                    {/* ───── 서브탭 3: 운영 현황 ───── */}
+                    {opsPage === 2 && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                            {/* ✨ [신규] 일지 미작성 알림 + 출석률 통계 */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* 일지 미작성 알림 */}
+                                <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                                            {SvgIcons.clipboardCheck("w-5 h-5 text-rose-500")}
+                                            일지 미작성 현황
+                                        </h3>
+                                        {missingNoteTotal > 0 ? (
+                                            <span className="px-4 py-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl text-sm font-black animate-pulse">
+                                                {missingNoteTotal}건 미작성
+                                            </span>
+                                        ) : (
+                                            <span className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl text-sm font-black">
+                                                ✨ 모두 작성 완료
+                                            </span>
+                                        )}
+                                    </div>
+                                    {missingNotes.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {missingNotes.map((item) => (
+                                                <div key={item.therapist} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                                    <div className="flex-1">
+                                                        <p className="font-black text-slate-900 dark:text-white text-sm">{item.therapist}</p>
+                                                        <p className="text-[11px] text-slate-400 font-bold mt-0.5">
+                                                            완료 {item.total}회기 중 {item.total - item.count}건 작성
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        {item.count > 0 ? (
+                                                            <span className="text-2xl font-black text-rose-500">{item.count}</span>
+                                                        ) : (
+                                                            <span className="text-sm font-black text-emerald-500">✓ 완료</span>
+                                                        )}
+                                                    </div>
+                                                    {/* 작성률 바 */}
+                                                    <div className="w-20">
+                                                        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full rounded-full transition-all ${item.count === 0 ? 'bg-emerald-500' : item.count <= 2 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                                style={{ width: `${item.total > 0 ? ((item.total - item.count) / item.total) * 100 : 100}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                            <p className="font-bold">완료된 수업이 없습니다</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 출석률 통계 */}
+                                <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                                            {SvgIcons.calendar("w-5 h-5 text-blue-500")}
+                                            주차별 출석률
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`text-3xl font-black ${overallAttendance >= 90 ? 'text-emerald-500' : overallAttendance >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                                {overallAttendance}%
+                                            </span>
+                                            <span className="text-xs text-slate-400 font-bold">월간 출석률</span>
+                                        </div>
+                                    </div>
+                                    {attendanceData.length > 0 ? (
+                                        <div className="h-[280px]">
+                                            <SafeChart>
+                                                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                                    <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
+                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
+                                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                                        <RechartsTooltip {...tooltipProps} />
+                                                        <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
+                                                        <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
+                                                        <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
+                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} />
+                                                    </ComposedChart>
+                                                </ResponsiveContainer>
+                                            </SafeChart>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                            <p className="font-bold">수업 데이터가 없습니다</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED FROM MARKETING TO OPERATIONS */}
+                            <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-8">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
+                                            {SvgIcons.trendingUp("w-6 h-6 text-emerald-600 dark:text-emerald-400")}
+                                            채널별 유입 및 성과 분석
+                                        </h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">마케팅 채널별 유입 규모와 실제 상담 예약 전환 성과</p>
+                                    </div>
+                                </div>
+
+                                {channelConversionData.length > 0 ? (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Chart 1: Conversion Rate (Main) */}
+                                        <div className="h-[400px]">
+                                            <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 추이 및 전환율</h4>
+                                            <SafeChart>
+                                                <ResponsiveContainer width="100%" height="90%" debounce={100}>
+                                                    <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                                        <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                                                        <XAxis
+                                                            dataKey="name"
+                                                            axisLine={false}
+                                                            tickLine={false}
+                                                            tick={{ fontSize: 11, fontWeight: 'bold' }}
+                                                            angle={-45}
+                                                            textAnchor="end"
+                                                            height={80}
+                                                        />
+                                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} />
+                                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+                                                        <RechartsTooltip {...tooltipProps} />
+                                                        <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
+                                                        <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={35} radius={[6, 6, 0, 0]} />
+                                                        <Bar yAxisId="left" dataKey="converted" name="예약 확정" fill="#10b981" barSize={35} radius={[6, 6, 0, 0]} />
+                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="예약 전환율(%)" stroke="#f59e0b" strokeWidth={4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 6 }} />
+                                                    </ComposedChart>
+                                                </ResponsiveContainer>
+                                            </SafeChart>
+                                        </div>
+
+                                        {/* Right Column: Volume Chart + Stats */}
+                                        <div className="space-y-8">
+                                            {/* Chart 2: Inquiry Volume (New) */}
+                                            <div className="h-[250px]">
+                                                <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중 분석 (Inflow)</h4>
+                                                <SafeChart>
+                                                    <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={channelConversionData}
+                                                                dataKey="total"
+                                                                nameKey="name"
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                innerRadius={45}
+                                                                outerRadius={75}
+                                                                paddingAngle={0}
+                                                                stroke="none"
+                                                                label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(1)}%`}
+                                                            >
+                                                                {channelConversionData.map((entry, index) => (
+                                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                                ))}
+                                                            </Pie>
+                                                            <RechartsTooltip
+                                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                                                                itemStyle={{ fontWeight: '800', fontSize: '12px' }}
+                                                            />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                </SafeChart>
+                                            </div>
+
+                                            {/* Stats Cards (Scrollable if too many) */}
+                                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                {channelConversionData.map((channel, idx) => (
+                                                    <div key={channel.name} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                                        <div
+                                                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md shrink-0"
+                                                            style={{ backgroundColor: channel.color }}
+                                                        >
+                                                            {idx + 1}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{channel.name}</h4>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                                    문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}건</span>
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-300">|</span>
+                                                                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                                                                    확정 {channel.converted}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className={`px-3 py-1.5 rounded-lg font-black text-sm shrink-0 ${channel.rate >= 50 ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' :
+                                                            channel.rate >= 25 ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400' :
+                                                                'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                                            }`}>
+                                                            {channel.rate ?? 0}%
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500">
+                                        <p className="font-bold text-lg">상담 예약 데이터가 없습니다</p>
+                                        <p className="text-sm mt-1">문의가 접수되면 채널별 현황이 표시됩니다</p>
+                                    </div>
+                                )}
+                            </div>
+
+                        </div>)}
                 </div>
             )}
 
