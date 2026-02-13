@@ -125,13 +125,8 @@ interface ScheduleModalProps {
     onSuccess: () => void;
 }
 
-// ✨ [Helper] TIMESTAMPTZ → 로컬 시간 "HH:MM" 변환
-const toLocalTimeStr = (isoStr: string | null | undefined): string | null => {
-    if (!isoStr) return null;
-    const d = new Date(isoStr);
-    if (isNaN(d.getTime())) return isoStr?.includes('T') ? isoStr.split('T')[1].slice(0, 5) : null;
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
+// ✨ [Helper] 공통 타임존 변환 유틸
+import { toLocalTimeStr, toLocalDateStr } from '@/utils/timezone';
 
 export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }: ScheduleModalProps) {
     const { center } = useCenter();
@@ -223,7 +218,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         child_id: data.child_id,
                         program_id: data.program_id,
                         therapist_id: data.therapist_id,
-                        date: data.date || (data.start_time ? data.start_time.split('T')[0] : ''),
+                        date: data.date || toLocalDateStr(data.start_time),
                         start_time: sTime || '10:00',
                         end_time: eTime || '10:40',
                         status: data.status,
@@ -239,7 +234,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             child_id: data.child_id ?? '',
                             program_id: data.program_id ?? '',
                             therapist_id: data.therapist_id ?? '',
-                            date: data.date || (data.start_time ? data.start_time.split('T')[0] : ''),
+                            date: data.date || toLocalDateStr(data.start_time),
                             start_time: sTime || '10:00',
                             end_time: eTime || '10:40',
                             status: data.status ?? 'scheduled',
@@ -269,7 +264,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     therapist_id: (role === 'therapist' && authTherapistId) ? authTherapistId : (therRes.data?.[0]?.id || ''),
                     date: `${year}-${month}-${day}`,
                     start_time: timeStr === '00:00' ? '10:00' : timeStr,
-                    end_time: timeStr === '00:00' ? '10:40' : calculateEndTime(timeStr, 40),
+                    end_time: calculateEndTime(timeStr === '00:00' ? '10:00' : timeStr, 40),
                     status: 'scheduled',
                     service_type: 'therapy'
                 });
@@ -517,7 +512,9 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
     const handleStartTimeChange = (sTime: string) => {
         const p = programsList.find(x => x.id === formData.program_id);
-        const eTime = p ? calculateEndTime(sTime, p.duration) : formData.end_time;
+        // ✨ [Fix] 프로그램 미선택 시에도 기본 40분으로 end_time 자동 계산
+        const duration = p?.duration || 40;
+        const eTime = calculateEndTime(sTime, duration);
         setFormData(prev => ({ ...prev, start_time: sTime, end_time: eTime }));
     };
 

@@ -15,6 +15,7 @@ import { Loader2, ArrowLeft, Save, ClipboardCheck, MessageSquare } from 'lucide-
 import { AssessmentFormModal } from '@/pages/app/children/AssessmentFormModal';
 
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { toLocalDateStr } from '@/utils/timezone';
 
 export default function SessionNote() {
     const { scheduleId } = useParams();
@@ -67,9 +68,7 @@ export default function SessionNote() {
 
         setSessionInfo(schedule);
         // ✨ [Fix] TIMESTAMPTZ → 로컬 날짜 변환 (UTC slice 방지)
-        const localDate = new Date(schedule.start_time);
-        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
-        setSessionDate(dateStr);
+        setSessionDate(toLocalDateStr(schedule.start_time));
 
         // 2. Fetch Existing Note if any
         const { data: note } = await supabase

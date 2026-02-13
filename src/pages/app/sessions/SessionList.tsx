@@ -16,6 +16,7 @@ import { FileText, CheckCircle, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { toLocalDateStr } from '@/utils/timezone';
 
 type Schedule = Database['public']['Tables']['schedules']['Row'] & {
     children: { name: string } | null;
@@ -168,7 +169,7 @@ export default function SessionList() {
                                 <div className="col-span-2">
                                     <div className="font-medium text-slate-900">
                                         {/* 수업 날짜 (Logs가 있으면 Log의 session_date, 없으면 schedule start_time) */}
-                                        {session.counseling_logs?.[0]?.session_date || session.start_time.slice(0, 10)}
+                                        {session.counseling_logs?.[0]?.session_date || toLocalDateStr(session.start_time)}
                                     </div>
                                     {/* 작성일 표시 (완료된 경우) */}
                                     {session.counseling_logs?.[0]?.created_at && (

@@ -18,6 +18,7 @@ import { Helmet } from 'react-helmet-async';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenter } from '@/contexts/CenterContext';
+import { toLocalDateStr } from '@/utils/timezone';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     ChevronLeft, ChevronRight, Search, Loader2, User, X, CheckSquare, Square, Settings2, Receipt,
@@ -162,7 +163,7 @@ export function Billing() {
             const programPrice = item.programs?.price || 0;
             // ⭐ 이월/취소된 세션은 수업료 0원 처리
             const price = (isCanceled || isCarriedOver) ? 0 : programPrice;
-            const date = item.start_time.split('T')[0];
+            const date = toLocalDateStr(item.start_time);
 
             childMap[childId].sessions.push({ ...item, date, price, isCanceled, isCarriedOver });
 

@@ -15,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { toLocalDateStr } from '@/utils/timezone';
 import {
     Clock, CheckCircle2,
     Pencil, Trash2, BarChart3
@@ -292,7 +293,7 @@ export function ConsultationList() {
                         {todoChildren.map((session) => (
                             <div key={session.id} className="bg-white dark:bg-slate-800 p-10 rounded-[48px] border-2 border-slate-50 dark:border-slate-700 shadow-sm hover:border-primary/20 dark:hover:border-indigo-500/30 transition-all group relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-8">
-                                    <span className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{session.start_time.split('T')[0]}</span>
+                                    <span className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{toLocalDateStr(session.start_time)}</span>
                                 </div>
                                 <div className="mb-8">
                                     <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-[28px] flex items-center justify-center text-3xl font-black text-indigo-400 group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all shadow-inner mb-6">
@@ -390,7 +391,7 @@ export function ConsultationList() {
                     childName={selectedSession.children.name}
                     logId={selectedSession.realLogId || null}
                     scheduleId={selectedSession.id || null} // ✨ [Add]
-                    sessionDate={selectedSession.start_time?.split('T')[0] || null} // ✨ [Add]
+                    sessionDate={toLocalDateStr(selectedSession.start_time) || null} // ✨ [Add]
                     therapistId={selectedSession.therapist_id || null}
                     assessmentId={editingAssessmentId}
                     onSuccess={handleAssessmentSuccess}
