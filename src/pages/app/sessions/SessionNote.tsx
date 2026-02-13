@@ -66,8 +66,10 @@ export default function SessionNote() {
         }
 
         setSessionInfo(schedule);
-        // Default session date to schedule start time if not yet set
-        setSessionDate(schedule.start_time.slice(0, 10));
+        // ✨ [Fix] TIMESTAMPTZ → 로컬 날짜 변환 (UTC slice 방지)
+        const localDate = new Date(schedule.start_time);
+        const dateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+        setSessionDate(dateStr);
 
         // 2. Fetch Existing Note if any
         const { data: note } = await supabase

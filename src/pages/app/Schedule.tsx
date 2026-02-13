@@ -167,7 +167,7 @@ export function Schedule() {
             // Mark past 'scheduled' events as 'completed' automatically
             const now = new Date();
             const pastScheduledIds = scheduleData
-                ?.filter(s => s.status === 'scheduled' && new Date(`${s.date}T${s.end_time}`) < now)
+                ?.filter(s => s.status === 'scheduled' && new Date(s.end_time) < now)
                 .map(s => s.id) || [];
 
             if (pastScheduledIds.length > 0) {

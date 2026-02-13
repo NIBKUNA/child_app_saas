@@ -125,6 +125,14 @@ interface ScheduleModalProps {
     onSuccess: () => void;
 }
 
+// ✨ [Helper] TIMESTAMPTZ → 로컬 시간 "HH:MM" 변환
+const toLocalTimeStr = (isoStr: string | null | undefined): string | null => {
+    if (!isoStr) return null;
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr?.includes('T') ? isoStr.split('T')[1].slice(0, 5) : null;
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
 export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }: ScheduleModalProps) {
     const { center } = useCenter();
     const centerId = center?.id;
@@ -208,11 +216,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 // ✨ [성능 개선] 부모로부터 데이터가 넘어왔다면 DB 조회 스킵
                 if (initialDate && typeof initialDate === 'object' && initialDate.child_id) {
                     const data = initialDate;
-                    let sTime = data.start_time;
-                    if (sTime && sTime.includes('T')) sTime = sTime.split('T')[1].slice(0, 5);
-
-                    let eTime = data.end_time;
-                    if (eTime && eTime.includes('T')) eTime = eTime.split('T')[1].slice(0, 5);
+                    const sTime = toLocalTimeStr(data.start_time);
+                    const eTime = toLocalTimeStr(data.end_time);
 
                     setFormData({
                         child_id: data.child_id,
@@ -227,11 +232,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 } else {
                     const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
                     if (data) {
-                        let sTime = data.start_time;
-                        if (sTime && sTime.includes('T')) sTime = sTime.split('T')[1].slice(0, 5);
-
-                        let eTime = data.end_time;
-                        if (eTime && eTime.includes('T')) eTime = eTime.split('T')[1].slice(0, 5);
+                        const sTime = toLocalTimeStr(data.start_time);
+                        const eTime = toLocalTimeStr(data.end_time);
 
                         setFormData({
                             child_id: data.child_id ?? '',
