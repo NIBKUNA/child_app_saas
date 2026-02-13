@@ -66,7 +66,11 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(cleanHostname)
         || cleanHostname.endsWith('.vercel.app');
 
-      if (!isDefaultDomain && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
+      // ✨ [Critical Fix] /centers/{slug} 경로가 명시된 경우, 커스텀 도메인 로직을 건너뛰고 slug 기반으로 센터를 결정
+      // 이렇게 해야 zaradacenter.co.kr/centers/dasan_withme 접속 시 다산 센터가 정상 로드됨
+      const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
+
+      if (!isDefaultDomain && !hasExplicitSlugPath && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
         try {
           const { data: domainCenter, error: domainError } = await supabase
             .from('centers')
