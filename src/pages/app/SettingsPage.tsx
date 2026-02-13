@@ -1309,12 +1309,13 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
 
     const fetchProfiles = async () => {
         setLoading(true);
-        // 🌐 [분리] 치료사 역할만 조회 (관리자/매니저는 공개 사이트 표시 대상이 아님)
+        // 🌐 [Fix] 모든 역할의 프로필을 조회하여 배치 마스터에서 관리
+        // 공개 사이트(TherapistsPage)는 website_visible=true인 모든 역할을 표시하므로,
+        // 배치 마스터도 동일하게 전체 프로필을 보여줘야 관리 가능
         const { data } = await supabase
             .from('therapists')
             .select('*')
             .eq('center_id', centerId)
-            .eq('system_role', 'therapist')
             .order('sort_order', { ascending: true })
             .order('created_at', { ascending: true });
         setProfiles(data || []);
@@ -1371,11 +1372,12 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
             };
 
             if (editingProfile) {
-                // Update
+                // Update — center_id 필터 추가로 교차센터 수정 방지
                 const { error } = await supabase
                     .from('therapists')
                     .update(payload as never)
-                    .eq('id', editingProfile.id);
+                    .eq('id', editingProfile.id)
+                    .eq('center_id', centerId);
                 if (error) throw error;
             } else {
                 // Insert New
@@ -1443,19 +1445,19 @@ function TherapistProfilesManager({ centerId }: { centerId: string }) {
         setProfiles(newOrder); // Optimistic UI update
 
         try {
-            const updates = newOrder.map((p, index) => ({
-                id: p.id,
-                sort_order: index,
-                center_id: centerId,
-                name: p.name,
-                system_status: p.system_status,
-                hire_type: p.hire_type,
-                system_role: p.system_role
-            }));
+            // 🔒 [Critical Fix] upsert → 개별 update로 변경
+            // upsert는 payload에 없는 컬럼(bio, career, specialties 등)을 NULL로 덮어써서
+            // 기존 데이터가 유실되는 치명적 버그가 있었음
+            const updatePromises = newOrder.map((p, index) =>
+                supabase
+                    .from('therapists')
+                    .update({ sort_order: index } as never)
+                    .eq('id', p.id)
+                    .eq('center_id', centerId)
+            );
 
-            const { error } = await supabase
-                .from('therapists')
-                .upsert(updates as never, { onConflict: 'id' });
+            const results = await Promise.all(updatePromises);
+            const error = results.find(r => r.error)?.error;
 
             if (error) throw error;
         } catch (e) {
