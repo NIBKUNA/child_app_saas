@@ -75,6 +75,12 @@ function AppHomeRedirect() {
   const { role, loading } = useAuth();
   const { center, loading: centerLoading } = useCenter();
 
+  // ✨ [Domain Check] Identify if we are on a custom domain
+  const hostname = window.location.hostname;
+  const isSaaSDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
+    || hostname.endsWith('.vercel.app');
+  const isCustomDomain = !isSaaSDomain;
+
   if (loading || centerLoading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
 
   // ✨ [Sovereign SaaS] Smart Redirection
@@ -87,9 +93,25 @@ function AppHomeRedirect() {
   }
 
   // ✨ [Custom Domain] 커스텀 도메인에서 접속 시 센터 홈페이지로 이동
-  // CenterContext가 도메인으로 센터를 찾아서 center에 세팅한 경우
   if (center?.slug) {
     return <Navigate to={`/centers/${center.slug}`} replace />;
+  }
+
+  // 🚨 [Safety] If on a custom domain but NO center found, DO NOT show Global Landing.
+  // This prevents "Zarada Portal" from appearing on "Jamsil Center's" domain.
+  if (isCustomDomain) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-gray-50">
+        <h1 className="text-xl font-bold text-gray-800">센터 정보를 불러오는 중입니다...</h1>
+        <p className="text-sm text-gray-500">잠시만 기다려주세요.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
+        >
+          새로고침
+        </button>
+      </div>
+    );
   }
 
   // 🌐 [Universal Rule] Anyone at root "/" sees the Global Landing (Portal).
