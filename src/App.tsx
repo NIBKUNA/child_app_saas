@@ -93,7 +93,8 @@ function AppHomeRedirect() {
   }
 
   // ✨ [Custom Domain] 커스텀 도메인에서 접속 시 센터 홈페이지로 이동
-  if (center?.slug) {
+  // Super Admin은 통합페이지를 봐야 하므로 리다이렉트 제외
+  if (center?.slug && role !== 'super_admin') {
     return <Navigate to={`/centers/${center.slug}`} replace />;
   }
 

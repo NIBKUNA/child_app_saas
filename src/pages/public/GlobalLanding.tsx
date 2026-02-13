@@ -193,63 +193,108 @@ export const GlobalLanding = () => {
                         </motion.div>
                     </div>
 
-                    {/* ✨ Always Visible Center Grid */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.8 }}
-                        className="mt-16 w-full max-w-5xl mx-auto px-4"
-                    >
-                        {fetchError && (
-                            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-500 text-sm font-bold text-center">
-                                {fetchError}
-                            </div>
-                        )}
-                        {isInitialLoading ? (
-                            <div className="py-20 flex flex-col items-center gap-6">
-                                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-                                <p className="text-white/60 font-black tracking-tight">센터 데이터를 불러오고 있습니다...</p>
-                            </div>
-                        ) : filteredCenters.length > 0 ? (
-                            <>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {(keyword ? filteredCenters : filteredCenters.slice(0, 6)).map((center, idx) => (
-                                        <motion.button
-                                            key={center.id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.05 * idx, duration: 0.4 }}
+                    {fetchError && (
+                        <div className="mt-8 mx-auto max-w-xl p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-200 text-sm font-bold text-center">
+                            {fetchError}
+                        </div>
+                    )}
+
+                    {/* ✨ Marquee Center Ticker (default view) */}
+                    {!keyword && centers.length > 0 && !isInitialLoading && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.8 }}
+                            className="mt-10 w-full max-w-5xl mx-auto overflow-hidden"
+                        >
+                            <p className="text-center text-indigo-200 text-xs font-black uppercase tracking-[0.3em] mb-4">
+                                우리 아이의 센터를 클릭하세요
+                            </p>
+                            <div className="relative">
+                                {/* Fade edges */}
+                                <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white/80 to-transparent z-10 pointer-events-none" />
+                                <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white/80 to-transparent z-10 pointer-events-none" />
+                                <div className="marquee-track flex gap-3 py-2">
+                                    {/* Double the items for seamless loop */}
+                                    {[...centers, ...centers].map((center, idx) => (
+                                        <button
+                                            key={`${center.id}-${idx}`}
                                             onClick={() => handleSelect(center)}
-                                            className="group w-full p-6 text-left rounded-[28px] bg-white/95 backdrop-blur-md shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-white/50 flex items-center gap-5"
+                                            className="group flex items-center gap-2.5 px-5 py-2.5 bg-indigo-600 rounded-full hover:bg-indigo-700 hover:scale-105 transition-all duration-300 whitespace-nowrap shrink-0 shadow-md shadow-indigo-500/20"
                                         >
-                                            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shrink-0">
-                                                <MapPin size={22} />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors truncate">{center.name}</div>
-                                                <p className="text-slate-400 text-sm font-bold mt-0.5 truncate">{center.address || '대한민국'}</p>
-                                            </div>
-                                            <ArrowRight size={18} className="text-slate-200 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all shrink-0" />
-                                        </motion.button>
+                                            <MapPin size={14} className="text-indigo-200 group-hover:text-white transition-colors" />
+                                            <span className="text-white font-bold text-sm">{center.name}</span>
+                                        </button>
                                     ))}
                                 </div>
-                                {!keyword && filteredCenters.length > 6 && (
-                                    <div className="mt-6 text-center">
-                                        <Link
-                                            to="/centers"
-                                            className="inline-flex items-center gap-2 px-8 py-4 bg-white/20 backdrop-blur-md text-white font-black rounded-full hover:bg-white/30 transition-all border border-white/20"
-                                        >
-                                            전체 {filteredCenters.length}개 센터 보기 <ArrowRight size={18} />
-                                        </Link>
-                                    </div>
-                                )}
-                            </>
-                        ) : keyword ? (
-                            <div className="py-16 text-center">
-                                <p className="text-white/50 font-black text-xl">'{keyword}'와 일치하는 센터가 없습니다.</p>
                             </div>
-                        ) : null}
-                    </motion.div>
+                        </motion.div>
+                    )}
+
+                    {/* ✨ Search Results (visible only when typing) */}
+                    {keyword && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-8 w-full max-w-3xl mx-auto px-4"
+                        >
+                            {filteredCenters.length > 0 ? (
+                                <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden divide-y divide-slate-50">
+                                    {filteredCenters.map(center => (
+                                        <button
+                                            key={center.id}
+                                            onClick={() => handleSelect(center)}
+                                            className="group w-full p-5 text-left hover:bg-indigo-50 transition-all flex items-center gap-4"
+                                        >
+                                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                                                <MapPin size={18} />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-black text-slate-900 text-base group-hover:text-indigo-600 transition-colors truncate">{center.name}</div>
+                                                <p className="text-slate-400 text-xs font-bold mt-0.5 truncate">{center.address || '대한민국'}</p>
+                                            </div>
+                                            <ArrowRight size={16} className="text-slate-200 group-hover:text-indigo-500 transition-all shrink-0" />
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-12 text-center">
+                                    <p className="text-white/50 font-black text-lg">'{keyword}'와 일치하는 센터가 없습니다.</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {isInitialLoading && (
+                        <div className="mt-12 py-8 flex flex-col items-center gap-4">
+                            <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                            <p className="text-white/40 font-bold text-sm">센터 목록 로딩 중...</p>
+                        </div>
+                    )}
+
+                    {/* 🔍 SEO: Crawlable center list + JSON-LD structured data */}
+                    {centers.length > 0 && (
+                        <Helmet>
+                            <meta name="keywords" content={centers.map(c => `${c.name} ${c.address || ''}`).join(', ') + ', 아동발달센터, 언어치료, 놀이치료, 감각통합치료'} />
+                            <script type="application/ld+json">{JSON.stringify({
+                                "@context": "https://schema.org",
+                                "@type": "ItemList",
+                                "name": "자라다 아동발달센터 목록",
+                                "description": "자라다(Zarada) 파트너 아동발달센터 전국 목록",
+                                "numberOfItems": centers.length,
+                                "itemListElement": centers.map((c, i) => ({
+                                    "@type": "ListItem",
+                                    "position": i + 1,
+                                    "item": {
+                                        "@type": "LocalBusiness",
+                                        "name": c.name,
+                                        "address": c.address || '대한민국',
+                                        "url": `https://app.myparents.co.kr/centers/${c.slug}`
+                                    }
+                                }))
+                            })}</script>
+                        </Helmet>
+                    )}
                 </div>
 
                 {/* Dashboard Preview or Graphics (Inspired by Image 2) */}
@@ -387,13 +432,24 @@ export const GlobalLanding = () => {
                 </div>
             </footer>
 
-            {/* Global Scrollbar Style */}
+            {/* Global Styles */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+                @keyframes marquee-scroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+                .marquee-track {
+                    animation: marquee-scroll 25s linear infinite;
+                }
+                .marquee-track:hover {
+                    animation-play-state: paused;
+                }
             `}} />
         </div>
     );
