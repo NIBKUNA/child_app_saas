@@ -419,38 +419,55 @@ export function Dashboard() {
             let mCount = 0, fCount = 0;
             const childContribMap: Record<string, number> = {};
 
-            // Payment Processing (Revenue)
+            // ✨ [FIX] Payment Processing — 실제 결제 금액 기반 매출 계산
+            // 1단계: 월별 매출 집계 + 선택 월 아동별 결제 총액 산출
+            const childMonthlyPayment: Record<string, number> = {};
             (allPayments as DashboardPayment[])?.forEach(p => {
                 if (p.paid_at && p.child_id && validChildIds.has(p.child_id) && childrenWithCompletedSchedules.has(p.child_id)) {
                     const m = (p.paid_at as string).slice(0, 7);
                     if (monthlyRevMap[m] !== undefined) monthlyRevMap[m] += (p.amount || 0);
+                    // 선택 월의 아동별 결제 총액 (치료사·아동 매출 배분용)
+                    if (m === selectedMonth) {
+                        childMonthlyPayment[p.child_id] = (childMonthlyPayment[p.child_id] || 0) + (p.amount || 0);
+                    }
                 }
             });
 
-            // Schedule Processing
+            // 2단계: 수업 상태 집계 + 아동별 완료 세션 수 카운트
+            const childSessionCount: Record<string, number> = {};
             (allSchedules as DashboardSchedule[])?.forEach(s => {
                 if (s.start_time && s.start_time.startsWith(selectedMonth)) {
-                    // Status
-                    if (s.status === 'completed') statusMap.completed++;
-                    else if (s.status === 'canceled' || s.status === 'cancelled') statusMap.cancelled++;
-                    else statusMap.scheduled++;
-
                     if (s.status === 'completed') {
-                        // Therapist
-                        const tName = s.therapists?.name || '미배정';
-                        // ✨ [Dynamic] Use therapist's default price, or fallback if not set
-                        const sessionPrice = s.therapists?.session_price_weekday || 60000;
-                        therapistRevMap[tName] = (therapistRevMap[tName] || 0) + sessionPrice;
+                        statusMap.completed++;
+                        if (s.child_id) childSessionCount[s.child_id] = (childSessionCount[s.child_id] || 0) + 1;
 
-                        // Program / Service Type — ✨ [FIX] programs.name 우선 사용
+                        // Program / Service Type
                         const pName = s.programs?.name || s.service_type || '치료 세션';
                         progCountMap[pName] = (progCountMap[pName] || 0) + 1;
-
-                        // Child Contribution
-                        const cName = s.children?.name || '알수없음';
-                        childContribMap[cName] = (childContribMap[cName] || 0) + sessionPrice;
                     }
+                    else if (s.status === 'canceled' || s.status === 'cancelled') statusMap.cancelled++;
+                    else statusMap.scheduled++;
                 }
+            });
+
+            // 3단계: 치료사별 매출 — 실제 결제금을 완료 세션 수로 비례 배분
+            // (아동 A가 30만원 결제, 3회 완료 → 각 세션 담당 치료사에 10만원씩)
+            (allSchedules as DashboardSchedule[])?.forEach(s => {
+                if (s.start_time?.startsWith(selectedMonth) && s.status === 'completed' && s.child_id) {
+                    const tName = s.therapists?.name || '미배정';
+                    const totalPaid = childMonthlyPayment[s.child_id] || 0;
+                    const sessionCnt = childSessionCount[s.child_id] || 1;
+                    const perSessionRev = Math.round(totalPaid / sessionCnt);
+                    therapistRevMap[tName] = (therapistRevMap[tName] || 0) + perSessionRev;
+                }
+            });
+
+            // 4단계: 상위 기여 아동 — 실제 결제 총액 기준
+            const childNameMap: Record<string, string> = {};
+            (existingChildren as DashboardChild[])?.forEach(c => { childNameMap[c.id] = c.name; });
+            Object.entries(childMonthlyPayment).forEach(([childId, amount]) => {
+                const cName = childNameMap[childId] || '알수없음';
+                childContribMap[cName] = (childContribMap[cName] || 0) + amount;
             });
 
             // Demographics (from activeChildren only)
@@ -615,7 +632,8 @@ export function Dashboard() {
                     // Monthly Trend Data
                     if (monthlyLeadsMap[m]) {
                         monthlyLeadsMap[m].consults++;
-                        if (lead.child_id) monthlyLeadsMap[m].converted++;
+                        // ✨ [FIX] 전환 기준 통일: 채널별 전환율과 동일한 기준 적용
+                        if (lead.child_id || lead.status === 'completed' || lead.status === 'converted') monthlyLeadsMap[m].converted++;
                     }
 
                     // ✨ [Campaign Analytics] Extract Campaign Name if available
