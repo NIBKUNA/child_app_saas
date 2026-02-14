@@ -18,6 +18,7 @@ import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { LogOut, ShieldAlert, MonitorCheck, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+import { useAutoCompleteSchedules } from '@/hooks/useAutoCompleteSchedules';
 
 function SuperAdminBadge() {
     const { role, user } = useAuth();
@@ -60,6 +61,9 @@ export function AppLayout() {
     const { theme } = useTheme();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
     const [showUpdateBanner, setShowUpdateBanner] = React.useState(false);
+
+    // ✨ [Auto-Complete] 앱 진입 시 과거 예정 수업 자동 완료 처리
+    useAutoCompleteSchedules(center?.id);
 
     // Theme-aware background
     const mainBg = theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50';

@@ -107,10 +107,15 @@ export function Billing() {
         setLoading(true);
         try {
             // ✨ [SECURITY] Enforce Center ID Filter via Inner Join
+            // ✨ [PERFORMANCE] 해당 월 데이터만 조회하여 불필요한 전체 로드 방지
+            const monthStart = `${selectedMonth}-01T00:00:00`;
+            const nextMonth = new Date(new Date(monthStart).setMonth(new Date(monthStart).getMonth() + 1)).toISOString().slice(0, 10);
             const { data: sData } = await supabase
                 .from('schedules')
                 .select(`*, children!inner (*), programs (*)`)
                 .eq('children.center_id', center.id)
+                .gte('start_time', `${selectedMonth}-01`)
+                .lt('start_time', nextMonth)
                 .order('start_time', { ascending: false });
 
             // ✨ [SECURITY] Enforce Center ID Filter via Inner Join on Payments

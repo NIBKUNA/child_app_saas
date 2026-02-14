@@ -163,26 +163,14 @@ export function Schedule() {
 
             if (error) throw error;
 
-            // ✨ [Auto-Completion Logic]
-            // Mark past 'scheduled' events as 'completed' automatically
+            // ✨ [Auto-Completion] AppLayout의 useAutoCompleteSchedules에서 중앙 처리됨
+            // 로컬 데이터에서도 과거 scheduled를 completed로 표시 (UI 정합성)
             const now = new Date();
-            const pastScheduledIds = scheduleData
-                ?.filter(s => s.status === 'scheduled' && new Date(s.end_time) < now)
-                .map(s => s.id) || [];
-
-            if (pastScheduledIds.length > 0) {
-                await supabase
-                    .from('schedules')
-                    .update({ status: 'completed' })
-                    .in('id', pastScheduledIds);
-
-                // Update local data to reflect the change
-                scheduleData?.forEach((s: ScheduleData) => {
-                    if (pastScheduledIds.includes(s.id)) {
-                        (s as { status: string }).status = 'completed';
-                    }
-                });
-            }
+            scheduleData?.forEach((s: ScheduleData) => {
+                if (s.status === 'scheduled' && new Date(s.end_time) < now) {
+                    (s as { status: string }).status = 'completed';
+                }
+            });
 
             let attendedLogIds = new Set();
             if (scheduleData && scheduleData.length > 0) {

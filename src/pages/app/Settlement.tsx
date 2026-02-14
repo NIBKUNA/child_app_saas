@@ -27,9 +27,7 @@ type SystemRole = 'therapist' | 'manager' | 'admin' | 'super_admin' | 'parent';
 
 // ✨ 정산 통계 타입
 interface TotalStats {
-    revenue: number;
     payout: number;
-    net: number;
     count: number;
 }
 
@@ -59,7 +57,7 @@ interface SettlementData {
     account_number?: string | null;
     account_holder?: string | null;
     remarks?: string | null;
-    revenue: number;
+
     payout: number;
     incentiveText: string;
     counts: SessionCounts;
@@ -117,7 +115,7 @@ export function Settlement() {
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [settlementList, setSettlementList] = useState<SettlementData[]>([]);
-    const [_totalStats, setTotalStats] = useState<TotalStats>({ revenue: 0, payout: 0, net: 0, count: 0 });
+    const [_totalStats, setTotalStats] = useState<TotalStats>({ payout: 0, count: 0 });
 
     // ✨ [Fix] Missing State Definitions
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -185,8 +183,7 @@ export function Settlement() {
                     '구분': '치료사',
                     '이름': t.name,
                     '직책/역할': t.hire_type === 'regular' ? '정규직' : '프리랜서',
-                    '총 매출': t.revenue,
-                    '실 지급액': t.payout,
+                    '지급액': t.payout,
                     '은행명': t.bank_name || '-',
                     '계좌번호': t.account_number || '-',
                     '예금주': t.account_holder || '-',
@@ -251,19 +248,14 @@ export function Settlement() {
                 .lt('start_time', endDate);
             const sessionData = (sessionDataRaw || []) as ScheduleSessionData[];
 
-            // ✨ [Auto-Sync] Mark past 'scheduled' sessions as 'completed'
+            // ✨ [Auto-Completion] DB 업데이트는 AppLayout의 useAutoCompleteSchedules에서 중앙 처리됨
+            // 로컬 데이터에서만 과거 scheduled를 completed로 보정 (정산 정확성 보장)
             const now = new Date();
-            const pastScheduledIds = sessionData
-                .filter((s: ScheduleSessionData) => s.status === 'scheduled' && new Date(s.end_time) < now)
-                .map((s: ScheduleSessionData) => s.id);
-
-            if (pastScheduledIds.length > 0) {
-                await supabase.from('schedules').update({ status: 'completed' } as never).in('id', pastScheduledIds);
-                // Update local status for calculation
-                sessionData.forEach((s: ScheduleSessionData) => {
-                    if (pastScheduledIds.includes(s.id)) (s as { status: string }).status = 'completed';
-                });
-            }
+            sessionData.forEach((s: ScheduleSessionData) => {
+                if (s.status === 'scheduled' && new Date(s.end_time) < now) {
+                    (s as { status: string }).status = 'completed';
+                }
+            });
 
             // Filter for calculation (only completed sessions)
             const completedSessions = sessionData.filter((s: ScheduleSessionData) => s.status === 'completed');
@@ -296,7 +288,7 @@ export function Settlement() {
                 });
 
                 // 🏗️ 2. Apply Formula based on Hire Type
-                let revenue = 0; // Conceptual revenue
+
                 let payout = 0;
                 let incentiveText = '';
 
@@ -322,12 +314,11 @@ export function Settlement() {
                     const consultPay = consult_count * consultPrice;
 
                     payout = weekdayPay + weekendPay + evalPay + consultPay;
-                    revenue = payout;
+
                     incentiveText = `평일(${raw_weekday})${weekdayPay.toLocaleString()} + 주말(${raw_weekend})${weekendPay.toLocaleString()} + 평가(${eval_count})${evalPay.toLocaleString()} + 상담(${consult_count})${consultPay.toLocaleString()}`;
                 } else if (staff.system_role === 'manager') {
                     // 행정직/매니저 (고정 급여)
                     payout = baseSalary;
-                    revenue = payout;
                     incentiveText = `월 고정 급여 ${baseSalary.toLocaleString()}원 (행정/매니저)`;
                 } else if (hireType === 'fulltime' || hireType === 'regular' || staff.system_role === 'admin') {
                     // ✨ [사용자 규정 적용 + 유연한 설정 유지]
@@ -374,7 +365,7 @@ export function Settlement() {
                         }
                         incentiveText = text;
                     }
-                    revenue = payout;
+
                 } else {
                     // 기타 고용 형태 (안전 fallback — 프리랜서 로직 적용)
                     const weekdayPrice = staff.session_price_weekday || 0;
@@ -386,7 +377,7 @@ export function Settlement() {
                     const consultPay = consult_count * consultPrice;
 
                     payout = weekdayPay + weekendPay + evalPay + consultPay;
-                    revenue = payout;
+
                     incentiveText = `평일(${raw_weekday})${weekdayPay.toLocaleString()} + 주말(${raw_weekend})${weekendPay.toLocaleString()} + 평가(${eval_count})${evalPay.toLocaleString()} + 상담(${consult_count})${consultPay.toLocaleString()}`;
                 }
 
@@ -394,7 +385,7 @@ export function Settlement() {
                 return {
                     ...staff,
                     hire_type: hireType,
-                    revenue,
+
                     payout,
                     incentiveText,
                     remarks: staff.remarks || '',
@@ -409,13 +400,10 @@ export function Settlement() {
 
             setSettlementList(calculatedList);
 
-            const totalRev = calculatedList.reduce((acc, curr) => acc + curr.revenue, 0);
             const totalPay = calculatedList.reduce((acc, curr) => acc + curr.payout, 0);
 
             setTotalStats({
-                revenue: totalRev,
                 payout: totalPay,
-                net: totalRev - totalPay,
                 count: sessionData?.length || 0
             });
 
