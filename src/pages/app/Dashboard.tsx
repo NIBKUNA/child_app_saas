@@ -510,43 +510,26 @@ export function Dashboard() {
             siteVisits?.forEach((v: SiteVisit) => {
                 let cat = v.source_category || 'Others';
 
-                // ✨ [Enhancement] Break down 'Others' using referrer domain
+                // ✨ [Filter] Exclude Dev/Infra referrer domains
                 if (v.referrer_url) {
                     try {
-                        const url = new URL(v.referrer_url);
-
-                        const hostname = url.hostname.replace('www.', '');
-
-                        // 1. Exclude Dev/Infra Domains & Internal
+                        const hostname = new URL(v.referrer_url).hostname.replace('www.', '');
                         if (hostname.includes('localhost') ||
                             hostname.includes('127.0.0.1') ||
                             hostname.includes('vercel.app') ||
                             hostname.includes('vercel.com') ||
                             hostname.includes('brainlitix.net')) {
-                            return; // Skip this visit
-                        }
-
-                        // 2. Normalize Platform Domains
-                        if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-                            cat = 'Youtube';
-                        } else if (trafficMap[hostname] !== undefined || cat === 'Others') {
-                            if (cat === 'Others') {
-                                cat = hostname;
-                            }
+                            return; // Skip dev/infra visits
                         }
                     } catch (e) {
-                        // Invalid URL
+                        // Invalid URL — continue with source_category
                     }
                 }
 
-                // Initialize if new domain
+                // ✨ source_category는 useTrafficSource의 categorizeSource()에서 이미 세분화된 키로 저장됨
+                // trafficMap에 미리 정의된 키면 그대로 집계, 아니면 새 키로 추가
                 if (trafficMap[cat] === undefined) trafficMap[cat] = 0;
-
-                if (trafficMap[cat] !== undefined) {
-                    trafficMap[cat] += 1;
-                } else {
-                    trafficMap['Others'] += 1;
-                }
+                trafficMap[cat] += 1;
 
                 // ✨ [Blog Analytics] Aggregate traffic per blog post (Exclude Direct entries with NO info)
                 const isBlog = v.page_url?.includes('/blog/') ?? false;

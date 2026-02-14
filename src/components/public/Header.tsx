@@ -96,8 +96,7 @@ export function Header() {
     const isMainHome = location.pathname === '/';
     const isTransparentHeader = isMainHome && !scrolled && !isDark;
 
-    // 👑 [Sovereign Rule] Immediate Super Admin recognition for reliable navigation
-    const isSuper = isSuperAdmin(user?.email);
+
 
     // ✨ [Fix] Unconditional Hook Call - Always fetch branding
     const { branding, loading } = useCenterBranding();
@@ -490,20 +489,7 @@ export function Header() {
                                         </div>
                                     )}
 
-                                    <div className="pt-2">
-                                        <Link
-                                            to="/"
-                                            className={cn("w-full py-4 flex items-center justify-center gap-2 text-lg font-black transition-all rounded-2xl shadow-lg",
-                                                isDark ? "bg-slate-800 text-white" : "bg-slate-900 text-white shadow-slate-200"
-                                            )}
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                            </svg>
-                                            {isSuper ? '통합 관리 페이지로' : '플랫폼 홈으로 돌아가기'}
-                                        </Link>
-                                    </div>
+
 
                                     <div className="pb-8">
                                         <p className={cn("text-xs font-medium text-center", isDark ? "text-slate-600" : "text-slate-400")}>
