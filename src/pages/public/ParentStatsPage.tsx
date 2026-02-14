@@ -200,7 +200,9 @@ export function ParentStatsPage() {
     };
 
     // 차트에 전달할 데이터 조합 (최신은 부모 체크, 나머지는 히스토리)
-    const combinedData = [activeAssessment, ...(devData || [])];
+    // Note: Supabase Json type is wider than Assessment['assessment_details'],
+    // but runtime data is always a Record object, so the cast is safe.
+    const combinedData = [activeAssessment, ...(devData || [])] as Parameters<typeof ParentDevelopmentChart>[0]['assessments'];
 
     if (error) {
         return (
