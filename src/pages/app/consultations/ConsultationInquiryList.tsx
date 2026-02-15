@@ -33,6 +33,29 @@ export default function ConsultationInquiryList() {
     const { center } = useCenter(); // ✨ Use Center
     const centerId = center?.id;
 
+    // ✨ 문의 접수 시간 포맷팅
+    const formatInquiryTime = (dateStr: string | null) => {
+        if (!dateStr) return { full: '-', relative: '' };
+        const d = new Date(dateStr);
+        const full = d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+            + ' ' + d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        // 상대 시간 계산
+        const now = new Date();
+        const diffMs = now.getTime() - d.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        let relative = '';
+        if (diffMins < 1) relative = '방금 전';
+        else if (diffMins < 60) relative = `${diffMins}분 전`;
+        else if (diffHours < 24) relative = `${diffHours}시간 전`;
+        else if (diffDays < 7) relative = `${diffDays}일 전`;
+        else relative = `${Math.floor(diffDays / 7)}주 전`;
+
+        return { full, relative };
+    };
+
     useEffect(() => {
         if (centerId) fetchData();
     }, [centerId]);
@@ -198,7 +221,10 @@ export default function ConsultationInquiryList() {
                                     ) : (
                                         <span className="px-4 py-1.5 rounded-2xl text-[10px] font-black bg-amber-50 text-amber-600">신규/비회원</span>
                                     )}
-                                    <span className="text-[10px] font-bold text-slate-300">{inq.created_at?.slice(0, 10)} 접수</span>
+                                    <span className="text-[10px] font-bold text-slate-300">{(() => {
+                                        const t = formatInquiryTime(inq.created_at);
+                                        return <>{t.full} 접수 <span className="ml-1 text-indigo-400">({t.relative})</span></>;
+                                    })()}</span>
                                 </div>
                                 <button onClick={() => deleteInquiry(inq.id)} className="p-3 text-slate-200 dark:text-slate-500 hover:text-rose-500 transition-all"><Trash2 className="w-5 h-5" /></button>
                             </div>

@@ -340,6 +340,8 @@ export function Dashboard() {
     const [channelConversionData, setChannelConversionData] = useState<{ name: string; total: number; converted: number; rate: number; color: string }[]>([]);
     const [campaignData, setCampaignData] = useState<{ name: string; value: number }[]>([]); // ✨ Campaign Performance
     const [avgLeadTime, setAvgLeadTime] = useState(0); // ✨ Lead Velocity (Days)
+    const [inquiryHourData, setInquiryHourData] = useState<{ hour: string; count: number; label: string }[]>([]); // ✨ 시간대별 문의
+    const [avgInquiryTime, setAvgInquiryTime] = useState(''); // ✨ 평균 문의 시간
 
     // ✨ [신규] 일지 미작성 & 출석률 통계
     const [missingNotes, setMissingNotes] = useState<{ therapist: string; count: number; total: number }[]>([]);
@@ -721,6 +723,50 @@ export function Dashboard() {
                 .filter(c => c.total > 0)
                 .sort((a, b) => b.total - a.total);
             setChannelConversionData(channelConvArr);
+
+            // ✨ [신규] 시간대별 문의 분석 + 평균 문의 시간
+            const hourBuckets: Record<number, number> = {};
+            for (let h = 0; h < 24; h++) hourBuckets[h] = 0;
+            let totalMinutes = 0;
+            let timeCount = 0;
+
+            allLeads?.forEach((lead: DashboardLead) => {
+                if (lead.created_at) {
+                    const leadDate = new Date(lead.created_at);
+                    const m = (lead.created_at as string).slice(0, 7);
+                    if (m === selectedMonth) {
+                        const hour = leadDate.getHours();
+                        hourBuckets[hour]++;
+                        totalMinutes += hour * 60 + leadDate.getMinutes();
+                        timeCount++;
+                    }
+                }
+            });
+
+            const hourLabels: Record<number, string> = {
+                0: '새벽', 1: '새벽', 2: '새벽', 3: '새벽', 4: '새벽', 5: '새벽',
+                6: '아침', 7: '아침', 8: '아침', 9: '오전', 10: '오전', 11: '오전',
+                12: '점심', 13: '오후', 14: '오후', 15: '오후', 16: '오후', 17: '오후',
+                18: '저녁', 19: '저녁', 20: '야간', 21: '야간', 22: '야간', 23: '야간'
+            };
+
+            const hourArr = Object.entries(hourBuckets).map(([h, count]) => ({
+                hour: `${h}시`,
+                count,
+                label: hourLabels[Number(h)] || ''
+            }));
+            setInquiryHourData(hourArr);
+
+            if (timeCount > 0) {
+                const avgMins = Math.round(totalMinutes / timeCount);
+                const avgH = Math.floor(avgMins / 60);
+                const avgM = avgMins % 60;
+                const period = avgH < 12 ? '오전' : '오후';
+                const displayH = avgH === 0 ? 12 : avgH > 12 ? avgH - 12 : avgH;
+                setAvgInquiryTime(`${period} ${displayH}:${String(avgM).padStart(2, '0')}`);
+            } else {
+                setAvgInquiryTime('');
+            }
 
             // ✨ [NEW CHILDREN KPI] Count active children registered in the selected month
             const newCount = activeChildren.filter(c =>
@@ -1247,6 +1293,117 @@ export function Dashboard() {
                                     <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500">
                                         <p className="font-bold text-lg">상담 예약 데이터가 없습니다</p>
                                         <p className="text-sm mt-1">문의가 접수되면 채널별 현황이 표시됩니다</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ✨ [신규] 시간대별 문의 분석 */}
+                            <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-8">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                    <div>
+                                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
+                                            <svg className="w-6 h-6 text-amber-500" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" />
+                                                <path d="M12 6v6l4 2" stroke="currentColor" />
+                                            </svg>
+                                            시간대별 문의 분석
+                                        </h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">부모님들이 언제 가장 많이 문의하는지 파악하세요</p>
+                                    </div>
+                                    <div className="flex gap-4 flex-wrap">
+                                        {avgInquiryTime && (
+                                            <div className="bg-amber-50 dark:bg-amber-900/30 rounded-2xl px-5 py-3 border border-amber-100 dark:border-amber-800/50">
+                                                <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">평균 문의 시간</p>
+                                                <p className="text-2xl font-black text-amber-700 dark:text-amber-300">{avgInquiryTime}</p>
+                                            </div>
+                                        )}
+                                        {inquiryHourData.some(d => d.count > 0) && (
+                                            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl px-5 py-3 border border-indigo-100 dark:border-indigo-800/50">
+                                                <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-0.5">최다 문의 시간</p>
+                                                <p className="text-2xl font-black text-indigo-700 dark:text-indigo-300">
+                                                    {(() => {
+                                                        const peak = inquiryHourData.reduce((max, d) => d.count > max.count ? d : max, inquiryHourData[0]);
+                                                        return `${peak.hour} (${peak.count}건)`;
+                                                    })()}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                {inquiryHourData.some(d => d.count > 0) ? (
+                                    <div className="h-[280px]">
+                                        <SafeChart>
+                                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                                <BarChart data={inquiryHourData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
+                                                    <XAxis
+                                                        dataKey="hour"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }}
+                                                        interval={1}
+                                                    />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} allowDecimals={false} />
+                                                    <RechartsTooltip
+                                                        {...tooltipProps}
+                                                        formatter={(value: any, _name: any, props: any) => {
+                                                            return [`${value}건`, `${props.payload.hour} (${props.payload.label})`];
+                                                        }}
+                                                    />
+                                                    <Bar
+                                                        dataKey="count"
+                                                        name="문의 수"
+                                                        radius={[6, 6, 0, 0]}
+                                                        barSize={16}
+                                                    >
+                                                        {inquiryHourData.map((entry, index) => {
+                                                            const maxCount = Math.max(...inquiryHourData.map(d => d.count));
+                                                            const intensity = maxCount > 0 ? entry.count / maxCount : 0;
+                                                            const color = entry.count === 0
+                                                                ? (isDark ? '#1e293b' : '#f1f5f9')
+                                                                : `hsl(${35 - intensity * 20}, ${70 + intensity * 20}%, ${isDark ? 35 + intensity * 20 : 60 - intensity * 25}%)`;
+                                                            return <Cell key={index} fill={color} />;
+                                                        })}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </SafeChart>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500">
+                                        <p className="font-bold text-lg">문의 데이터가 없습니다</p>
+                                        <p className="text-sm mt-1">상담 문의가 접수되면 시간대별 분포가 표시됩니다</p>
+                                    </div>
+                                )}
+
+                                {/* 시간대 요약 */}
+                                {inquiryHourData.some(d => d.count > 0) && (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+                                        {[
+                                            { label: '오전 (6-12시)', range: [6, 11], emoji: '🌅', color: 'amber' },
+                                            { label: '오후 (12-18시)', range: [12, 17], emoji: '☀️', color: 'orange' },
+                                            { label: '저녁 (18-22시)', range: [18, 21], emoji: '🌙', color: 'indigo' },
+                                            { label: '야간/새벽', range: [22, 5], emoji: '🌌', color: 'slate' },
+                                        ].map((slot, idx) => {
+                                            const count = inquiryHourData.filter((_, i) => {
+                                                if (slot.range[0] <= slot.range[1]) return i >= slot.range[0] && i <= slot.range[1];
+                                                return i >= slot.range[0] || i <= slot.range[1];
+                                            }).reduce((acc, d) => acc + d.count, 0);
+                                            const total = inquiryHourData.reduce((acc, d) => acc + d.count, 0);
+                                            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                                            return (
+                                                <div key={idx} className={`rounded-2xl p-4 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-lg">{slot.emoji}</span>
+                                                        <span className={`text-[11px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{slot.label}</span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{count}건</span>
+                                                        <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{pct}%</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
