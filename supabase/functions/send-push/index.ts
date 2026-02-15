@@ -1,3 +1,4 @@
+// @ts-nocheck — Deno Edge Function (Supabase 런타임에서 실행됨, 로컬 TS 체커 무시)
 // =============================================
 // 🔔 Supabase Edge Function: send-push
 // 
