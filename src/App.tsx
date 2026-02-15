@@ -11,6 +11,7 @@ import { CenterGuard } from '@/components/auth/CenterGuard';
 
 import ProtectedRoute from '@/components/ProtectedRoute'; // Ensure this exports UserRole or accept string[]
 import { useAuth } from '@/contexts/AuthContext';
+import { isMainDomain as checkMainDomain } from '@/config/domain';
 
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { AppLayout } from '@/layouts/AppLayout';
@@ -78,8 +79,7 @@ function AppHomeRedirect() {
 
   // ✨ [Domain Check] Identify if we are on a custom domain
   const hostname = window.location.hostname;
-  const isSaaSDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
-    || hostname.endsWith('.vercel.app');
+  const isSaaSDomain = checkMainDomain(hostname);
   const isCustomDomain = !isSaaSDomain;
 
   if (loading || centerLoading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지

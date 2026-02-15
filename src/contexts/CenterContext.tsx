@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/database.types';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin } from '@/config/superAdmin';
+import { isMainDomain as checkMainDomain } from '@/config/domain';
 
 type Center = Database['public']['Tables']['centers']['Row'];
 
@@ -62,8 +63,7 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // ✨ [Custom Domain] 커스텀 도메인 감지
       const hostname = window.location.hostname;
       const cleanHostname = hostname.replace(/^www\./, '');
-      const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(cleanHostname)
-        || cleanHostname.endsWith('.vercel.app');
+      const isDefaultDomain = checkMainDomain(cleanHostname);
 
       // ✨ [Custom Domain Protection] 커스텀 도메인에서는 항상 매핑된 센터만 허용
       // zaradacenter.co.kr/centers/dasan_withme 같은 접근을 차단하고 잠실점으로 리다이렉트

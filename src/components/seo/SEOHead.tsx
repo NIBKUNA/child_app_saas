@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useCenter } from '@/contexts/CenterContext';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
 import type { PageType } from '@/hooks/useLocalSEO';
+import { PLATFORM_URL } from '@/config/domain';
 
 /**
  * 🌐 SEOHead - 글로벌 SEO 메타 태그 관리
@@ -15,7 +16,7 @@ export function SEOHead() {
     const { center } = useCenter();
     const seo = useLocalSEO();
 
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://app.myparents.co.kr';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : PLATFORM_URL;
     const canonicalUrl = `${baseUrl}${location.pathname}`;
 
     const businessName = center?.name || '아동발달센터';

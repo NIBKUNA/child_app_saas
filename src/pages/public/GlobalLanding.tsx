@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
 import { Search, ArrowRight, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PLATFORM_URL } from '@/config/domain';
 
 import { motion } from 'framer-motion';
 import { PromoAnimation } from '@/pages/app/admin/PromoAnimation';
@@ -287,7 +288,7 @@ export const GlobalLanding = () => {
                                         "@type": "LocalBusiness",
                                         "name": c.name,
                                         "address": c.address || '대한민국',
-                                        "url": `https://app.myparents.co.kr/centers/${c.slug}`
+                                        "url": `${PLATFORM_URL}/centers/${c.slug}`
                                     }
                                 }))
                             })}</script>

@@ -14,6 +14,7 @@
 
 import { useCenter } from '@/contexts/CenterContext';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
+import { PLATFORM_URL } from '@/config/domain';
 
 // 🗺️ 주소에서 핵심 지역 키워드 추출
 function extractRegion(address: string): string {
@@ -48,7 +49,7 @@ export function useLocalSEO() {
     const region = center?.address ? extractRegion(center.address) : '';
     const centerName = center?.name || '아동발달센터';
     const slug = center?.slug || '';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://app.myparents.co.kr';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : PLATFORM_URL;
     const phone = center?.phone || '';
     const address = center?.address || '';
 

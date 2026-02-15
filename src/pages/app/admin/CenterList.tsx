@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+import { isLocalDev } from '@/config/domain';
 import type { Database } from '@/types/database.types';
 
 type Center = Database['public']['Tables']['centers']['Row'];
@@ -21,9 +22,7 @@ export function CenterList() {
 
     // 🔍 [SEO] 전체 센터 재색인 요청
     const reindexAll = async () => {
-        // 로컬 개발환경 감지
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (isLocal) {
+        if (isLocalDev()) {
             alert('⚠️ 색인 요청은 배포된 환경(Vercel)에서만 작동합니다.\n\n배포 후 다시 시도해주세요.');
             return;
         }
@@ -120,8 +119,8 @@ export function CenterList() {
 
             // 🔍 [SEO] 자동 색인 요청 — Google, Naver, Bing에 새 센터 페이지 알림 (배포 환경에서만)
             try {
-                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                if (!isLocal) {
+                const skipIndexing = isLocalDev();
+                if (!skipIndexing) {
                     fetch('/api/request-indexing', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
