@@ -13,12 +13,14 @@ import { Helmet } from 'react-helmet-async';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { useAdminSettings } from '@/hooks/useAdminSettings'; // Assuming this hook handles center info
+import { useCenter } from '@/contexts/CenterContext';
+import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { cn } from '@/lib/utils';
 import {
     User, Phone, Share2, LogOut, Trash2,
-    Gift, ChevronRight, Download
+    Gift, ChevronRight, Download, Bell, BellOff, Loader2
 } from 'lucide-react';
+import { isPushSupported, subscribePush, unsubscribePush, getSubscriptionStatus } from '@/utils/pushNotification';
 
 import { AccountDeletionModal } from '@/components/AccountDeletionModal';
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
@@ -40,13 +42,25 @@ export function ParentMyPage() {
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [modalType, setModalType] = useState<'terms' | 'privacy' | null>(null);
+    const { center } = useCenter();
+
+    // 🔔 Push Notification State
+    const [pushEnabled, setPushEnabled] = useState(false);
+    const [pushLoading, setPushLoading] = useState(false);
+    const [pushSupported] = useState(isPushSupported());
 
     // Center Info (could be dynamic or from settings)
     const centerPhone = getSetting('center_phone') || '';
     const centerName = getSetting('center_name') || 'Zarada';
 
     useEffect(() => {
-        if (user) fetchChildren();
+        if (user) {
+            fetchChildren();
+            // 푸시 구독 상태 확인
+            if (pushSupported) {
+                getSubscriptionStatus(user.id).then(setPushEnabled);
+            }
+        }
     }, [user]);
 
     const fetchChildren = async () => {
@@ -123,6 +137,22 @@ export function ParentMyPage() {
             });
         } else {
             alert('앱을 설치할 수 없는 환경이거나 이미 설치되어 있습니다.\n\n[iOS] 공유 버튼 > 홈 화면에 추가\n[Android] 브라우저 메뉴 > 앱 설치');
+        }
+    };
+
+    const handleTogglePush = async () => {
+        if (!user || pushLoading) return;
+        setPushLoading(true);
+        try {
+            if (pushEnabled) {
+                const ok = await unsubscribePush(user.id);
+                if (ok) setPushEnabled(false);
+            } else {
+                const ok = await subscribePush(user.id, center?.id || '');
+                if (ok) setPushEnabled(true);
+            }
+        } finally {
+            setPushLoading(false);
         }
     };
 
@@ -236,13 +266,37 @@ export function ParentMyPage() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300" />
                     </button>
-                    <button onClick={handleInstallApp} className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors text-left">
+                    <button onClick={handleInstallApp} className="w-full flex items-center justify-between p-5 border-b border-slate-50 hover:bg-slate-50/50 transition-colors text-left">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl"><Download className="w-5 h-5" /></div>
                             <span className="font-bold text-sm">앱으로 설치하기 (PWA)</span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300" />
                     </button>
+                    {pushSupported && (
+                        <button onClick={handleTogglePush} disabled={pushLoading} className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors text-left">
+                            <div className="flex items-center gap-3">
+                                <div className={cn("p-2.5 rounded-xl", pushEnabled ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-400")}>
+                                    {pushLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : pushEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                                </div>
+                                <div>
+                                    <span className="font-bold text-sm">수업 알림 받기</span>
+                                    <p className={cn("text-[10px] mt-0.5", isDark ? "text-slate-500" : "text-slate-400")}>
+                                        {pushEnabled ? '알림이 활성화되어 있습니다' : '수업 전날 리마인더를 받아보세요'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className={cn(
+                                "w-11 h-6 rounded-full transition-colors relative",
+                                pushEnabled ? "bg-indigo-500" : isDark ? "bg-slate-700" : "bg-slate-200"
+                            )}>
+                                <div className={cn(
+                                    "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                                    pushEnabled ? "translate-x-[22px]" : "translate-x-0.5"
+                                )} />
+                            </div>
+                        </button>
+                    )}
                 </div>
             </section>
 

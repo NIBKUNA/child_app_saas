@@ -135,7 +135,39 @@ self.addEventListener('fetch', (event) => {
     }
 });
 
-// ─── PUSH NOTIFICATIONS ─────────────────────────
+// ─── WEB PUSH (서버에서 받는 실제 푸시) ────────────
+self.addEventListener('push', (event) => {
+    if (!event.data) return;
+
+    let payload;
+    try {
+        payload = event.data.json();
+    } catch {
+        payload = {
+            title: '자라다 알림',
+            body: event.data.text(),
+            url: '/',
+        };
+    }
+
+    const options = {
+        body: payload.body || '',
+        icon: '/pwa-192x192.png',
+        badge: '/favicon.png',
+        vibrate: [200, 100, 200],
+        tag: payload.tag || 'zarada-push',
+        renotify: true,
+        data: {
+            url: payload.url || '/',
+        },
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(payload.title || '자라다', options)
+    );
+});
+
+// ─── PUSH NOTIFICATIONS (클라이언트에서 보내는 로컬 알림) ────
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
         const { title, body } = event.data;

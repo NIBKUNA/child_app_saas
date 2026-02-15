@@ -59,7 +59,8 @@ export type AdminSettingKey =
     | 'home_subtitle_size'
     | 'home_story_title_size'
     | 'home_story_body_size'
-    | 'seo_region';
+    | 'seo_region'
+    | 'reminder_hour';
 
 export interface ProgramItem {
     id: string;

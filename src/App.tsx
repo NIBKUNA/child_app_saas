@@ -61,6 +61,7 @@ const SettingsPage = lazy(() => import('@/pages/app/SettingsPage').then(m => ({ 
 const CenterList = lazy(() => import('@/pages/app/admin/CenterList').then(m => ({ default: m.CenterList })));
 const CenterDetailPage = lazy(() => import('@/pages/app/admin/CenterDetailPage').then(m => ({ default: m.CenterDetailPage })));
 const DomainGuide = lazy(() => import('@/pages/app/admin/PromoAnimation').then(m => ({ default: m.DomainGuide })));
+const NotificationSettingsPage = lazy(() => import('@/pages/app/NotificationSettingsPage'));
 
 import { SplashScreen } from '@/components/SplashScreen';
 
@@ -319,6 +320,12 @@ function App() {
             <Route path="settings" element={
               <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                 <SettingsPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="notifications" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+                <NotificationSettingsPage />
               </ProtectedRoute>
             } />
 

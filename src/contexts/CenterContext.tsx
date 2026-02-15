@@ -65,8 +65,8 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const cleanHostname = hostname.replace(/^www\./, '');
       const isDefaultDomain = checkMainDomain(cleanHostname);
 
-      // ✨ [Custom Domain Protection] 커스텀 도메인에서는 항상 매핑된 센터만 허용
-      // zaradacenter.co.kr/centers/dasan_withme 같은 접근을 차단하고 잠실점으로 리다이렉트
+      // ✨ [Custom Domain Protection] 커스텀 도메인에서는 매핑된 센터 우선
+      // /centers/:slug 명시 경로가 없는 경우에만 자동 매핑
       if (!isDefaultDomain && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
         try {
           const { data: domainCenter, error: domainError } = await supabase
@@ -76,20 +76,24 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             .maybeSingle();
 
           if (!domainError && domainCenter) {
-            // 🔒 URL에 다른 센터의 slug가 있는 경우, 매핑된 센터의 홈으로 강제 리다이렉트
+            // /centers/:slug 경로로 명시적으로 다른 센터를 보고 있는 경우 → 허용
             const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
             if (hasExplicitSlugPath) {
               const urlSlug = pathParts[pathParts.indexOf('centers') + 1];
               if (urlSlug !== domainCenter.slug) {
-                // 다른 센터 slug 접근 → 매핑된 센터 홈으로 리다이렉트
-                window.location.replace(`/centers/${domainCenter.slug}`);
+                // ✨ [Fix] 다른 센터 slug 접근을 허용 (리다이렉트 하지 않음)
+                // 아래 기본 로직에서 해당 slug의 센터를 로드하도록 폴백
+              } else {
+                setCenter(domainCenter);
+                setLoading(false);
                 return;
               }
+            } else {
+              // 명시적 slug 없음 → 도메인 매핑 센터 로드
+              setCenter(domainCenter);
+              setLoading(false);
+              return;
             }
-
-            setCenter(domainCenter);
-            setLoading(false);
-            return;
           }
           // 도메인 매칭 실패 시 기본 로직으로 폴백
         } catch (e) {
@@ -124,13 +128,13 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (slug) {
         localStorage.setItem('zarada_center_slug', slug);
+      } else if (isGlobalRoute) {
+        // ✨ [Fix] 글로벌 페이지에서는 모든 사용자의 센터 slug 클리어
+        // 이전 센터가 계속 복원되는 문제 방지
+        localStorage.removeItem('zarada_center_slug');
       } else if (!isGlobalRoute) {
         // ✨ Auto-restore ONLY if NOT on a global landing/login route
-        // This prevents the "Jamsil Capture" when landing on the global page
         slug = localStorage.getItem('zarada_center_slug');
-      } else if (isGlobalRoute && isSuper) {
-        // ✨ [Security] Force clear context for Super Admin on Global routes
-        localStorage.removeItem('zarada_center_slug');
       }
 
       if (!slug && !authLoading && profile?.center_id && !isSuper) {

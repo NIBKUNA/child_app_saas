@@ -136,6 +136,13 @@ const Icons: Record<string, IconFunction> = {
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1.08z" stroke="currentColor" />
         </svg>
     ),
+    // 알림 아이콘
+    bell: (className: string) => (
+        <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" />
+        </svg>
+    ),
     // 공통 아이콘
     globe: (className: string) => (
         <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -225,6 +232,7 @@ const MENU_GROUPS: MenuGroup[] = [
         items: [
             { name: '대시보드', path: '/app/dashboard', icon: Icons.dashboard, roles: ['super_admin', 'admin'] },
             { name: '사이트 설정', path: '/app/settings', icon: Icons.settings, roles: ['super_admin', 'admin', 'manager'] },
+            { name: '알림 설정', path: '/app/notifications', icon: Icons.bell, roles: ['super_admin', 'admin'] },
             { name: '전체 센터 관리', path: '/master/centers', icon: Icons.globe, roles: ['super_admin'] },
         ]
     }
