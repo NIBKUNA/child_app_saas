@@ -24,7 +24,6 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     const { user, role, loading } = useAuth();
     const location = useLocation();
 
-    // 1. 로딩 중 UI
     // 1. 로딩 중 UI (AuthContext가 fetchRole 완료할 때까지 True 유지됨)
     if (loading) {
         return (

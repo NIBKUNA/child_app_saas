@@ -20,6 +20,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { HeroBackground } from '@/components/public/HeroBackground';
 import { useCenter } from '@/contexts/CenterContext';
+import { BlogFeed } from '@/components/public/BlogFeed';
 import type { Database } from '@/types/database.types';
 
 // Custom SVG Icons (no Lucide)
@@ -378,6 +379,15 @@ export function HomePage() {
                         </div>
                     </motion.section>
 
+
+                    {/* 📰 Blog Feed Section — 센터별 네이버 블로그 자동 연동 */}
+                    {getSetting('sns_blog') && (
+                        <BlogFeed
+                            blogUrl={getSetting('sns_blog')}
+                            isDark={isDark}
+                            maxPosts={4}
+                        />
+                    )}
 
                     {/* Final CTA Section */}
                     <motion.section

@@ -12,7 +12,7 @@ interface CenterContextType {
   center: Center | null;
   loading: boolean;
   error: string | null;
-  setCenter: (center: any) => void; // ✨ Added for Super Admin switching
+  setCenter: (center: Center | null) => void; // ✨ Added for Super Admin switching
 }
 
 const CenterContext = createContext<CenterContextType | undefined>(undefined);

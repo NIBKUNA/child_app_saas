@@ -19,8 +19,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { BASE_URL } from './_config';
 
-const BASE_URL = 'https://app.myparents.co.kr';
 const SITEMAP_URL = `${BASE_URL}/sitemap.xml`;
 
 // 기본 하위 페이지

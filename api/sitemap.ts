@@ -11,38 +11,39 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { BASE_URL } from './_config';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
-    if (!supabaseUrl || !supabaseKey) {
-        res.status(500).send('<!-- Supabase configuration missing -->');
-        return;
-    }
+  if (!supabaseUrl || !supabaseKey) {
+    res.status(500).send('<!-- Supabase configuration missing -->');
+    return;
+  }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const baseUrl = 'https://app.myparents.co.kr';
-    const today = new Date().toISOString().split('T')[0];
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const baseUrl = BASE_URL;
+  const today = new Date().toISOString().split('T')[0];
 
-    // 🔍 DB에서 모든 활성 센터 조회
-    const { data: centers } = await supabase
-        .from('centers')
-        .select('slug, name, address, updated_at')
-        .eq('is_active', true)
-        .order('name');
+  // 🔍 DB에서 모든 활성 센터 조회
+  const { data: centers } = await supabase
+    .from('centers')
+    .select('slug, name, address, updated_at')
+    .eq('is_active', true)
+    .order('name');
 
-    // 📄 센터별 하위 페이지 정의
-    const subPages = [
-        { path: '', priority: '0.9', changefreq: 'weekly' },      // 홈
-        { path: '/about', priority: '0.7', changefreq: 'monthly' },    // 소개
-        { path: '/programs', priority: '0.8', changefreq: 'monthly' }, // 프로그램
-        { path: '/therapists', priority: '0.7', changefreq: 'weekly' }, // 치료사
-        { path: '/contact', priority: '0.8', changefreq: 'monthly' },  // 문의
-    ];
+  // 📄 센터별 하위 페이지 정의
+  const subPages = [
+    { path: '', priority: '0.9', changefreq: 'weekly' },      // 홈
+    { path: '/about', priority: '0.7', changefreq: 'monthly' },    // 소개
+    { path: '/programs', priority: '0.8', changefreq: 'monthly' }, // 프로그램
+    { path: '/therapists', priority: '0.7', changefreq: 'weekly' }, // 치료사
+    { path: '/contact', priority: '0.8', changefreq: 'monthly' },  // 문의
+  ];
 
-    // 🗺️ XML 생성
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+  // 🗺️ XML 생성
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
@@ -71,16 +72,16 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
   </url>
 `;
 
-    // 📍 센터별 페이지 동적 생성
-    for (const center of (centers || [])) {
-        if (!center.slug) continue;
+  // 📍 센터별 페이지 동적 생성
+  for (const center of (centers || [])) {
+    if (!center.slug) continue;
 
-        const lastmod = center.updated_at
-            ? new Date(center.updated_at).toISOString().split('T')[0]
-            : today;
+    const lastmod = center.updated_at
+      ? new Date(center.updated_at).toISOString().split('T')[0]
+      : today;
 
-        for (const page of subPages) {
-            xml += `
+    for (const page of subPages) {
+      xml += `
   <!-- ${center.name}${page.path || ' 홈'} -->
   <url>
     <loc>${baseUrl}/centers/${center.slug}${page.path}</loc>
@@ -88,14 +89,14 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     <priority>${page.priority}</priority>
     <lastmod>${lastmod}</lastmod>
   </url>`;
-        }
     }
+  }
 
-    xml += `
+  xml += `
 </urlset>`;
 
-    // ⚡ Cache: 1시간 (CDN + 브라우저)
-    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
-    res.status(200).send(xml);
+  // ⚡ Cache: 1시간 (CDN + 브라우저)
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+  res.status(200).send(xml);
 }

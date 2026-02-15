@@ -14,8 +14,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { BASE_URL } from './_config';
 
-const BASE_URL = 'https://app.myparents.co.kr';
 const SUB_PAGES = ['', '/about', '/programs', '/therapists', '/contact'];
 
 // ============================================

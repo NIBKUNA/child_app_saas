@@ -88,7 +88,7 @@ export const GlobalLanding = () => {
 
         // Navigation Logic
         if (center.slug) {
-            const isSuperAdmin = role === 'super_admin' || localStorage.getItem('zarada_user_role') === 'super_admin';
+            const isSuperAdmin = role === 'super_admin';
             navigate(`/centers/${center.slug}${isSuperAdmin ? '' : '?login=true'}`);
         }
     };

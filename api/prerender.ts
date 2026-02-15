@@ -11,8 +11,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-
-const BASE_URL = 'https://app.myparents.co.kr';
+import { BASE_URL, isDefaultDomain as checkDefaultDomain } from './_config';
 
 interface CenterData {
     id: string;
@@ -516,8 +515,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const host = (req.headers.host || '').replace(/:\d+$/, ''); // Remove port
 
     // ✨ 커스텀 도메인 감지
-    const isDefaultDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(host)
-        || host.endsWith('.vercel.app');
+    const isDefaultDomain = checkDefaultDomain(host);
 
     let rawPath = (req.query.path as string) || '';
 
