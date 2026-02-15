@@ -156,11 +156,8 @@ export function CenterDetailPage() {
 
     const handleJumpToCenter = () => {
         if (!centerData) return;
-        setCenter({
-            id: centerData.id,
-            name: centerData.name,
-            slug: centerData.slug
-        });
+        // ✨ [Fix] 전체 centerData 전달 (불완전 객체 방지 — custom_domain 등 누락 문제)
+        setCenter(centerData);
         navigate('/app/dashboard');
     };
 
