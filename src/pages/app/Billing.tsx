@@ -54,6 +54,7 @@ interface ChildBillingData {
     paid: number;
     credit: number;
     completed: number;
+    totalFee: number;            // ⭐ 전체 수업료 (완료 + 예정)
     carriedOverAmount: number;  // ⭐ 이월 금액 합계
     carriedOverCount: number;   // ⭐ 이월 횟수
     scheduledCount: number;     // 예정 횟수
@@ -154,6 +155,7 @@ export function Billing() {
                     id: childId, name: childName, paid: childPaidTotal,
                     credit: item.children?.credit || 0,
                     completed: 0,
+                    totalFee: 0,
                     carriedOverAmount: 0,
                     carriedOverCount: 0,
                     scheduledCount: 0,
@@ -171,6 +173,11 @@ export function Billing() {
             const date = toLocalDateStr(item.start_time);
 
             childMap[childId].sessions.push({ ...item, date, price, isCanceled, isCarriedOver });
+
+            // ⭐ 전체 수업료 누적 (취소/이월 제외)
+            if (!isCanceled && !isCarriedOver) {
+                childMap[childId].totalFee += price;
+            }
 
             // ⭐ 상태별 통계
             if (item.status === 'completed') {
@@ -194,10 +201,10 @@ export function Billing() {
         setSelectedMonth(d.toISOString().slice(0, 7));
     };
 
-    // ⭐ 수납 상태 뱃지 계산
+    // ⭐ 수납 상태 뱃지 계산 (✨ totalFee 기준: 예정+완료 전체 수업료)
     const getBillingStatus = (child: ChildBillingData) => {
-        const balance = child.completed - child.paid;
-        if (child.completed === 0 && child.paid === 0) return { label: '미확정', color: 'text-slate-400 bg-slate-100 dark:bg-slate-800 dark:text-slate-500' };
+        const balance = child.totalFee - child.paid;
+        if (child.totalFee === 0 && child.paid === 0) return { label: '미확정', color: 'text-slate-400 bg-slate-100 dark:bg-slate-800 dark:text-slate-500' };
         if (balance <= 0) return { label: '완납', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400' };
         return { label: '미수', color: 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400' };
     };
@@ -212,10 +219,10 @@ export function Billing() {
                     <ExcelExportButton
                         data={stats.childList}
                         fileName={`수납리스트_${selectedMonth}`}
-                        headers={['name', 'completed', 'paid', 'credit', 'carriedOverAmount']}
+                        headers={['name', 'totalFee', 'paid', 'credit', 'carriedOverAmount']}
                         headerLabels={{
                             name: '아동명',
-                            completed: '총 수업료',
+                            totalFee: '총 수업료',
                             paid: '기수납액',
                             credit: '잔여 크레딧',
                             carriedOverAmount: '이월 금액'
@@ -251,7 +258,7 @@ export function Billing() {
                         <thead className={cn("text-xs font-black uppercase tracking-widest", isDark ? "bg-slate-800 text-slate-400" : "bg-slate-50 text-slate-400")}>
                             <tr>
                                 <th className="p-4 md:p-8">아동 정보</th>
-                                <th className="p-4 md:p-8 text-right">수업료(완료)</th>
+                                <th className="p-4 md:p-8 text-right">수업료</th>
                                 <th className="p-4 md:p-8 text-right">이월 크레딧</th>
                                 <th className="p-4 md:p-8 text-right">기수납액</th>
                                 <th className="p-4 md:p-8 text-right">미수금</th>
@@ -266,7 +273,7 @@ export function Billing() {
                                 <tr><td colSpan={7} className={cn("p-20 text-center font-bold", isDark ? "text-slate-500" : "text-slate-400")}>해당 조건의 데이터가 없습니다.</td></tr>
                             ) : (
                                 stats.childList.map((child: ChildBillingData) => {
-                                    const balance = child.completed - child.paid;
+                                    const balance = child.totalFee - child.paid;
                                     const status = getBillingStatus(child);
                                     return (
                                         <tr key={child.id} className={cn("transition-all cursor-pointer group", isDark ? "hover:bg-slate-800/50" : "hover:bg-blue-50/20")} onClick={() => { setSelectedChild(child); setIsModalOpen(true); }}>
@@ -284,7 +291,7 @@ export function Billing() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className={cn("p-4 md:p-8 text-right font-black", isDark ? "text-slate-200" : "text-slate-700")}>{child.completed.toLocaleString()}원</td>
+                                            <td className={cn("p-4 md:p-8 text-right font-black", isDark ? "text-slate-200" : "text-slate-700")}>{child.totalFee.toLocaleString()}원</td>
                                             <td className="p-4 md:p-8 text-right">
                                                 {child.credit > 0 ? (
                                                     <span className="font-black text-purple-500">{child.credit.toLocaleString()}원</span>
@@ -320,8 +327,9 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     const [loading, setLoading] = useState(false);
     const [inputs, setInputs] = useState<PaymentInputs>({ card: 0, cash: 0, creditUsed: 0, memo: '' });
     const [localSessions, setLocalSessions] = useState<BillingSession[]>(childData.sessions);
+    // ✨ [FIX] 기본 전체 선택 (취소/이월 세션 제외) — 수납 대장 금액과 일치
     const [selectedSessions, setSelectedSessions] = useState<string[]>(
-        childData.sessions.filter((s: BillingSession) => s.status === 'completed' && !s.isCanceled && !s.isCarriedOver).map((s: BillingSession) => s.id)
+        childData.sessions.filter((s: BillingSession) => !s.isCanceled && !s.isCarriedOver).map((s: BillingSession) => s.id)
     );
     // ⭐ 수납 이력 조회 상태
     const [showHistory, setShowHistory] = useState(false);
@@ -339,10 +347,13 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         setShowHistory(true);
     };
 
-    const totalFee = localSessions.filter((s: BillingSession) => selectedSessions.includes(s.id)).reduce((sum: number, s: BillingSession) => sum + s.price, 0);
+    // ✨ 전체 수업료 (취소/이월 제외 전체 세션) — 수납 대장의 '수업료' 컬럼과 동일
+    const allSessionsFee = localSessions.filter((s: BillingSession) => !s.isCanceled && !s.isCarriedOver).reduce((sum: number, s: BillingSession) => sum + s.price, 0);
+    // ✨ 선택된 세션 수업료
+    const selectedFee = localSessions.filter((s: BillingSession) => selectedSessions.includes(s.id)).reduce((sum: number, s: BillingSession) => sum + s.price, 0);
     const alreadyPaid = childData.paid;
     const currentPaying = Number(inputs.card) + Number(inputs.cash) + Number(inputs.creditUsed);
-    const finalBalance = totalFee - alreadyPaid - currentPaying;
+    const finalBalance = selectedFee - alreadyPaid - currentPaying;
 
     const handleSave = async () => {
         if (!center?.id) return;
@@ -641,7 +652,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                             isDark ? "bg-indigo-900/30 border-indigo-800" : "bg-indigo-50/50 border-indigo-100"
                         )}>
                             <div>
-                                <p className={cn("text-[10px] md:text-xs font-black mb-2 uppercase tracking-widest", isDark ? "text-indigo-400" : "text-indigo-400")}>Available Credit</p>
+                                <p className={cn("text-[10px] md:text-xs font-black mb-2 uppercase tracking-widest", isDark ? "text-indigo-400" : "text-indigo-400")}>사용가능한 이월금</p>
                                 <p className={cn("text-3xl md:text-5xl font-black tracking-tighter", isDark ? "text-indigo-300" : "text-indigo-600")}>{childData.credit.toLocaleString()}원</p>
                             </div>
                             <button
@@ -677,7 +688,10 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                             "mt-auto pt-8 border-t-4 border-dashed space-y-4 md:space-y-6 pb-8",
                             isDark ? "border-slate-700" : "border-slate-50"
                         )}>
-                            <div className="flex justify-between font-bold text-slate-400 text-base md:text-lg px-2 md:px-4"><span>수업료 합계</span><span>{totalFee.toLocaleString()}원</span></div>
+                            <div className="flex justify-between font-bold text-slate-400 text-base md:text-lg px-2 md:px-4"><span>이번달 전체 수업료</span><span>{allSessionsFee.toLocaleString()}원</span></div>
+                            {allSessionsFee !== selectedFee && (
+                                <div className="flex justify-between font-bold text-amber-500 text-sm px-2 md:px-4"><span>→ 선택 수업료</span><span>{selectedFee.toLocaleString()}원</span></div>
+                            )}
                             {inputs.creditUsed > 0 && (
                                 <div className="flex justify-between font-bold text-purple-500 text-base md:text-lg px-2 md:px-4"><span>크레딧 사용</span><span>-{inputs.creditUsed.toLocaleString()}원</span></div>
                             )}

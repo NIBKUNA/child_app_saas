@@ -60,8 +60,10 @@ interface DashboardChild {
 
 interface DashboardPayment {
     amount: number;
+    credit_used: number | null;
     child_id: string | null;
     paid_at: string | null;
+    payment_month: string | null;
 }
 
 interface SiteVisit {
@@ -405,7 +407,7 @@ export function Dashboard() {
 
             const { data: allPayments } = await supabase
                 .from('payments')
-                .select('amount, child_id, paid_at')
+                .select('amount, credit_used, child_id, paid_at, payment_month')
                 .in('child_id', [...validChildIds]); // 🔒 Security Filter
 
             // Calculation Maps
@@ -421,14 +423,17 @@ export function Dashboard() {
 
             // ✨ [FIX] Payment Processing — 실제 결제 금액 기반 매출 계산
             // 1단계: 월별 매출 집계 + 선택 월 아동별 결제 총액 산출
+            // ✨ [FIX] credit_used 포함 + payment_month 기준 통일 (수납 관리와 일치)
             const childMonthlyPayment: Record<string, number> = {};
             (allPayments as DashboardPayment[])?.forEach(p => {
-                if (p.paid_at && p.child_id && validChildIds.has(p.child_id) && childrenWithCompletedSchedules.has(p.child_id)) {
-                    const m = (p.paid_at as string).slice(0, 7);
-                    if (monthlyRevMap[m] !== undefined) monthlyRevMap[m] += (p.amount || 0);
+                if (p.child_id && validChildIds.has(p.child_id) && childrenWithCompletedSchedules.has(p.child_id)) {
+                    const m = p.payment_month || (p.paid_at as string)?.slice(0, 7);
+                    if (!m) return;
+                    const totalPaidAmount = (p.amount || 0) + (p.credit_used || 0);
+                    if (monthlyRevMap[m] !== undefined) monthlyRevMap[m] += totalPaidAmount;
                     // 선택 월의 아동별 결제 총액 (치료사·아동 매출 배분용)
                     if (m === selectedMonth) {
-                        childMonthlyPayment[p.child_id] = (childMonthlyPayment[p.child_id] || 0) + (p.amount || 0);
+                        childMonthlyPayment[p.child_id] = (childMonthlyPayment[p.child_id] || 0) + totalPaidAmount;
                     }
                 }
             });

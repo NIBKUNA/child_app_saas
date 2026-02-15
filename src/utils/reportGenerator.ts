@@ -41,11 +41,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
     try {
         if (!centerId) throw new Error("Center ID is required for report generation.");
 
-        // Time Range Setup
-        const startOfMonth = `${selectedMonth}-01T00:00:00.000Z`;
-        const [year, month] = selectedMonth.split('-').map(Number);
-        const nextMonthDate = new Date(Date.UTC(year, month, 1)); // month is 0-indexed, but this works to get next month 1st
-        const startOfNextMonth = nextMonthDate.toISOString();
+        // Time Range Setup (✨ payment_month 기준 사용으로 날짜 파싱 불필요)
 
         // ------------------------------------------------------------------
         // 1. Fetch Data (Parallel Requests for Performance)
@@ -69,8 +65,8 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             supabase.from('user_profiles').select('id, phone').eq('center_id', centerId),
             // 3. Assessments (Latest)
             supabase.from('development_assessments').select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
-            // 4. Payments (Selected Month)
-            supabase.from('payments').select('*').eq('center_id', centerId).gte('paid_at', startOfMonth).lt('paid_at', startOfNextMonth),
+            // 4. Payments (Selected Month) — ✨ [FIX] payment_month 기준 통일
+            supabase.from('payments').select('*').eq('center_id', centerId).eq('payment_month', selectedMonth),
             // 5. Leads (Marketing)
             supabase.from('leads').select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
             // 6. Staff (User Profiles with roles)
@@ -93,11 +89,11 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             if (a.child_id && !assessmentMap.has(a.child_id)) assessmentMap.set(a.child_id, a);
         });
 
-        // Map: Payment Aggregation
+        // Map: Payment Aggregation — ✨ [FIX] credit_used 포함 (수납 관리/대시보드와 통일)
         const paymentMap = new Map<string, number>();
         let totalRevenue = 0;
         (payments || []).forEach((p: any) => {
-            const amount = Number(p.amount) || 0;
+            const amount = (Number(p.amount) || 0) + (Number(p.credit_used) || 0);
             const current = paymentMap.get(p.child_id) || 0;
             paymentMap.set(p.child_id, current + amount);
             totalRevenue += amount;
@@ -165,13 +161,15 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             '입사일': formatDate(s.created_at)
         }));
 
-        // Sheet 4: Payment Details
-        const paymentDetailData = (payments || []).map((p: { paid_at: string | null; child_id: string | null; amount: number | null; method: string | null; status?: string | null; description?: string | null }) => {
+        // Sheet 4: Payment Details — ✨ [FIX] credit_used 컬럼 추가
+        const paymentDetailData = (payments || []).map((p: { paid_at: string | null; child_id: string | null; amount: number | null; credit_used?: number | null; method: string | null; status?: string | null; description?: string | null }) => {
             const childName = (children || []).find((c: { id: string; name: string }) => c.id === p.child_id)?.name || 'Unknown';
             return {
                 '결제일시': p.paid_at ? new Date(p.paid_at).toLocaleString() : '-',
                 '아동명': childName,
-                '금액': Number(p.amount) || 0,
+                '결제금액': Number(p.amount) || 0,
+                '크레딧사용': Number(p.credit_used) || 0,
+                '합계': (Number(p.amount) || 0) + (Number(p.credit_used) || 0),
                 '결제수단': p.method || '-',
                 '상태': p.status || '-',
                 '항목': p.description || '수업료'
