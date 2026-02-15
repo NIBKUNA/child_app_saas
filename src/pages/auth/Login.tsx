@@ -63,7 +63,9 @@ export function Login() {
     const [error, setError] = useState<string | null>(null);
     const [rememberMe, setRememberMeState] = useState(getRememberMe());
     const navigate = useNavigate();
-    const { slug } = useParams();
+    const { slug: urlSlug } = useParams();
+    // ✨ [Fix] 커스텀 도메인에서는 URL에 slug가 없으므로 CenterContext에서 가져옴
+    const slug = urlSlug || center?.slug;
 
     // ✨ Agreement Modal State
     const [showAgreement] = useState(false);
