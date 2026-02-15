@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useCenter } from '@/contexts/CenterContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Sparkles } from 'lucide-react';
@@ -11,20 +11,14 @@ export const CenterGuard: React.FC<CenterGuardProps> = ({ children }) => {
     const { center, loading: centerLoading } = useCenter();
     const { role, loading: authLoading } = useAuth();
     const location = useLocation();
-    const { slug: urlSlug } = useParams();
 
     const isPublicPath = location.pathname.startsWith('/centers');
     const isAppPath = location.pathname.startsWith('/app');
     const isAdminPath = location.pathname.startsWith('/app/admin') || location.pathname.startsWith('/master');
     const isSuperAdmin = role === 'super_admin';
 
-    // 🚀 [Critical Fix] URL 슬러그가 있는데 아직 컨텍스트가 로드되지 않았거나 다른 경우
-    // 이 상태에서 Redirect 하는 현상이 '0.1초 튕김'의 원인입니다.
-    const isTransitioning = urlSlug && center?.slug !== urlSlug;
-
-    // 1. 센터 정보 로딩 중이거나 권한 확인 중일 때 로더 표시
-    // ✨ [UX Optimization] 공용 페이지 진입 시에는 '보안 확인' 느낌을 줄이고 '센터 진입' 느낌을 줍니다.
-    if (centerLoading || authLoading || isTransitioning) {
+    // CenterContext가 loading 상태를 직접 관리하므로 별도 transition 체크 불필요
+    if (centerLoading || authLoading) {
         if (isPublicPath) {
             return (
                 <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
