@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { Building2, Film, Moon, Sun, Shield, LayoutGrid, Menu, X } from 'lucide-react';
+import { Building2, Globe, Moon, Sun, Shield, LayoutGrid, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
@@ -35,7 +35,7 @@ export function MasterLayout() {
 
     const navItems = [
         { icon: Building2, label: '전체 센터 관리', path: '/master/centers' },
-        { icon: Film, label: '홍보 콘텐츠', path: '/master/promo' },
+        { icon: Globe, label: '도메인 가이드', path: '/master/promo' },
     ];
 
     const currentPageLabel = navItems.find(i => location.pathname.startsWith(i.path))?.label || '전체 센터 관리';

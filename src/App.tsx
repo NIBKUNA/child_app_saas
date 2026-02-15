@@ -60,7 +60,7 @@ const ConsultationList = lazy(() => import('@/pages/app/consultations/Consultati
 const SettingsPage = lazy(() => import('@/pages/app/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const CenterList = lazy(() => import('@/pages/app/admin/CenterList').then(m => ({ default: m.CenterList })));
 const CenterDetailPage = lazy(() => import('@/pages/app/admin/CenterDetailPage').then(m => ({ default: m.CenterDetailPage })));
-const PromoAnimation = lazy(() => import('@/pages/app/admin/PromoAnimation').then(m => ({ default: m.PromoAnimation })));
+const DomainGuide = lazy(() => import('@/pages/app/admin/PromoAnimation').then(m => ({ default: m.DomainGuide })));
 
 import { SplashScreen } from '@/components/SplashScreen';
 
@@ -333,7 +333,7 @@ function App() {
             <Route index element={<Navigate to="/master/centers" replace />} />
             <Route path="centers" element={<CenterList />} />
             <Route path="centers/:centerId" element={<CenterDetailPage />} />
-            <Route path="promo" element={<PromoAnimation />} />
+            <Route path="promo" element={<DomainGuide />} />
           </Route>
         </Routes >
       )

@@ -58,7 +58,8 @@ export type AdminSettingKey =
     | 'home_title_size'
     | 'home_subtitle_size'
     | 'home_story_title_size'
-    | 'home_story_body_size';
+    | 'home_story_body_size'
+    | 'seo_region';
 
 export interface ProgramItem {
     id: string;

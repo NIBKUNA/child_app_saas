@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { PLATFORM_URL } from '@/config/domain';
 
 import { motion } from 'framer-motion';
-import { PromoAnimation } from '@/pages/app/admin/PromoAnimation';
+
 
 interface Center {
     id: string;
@@ -296,10 +296,6 @@ export const GlobalLanding = () => {
                     )}
                 </div>
 
-                {/* 🎬 Promo Animation */}
-                <div className="relative mt-12 px-4 md:px-8 max-w-5xl mx-auto w-full">
-                    <PromoAnimation />
-                </div>
             </main>
 
             {/* 🤝 Partners Section (White Area) */}

@@ -483,6 +483,21 @@ export function SettingsPage() {
 
                                 <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
+                                {/* 🗺️ 대표 지역 */}
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 ml-1">대표 지역 (검색 최적화)</label>
+                                        <p className="text-xs text-slate-400 font-medium ml-1">검색엔진에 노출될 대표 지역명입니다. 비워두면 센터 이름에서 자동 추출됩니다.</p>
+                                    </div>
+                                    <SaveableInput
+                                        label="대표 지역"
+                                        placeholder="예: 잠실, 구로, 위례, 다산 (비워두면 자동)"
+                                        initialValue={getSetting('seo_region') ?? null}
+                                        onSave={(v) => handleSave('seo_region', v)}
+                                        saving={saving}
+                                    />
+                                </div>
+
                                 {/* 🔍 SEO Keywords */}
                                 <div className="space-y-6">
                                     <div>

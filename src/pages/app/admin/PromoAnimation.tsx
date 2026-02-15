@@ -1,464 +1,198 @@
-import { useState, useEffect, useRef } from 'react';
-import { Users, Brain, Wallet, CalendarDays, TrendingUp } from 'lucide-react';
+import { Globe, Server, Shield, CheckCircle, ExternalLink, Copy, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeProvider';
 
-// ============================================================
-// Zarada SaaS — Animated Infographic Promo (Code-based)
-// 자동 재생 인포그래픽 "영상" (15~20초, CSS/JS 애니메이션)
-// ============================================================
+/**
+ * 🌐 커스텀 도메인 설정 가이드
+ * Super Admin 전용 — 새 센터에 커스텀 도메인을 연결할 때 필요한 단계 안내
+ */
+export function DomainGuide() {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+    const [copiedText, setCopiedText] = useState('');
 
-const TOTAL_DURATION = 19500; // 19.5 seconds total
-const SCENES = [
-    { id: 'intro', start: 0, end: 3000 },
-    { id: 'kpi', start: 3000, end: 6500 },
-    { id: 'dashboard', start: 6500, end: 9500 },
-    { id: 'schedule', start: 9500, end: 13500 },
-    { id: 'multicenter', start: 13500, end: 16500 },
-    { id: 'cta', start: 16500, end: 19500 },
-];
-
-function CountUp({ target, duration = 1500, prefix = '', suffix = '' }: { target: number; duration?: number; prefix?: string; suffix?: string }) {
-    const [value, setValue] = useState(0);
-    const ref = useRef<HTMLSpanElement>(null);
-    const [started, setStarted] = useState(false);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => { if (entry.isIntersecting) setStarted(true); },
-            { threshold: 0.5 }
-        );
-        if (ref.current) observer.observe(ref.current);
-        return () => observer.disconnect();
-    }, []);
-
-    useEffect(() => {
-        if (!started) return;
-        const startTime = Date.now();
-        const tick = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setValue(Math.round(eased * target));
-            if (progress < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-    }, [started, target, duration]);
-
-    return <span ref={ref}>{prefix}{value.toLocaleString()}{suffix}</span>;
-}
-
-export function PromoAnimation() {
-    const [elapsed, setElapsed] = useState(0);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const animationRef = useRef<number | null>(null);
-    const startTimeRef = useRef<number>(0);
-
-    const currentScene = SCENES.find(s => elapsed >= s.start && elapsed < s.end) || SCENES[SCENES.length - 1];
-
-    useEffect(() => {
-        startTimeRef.current = Date.now() - elapsed;
-
-        const tick = () => {
-            const now = Date.now();
-            const newElapsed = now - startTimeRef.current;
-
-            if (newElapsed >= TOTAL_DURATION) {
-                setElapsed(TOTAL_DURATION - 1);
-                return; // 마지막 씬에서 정지
-            }
-
-            setElapsed(newElapsed);
-            animationRef.current = requestAnimationFrame(tick);
-        };
-
-        animationRef.current = requestAnimationFrame(tick);
-        return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
-    }, []);
-
-    const sceneProgress = (sceneId: string) => {
-        const scene = SCENES.find(s => s.id === sceneId);
-        if (!scene) return 0;
-        if (elapsed < scene.start) return 0;
-        if (elapsed >= scene.end) return 1;
-        return (elapsed - scene.start) / (scene.end - scene.start);
+    const copy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedText(text);
+        setTimeout(() => setCopiedText(''), 2000);
     };
 
-    const isVisible = (sceneId: string) => {
-        return currentScene.id === sceneId;
-    };
+    const CopyButton = ({ text }: { text: string }) => (
+        <button
+            onClick={() => copy(text)}
+            className={cn(
+                "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all",
+                copiedText === text
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400"
+            )}
+        >
+            {copiedText === text ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copiedText === text ? '복사됨' : '복사'}
+        </button>
+    );
+
+    const steps = [
+        {
+            icon: Globe,
+            title: '1. 도메인 구매',
+            color: 'text-blue-500',
+            bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+            content: (
+                <div className="space-y-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <a href="https://www.gabia.com" target="_blank" rel="noopener" className="text-blue-500 font-bold hover:underline">가비아</a>,&nbsp;
+                        <a href="https://www.hosting.kr" target="_blank" rel="noopener" className="text-blue-500 font-bold hover:underline">호스팅KR</a> 등에서 원하는 도메인을 구매합니다.
+                    </p>
+                    <div className={cn("rounded-xl p-3 text-sm font-mono", isDark ? "bg-slate-900 text-slate-300" : "bg-slate-800 text-slate-200")}>
+                        예: mychildcenter.co.kr
+                    </div>
+                </div>
+            )
+        },
+        {
+            icon: Server,
+            title: '2. DNS 레코드 설정',
+            color: 'text-purple-500',
+            bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+            content: (
+                <div className="space-y-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        도메인 관리 페이지에서 아래 DNS 레코드를 추가하세요.
+                    </p>
+                    <div className={cn("rounded-xl p-4 space-y-2 text-sm font-mono", isDark ? "bg-slate-900" : "bg-slate-800")}>
+                        <div className="flex items-center justify-between">
+                            <span className="text-emerald-400">CNAME → cname.vercel-dns.com</span>
+                            <CopyButton text="cname.vercel-dns.com" />
+                        </div>
+                        <div className="border-t border-slate-700 pt-2 flex items-center justify-between">
+                            <span className="text-yellow-400">또는 A → 76.76.21.21</span>
+                            <CopyButton text="76.76.21.21" />
+                        </div>
+                    </div>
+                    <p className="text-xs text-slate-500">※ CNAME은 서브도메인, A 레코드는 루트 도메인에 사용</p>
+                </div>
+            )
+        },
+        {
+            icon: Shield,
+            title: '3. Vercel에 도메인 추가',
+            color: 'text-emerald-500',
+            bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+            content: (
+                <div className="space-y-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        Vercel 프로젝트 설정에서 커스텀 도메인을 추가합니다.
+                    </p>
+                    <ol className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                        <li><a href="https://vercel.com/dashboard" target="_blank" rel="noopener" className="text-emerald-500 font-bold hover:underline">Vercel Dashboard</a> → 프로젝트 선택</li>
+                        <li>Settings → Domains</li>
+                        <li>새 도메인 입력 → Add</li>
+                        <li>SSL 인증서 자동 발급 확인 (수 분 소요)</li>
+                    </ol>
+                </div>
+            )
+        },
+        {
+            icon: ArrowRight,
+            title: '4. 센터에 도메인 연결',
+            color: 'text-orange-500',
+            bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+            content: (
+                <div className="space-y-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        마스터 콘솔 → 해당 센터 상세 → <strong>커스텀 도메인</strong> 필드에 도메인 입력 후 저장
+                    </p>
+                    <div className={cn("rounded-xl p-3 text-sm font-mono", isDark ? "bg-slate-900 text-slate-300" : "bg-slate-800 text-slate-200")}>
+                        mychildcenter.co.kr <span className="text-slate-500">(http 제외, www 제외)</span>
+                    </div>
+                </div>
+            )
+        },
+        {
+            icon: CheckCircle,
+            title: '5. 네이버 서치어드바이저 등록 (선택)',
+            color: 'text-teal-500',
+            bgColor: 'bg-teal-50 dark:bg-teal-900/20',
+            content: (
+                <div className="space-y-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                        네이버 검색 노출을 원하면 커스텀 도메인을 별도 등록해야 합니다.
+                    </p>
+                    <ol className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-decimal list-inside">
+                        <li><a href="https://searchadvisor.naver.com" target="_blank" rel="noopener" className="text-teal-500 font-bold hover:underline">서치어드바이저 <ExternalLink className="w-3 h-3 inline" /></a> 접속</li>
+                        <li>사이트 추가 → 커스텀 도메인 입력</li>
+                        <li>소유권 인증 (HTML 태그 또는 DNS)</li>
+                        <li>요청 → 사이트맵 제출</li>
+                    </ol>
+                    <p className="text-xs text-slate-500">※ app.myparents.co.kr 경로로 접속하는 센터는 별도 등록 불필요 (메인 사이트맵에 포함됨)</p>
+                </div>
+            )
+        },
+    ];
 
     return (
-        <div>
-            {/* Player */}
-            <div
-                ref={containerRef}
-                className="relative bg-[#0a0818] rounded-3xl overflow-hidden shadow-2xl border border-white/5"
-                style={{ aspectRatio: '16/9' }}
-            >
-                {/* ===== SCENE: INTRO ===== */}
-                <div
-                    className="absolute inset-0 flex flex-col items-center justify-center"
-                    style={{
-                        opacity: isVisible('intro') ? 1 : 0,
-                        visibility: isVisible('intro') ? 'visible' : 'hidden',
-                        transform: `scale(${isVisible('intro') ? 1 : 0.9})`,
-                        transition: 'opacity 0.4s ease, transform 0.4s ease, visibility 0.4s',
-                        zIndex: isVisible('intro') ? 10 : 1,
-                        pointerEvents: isVisible('intro') ? 'auto' : 'none',
-                    }}
-                >
-                    {/* Glow */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[100px]" />
+        <div className="p-6 md:p-10 max-w-3xl mx-auto space-y-8">
+            <div>
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+                    커스텀 도메인 설정 가이드
+                </h1>
+                <p className="text-sm text-slate-500 font-bold mt-2">
+                    새 센터에 자체 도메인을 연결하는 단계별 안내
+                </p>
+            </div>
 
-                    {/* Badge */}
-                    <div
-                        className="relative flex items-center gap-2 px-5 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold tracking-[3px] uppercase mb-8"
-                        style={{
-                            opacity: sceneProgress('intro') > 0.1 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('intro') > 0.1 ? 0 : 20}px)`,
-                            transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
-                        }}
-                    >
-                        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                        NEXT-GEN ERP
-                    </div>
+            {/* 자동 처리 안내 */}
+            <div className={cn("rounded-2xl p-5 border", isDark ? "bg-indigo-900/20 border-indigo-800" : "bg-indigo-50 border-indigo-200")}>
+                <h3 className="text-sm font-black text-indigo-600 dark:text-indigo-400 mb-2">💡 자동 처리되는 것</h3>
+                <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                    <li>✅ 지역 SEO (title, description, keywords) — 센터 주소에서 자동 추출</li>
+                    <li>✅ JSON-LD 구조화 데이터 — 센터 정보 기반 자동 생성</li>
+                    <li>✅ 사이트맵 — 빌드 시 자동 갱신 (prebuild)</li>
+                    <li>✅ 센터별 HTML SEO 태그 — 빌드 시 자동 생성 (postbuild)</li>
+                    <li>✅ Canonical URL — 커스텀 도메인 자동 감지</li>
+                </ul>
+            </div>
 
-                    {/* Title */}
-                    <h2
-                        className="relative text-4xl md:text-6xl lg:text-7xl font-black text-center text-white tracking-tighter leading-[1.1]"
-                        style={{
-                            opacity: sceneProgress('intro') > 0.2 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('intro') > 0.2 ? 0 : 40}px)`,
-                            transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s',
-                        }}
-                    >
-                        아동발달센터의
-                        <br />
-                        <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                            확실한 파트너.
-                        </span>
-                    </h2>
-
-                    {/* Subtitle */}
-                    <p
-                        className="relative text-base md:text-lg text-white/50 text-center mt-6 max-w-md"
-                        style={{
-                            opacity: sceneProgress('intro') > 0.4 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('intro') > 0.4 ? 0 : 20}px)`,
-                            transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s',
-                        }}
-                    >
-                        센터 운영의 모든 것을 하나로
-                    </p>
-                </div>
-
-                {/* ===== SCENE: KPI CARDS ===== */}
-                <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-8 md:px-16"
-                    style={{
-                        opacity: isVisible('kpi') ? 1 : 0,
-                        visibility: isVisible('kpi') ? 'visible' : 'hidden',
-                        transition: 'opacity 0.4s ease, visibility 0.4s',
-                        zIndex: isVisible('kpi') ? 10 : 1,
-                        pointerEvents: isVisible('kpi') ? 'auto' : 'none',
-                    }}
-                >
-                    <p
-                        className="text-indigo-400 text-xs font-bold tracking-[3px] uppercase mb-3"
-                        style={{
-                            opacity: sceneProgress('kpi') > 0.05 ? 1 : 0,
-                            transition: 'opacity 0.5s',
-                        }}
-                    >
-                        REAL-TIME METRICS
-                    </p>
-                    <h3
-                        className="text-2xl md:text-4xl font-black text-white tracking-tight text-center mb-10"
-                        style={{
-                            opacity: sceneProgress('kpi') > 0.1 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('kpi') > 0.1 ? 0 : 20}px)`,
-                            transition: 'all 0.6s ease',
-                        }}
-                    >
-                        핵심 지표를 한눈에
-                    </h3>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 w-full max-w-3xl">
-                        {[
-                            { icon: <Users className="w-5 h-5 text-violet-400" />, value: 1247, label: '등록 아동', change: '+23', color: 'from-violet-500/20 to-violet-600/5', delay: 0 },
-                            { icon: <Brain className="w-5 h-5 text-pink-400" />, value: 8432, label: '월 치료 세션', change: '+12.5%', color: 'from-blue-500/20 to-blue-600/5', delay: 0.1 },
-                            { icon: <Wallet className="w-5 h-5 text-amber-400" />, value: 92, label: '정산 (백만원)', change: '실시간', color: 'from-emerald-500/20 to-emerald-600/5', prefix: '₩', suffix: 'M', delay: 0.2 },
-                            { icon: <CalendarDays className="w-5 h-5 text-blue-400" />, value: 324, label: '주간 예약', change: '이번 주', color: 'from-amber-500/20 to-amber-600/5', delay: 0.3 },
-                        ].map((kpi, i) => (
-                            <div
-                                key={i}
-                                className={cn("bg-gradient-to-br border border-white/5 rounded-2xl p-4 md:p-6", kpi.color)}
-                                style={{
-                                    opacity: sceneProgress('kpi') > 0.15 + kpi.delay ? 1 : 0,
-                                    transform: `translateY(${sceneProgress('kpi') > 0.15 + kpi.delay ? 0 : 30}px) scale(${sceneProgress('kpi') > 0.15 + kpi.delay ? 1 : 0.9})`,
-                                    transition: `all 0.6s cubic-bezier(0.16,1,0.3,1) ${kpi.delay}s`,
-                                }}
-                            >
-                                <div className="text-2xl mb-2">{kpi.icon}</div>
-                                <div className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                                    {isVisible('kpi') ? (
-                                        <CountUp target={kpi.value} prefix={kpi.prefix || ''} suffix={kpi.suffix || ''} />
-                                    ) : 0}
-                                </div>
-                                <div className="text-xs text-white/40 font-medium mt-1">{kpi.label}</div>
-                                <div className="text-[10px] text-emerald-400 font-bold mt-2 bg-emerald-400/10 inline-block px-2 py-0.5 rounded-full">
-                                    {kpi.change}
-                                </div>
+            {/* 단계별 가이드 */}
+            <div className="space-y-4">
+                {steps.map((step, i) => (
+                    <div key={i} className={cn("rounded-2xl p-5 border transition-all", isDark ? "bg-slate-900/50 border-slate-800" : "bg-white border-slate-200 shadow-sm")}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={cn("p-2 rounded-xl", step.bgColor)}>
+                                <step.icon className={cn("w-5 h-5", step.color)} />
                             </div>
-                        ))}
+                            <h2 className="text-base font-black text-slate-900 dark:text-white">{step.title}</h2>
+                        </div>
+                        {step.content}
+                    </div>
+                ))}
+            </div>
+
+            {/* 요약 */}
+            <div className={cn("rounded-2xl p-5 border", isDark ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200")}>
+                <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 mb-3">📋 체크리스트 요약</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-600" /> 도메인 구매
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-600" /> DNS CNAME/A 레코드 설정
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-600" /> Vercel에 도메인 추가
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-600" /> 마스터 콘솔에서 도메인 입력
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-600" /> 접속 확인
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                        <div className="w-4 h-4 rounded border-2 border-slate-300 dark:border-slate-600" /> 네이버 서치어드바이저 등록 (선택)
                     </div>
                 </div>
-
-                {/* ===== SCENE: DASHBOARD ===== */}
-                <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12"
-                    style={{
-                        opacity: isVisible('dashboard') ? 1 : 0,
-                        visibility: isVisible('dashboard') ? 'visible' : 'hidden',
-                        transition: 'opacity 0.4s ease, visibility 0.4s',
-                        zIndex: isVisible('dashboard') ? 10 : 1,
-                        pointerEvents: isVisible('dashboard') ? 'auto' : 'none',
-                    }}
-                >
-                    <p className="text-indigo-400 text-xs font-bold tracking-[3px] uppercase mb-3"
-                        style={{ opacity: sceneProgress('dashboard') > 0.05 ? 1 : 0, transition: 'opacity 0.5s' }}>
-                        INTEGRATED DASHBOARD
-                    </p>
-                    <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight text-center mb-10"
-                        style={{
-                            opacity: sceneProgress('dashboard') > 0.1 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('dashboard') > 0.1 ? 0 : 20}px)`,
-                            transition: 'all 0.6s ease',
-                        }}>
-                        데이터 기반 운영 관리
-                    </h3>
-
-                    {/* Mock Dashboard */}
-                    <div
-                        className="w-full max-w-2xl bg-white/[0.03] border border-white/10 rounded-2xl p-5 md:p-8"
-                        style={{
-                            opacity: sceneProgress('dashboard') > 0.2 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('dashboard') > 0.2 ? 0 : 40}px) scale(${sceneProgress('dashboard') > 0.2 ? 1 : 0.95})`,
-                            transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
-                        }}
-                    >
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="text-xs font-bold text-white/80 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-indigo-400" /> 월별 매출 추이</div>
-                            <div className="flex-1" />
-                            <div className="text-[10px] text-emerald-400 font-bold">+18.3% ↑</div>
-                        </div>
-                        {/* Animated Chart Bars */}
-                        <div className="flex items-end gap-2 h-32">
-                            {[30, 42, 38, 55, 48, 62, 58, 72, 68, 85, 78, 95].map((h, i) => (
-                                <div key={i} className="flex-1 rounded-t-md bg-gradient-to-t from-indigo-500 to-indigo-400/60"
-                                    style={{
-                                        height: `${sceneProgress('dashboard') > 0.3 ? h : 2}%`,
-                                        transition: `height 0.8s cubic-bezier(0.16,1,0.3,1) ${i * 0.05}s`,
-                                        opacity: sceneProgress('dashboard') > 0.25 ? 1 : 0.3,
-                                    }}
-                                />
-                            ))}
-                        </div>
-                        <div className="flex justify-between mt-2">
-                            {['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'].map((m, i) => (
-                                <span key={i} className="text-[8px] text-white/20 flex-1 text-center">{m}</span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ===== SCENE: SCHEDULE ===== */}
-                <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12"
-                    style={{
-                        opacity: isVisible('schedule') ? 1 : 0,
-                        visibility: isVisible('schedule') ? 'visible' : 'hidden',
-                        transition: 'opacity 0.4s ease, visibility 0.4s',
-                        zIndex: isVisible('schedule') ? 10 : 1,
-                        pointerEvents: isVisible('schedule') ? 'auto' : 'none',
-                    }}
-                >
-                    <p className="text-indigo-400 text-xs font-bold tracking-[3px] uppercase mb-3"
-                        style={{ opacity: sceneProgress('schedule') > 0.05 ? 1 : 0, transition: 'opacity 0.5s' }}>
-                        SMART SCHEDULING
-                    </p>
-                    <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight text-center mb-8"
-                        style={{
-                            opacity: sceneProgress('schedule') > 0.1 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('schedule') > 0.1 ? 0 : 20}px)`,
-                            transition: 'all 0.6s ease',
-                        }}>
-                        스마트 스케줄 관리
-                    </h3>
-
-                    {/* Mock Calendar */}
-                    <div
-                        className="w-full max-w-2xl bg-white/[0.03] border border-white/10 rounded-2xl p-4 md:p-6"
-                        style={{
-                            opacity: sceneProgress('schedule') > 0.15 ? 1 : 0,
-                            transform: `scale(${sceneProgress('schedule') > 0.15 ? 1 : 0.95})`,
-                            transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
-                        }}
-                    >
-                        {/* Week header */}
-                        <div className="grid grid-cols-7 gap-1 mb-2">
-                            {['일', '월', '화', '수', '목', '금', '토'].map(d => (
-                                <div key={d} className="text-center text-[10px] text-white/30 font-bold py-1">{d}</div>
-                            ))}
-                        </div>
-                        {/* Calendar grid */}
-                        <div className="grid grid-cols-7 gap-1">
-                            {Array.from({ length: 28 }, (_, i) => {
-                                const hasSession = [2, 4, 5, 8, 10, 11, 12, 15, 17, 18, 19, 22, 24, 25].includes(i + 1);
-                                const colors = ['bg-indigo-500/40', 'bg-emerald-500/40', 'bg-pink-500/40', 'bg-amber-500/40'];
-                                const randomColor = colors[i % colors.length];
-                                const delay = i * 0.02;
-                                return (
-                                    <div key={i} className="aspect-square rounded-lg bg-white/[0.02] border border-white/5 p-1 relative overflow-hidden"
-                                        style={{
-                                            opacity: sceneProgress('schedule') > 0.2 + delay ? 1 : 0,
-                                            transition: `opacity 0.3s ease ${delay}s`,
-                                        }}
-                                    >
-                                        <span className="text-[9px] text-white/30">{i + 1}</span>
-                                        {hasSession && (
-                                            <div className={cn("absolute bottom-1 left-1 right-1 h-1.5 rounded-full", randomColor)}
-                                                style={{
-                                                    transform: `scaleX(${sceneProgress('schedule') > 0.4 ? 1 : 0})`,
-                                                    transition: `transform 0.4s ease ${delay + 0.3}s`,
-                                                    transformOrigin: 'left',
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ===== SCENE: MULTI-CENTER ===== */}
-                <div
-                    className="absolute inset-0 flex flex-col items-center justify-center px-6 md:px-12"
-                    style={{
-                        opacity: isVisible('multicenter') ? 1 : 0,
-                        visibility: isVisible('multicenter') ? 'visible' : 'hidden',
-                        transition: 'opacity 0.4s ease, visibility 0.4s',
-                        zIndex: isVisible('multicenter') ? 10 : 1,
-                        pointerEvents: isVisible('multicenter') ? 'auto' : 'none',
-                    }}
-                >
-                    <p className="text-indigo-400 text-xs font-bold tracking-[3px] uppercase mb-3"
-                        style={{ opacity: sceneProgress('multicenter') > 0.05 ? 1 : 0, transition: 'opacity 0.5s' }}>
-                        MULTI-CENTER SAAS
-                    </p>
-                    <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight text-center mb-10"
-                        style={{
-                            opacity: sceneProgress('multicenter') > 0.1 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('multicenter') > 0.1 ? 0 : 20}px)`,
-                            transition: 'all 0.6s ease',
-                        }}>
-                        각 센터만의 전용 홈페이지
-                    </h3>
-
-                    <div className="flex gap-4 md:gap-6 w-full max-w-2xl justify-center">
-                        {[
-                            { name: '자라다 잠실점', color: 'from-indigo-600/30', delay: 0 },
-                            { name: '다산 위드미', color: 'from-emerald-600/30', delay: 0.15 },
-                            { name: '서울세계로', color: 'from-amber-600/30', delay: 0.3 },
-                        ].map((center, i) => (
-                            <div
-                                key={i}
-                                className={cn("flex-1 bg-gradient-to-b to-transparent border border-white/10 rounded-2xl overflow-hidden", center.color)}
-                                style={{
-                                    opacity: sceneProgress('multicenter') > 0.15 + center.delay ? 1 : 0,
-                                    transform: `translateY(${sceneProgress('multicenter') > 0.15 + center.delay ? 0 : 40}px)`,
-                                    transition: `all 0.7s cubic-bezier(0.16,1,0.3,1) ${center.delay}s`,
-                                }}
-                            >
-                                {/* Mock hero */}
-                                <div className="h-20 md:h-28 bg-gradient-to-br from-white/5 to-transparent flex items-end p-3 md:p-4">
-                                    <div className="w-6 h-6 md:w-8 md:h-8 bg-white/10 rounded-lg" />
-                                </div>
-                                <div className="p-3 md:p-4">
-                                    <div className="text-xs md:text-sm font-bold text-white/80">{center.name}</div>
-                                    <div className="text-[10px] text-white/30 mt-1">센터 소개 · 프로그램 · 문의</div>
-                                    <div className="mt-3 flex gap-1">
-                                        <div className="h-1.5 flex-1 bg-white/10 rounded-full" />
-                                        <div className="h-1.5 w-8 bg-indigo-500/30 rounded-full" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* ===== SCENE: CTA ===== */}
-                <div
-                    className="absolute inset-0 flex flex-col items-center justify-center"
-                    style={{
-                        opacity: isVisible('cta') ? 1 : 0,
-                        visibility: isVisible('cta') ? 'visible' : 'hidden',
-                        transition: 'opacity 0.4s ease, visibility 0.4s',
-                        zIndex: isVisible('cta') ? 10 : 1,
-                        pointerEvents: isVisible('cta') ? 'auto' : 'none',
-                    }}
-                >
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-purple-500/10 blur-[80px]" />
-
-                    <h3
-                        className="relative text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter text-center"
-                        style={{
-                            opacity: sceneProgress('cta') > 0.1 ? 1 : 0,
-                            transform: `translateY(${sceneProgress('cta') > 0.1 ? 0 : 30}px)`,
-                            transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1)',
-                        }}
-                    >
-                        지금 바로
-                        <br />
-                        <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                            시작하세요.
-                        </span>
-                    </h3>
-
-                    <p
-                        className="relative text-white/40 text-sm md:text-base mt-4 text-center"
-                        style={{
-                            opacity: sceneProgress('cta') > 0.2 ? 1 : 0,
-                            transition: 'opacity 0.6s ease 0.1s',
-                        }}
-                    >
-                        Zarada와 함께 센터 운영의 새로운 기준을 경험하세요.
-                    </p>
-
-                    <div
-                        className="relative mt-8 px-8 py-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-sm tracking-tight shadow-lg shadow-indigo-500/30"
-                        style={{
-                            opacity: sceneProgress('cta') > 0.35 ? 1 : 0,
-                            transform: `scale(${sceneProgress('cta') > 0.35 ? 1 : 0.8})`,
-                            transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s',
-                        }}
-                    >
-                        zarada.co.kr →
-                    </div>
-
-                    {/* Logo watermark */}
-                    <div
-                        className="absolute bottom-8 text-white/20 text-xs font-black tracking-[4px]"
-                        style={{
-                            opacity: sceneProgress('cta') > 0.5 ? 1 : 0,
-                            transition: 'opacity 0.6s ease',
-                        }}
-                    >
-                        ZARADA
-                    </div>
-                </div>
-
             </div>
         </div>
     );

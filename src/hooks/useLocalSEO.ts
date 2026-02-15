@@ -16,15 +16,9 @@ import { useCenter } from '@/contexts/CenterContext';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { PLATFORM_URL, isMainDomain } from '@/config/domain';
 
-// 🗺️ 주소에서 핵심 지역 키워드 추출
-function extractRegion(address: string): string {
+// 🗺️ 주소에서 핵심 지역 키워드 추출 (fallback용)
+function extractRegionFromAddress(address: string): string {
     if (!address) return '';
-
-    // 특수 지역명 우선 감지 (행정구역명에 안 들어가는 지역)
-    const specialRegions = ['위례', '잠실', '방이', '석촌', '송리단', '올림픽', '가락', '문정', '장지', '복정'];
-    for (const r of specialRegions) {
-        if (address.includes(r)) return r;
-    }
 
     const parts = address.split(' ').filter(Boolean);
     // "서울특별시 송파구 위례동" → "송파"
@@ -40,13 +34,31 @@ function extractRegion(address: string): string {
     return '';
 }
 
+// 🏷️ 센터 이름에서 대표 지역 추출
+// "자라다 아동심리발달센터 잠실점" → "잠실"
+// "다산 위드미 아동발달센터" → null (지점명 없음 → 주소 fallback)
+function extractRegionFromName(name: string): string | null {
+    if (!name) return null;
+    // "~점" 또는 "~지점"으로 끝나는 패턴만 매칭
+    const match = name.match(/\s(\S+?)(?:점|지점)\s*$/);
+    if (match) {
+        return match[1];
+    }
+    return null;
+}
+
 export type PageType = 'home' | 'about' | 'programs' | 'therapists' | 'contact';
 
 export function useLocalSEO() {
     const { center } = useCenter();
     const { getSetting } = useAdminSettings();
 
-    const region = center?.address ? extractRegion(center.address) : '';
+    // 🥇 우선순위: 1) admin setting 수동 설정  2) 센터 이름에서 추출  3) 주소에서 추출
+    const seoRegionOverride = getSetting('seo_region') || '';
+    const nameRegion = center?.name ? extractRegionFromName(center.name) : null;
+    const addressRegion = center?.address ? extractRegionFromAddress(center.address) : '';
+    const region = seoRegionOverride || nameRegion || addressRegion;
+
     const centerName = center?.name || '아동발달센터';
     const slug = center?.slug || '';
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : PLATFORM_URL;
