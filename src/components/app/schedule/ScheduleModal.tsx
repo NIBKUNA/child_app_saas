@@ -432,6 +432,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 let query = supabase
                     .from('schedules')
                     .select('id')
+                    .eq('center_id', centerId!) // 🔒 [Security] 센터 격리 필수
                     .eq('child_id', formData.child_id)
                     .eq('program_id', formData.program_id)
                     .gte('date', formData.date);

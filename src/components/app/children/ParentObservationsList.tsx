@@ -5,13 +5,14 @@ import { Loader2, MessageCircle, Calendar } from 'lucide-react';
 interface Observation {
     id: string;
     content: string;
-    observation_date: string;
-    created_at: string;
+    observation_date: string | null;
+    created_at: string | null;
 }
 
 export function ParentObservationsList({ childId }: { childId: string }) {
     const [observations, setObservations] = useState<Observation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (childId) fetchObservations();
@@ -19,6 +20,7 @@ export function ParentObservationsList({ childId }: { childId: string }) {
 
     const fetchObservations = async () => {
         try {
+            setError(null);
             const { data, error } = await supabase
                 .from('parent_observations')
                 .select('*')
@@ -27,14 +29,24 @@ export function ParentObservationsList({ childId }: { childId: string }) {
 
             if (error) throw error;
             setObservations(data || []);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to fetch observations:', error);
+            setError('관찰 일기를 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
         }
     };
 
     if (loading) return <div className="flex justify-center p-4"><Loader2 className="animate-spin text-slate-400" /></div>;
+
+    if (error) {
+        return (
+            <div className="text-center p-6 bg-rose-50 rounded-xl border border-dashed border-rose-200">
+                <p className="text-rose-500 text-sm font-bold">{error}</p>
+                <button onClick={fetchObservations} className="text-xs text-rose-400 mt-2 underline hover:text-rose-600">다시 시도</button>
+            </div>
+        );
+    }
 
     if (observations.length === 0) {
         return (

@@ -65,10 +65,12 @@ export default function ConsultationInquiryList() {
 
     // 메모 저장 함수
     const saveMemo = async (id: string) => {
+        if (!centerId) return;
         const { error } = await supabase
             .from('consultations')
             .update({ notes: memoValues[id] }) // notes 컬럼에 저장
-            .eq('id', id);
+            .eq('id', id)
+            .eq('center_id', centerId); // 🔒 [Security] 센터 격리
 
         if (!error) {
             alert("메모가 저장되었습니다.");
@@ -79,11 +81,13 @@ export default function ConsultationInquiryList() {
     };
 
     const updateStatus = async (id: string, nextStatus: string) => {
+        if (!centerId) return;
         try {
             const { error } = await supabase
                 .from('consultations')
                 .update({ status: nextStatus })
-                .eq('id', id);
+                .eq('id', id)
+                .eq('center_id', centerId); // 🔒 [Security] 센터 격리
 
             if (error) throw error;
 

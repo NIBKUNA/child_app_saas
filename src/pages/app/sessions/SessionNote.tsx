@@ -154,7 +154,7 @@ export default function SessionNote() {
             }
 
             // Update Schedule Status to completed
-            await supabase.from('schedules').update({ status: 'completed' }).eq('id', sessionInfo.id);
+            await supabase.from('schedules').update({ status: 'completed' }).eq('id', sessionInfo.id).eq('center_id', center?.id!); // 🔒 [Security] 센터 격리
 
             if (!silent) alert('저장되었습니다.');
             return savedId;
