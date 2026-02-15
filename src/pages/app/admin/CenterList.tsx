@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Building2, Plus, MapPin, X, Globe, Save, Search, Loader2 } from 'lucide-react';
+import { Building2, Plus, MapPin, X, Globe, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
-import { isLocalDev } from '@/config/domain';
 import type { Database } from '@/types/database.types';
 
 type Center = Database['public']['Tables']['centers']['Row'];
@@ -17,45 +16,7 @@ export function CenterList() {
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newCenter, setNewCenter] = useState({ name: '', slug: '', custom_domain: '' });
-    const [reindexing, setReindexing] = useState(false);
     const navigate = useNavigate();
-
-    // 🔍 [SEO] 전체 센터 재색인 요청
-    const reindexAll = async () => {
-        if (isLocalDev()) {
-            alert('⚠️ 색인 요청은 배포된 환경(Vercel)에서만 작동합니다.\n\n배포 후 다시 시도해주세요.');
-            return;
-        }
-
-        if (!confirm('모든 활성 센터의 페이지를 Google, Naver, Bing에 일괄 색인 요청하시겠습니까?')) return;
-        setReindexing(true);
-        try {
-            const res = await fetch('/api/reindex-all', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
-
-            if (!res.ok) {
-                throw new Error(`서버 응답 오류 (${res.status}). 배포 환경을 확인해주세요.`);
-            }
-
-            const text = await res.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch {
-                throw new Error('서버 응답을 처리할 수 없습니다. 배포 상태를 확인해주세요.');
-            }
-
-            console.log('🔍 [SEO] 전체 재색인 결과:', data);
-            alert(`✅ ${data.centersCount}개 센터 / ${data.totalUrls}개 URL 색인 요청 완료!\n\nGoogle: ${data.google?.success ? '✓ 전송됨' : '△ ' + (data.google?.note || '실패')}\nBing/Yandex: ${data.indexNow?.success ? '✓ 전송됨' : '✗ 실패'}\nNaver: ${data.naver?.success ? '✓ 전송됨' : '✗ 실패'}`);
-        } catch (err: any) {
-            console.error('재색인 실패:', err);
-            alert('색인 요청 실패: ' + err.message);
-        } finally {
-            setReindexing(false);
-        }
-    };
 
     // ✨ Super Admin Security Check
     const isSuper = role === 'super_admin' || checkSuperAdmin(user?.email);
@@ -117,24 +78,6 @@ export function CenterList() {
 
             alert('✅ 새로운 센터가 등록되었습니다!');
 
-            // 🔍 [SEO] 자동 색인 요청 — Google, Naver, Bing에 새 센터 페이지 알림 (배포 환경에서만)
-            try {
-                const skipIndexing = isLocalDev();
-                if (!skipIndexing) {
-                    fetch('/api/request-indexing', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ slug: finalSlug }),
-                    }).then(res => {
-                        if (res.ok) return res.json();
-                        throw new Error(`${res.status}`);
-                    }).then(data => {
-                        console.log('🔍 [SEO] 색인 요청 완료:', data);
-                    }).catch(err => {
-                        console.warn('🔍 [SEO] 색인 요청 실패 (무시):', err);
-                    });
-                }
-            } catch { /* 색인 실패는 센터 생성에 영향 없음 */ }
 
             setIsCreateModalOpen(false);
             setNewCenter({ name: '', slug: '', custom_domain: '' });
@@ -158,15 +101,6 @@ export function CenterList() {
                     <p className="text-sm md:text-base text-slate-500 font-bold mt-1 md:mt-2">Zarada Multi-Center SaaS Control Tower</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <button
-                        onClick={reindexAll}
-                        disabled={reindexing}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 md:px-5 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm shadow-lg shadow-emerald-200 transition-all active:scale-95 justify-center disabled:opacity-50"
-                        title="모든 센터를 Google/Naver/Bing에 색인 요청"
-                    >
-                        {reindexing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                        {reindexing ? '요청 중...' : '전체 재색인'}
-                    </button>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-lg shadow-indigo-200 transition-all active:scale-95 flex-1 md:flex-none justify-center"
