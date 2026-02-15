@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useCenter } from '@/contexts/CenterContext';
 import { isSuperAdmin } from '@/config/superAdmin';
+import { isMainDomain } from '@/config/domain';
 import { createPortal } from 'react-dom';
 
 // Custom SVG Icons
@@ -110,7 +111,8 @@ export function Header() {
         setIsMenuOpen(false);
     };
 
-    const basePath = center?.slug ? `/centers/${center.slug}` : '';
+    // 커스텀 도메인에서는 /centers/slug 없이 직접 경로 사용
+    const basePath = isMainDomain() ? (center?.slug ? `/centers/${center.slug}` : '') : '';
 
     const navigation: NavItem[] = [
         { name: '홈', href: basePath || '/' },
@@ -315,7 +317,7 @@ export function Header() {
                             </div>
                         ) : (
                             <Link
-                                to={center?.slug ? `/centers/${center.slug}/login` : "/login"}
+                                to={isMainDomain() ? (center?.slug ? `/centers/${center.slug}/login` : "/login") : "/login"}
                                 className={cn(
                                     "text-[12px] font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm",
                                     isTransparentHeader
@@ -478,7 +480,7 @@ export function Header() {
                                     ) : (
                                         <div className="flex flex-col gap-3">
                                             <Link
-                                                to={center?.slug ? `/centers/${center.slug}/login` : "/login"}
+                                                to={isMainDomain() ? (center?.slug ? `/centers/${center.slug}/login` : "/login") : "/login"}
                                                 className={cn("w-full py-4 text-center text-lg font-medium transition-colors rounded-2xl border-2",
                                                     isDark ? "border-slate-800 text-white hover:bg-slate-800" : "border-slate-100 text-slate-900 hover:bg-slate-50"
                                                 )}

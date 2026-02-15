@@ -6,6 +6,7 @@ import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useCenter } from '@/contexts/CenterContext';
+import { centerPath } from '@/config/domain';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { supabase } from '@/lib/supabase';
 import { Shield, Award, ChevronRight, ChevronDown } from 'lucide-react';
@@ -198,7 +199,7 @@ export function TherapistsPage() {
                             <button
                                 className="px-12 py-6 bg-white rounded-full font-black text-xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-4"
                                 style={{ color: brandColor }}
-                                onClick={() => navigate(center?.slug ? `/centers/${center.slug}/contact` : '/contact')}
+                                onClick={() => navigate(centerPath(center?.slug, '/contact'))}
                             >
                                 무료 상담 예약하기 <ChevronRight className="w-6 h-6" />
                             </button>

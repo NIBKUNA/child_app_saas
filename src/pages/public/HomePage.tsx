@@ -20,6 +20,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { HeroBackground } from '@/components/public/HeroBackground';
 import { useCenter } from '@/contexts/CenterContext';
+import { centerPath } from '@/config/domain';
 import { BlogFeed } from '@/components/public/BlogFeed';
 import type { Database } from '@/types/database.types';
 
@@ -90,7 +91,10 @@ export function HomePage() {
     const bgImage = bannerUrl || DEFAULT_CONTENT.hero.defaultBgImage;
 
     const brandName = centerInfo?.name || getSetting('center_name') || DEFAULT_CONTENT.brandName;
-    const canonicalUrl = `${window.location.origin}/centers/${centerInfo?.slug || centerInfo?.id || 'main'}`;
+    // 커스텀 도메인이면 origin 그대로, 메인 플랫폼이면 /centers/slug 경로
+    const canonicalUrl = centerInfo?.slug
+        ? `${window.location.origin}${window.location.origin.includes('app.myparents.co.kr') || window.location.hostname === 'localhost' ? `/centers/${centerInfo.slug}` : ''}`
+        : window.location.origin;
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950" />;
 
@@ -171,7 +175,7 @@ export function HomePage() {
                         </motion.p>
 
                         <div className="flex gap-4 pt-4">
-                            <Link to={center?.slug ? `/centers/${center.slug}/contact` : '/contact'}>
+                            <Link to={centerPath(center?.slug, '/contact')}>
                                 <motion.button
                                     className="group px-8 py-4 bg-white text-slate-900 rounded-full font-black text-lg shadow-[0_10px_30px_rgba(255,255,255,0.3)] hover:shadow-[0_20px_40px_rgba(255,255,255,0.4)] transition-all flex items-center gap-3"
                                     whileHover={{ scale: 1.05 }}
@@ -246,7 +250,7 @@ export function HomePage() {
                                     {getSetting('home_story_body') || DEFAULT_CONTENT.story.description}
                                 </p>
                                 <Link
-                                    to={getSetting('home_cta_link') || (center?.slug ? `/centers/${center.slug}/contact` : '/contact')}
+                                    to={getSetting('home_cta_link') || centerPath(center?.slug, '/contact')}
                                     className={`inline-flex items-center gap-2 font-bold text-sm hover:underline mt-2 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}
                                 >
                                     {getSetting('home_cta_text') || '상담 예약하기'}
@@ -310,7 +314,7 @@ export function HomePage() {
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ delay: idx * 0.1 }}
-                                    onClick={() => navigate(center?.slug ? `/centers/${center.slug}/programs` : '/programs')}
+                                    onClick={() => navigate(centerPath(center?.slug, '/programs'))}
                                 >
                                     <div className="w-14 h-14 mx-auto mb-3">
                                         <program.Icon className="w-14 h-14" />
@@ -320,7 +324,7 @@ export function HomePage() {
                                 </motion.div>
                             ))}
                         </div>
-                        <Link to={center?.slug ? `/centers/${center.slug}/programs` : '/programs'} className={cn(
+                        <Link to={centerPath(center?.slug, '/programs')} className={cn(
                             "inline-flex items-center gap-2 mt-10 font-bold text-sm hover:underline",
                             isDark ? "text-indigo-400" : "text-indigo-600"
                         )}>
@@ -411,7 +415,7 @@ export function HomePage() {
                         )} style={{ wordBreak: 'keep-all' }}>
                             무료 초기 상담을 통해 우리 아이에게 필요한 지원을 알아보세요.
                         </p>
-                        <Link to={center?.slug ? `/centers/${center.slug}/contact` : '/contact'}>
+                        <Link to={centerPath(center?.slug, '/contact')}>
                             <motion.button
                                 className={cn(
                                     "px-10 py-5 rounded-full font-black text-lg shadow-xl transition-all flex items-center gap-3 mx-auto ring-2",

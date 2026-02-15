@@ -30,6 +30,7 @@ import { ConsultationSurveyModal } from '@/components/public/ConsultationSurveyM
 import { InvitationCodeModal } from '@/components/InvitationCodeModal';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useCenter } from '@/contexts/CenterContext';
+import { centerPath } from '@/config/domain';
 
 
 interface ChildInfo extends TableRow<'children'> { }
@@ -285,7 +286,7 @@ export function ParentHomePage() {
                 isDark ? "bg-slate-900/90 border-slate-800" : "bg-white/90 backdrop-blur-sm border-slate-100"
             )}>
                 <button
-                    onClick={() => navigate(center?.slug ? `/centers/${center.slug}` : '/')}
+                    onClick={() => navigate(centerPath(center?.slug))}
                     className={cn("flex items-center gap-2 font-bold text-xs", isDark ? "text-slate-300" : "text-slate-900")}
                 >
                     <Home className="w-4 h-4" /> 홈으로

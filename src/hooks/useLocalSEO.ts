@@ -14,7 +14,7 @@
 
 import { useCenter } from '@/contexts/CenterContext';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
-import { PLATFORM_URL } from '@/config/domain';
+import { PLATFORM_URL, isMainDomain } from '@/config/domain';
 
 // 🗺️ 주소에서 핵심 지역 키워드 추출
 function extractRegion(address: string): string {
@@ -113,9 +113,15 @@ export function useLocalSEO() {
         return [...baseKeywords, ...typeKeywords[type], ...(extraKeywords ? extraKeywords.split(',') : [])].join(', ');
     };
 
-    // 📌 Canonical URL 생성
-    const canonical = (subPath: string = '') =>
-        `${baseUrl}/centers/${slug}${subPath}`;
+    // 📌 Canonical URL 생성 — 커스텀 도메인 자동 처리
+    const canonical = (subPath: string = '') => {
+        if (!isMainDomain()) {
+            // 커스텀 도메인: origin + subPath (예: https://zaradacenter.co.kr/about)
+            return `${baseUrl}${subPath}`;
+        }
+        // 메인 플랫폼: origin + /centers/slug + subPath
+        return `${baseUrl}/centers/${slug}${subPath}`;
+    };
 
     // 📌 JSON-LD 구조화 데이터 (LocalBusiness)
     const structuredData = (type: PageType) => {

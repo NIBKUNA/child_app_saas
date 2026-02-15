@@ -55,3 +55,26 @@ export function navigateToMainDomain(
         window.location.href = `${PLATFORM_URL}${path}`;
     }
 }
+
+/**
+ * 센터별 경로 생성 — 커스텀 도메인 자동 처리
+ * 
+ * 메인 플랫폼: /centers/jamsil/about
+ * 커스텀 도메인: /about
+ * 
+ * @example centerPath(center?.slug, '/contact') → '/contact' (커스텀 도메인)
+ * @example centerPath(center?.slug, '/contact') → '/centers/jamsil/contact' (메인 플랫폼)
+ * @example centerPath(center?.slug) → '/' (커스텀 도메인)
+ * @example centerPath(center?.slug) → '/centers/jamsil' (메인 플랫폼)
+ */
+export function centerPath(slug: string | undefined | null, subPath: string = ''): string {
+    if (!isMainDomain()) {
+        // 커스텀 도메인: /centers/slug 없이 직접 경로
+        return subPath || '/';
+    }
+    if (slug) {
+        return `/centers/${slug}${subPath}`;
+    }
+    return subPath || '/';
+}
+

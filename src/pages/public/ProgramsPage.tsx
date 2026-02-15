@@ -6,6 +6,7 @@ import { DEFAULT_PROGRAMS } from '@/constants/defaultPrograms';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useCenter } from '@/contexts/CenterContext';
+import { centerPath } from '@/config/domain';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
 import {
@@ -228,7 +229,7 @@ export function ProgramsPage() {
                                 검증된 임상 경험을 가진 전문 치료사진이<br />
                                 아이의 발달 상황을 세심하게 체크해드립니다.
                             </p>
-                            <Link to={center?.slug ? `/centers/${center.slug}/contact` : '/contact'}>
+                            <Link to={centerPath(center?.slug, '/contact')}>
                                 <motion.button
                                     className="px-8 md:px-12 py-4 md:py-6 bg-white rounded-full font-black text-lg md:text-xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-3 md:gap-4"
                                     style={{ color: brandColor }}
