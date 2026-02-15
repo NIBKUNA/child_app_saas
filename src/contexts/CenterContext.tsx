@@ -65,9 +65,9 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const cleanHostname = hostname.replace(/^www\./, '');
       const isDefaultDomain = checkMainDomain(cleanHostname);
 
-      // ✨ [Custom Domain Protection] 커스텀 도메인에서는 매핑된 센터 우선
-      // /centers/:slug 명시 경로가 없는 경우에만 자동 매핑
-      if (!isDefaultDomain && !location.pathname.startsWith('/app/') && !location.pathname.startsWith('/master')) {
+      // ✨ [Custom Domain Protection] 커스텀 도메인에서는 매핑된 센터가 우선
+      // /master 라우트 제외, /app/ 라우트에서는 Super Admin 센터 전환 허용
+      if (!isDefaultDomain && !location.pathname.startsWith('/master')) {
         try {
           const { data: domainCenter, error: domainError } = await supabase
             .from('centers')
@@ -76,23 +76,30 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             .maybeSingle();
 
           if (!domainError && domainCenter) {
-            // /centers/:slug 경로로 명시적으로 다른 센터를 보고 있는 경우 → 허용
-            const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
-            if (hasExplicitSlugPath) {
-              const urlSlug = pathParts[pathParts.indexOf('centers') + 1];
-              if (urlSlug !== domainCenter.slug) {
-                // ✨ [Fix] 다른 센터 slug 접근을 허용 (리다이렉트 하지 않음)
-                // 아래 기본 로직에서 해당 slug의 센터를 로드하도록 폴백
+            // ✨ [Super Admin 센터 전환] /app/ 경로에서 Super Admin이 다른 센터로 전환한 경우 → slug 우선
+            const storedSlug = localStorage.getItem('zarada_center_slug');
+            const isAppRoute = location.pathname.startsWith('/app/');
+            const isSuper = profile?.role === 'super_admin' || (profile?.email && isSuperAdmin(profile.email));
+            if (isAppRoute && isSuper && storedSlug && storedSlug !== domainCenter.slug) {
+              // Super Admin이 다른 센터로 전환한 상태 → 아래 slug 기반 로직으로 폴백
+            } else {
+              // /centers/:slug 경로로 명시적으로 다른 센터를 보고 있는 경우 → 허용
+              const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
+              if (hasExplicitSlugPath) {
+                const urlSlug = pathParts[pathParts.indexOf('centers') + 1];
+                if (urlSlug !== domainCenter.slug) {
+                  // 다른 센터 slug 접근을 허용 → 아래 slug 로직으로 폴백
+                } else {
+                  setCenter(domainCenter);
+                  setLoading(false);
+                  return;
+                }
               } else {
+                // 도메인 매핑 센터 로드 (공개 페이지 등)
                 setCenter(domainCenter);
                 setLoading(false);
                 return;
               }
-            } else {
-              // 명시적 slug 없음 → 도메인 매핑 센터 로드
-              setCenter(domainCenter);
-              setLoading(false);
-              return;
             }
           }
           // 도메인 매칭 실패 시 기본 로직으로 폴백
@@ -183,6 +190,14 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         if (!data) {
           throw new Error("Center not found");
+        }
+
+        // ✨ [Custom Domain Redirect] 메인 플랫폼에서 커스텀 도메인이 있는 센터 접근 시 리디렉트
+        // /app/ 경로는 제외 (관리자 센터 전환 허용)
+        if (isDefaultDomain && data.custom_domain && !location.pathname.startsWith('/app/')) {
+          const subPath = location.pathname.replace(`/centers/${slug}`, '') || '/';
+          window.location.href = `https://${data.custom_domain}${subPath}`;
+          return;
         }
 
         setCenter(data);
