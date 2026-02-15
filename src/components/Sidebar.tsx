@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
+import { isMainDomain } from '@/config/domain';
 
 // ============================================
 // 🔐 SIDEBAR STATE PERSISTENCE KEY
@@ -443,9 +444,9 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
 
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto custom-scrollbar">
-                        {/* Homepage Link */}
+                        {/* Homepage Link — 커스텀 도메인이면 /, 메인 플랫폼이면 /centers/:slug */}
                         <Link
-                            to={center?.slug ? `/centers/${center.slug}` : (localStorage.getItem('zarada_center_slug') ? `/centers/${localStorage.getItem('zarada_center_slug')}` : "/")}
+                            to={isMainDomain() ? (center?.slug ? `/centers/${center.slug}` : '/') : '/'}
                             className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold border text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
                             onClick={onClose}
                         >

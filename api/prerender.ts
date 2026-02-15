@@ -206,6 +206,55 @@ async function renderCenterDirectory(supabase: any): Promise<string> {
     });
 }
 
+/** 센터별 블로그 RSS에서 최신 포스트를 가져오는 헬퍼 */
+async function fetchBlogPostsForCenter(supabase: any, centerId: string): Promise<{ title: string; link: string; description: string }[]> {
+    try {
+        // 1. 센터의 sns_blog 설정값 조회
+        const { data: setting } = await supabase
+            .from('admin_settings')
+            .select('value')
+            .eq('center_id', centerId)
+            .eq('key', 'sns_blog')
+            .maybeSingle();
+
+        if (!setting?.value) return [];
+
+        // 2. 블로그 URL에서 ID 추출
+        const blogUrl = setting.value as string;
+        const urlMatch = blogUrl.match(/blog\.naver\.com\/([a-zA-Z0-9_-]+)/);
+        if (!urlMatch) return [];
+
+        // 3. RSS fetch
+        const rssUrl = `https://rss.blog.naver.com/${urlMatch[1]}.xml`;
+        const response = await fetch(rssUrl, {
+            headers: { 'User-Agent': 'Zarada-Prerender/1.0' },
+        });
+        if (!response.ok) return [];
+
+        const xml = await response.text();
+
+        // 4. 간단한 RSS 파싱 (최신 4개)
+        const posts: { title: string; link: string; description: string }[] = [];
+        const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+        let match;
+        while ((match = itemRegex.exec(xml)) !== null && posts.length < 4) {
+            const item = match[1];
+            const getTag = (tag: string): string => {
+                const cdataMatch = item.match(new RegExp(`<${tag}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`));
+                if (cdataMatch) return cdataMatch[1].trim();
+                const plainMatch = item.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
+                return plainMatch ? plainMatch[1].trim() : '';
+            };
+            const desc = getTag('description').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim().slice(0, 150);
+            const title = getTag('title').replace(/<[^>]+>/g, '');
+            posts.push({ title, link: getTag('link'), description: desc });
+        }
+        return posts;
+    } catch {
+        return []; // RSS 실패 시 무시 (나머지 렌더링에 영향 없음)
+    }
+}
+
 /** 개별 센터 홈 (/centers/:slug) */
 async function renderCenterHome(supabase: any, slug: string): Promise<string | null> {
     const { data: center } = await supabase
@@ -221,6 +270,9 @@ async function renderCenterHome(supabase: any, slug: string): Promise<string | n
     const title = `${c.name} - 아동발달센터 | 언어치료・놀이치료・감각통합`;
     const description = `${c.name}은(는) ${c.address || '서울'} 소재 아동발달센터입니다. 언어치료, 놀이치료, 감각통합, 미술치료, 심리상담 전문.${c.phone ? ' 전화: ' + c.phone : ''}`;
     const url = `${BASE_URL}/centers/${slug}`;
+
+    // ✨ 블로그 포스트 가져오기 (센터별 자동)
+    const blogPosts = await fetchBlogPostsForCenter(supabase, c.id);
 
     const structuredData = {
         '@context': 'https://schema.org',
@@ -262,6 +314,19 @@ async function renderCenterHome(supabase: any, slug: string): Promise<string | n
         ],
     };
 
+    // ✨ 블로그 소식 HTML (있을 때만 표시)
+    const blogHtml = blogPosts.length > 0 ? `
+            <section>
+                <h2>${escapeHtml(c.name)} 센터 소식</h2>
+                ${blogPosts.map(post => `
+                    <article>
+                        <h3><a href="${escapeHtml(post.link)}">${escapeHtml(post.title)}</a></h3>
+                        <p>${escapeHtml(post.description)}</p>
+                    </article>
+                `).join('')}
+            </section>
+    ` : '';
+
     return buildHtml({
         title, description, url,
         structuredData: [structuredData, breadcrumb],
@@ -272,6 +337,7 @@ async function renderCenterHome(supabase: any, slug: string): Promise<string | n
             ${c.phone ? `<p>📞 전화: ${escapeHtml(c.phone)}</p>` : ''}
             ${c.weekday_hours ? `<p>🕐 평일: ${escapeHtml(c.weekday_hours)}</p>` : ''}
             ${c.saturday_hours ? `<p>🕐 토요일: ${escapeHtml(c.saturday_hours)}</p>` : ''}
+            ${blogHtml}
             <nav>
                 <a href="${url}/about">소개</a> |
                 <a href="${url}/programs">프로그램</a> |
