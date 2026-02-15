@@ -156,6 +156,52 @@ export default function SessionNote() {
             // Update Schedule Status to completed
             await supabase.from('schedules').update({ status: 'completed' }).eq('id', sessionInfo.id).eq('center_id', center?.id!); // 🔒 [Security] 센터 격리
 
+            // 🔔 부모님에게 회기일지 작성 알림 (fire-and-forget)
+            try {
+                const childName = sessionInfo.children?.name || '아동';
+
+                // 1. 부모 ID 먼저 조회
+                const { data: parentRels } = await supabase
+                    .from('family_relationships')
+                    .select('parent_id')
+                    .eq('child_id', sessionInfo.child_id);
+
+                const parentIds = (parentRels || []).map((r: any) => r.parent_id);
+
+                // 2. 부모가 있을 때만 구독 조회
+                if (parentIds.length > 0) {
+                    const { data: parentSubs } = await (supabase as any)
+                        .from('push_subscriptions')
+                        .select('user_id')
+                        .eq('center_id', center?.id)
+                        .eq('is_active', true)
+                        .in('user_id', parentIds);
+
+                    if (parentSubs?.length) {
+                        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+                        for (const sub of parentSubs) {
+                            fetch(`${supabaseUrl}/functions/v1/send-push`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${supabaseKey}`,
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    type: 'direct',
+                                    user_id: sub.user_id,
+                                    title: `📝 ${childName} 어린이 수업 기록`,
+                                    body: `${childName} 어린이의 회기일지가 작성되었습니다. 확인해보세요!`,
+                                    url: '/parent/logs',
+                                }),
+                            }).catch(() => { });
+                        }
+                    }
+                }
+            } catch (pushErr) {
+                console.warn('[Push] 회기일지 알림 전송 실패 (무시됨):', pushErr);
+            }
+
             if (!silent) alert('저장되었습니다.');
             return savedId;
 

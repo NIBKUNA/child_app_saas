@@ -9,7 +9,7 @@ import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useCenter } from '@/contexts/CenterContext';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
-import { Bell, Clock, Smartphone, CheckCircle2, Info } from 'lucide-react';
+import { Bell, Clock, Smartphone, CheckCircle2, Info, FileText, Copy } from 'lucide-react';
 
 export default function NotificationSettingsPage() {
     const { getSetting, updateSetting } = useAdminSettings();
@@ -31,6 +31,12 @@ export default function NotificationSettingsPage() {
             icon: <Bell className="w-5 h-5" />,
             title: '수업 리마인더',
             desc: '내일 예정된 수업이 있는 부모님에게 자동으로 알림을 보냅니다.',
+            status: '활성',
+        },
+        {
+            icon: <FileText className="w-5 h-5" />,
+            title: '회기일지 작성 알림',
+            desc: '치료사가 회기일지를 저장하면 해당 아동의 부모님에게 즉시 알림이 갑니다.',
             status: '활성',
         },
         {
@@ -159,6 +165,54 @@ export default function NotificationSettingsPage() {
                     <li>• Android, iOS(홈 화면 추가 시), 데스크톱 브라우저에서 수신 가능합니다.</li>
                     <li>• 각 센터별로 독립적으로 동작하며, 다른 센터의 알림은 전달되지 않습니다.</li>
                 </ul>
+            </section>
+
+            {/* 부모님 안내 가이드 (행정이 안내할 때 사용) */}
+            <section className={cn(
+                "p-6 rounded-[28px] border space-y-4",
+                isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-sm"
+            )}>
+                <div className="flex items-center justify-between">
+                    <h3 className="font-black text-sm">📱 부모님 안내 가이드</h3>
+                    <button
+                        onClick={() => {
+                            const text = `[수업 알림 설정 방법]\n\n1. 센터 앱에 접속합니다.\n2. 하단 "마이페이지" 로 이동합니다.\n3. "수업 알림 받기" 토글을 켜주세요.\n\n❗ iPhone을 사용하시는 분:\n  - Safari로 접속 → 하단 공유 버튼(□↑) → "홈 화면에 추가"해주세요.\n  - 추가된 앱에서 알림을 켜야 수신됩니다.\n  - iOS 16.4 이상만 지원됩니다.`;
+                            navigator.clipboard.writeText(text).then(() => alert('안내 문구가 복사되었습니다. 카카오톡 등으로 전송해주세요!'));
+                        }}
+                        className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all active:scale-95",
+                            isDark
+                                ? "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+                                : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                        )}
+                    >
+                        <Copy className="w-3.5 h-3.5" />
+                        안내문 복사
+                    </button>
+                </div>
+
+                <div className={cn(
+                    "p-5 rounded-2xl space-y-3 text-xs font-medium leading-relaxed",
+                    isDark ? "bg-slate-800 text-slate-300" : "bg-slate-50 text-slate-600"
+                )}>
+                    <p className="font-black text-sm">수업 알림 설정 방법</p>
+                    <ol className="space-y-1.5">
+                        <li>1. 센터 앱에 접속합니다.</li>
+                        <li>2. 하단 <strong>"마이페이지"</strong> 로 이동합니다.</li>
+                        <li>3. <strong>"수업 알림 받기"</strong> 토글을 켜주세요.</li>
+                    </ol>
+                    <div className={cn(
+                        "p-3 rounded-xl border",
+                        isDark ? "bg-blue-500/5 border-blue-500/20 text-blue-300" : "bg-blue-50 border-blue-100 text-blue-700"
+                    )}>
+                        <p className="font-black text-[11px] mb-1">❗ iPhone 사용자</p>
+                        <ul className="space-y-1 text-[11px]">
+                            <li>• Safari로 접속 → 하단 <strong>공유 버튼 (□↑)</strong> → <strong>"홈 화면에 추가"</strong></li>
+                            <li>• 추가된 앱에서 알림을 켜야 수신됩니다.</li>
+                            <li>• iOS 16.4 이상만 지원됩니다.</li>
+                        </ul>
+                    </div>
+                </div>
             </section>
         </div>
     );
