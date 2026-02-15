@@ -192,8 +192,8 @@ export function ChildList() {
 
                 <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
                     <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/50">
-                        <div className="flex items-center gap-4">
-                            <div className="relative flex-1 max-w-sm">
+                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
+                            <div className="relative flex-1 max-w-full md:max-w-sm">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
@@ -204,12 +204,12 @@ export function ChildList() {
                                 />
                             </div>
                             {/* ✨ 활성/비활성 필터 */}
-                            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 rounded-2xl p-1">
+                            <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 rounded-2xl p-1 overflow-x-auto">
                                 {([['active', `이용중 (${activeCount})`], ['waiting', `대기 (${waitingCount})`], ['inactive', `종결 (${inactiveCount})`], ['all', '전체']] as const).map(([key, label]) => (
                                     <button
                                         key={key}
                                         onClick={() => setActiveFilter(key)}
-                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${activeFilter === key
+                                        className={`px-3 md:px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap ${activeFilter === key
                                             ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
                                             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                                             }`}
@@ -222,7 +222,7 @@ export function ChildList() {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left min-w-[700px]">
                             <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 font-black uppercase text-[11px] tracking-wider">
                                 <tr>
                                     <th className="px-6 py-5">기본 정보</th>

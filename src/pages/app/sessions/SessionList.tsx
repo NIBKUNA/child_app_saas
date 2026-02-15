@@ -113,20 +113,35 @@ export default function SessionList() {
                     <Skeleton className="w-48 h-8 rounded-lg" />
                 </div>
                 <div className="bg-white rounded-lg border shadow-sm">
-                    <div className="p-4 border-b bg-slate-50 grid grid-cols-12 gap-4">
+                    {/* Desktop skeleton */}
+                    <div className="hidden md:grid p-4 border-b bg-slate-50 grid-cols-12 gap-4">
                         {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-6 col-span-2 rounded" />)}
                     </div>
                     <div className="divide-y">
                         {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="p-4 grid grid-cols-12 gap-4">
-                                <Skeleton className="h-5 col-span-2 rounded w-20" />
-                                <Skeleton className="h-5 col-span-2 rounded w-16" />
-                                <Skeleton className="h-5 col-span-2 rounded w-24" />
-                                <Skeleton className="h-5 col-span-2 rounded w-12" />
-                                <Skeleton className="h-5 col-span-2 rounded w-16" />
-                                <div className="col-span-2 flex justify-center gap-2">
-                                    <Skeleton className="h-8 w-16 rounded" />
-                                    <Skeleton className="h-8 w-8 rounded" />
+                            <div key={i} className="p-4">
+                                {/* Mobile skeleton */}
+                                <div className="md:hidden space-y-2">
+                                    <div className="flex justify-between">
+                                        <Skeleton className="h-5 w-24 rounded" />
+                                        <Skeleton className="h-5 w-16 rounded" />
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <Skeleton className="h-4 w-32 rounded" />
+                                        <Skeleton className="h-7 w-14 rounded" />
+                                    </div>
+                                </div>
+                                {/* Desktop skeleton */}
+                                <div className="hidden md:grid grid-cols-12 gap-4">
+                                    <Skeleton className="h-5 col-span-2 rounded w-20" />
+                                    <Skeleton className="h-5 col-span-2 rounded w-16" />
+                                    <Skeleton className="h-5 col-span-2 rounded w-24" />
+                                    <Skeleton className="h-5 col-span-2 rounded w-12" />
+                                    <Skeleton className="h-5 col-span-2 rounded w-16" />
+                                    <div className="col-span-2 flex justify-center gap-2">
+                                        <Skeleton className="h-8 w-16 rounded" />
+                                        <Skeleton className="h-8 w-8 rounded" />
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -143,7 +158,8 @@ export default function SessionList() {
             </div>
 
             <div className="bg-white rounded-lg border shadow-sm">
-                <div className="p-4 border-b bg-slate-50 font-medium grid grid-cols-12 gap-4 text-sm text-slate-500">
+                {/* 📱 Desktop Header (md 이상에서만 표시) */}
+                <div className="hidden md:grid p-4 border-b bg-slate-50 font-medium grid-cols-12 gap-4 text-sm text-slate-500">
                     <div className="col-span-2">날짜</div>
                     <div className="col-span-2">시간</div>
                     <div className="col-span-2">아동</div>
@@ -159,61 +175,111 @@ export default function SessionList() {
                         </div>
                     ) : (
                         sessions.map((session: any) => (
-                            <div key={session.id} className="p-4 grid grid-cols-12 gap-4 items-center text-sm hover:bg-slate-50 transition-colors">
-                                <div className="col-span-2">
-                                    <div className="font-medium text-slate-900">
-                                        {/* 수업 날짜 (Logs가 있으면 Log의 session_date, 없으면 schedule start_time) */}
-                                        {session.counseling_logs?.[0]?.session_date || toLocalDateStr(session.start_time)}
-                                    </div>
-                                    {/* 작성일 표시 (완료된 경우) */}
-                                    {session.counseling_logs?.[0]?.created_at && (
-                                        <div className="text-xs text-slate-400 mt-0.5">
-                                            (작성: {toLocalDateStr(session.counseling_logs[0].created_at)})
+                            <div key={session.id} className="hover:bg-slate-50 transition-colors">
+                                {/* 📱 Mobile Layout */}
+                                <div className="md:hidden p-4 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-slate-900">
+                                                {session.children?.name || '-'}
+                                            </span>
+                                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] text-slate-600 font-medium">
+                                                {session.service_type === 'evaluation' || session.service_type === 'assessment' ? '평가'
+                                                    : session.service_type === 'counseling' || session.service_type === 'consultation' ? '상담'
+                                                        : session.service_type || '수업'}
+                                            </span>
                                         </div>
-                                    )}
+                                        {getStatusBadge(session.status)}
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-slate-500">
+                                        <span>
+                                            {session.counseling_logs?.[0]?.session_date || toLocalDateStr(session.start_time)}
+                                            {' '}
+                                            {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            {session.status === 'completed' ? (
+                                                <button
+                                                    className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                                                    onClick={() => handleWriteNote(session.id)}
+                                                >
+                                                    수정
+                                                </button>
+                                            ) : session.status === 'cancelled' || session.status === 'canceled' || session.status === 'carried_over' ? null : (
+                                                <button
+                                                    className="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded hover:bg-primary/90 flex items-center"
+                                                    onClick={() => handleWriteNote(session.id)}
+                                                >
+                                                    <FileText className="w-3 h-3 mr-1" />
+                                                    일지
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDelete(session.id)}
+                                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                                title="삭제"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="col-span-2">
-                                    {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                <div className="col-span-2">
-                                    {session.children?.name || '-'}
-                                </div>
-                                <div className="col-span-2">
-                                    <span className="px-2 py-1 rounded-full bg-slate-100 text-xs text-slate-700">
-                                        {session.service_type === 'evaluation' || session.service_type === 'assessment' ? '평가'
-                                            : session.service_type === 'counseling' || session.service_type === 'consultation' ? '상담'
-                                                : session.service_type || '수업'}
-                                    </span>
-                                </div>
-                                <div className="col-span-2">
-                                    {getStatusBadge(session.status)}
-                                </div>
-                                <div className="col-span-2 flex justify-center items-center gap-2">
-                                    {session.status === 'completed' ? (
+
+                                {/* 🖥️ Desktop Layout (md 이상) */}
+                                <div className="hidden md:grid p-4 grid-cols-12 gap-4 items-center text-sm">
+                                    <div className="col-span-2">
+                                        <div className="font-medium text-slate-900">
+                                            {session.counseling_logs?.[0]?.session_date || toLocalDateStr(session.start_time)}
+                                        </div>
+                                        {session.counseling_logs?.[0]?.created_at && (
+                                            <div className="text-xs text-slate-400 mt-0.5">
+                                                (작성: {toLocalDateStr(session.counseling_logs[0].created_at)})
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="col-span-2">
+                                        {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                    <div className="col-span-2">
+                                        {session.children?.name || '-'}
+                                    </div>
+                                    <div className="col-span-2">
+                                        <span className="px-2 py-1 rounded-full bg-slate-100 text-xs text-slate-700">
+                                            {session.service_type === 'evaluation' || session.service_type === 'assessment' ? '평가'
+                                                : session.service_type === 'counseling' || session.service_type === 'consultation' ? '상담'
+                                                    : session.service_type || '수업'}
+                                        </span>
+                                    </div>
+                                    <div className="col-span-2">
+                                        {getStatusBadge(session.status)}
+                                    </div>
+                                    <div className="col-span-2 flex justify-center items-center gap-2">
+                                        {session.status === 'completed' ? (
+                                            <button
+                                                className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
+                                                onClick={() => handleWriteNote(session.id)}
+                                            >
+                                                수정하기
+                                            </button>
+                                        ) : session.status === 'cancelled' || session.status === 'canceled' || session.status === 'carried_over' ? (
+                                            <span className="text-xs text-slate-400">-</span>
+                                        ) : (
+                                            <button
+                                                className="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded hover:bg-primary/90 flex items-center"
+                                                onClick={() => handleWriteNote(session.id)}
+                                            >
+                                                <FileText className="w-3 h-3 mr-1" />
+                                                일지작성
+                                            </button>
+                                        )}
                                         <button
-                                            className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 rounded hover:bg-slate-200"
-                                            onClick={() => handleWriteNote(session.id)}
+                                            onClick={() => handleDelete(session.id)}
+                                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                            title="삭제"
                                         >
-                                            수정하기
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
-                                    ) : session.status === 'cancelled' || session.status === 'canceled' || session.status === 'carried_over' ? (
-                                        <span className="text-xs text-slate-400">-</span>
-                                    ) : (
-                                        <button
-                                            className="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded hover:bg-primary/90 flex items-center"
-                                            onClick={() => handleWriteNote(session.id)}
-                                        >
-                                            <FileText className="w-3 h-3 mr-1" />
-                                            일지작성
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => handleDelete(session.id)}
-                                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                                        title="삭제"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
                         ))

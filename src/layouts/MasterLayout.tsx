@@ -21,7 +21,14 @@ export function MasterLayout() {
     React.useEffect(() => {
         if (!loading && !isSuper) {
             alert('접근 권한이 없습니다. (Super Admin Only)');
-            navigate('/');
+            const hostname = window.location.hostname;
+            const isMainDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
+                || hostname.endsWith('.vercel.app');
+            if (isMainDomain) {
+                navigate('/');
+            } else {
+                window.location.href = 'https://app.myparents.co.kr/';
+            }
         }
     }, [loading, isSuper, navigate]);
 
@@ -85,7 +92,18 @@ export function MasterLayout() {
                 </div>
 
                 <button
-                    onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}
+                    onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        // 커스텀 도메인에서 접속한 경우 메인 플랫폼 도메인으로 이동
+                        const hostname = window.location.hostname;
+                        const isMainDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
+                            || hostname.endsWith('.vercel.app');
+                        if (isMainDomain) {
+                            navigate('/');
+                        } else {
+                            window.location.href = 'https://app.myparents.co.kr/';
+                        }
+                    }}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold"
                 >
                     <LayoutGrid className="w-4 h-4" />
@@ -95,7 +113,14 @@ export function MasterLayout() {
                 <button
                     onClick={async () => {
                         await supabase.auth.signOut();
-                        navigate('/login');
+                        const hostname = window.location.hostname;
+                        const isMainDomain = ['app.myparents.co.kr', 'localhost', '127.0.0.1'].includes(hostname)
+                            || hostname.endsWith('.vercel.app');
+                        if (isMainDomain) {
+                            navigate('/login');
+                        } else {
+                            window.location.href = 'https://app.myparents.co.kr/login';
+                        }
                     }}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
                 >

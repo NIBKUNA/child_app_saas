@@ -21,6 +21,13 @@ export function CenterList() {
 
     // 🔍 [SEO] 전체 센터 재색인 요청
     const reindexAll = async () => {
+        // 로컬 개발환경 감지
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocal) {
+            alert('⚠️ 색인 요청은 배포된 환경(Vercel)에서만 작동합니다.\n\n배포 후 다시 시도해주세요.');
+            return;
+        }
+
         if (!confirm('모든 활성 센터의 페이지를 Google, Naver, Bing에 일괄 색인 요청하시겠습니까?')) return;
         setReindexing(true);
         try {
@@ -28,7 +35,19 @@ export function CenterList() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             });
-            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(`서버 응답 오류 (${res.status}). 배포 환경을 확인해주세요.`);
+            }
+
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                throw new Error('서버 응답을 처리할 수 없습니다. 배포 상태를 확인해주세요.');
+            }
+
             console.log('🔍 [SEO] 전체 재색인 결과:', data);
             alert(`✅ ${data.centersCount}개 센터 / ${data.totalUrls}개 URL 색인 요청 완료!\n\nGoogle: ${data.google?.success ? '✓ 전송됨' : '△ ' + (data.google?.note || '실패')}\nBing/Yandex: ${data.indexNow?.success ? '✓ 전송됨' : '✗ 실패'}\nNaver: ${data.naver?.success ? '✓ 전송됨' : '✗ 실패'}`);
         } catch (err: any) {
@@ -99,17 +118,23 @@ export function CenterList() {
 
             alert('✅ 새로운 센터가 등록되었습니다!');
 
-            // 🔍 [SEO] 자동 색인 요청 — Google, Naver, Bing에 새 센터 페이지 알림
+            // 🔍 [SEO] 자동 색인 요청 — Google, Naver, Bing에 새 센터 페이지 알림 (배포 환경에서만)
             try {
-                fetch('/api/request-indexing', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ slug: finalSlug }),
-                }).then(res => res.json()).then(data => {
-                    console.log('🔍 [SEO] 색인 요청 완료:', data);
-                }).catch(err => {
-                    console.warn('🔍 [SEO] 색인 요청 실패 (무시):', err);
-                });
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                if (!isLocal) {
+                    fetch('/api/request-indexing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ slug: finalSlug }),
+                    }).then(res => {
+                        if (res.ok) return res.json();
+                        throw new Error(`${res.status}`);
+                    }).then(data => {
+                        console.log('🔍 [SEO] 색인 요청 완료:', data);
+                    }).catch(err => {
+                        console.warn('🔍 [SEO] 색인 요청 실패 (무시):', err);
+                    });
+                }
             } catch { /* 색인 실패는 센터 생성에 영향 없음 */ }
 
             setIsCreateModalOpen(false);
