@@ -2,7 +2,6 @@ import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import { useCenter } from '@/contexts/CenterContext';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
-import { useAdminSettings } from '@/hooks/useAdminSettings';
 import type { PageType } from '@/hooks/useLocalSEO';
 import { PLATFORM_URL } from '@/config/domain';
 
@@ -16,7 +15,6 @@ export function SEOHead() {
     const location = useLocation();
     const { center } = useCenter();
     const seo = useLocalSEO();
-    const { getSetting } = useAdminSettings();
 
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : PLATFORM_URL;
     const canonicalUrl = `${baseUrl}${location.pathname}`;
@@ -24,9 +22,9 @@ export function SEOHead() {
     const businessName = center?.name || '아동발달센터';
     const ogImage = center?.logo_url || `${baseUrl}/zaradalogo.png`;
 
-    // Naver/Google Verification — 센터별 admin_settings 우선, 없으면 env 폴백
-    const naverVerification = getSetting('naver_site_verification') || import.meta.env.VITE_NAVER_VERIFICATION || '';
-    const googleVerification = getSetting('google_site_verification') || import.meta.env.VITE_GOOGLE_VERIFICATION || '';
+    // Naver/Google Verification (env에서만)
+    const naverVerification = import.meta.env.VITE_NAVER_VERIFICATION || '';
+    const googleVerification = import.meta.env.VITE_GOOGLE_VERIFICATION || '';
 
     // 경로에서 PageType 자동 감지
     const detectPageType = (): PageType => {

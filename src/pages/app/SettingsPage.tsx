@@ -501,30 +501,6 @@ export function SettingsPage() {
 
                                 <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
-                                {/* 🔐 Search Engine Verification */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 ml-1">검색엔진 인증 코드</label>
-                                        <p className="text-xs text-slate-400 font-medium ml-1">네이버 서치어드바이저, 구글 서치콘솔에서 발급받은 인증 코드를 입력하세요. 도메인 소유권 확인에 사용됩니다.</p>
-                                    </div>
-                                    <SaveableInput
-                                        label="네이버 인증 코드"
-                                        placeholder="예: a1b2c3d4e5f6..."
-                                        initialValue={getSetting('naver_site_verification') ?? null}
-                                        onSave={(v) => handleSave('naver_site_verification', v)}
-                                        saving={saving}
-                                    />
-                                    <SaveableInput
-                                        label="구글 인증 코드"
-                                        placeholder="예: AbCdEfGhIjKl..."
-                                        initialValue={getSetting('google_site_verification') ?? null}
-                                        onSave={(v) => handleSave('google_site_verification', v)}
-                                        saving={saving}
-                                    />
-                                </div>
-
-                                <div className="h-px bg-slate-100 dark:bg-slate-800" />
-
                                 {/* 🖼️ Logo Selection */}
                                 <div className="space-y-6">
                                     <div>
