@@ -407,10 +407,15 @@ export function Dashboard() {
                 }
             });
 
-            const { data: allPayments } = await supabase
-                .from('payments')
-                .select('amount, credit_used, child_id, paid_at, payment_month')
-                .in('child_id', [...validChildIds]); // 🔒 Security Filter
+            // ✨ [Fix] 아동이 없으면 .in([]) 에러 방지
+            let allPayments: any[] | null = null;
+            if (validChildIds.size > 0) {
+                const { data } = await supabase
+                    .from('payments')
+                    .select('amount, credit_used, child_id, paid_at, payment_month')
+                    .in('child_id', [...validChildIds]); // 🔒 Security Filter
+                allPayments = data;
+            }
 
             // Calculation Maps
             const monthlyRevMap: Record<string, number> = {};
