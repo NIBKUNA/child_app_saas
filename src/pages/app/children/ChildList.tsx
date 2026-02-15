@@ -159,7 +159,7 @@ export function ChildList() {
                     <div className="flex gap-2">
                         {/* ✨ [Export] Excel Download Button */}
                         <ExcelExportButton
-                            data={filteredChildren}
+                            data={filteredChildren.map(c => ({ ...c, gender: c.gender === 'male' ? '남' : c.gender === 'female' ? '여' : '-' }))}
                             fileName="아동목록_전체"
                             headers={['name', 'birth_date', 'gender', 'guardian_name', 'contact', 'address', 'memo']}
                             headerLabels={{
@@ -259,7 +259,7 @@ export function ChildList() {
                                             </td>
                                             <td className="px-6 py-5 text-slate-600 dark:text-slate-300 font-bold">
                                                 {child.birth_date || '-'}
-                                                <span className="ml-2 text-slate-300 dark:text-slate-500 text-xs">{child.gender}</span>
+                                                <span className="ml-2 text-slate-300 dark:text-slate-500 text-xs">{child.gender === 'male' ? '남' : child.gender === 'female' ? '여' : '-'}</span>
                                             </td>
                                             <td className="px-6 py-5">
                                                 {child.invitation_code ? (

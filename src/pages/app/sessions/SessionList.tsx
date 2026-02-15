@@ -38,24 +38,9 @@ export default function SessionList() {
         if (!centerId) return; // 🔒 [Security] center_id 없으면 조회 차단
         setLoading(true);
 
-        // 1. Auto-Complete Logic (Center-Scoped)
-        const now = new Date().toISOString();
-        const { data: pastSessions } = await supabase
-            .from('schedules')
-            .select('id')
-            .eq('center_id', centerId)
-            .eq('status', 'scheduled')
-            .lt('end_time', now);
+        // ✨ [FIX] Auto-Complete DB 업데이트는 AppLayout의 useAutoCompleteSchedules에서 중앙 처리됨
+        // 여기서는 로컬 데이터 보정만 수행 (UI 정합성)
 
-        if (pastSessions && pastSessions.length > 0) {
-            const idsToUpdate = pastSessions.map(s => s.id);
-            await supabase
-                .from('schedules')
-                .update({ status: 'completed' } as never)
-                .in('id', idsToUpdate);
-        }
-
-        // 2. Fetch all sessions (Filtered by Center)
         const { data, error } = await supabase
             .from('schedules')
             .select(`
@@ -70,7 +55,15 @@ export default function SessionList() {
         if (error) {
             console.error('Error fetching sessions:', error);
         } else {
-            setSessions((data as Schedule[]) || []);
+            const sessionData = (data as Schedule[]) || [];
+            // 로컬 데이터에서만 과거 scheduled를 completed로 표시 (UI 정합성)
+            const now = new Date();
+            sessionData.forEach((s: any) => {
+                if (s.status === 'scheduled' && new Date(s.end_time) < now) {
+                    s.status = 'completed';
+                }
+            });
+            setSessions(sessionData);
         }
         setLoading(false);
     };
@@ -187,7 +180,9 @@ export default function SessionList() {
                                 </div>
                                 <div className="col-span-2">
                                     <span className="px-2 py-1 rounded-full bg-slate-100 text-xs text-slate-700">
-                                        {session.service_type}
+                                        {session.service_type === 'evaluation' || session.service_type === 'assessment' ? '평가'
+                                            : session.service_type === 'counseling' || session.service_type === 'consultation' ? '상담'
+                                                : session.service_type || '수업'}
                                     </span>
                                 </div>
                                 <div className="col-span-2">
