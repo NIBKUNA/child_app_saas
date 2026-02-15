@@ -18,7 +18,8 @@ import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
     Phone, Clock,
     RefreshCcw, Trash2,
-    CheckCircle2, XCircle, Hourglass, Save, StickyNote
+    CheckCircle2, XCircle, Hourglass, Save, StickyNote,
+    MessageSquare, Send, Copy, ChevronDown
 } from 'lucide-react';
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -32,6 +33,11 @@ export default function ConsultationInquiryList() {
     const [viewMode, setViewMode] = useState<'pending' | 'archived'>('pending'); // ✨ Tab State
     const { center } = useCenter(); // ✨ Use Center
     const centerId = center?.id;
+    const centerName = center?.name || '센터';
+
+    // ✨ 문자 보내기 상태 (문의별 독립)
+    const [smsOpen, setSmsOpen] = useState<{ [key: string]: boolean }>({});
+    const [smsTexts, setSmsTexts] = useState<{ [key: string]: string }>({});
 
     // ✨ 문의 접수 시간 포맷팅
     const formatInquiryTime = (dateStr: string | null) => {
@@ -241,6 +247,88 @@ export default function ConsultationInquiryList() {
                                     <p className="text-[11px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">부모님 고민사항</p>
                                     <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.concern}</p>
                                 </div>
+                            </div>
+
+                            {/* ✨ [신규] 문자 보내기 패널 — 센터별 격리 */}
+                            <div className="mb-6">
+                                <button
+                                    onClick={() => setSmsOpen(prev => ({ ...prev, [inq.id]: !prev[inq.id] }))}
+                                    className={cn(
+                                        "w-full flex items-center justify-between px-5 py-4 rounded-2xl font-bold text-sm transition-all border",
+                                        smsOpen[inq.id]
+                                            ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+                                            : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-emerald-200 hover:text-emerald-600"
+                                    )}
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4" />
+                                        보호자에게 문자 보내기
+                                    </span>
+                                    <ChevronDown className={cn("w-4 h-4 transition-transform", smsOpen[inq.id] && "rotate-180")} />
+                                </button>
+
+                                {smsOpen[inq.id] && (
+                                    <div className="mt-3 p-5 md:p-6 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-[24px] border border-emerald-100 dark:border-emerald-800/50 space-y-4 animate-in fade-in slide-in-from-top-2">
+                                        {/* 수신자 정보 */}
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <span className="px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-black text-[10px]">수신</span>
+                                            <span className="font-bold text-slate-700 dark:text-slate-300">{inq.guardian_phone} ({inq.guardian_name}님)</span>
+                                        </div>
+
+                                        {/* 문자 내용 입력 — 빈 칸에서 시작 */}
+                                        <textarea
+                                            value={smsTexts[inq.id] || ''}
+                                            onChange={(e) => setSmsTexts(prev => ({ ...prev, [inq.id]: e.target.value }))}
+                                            placeholder="문자 내용을 직접 작성하세요..."
+                                            className="w-full h-32 bg-white dark:bg-slate-700 border border-emerald-100 dark:border-slate-600 rounded-2xl p-4 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none placeholder:text-slate-300 dark:placeholder:text-slate-500"
+                                        />
+
+                                        {/* 예시 멘트 — 참고용으로만 표시 */}
+                                        <div className="bg-white/60 dark:bg-slate-800/50 rounded-xl p-4 border border-dashed border-slate-200 dark:border-slate-600">
+                                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">💡 예시 멘트 (참고용)</p>
+                                            <div className="space-y-2 text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
+                                                <p>• 안녕하세요, {centerName}입니다. {inq.child_name} 어린이 상담 문의 감사합니다. 초기 상담 일정 안내드리겠습니다.</p>
+                                                <p>• {inq.guardian_name}님 안녕하세요, {centerName}입니다. 문의 주신 내용 확인했습니다. 전화드려도 될까요?</p>
+                                                <p>• 안녕하세요, {centerName}입니다. {inq.child_name} 어린이 초기 상담이 확정되었습니다. 일시: OO월 OO일 OO시</p>
+                                            </div>
+                                        </div>
+
+                                        {/* 버튼 영역 */}
+                                        <div className="flex gap-2">
+                                            <a
+                                                href={`sms:${inq.guardian_phone}${/iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(smsTexts[inq.id] || '')}`}
+                                                className={cn(
+                                                    "flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm transition-all",
+                                                    smsTexts[inq.id]?.trim()
+                                                        ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-100 dark:shadow-emerald-900/30"
+                                                        : "bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-500 pointer-events-none"
+                                                )}
+                                                onClick={(e) => {
+                                                    if (!smsTexts[inq.id]?.trim()) { e.preventDefault(); return; }
+                                                }}
+                                            >
+                                                <Send className="w-4 h-4" /> 문자앱으로 전송
+                                            </a>
+                                            <button
+                                                onClick={() => {
+                                                    if (!smsTexts[inq.id]?.trim()) return;
+                                                    navigator.clipboard.writeText(smsTexts[inq.id]);
+                                                    alert('문자 내용이 클립보드에 복사되었습니다.');
+                                                }}
+                                                className={cn(
+                                                    "px-4 py-3.5 rounded-2xl font-bold text-sm transition-all border",
+                                                    smsTexts[inq.id]?.trim()
+                                                        ? "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-50"
+                                                        : "bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-200 dark:text-slate-600 pointer-events-none"
+                                                )}
+                                                disabled={!smsTexts[inq.id]?.trim()}
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">* 문자앱이 열리며 내용이 자동 입력됩니다. 실제 발송은 기기에서 직접 하셔야 합니다.</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* [추가] 상담사 메모란 */}
