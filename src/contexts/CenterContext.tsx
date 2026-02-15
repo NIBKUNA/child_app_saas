@@ -12,7 +12,7 @@ interface CenterContextType {
   center: Center | null;
   loading: boolean;
   error: string | null;
-  setCenter: (center: Center | null) => void; // ✨ Added for Super Admin switching
+  setCenter: (center: Center | null) => void;
 }
 
 const CenterContext = createContext<CenterContextType | undefined>(undefined);
@@ -26,25 +26,15 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { profile, loading: authLoading } = useAuth();
 
   const setCenter = (data: any) => {
-    // 🔍 [Verification] Log Center ID and Code for validation
     if (data) {
-      // ✨ Use ref to force-prevent duplicates even in Strict Mode / Redirects
       if (lastLoggedId.current !== data.id) {
         lastLoggedId.current = data.id;
-        const isDomainMatch = window.location.hostname === data?.custom_domain;
-        console.log(`✅ [CenterContext] Loaded: ${data.name}`, {
-          id: data.id,
-          slug: data.slug,
-          domain: data.custom_domain || 'N/A',
-          source: isDomainMatch ? 'Custom Domain' : 'Slug/Path'
-        });
+        console.log(`✅ [CenterContext] Loaded: ${data.name}`, { id: data.id, slug: data.slug });
       }
     }
-
     if (data?.slug) {
       localStorage.setItem('zarada_center_slug', data.slug);
     }
-    // ✨ [Safety] Ensure ID is present
     if (data && !data.id) {
       console.error("CenterContext: Attempted to set center without ID", data);
       return;
@@ -53,106 +43,81 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   useEffect(() => {
-    // 🚀 [Critical Fix] Set loading to true IMMEDIATELY when effect triggers
-    // This prevents CenterGuard from seeing loading: false + center: null during the micro-task gap
     setLoading(true);
 
     const fetchCenter = async () => {
       const pathParts = location.pathname.split('/');
 
-      // ✨ [Custom Domain] 커스텀 도메인 감지
-      const hostname = window.location.hostname;
-      const cleanHostname = hostname.replace(/^www\./, '');
-      const isDefaultDomain = checkMainDomain(cleanHostname);
-
-      // ✨ [Custom Domain Protection] 커스텀 도메인에서는 매핑된 센터가 우선
-      // /master 라우트 제외, /app/ 라우트에서는 Super Admin 센터 전환 허용
-      if (!isDefaultDomain && !location.pathname.startsWith('/master')) {
-        try {
-          const { data: domainCenter, error: domainError } = await supabase
-            .from('centers')
-            .select('*')
-            .in('custom_domain', [hostname, cleanHostname])
-            .maybeSingle();
-
-          if (!domainError && domainCenter) {
-            // ✨ [Super Admin 센터 전환] /app/ 경로에서 Super Admin이 다른 센터로 전환한 경우 → slug 우선
-            const storedSlug = localStorage.getItem('zarada_center_slug');
-            const isAppRoute = location.pathname.startsWith('/app/');
-            const isSuper = profile?.role === 'super_admin' || (profile?.email && isSuperAdmin(profile.email));
-            if (isAppRoute && isSuper && storedSlug && storedSlug !== domainCenter.slug) {
-              // Super Admin이 다른 센터로 전환한 상태 → 아래 slug 기반 로직으로 폴백
-            } else {
-              // /centers/:slug 경로로 명시적으로 다른 센터를 보고 있는 경우 → 허용
-              const hasExplicitSlugPath = location.pathname.startsWith('/centers/') && pathParts.length > pathParts.indexOf('centers') + 1;
-              if (hasExplicitSlugPath) {
-                const urlSlug = pathParts[pathParts.indexOf('centers') + 1];
-                if (urlSlug !== domainCenter.slug) {
-                  // 다른 센터 slug 접근을 허용 → 아래 slug 로직으로 폴백
-                } else {
-                  setCenter(domainCenter);
-                  setLoading(false);
-                  return;
-                }
-              } else {
-                // 도메인 매핑 센터 로드 (공개 페이지 등)
-                setCenter(domainCenter);
-                setLoading(false);
-                return;
-              }
-            }
-          }
-          // 도메인 매칭 실패 시 기본 로직으로 폴백
-        } catch (e) {
-          console.warn('Custom domain lookup failed, falling back to slug', e);
-        }
-      }
-
-      // ✨ [Master Console] Skip any center loading for master routes
+      // ── 1. /master 라우트 → 센터 없음
       if (location.pathname.startsWith('/master')) {
         setCenterState(null);
         setLoading(false);
         return;
       }
 
+      // ── 2. URL에 /centers/:slug 가 있으면 → 항상 그 slug 사용 (최우선)
       const centerIndex = pathParts.indexOf('centers');
+      const urlSlug = (centerIndex !== -1 && pathParts.length > centerIndex + 1)
+        ? pathParts[centerIndex + 1]
+        : null;
 
-      let slug = null;
-      const isSuper = profile?.role === 'super_admin' || (profile?.email && isSuperAdmin(profile.email));
-
-      if (centerIndex !== -1 && pathParts.length > centerIndex + 1) {
-        slug = pathParts[centerIndex + 1];
+      if (urlSlug) {
+        await loadCenterBySlug(urlSlug);
+        return;
       }
 
-      const isGlobalRoute = ['/', '/login', '/register', '/auth/forgot-password', '/auth/update-password'].includes(location.pathname);
+      // ── 3. 커스텀 도메인 → DB에서 매핑된 센터 로드
+      const hostname = window.location.hostname;
+      const cleanHostname = hostname.replace(/^www\./, '');
+      const isDefaultDomain = checkMainDomain(cleanHostname);
 
-      // ✨ [Fix] If we are on a center specific route, we are definitively NOT global
-      if (location.pathname.startsWith('/centers/')) {
-        // Force slug extraction logic to take precedence
-      } else if (isGlobalRoute) {
-        // Only treat as global if NOT under /centers/
-      }
-
-      if (slug) {
-        localStorage.setItem('zarada_center_slug', slug);
-      } else if (isGlobalRoute) {
-        // ✨ [Fix] 글로벌 페이지에서는 모든 사용자의 센터 slug 클리어
-        // 이전 센터가 계속 복원되는 문제 방지
-        localStorage.removeItem('zarada_center_slug');
-      } else if (!isGlobalRoute) {
-        // ✨ Auto-restore ONLY if NOT on a global landing/login route
-        slug = localStorage.getItem('zarada_center_slug');
-      }
-
-      if (!slug && !authLoading && profile?.center_id && !isSuper) {
+      if (!isDefaultDomain) {
         try {
-          const { data: profileCenter, error: profileError } = await supabase
+          const { data: domainCenter } = await supabase
+            .from('centers')
+            .select('*')
+            .in('custom_domain', [hostname, cleanHostname])
+            .maybeSingle();
+
+          if (domainCenter) {
+            setCenter(domainCenter);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn('Custom domain lookup failed', e);
+        }
+      }
+
+      // ── 4. /app/ 경로 → localStorage에서 slug 복원
+      if (location.pathname.startsWith('/app/') || location.pathname.startsWith('/parent/')) {
+        const savedSlug = localStorage.getItem('zarada_center_slug');
+        if (savedSlug) {
+          // 이미 같은 센터면 스킵
+          if (center && center.slug === savedSlug) {
+            setLoading(false);
+            return;
+          }
+          await loadCenterBySlug(savedSlug);
+          return;
+        }
+      }
+
+      // ── 5. 글로벌 라우트 → slug 클리어
+      const isGlobalRoute = ['/', '/login', '/register', '/auth/forgot-password', '/auth/update-password'].includes(location.pathname);
+      if (isGlobalRoute) {
+        localStorage.removeItem('zarada_center_slug');
+      }
+
+      // ── 6. 프로필 기반 센터 (일반 유저)
+      const isSuper = profile?.role === 'super_admin' || (profile?.email && isSuperAdmin(profile.email));
+      if (!authLoading && profile?.center_id && !isSuper) {
+        try {
+          const { data: profileCenter } = await supabase
             .from('centers')
             .select('*')
             .eq('id', profile.center_id)
             .single() as { data: Center | null, error: any };
-
-          if (profileError) throw profileError;
 
           if (profileCenter) {
             setCenter(profileCenter);
@@ -164,50 +129,36 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
-      if (!slug) {
-        if (!authLoading) {
-          setCenterState(null);
-          setLoading(false);
-          // ✨ [Fix] Clear error if we are intentionally in global mode
-          setError(null);
-        }
-        return;
+      // ── 7. 아무것도 없으면 센터 null
+      if (!authLoading) {
+        setCenterState(null);
+        setLoading(false);
+        setError(null);
       }
+    };
 
+    // slug로 센터 로드하는 헬퍼
+    const loadCenterBySlug = async (slug: string) => {
       if (center && center.slug === slug) {
         setLoading(false);
         return;
       }
-
       try {
         const { data, error } = await supabase
           .from('centers')
           .select('*')
           .eq('slug', slug)
-          .maybeSingle(); // ✨ [Fix] Use maybeSingle to avoid 406/JSON error on 0 rows
+          .maybeSingle();
 
         if (error) throw error;
-
-        if (!data) {
-          throw new Error("Center not found");
-        }
-
-        // ✨ [Custom Domain Redirect] 메인 플랫폼에서 커스텀 도메인이 있는 센터 접근 시 리디렉트
-        // /app/ 경로는 제외 (관리자 센터 전환 허용)
-        if (isDefaultDomain && data.custom_domain && !location.pathname.startsWith('/app/')) {
-          const subPath = location.pathname.replace(`/centers/${slug}`, '') || '/';
-          window.location.href = `https://${data.custom_domain}${subPath}`;
-          return;
-        }
+        if (!data) throw new Error("Center not found");
 
         setCenter(data);
         setError(null);
-
       } catch (err: any) {
         console.error('Error fetching center:', err);
         setError('Center not found');
         setCenterState(null);
-        // localStorage.removeItem('zarada_center_slug'); // Don't aggressively remove, user might have made a typo
       } finally {
         setLoading(false);
       }
