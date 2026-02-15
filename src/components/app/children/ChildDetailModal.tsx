@@ -21,7 +21,7 @@ export function ChildDetailModal({ isOpen, onClose, child }: ChildDetailModalPro
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-slate-900 dark:text-white">{child.name} 아동 상세 정보</h2>
-                            <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">{child.birth_date} ({child.gender})</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">{child.birth_date} ({child.gender === 'male' ? '남' : child.gender === 'female' ? '여' : child.gender || '-'})</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-slate-700 hover:shadow-md rounded-full transition-all">
