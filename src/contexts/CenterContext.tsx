@@ -66,7 +66,21 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      // ── 3. 커스텀 도메인 → DB에서 매핑된 센터 로드
+      // ── 3. /app/ 경로 → localStorage 우선 (Super Admin 센터 전환 지원)
+      const isAppRoute = location.pathname.startsWith('/app/') || location.pathname.startsWith('/parent/');
+      if (isAppRoute) {
+        const savedSlug = localStorage.getItem('zarada_center_slug');
+        if (savedSlug) {
+          if (center && center.slug === savedSlug) {
+            setLoading(false);
+            return;
+          }
+          await loadCenterBySlug(savedSlug);
+          return;
+        }
+      }
+
+      // ── 4. 커스텀 도메인 → DB에서 매핑된 센터 로드 (공개 페이지용)
       const hostname = window.location.hostname;
       const cleanHostname = hostname.replace(/^www\./, '');
       const isDefaultDomain = checkMainDomain(cleanHostname);
@@ -86,20 +100,6 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
         } catch (e) {
           console.warn('Custom domain lookup failed', e);
-        }
-      }
-
-      // ── 4. /app/ 경로 → localStorage에서 slug 복원
-      if (location.pathname.startsWith('/app/') || location.pathname.startsWith('/parent/')) {
-        const savedSlug = localStorage.getItem('zarada_center_slug');
-        if (savedSlug) {
-          // 이미 같은 센터면 스킵
-          if (center && center.slug === savedSlug) {
-            setLoading(false);
-            return;
-          }
-          await loadCenterBySlug(savedSlug);
-          return;
         }
       }
 
