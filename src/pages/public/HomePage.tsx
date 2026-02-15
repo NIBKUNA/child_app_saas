@@ -9,7 +9,7 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { useState, useEffect } from 'react';
+
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -21,8 +21,9 @@ import { cn } from '@/lib/utils';
 import { HeroBackground } from '@/components/public/HeroBackground';
 import { useCenter } from '@/contexts/CenterContext';
 import { centerPath } from '@/config/domain';
+import { useLocalSEO } from '@/hooks/useLocalSEO';
 import { BlogFeed } from '@/components/public/BlogFeed';
-import type { Database } from '@/types/database.types';
+
 
 // Custom SVG Icons (no Lucide)
 const SvgIcons = {
@@ -77,41 +78,31 @@ export function HomePage() {
     const { getSetting, loading } = useAdminSettings();
     const { theme } = useTheme();
     const { center } = useCenter();
-    const [centerInfo, setCenterInfo] = useState<Database['public']['Tables']['centers']['Row'] | null>(null);
     const isDark = theme === 'dark';
-
-    // ✨ Sync context center to local info for backward partial compatibility if needed, 
-    // but prefer using 'center' directly.
-    useEffect(() => {
-        if (center) setCenterInfo(center);
-    }, [center]);
 
     const bannerUrl = getSetting('main_banner_url');
     const noticeText = getSetting('notice_text');
     const bgImage = bannerUrl || DEFAULT_CONTENT.hero.defaultBgImage;
 
-    const brandName = centerInfo?.name || getSetting('center_name') || DEFAULT_CONTENT.brandName;
-    // 커스텀 도메인이면 origin 그대로, 메인 플랫폼이면 /centers/slug 경로
-    const canonicalUrl = centerInfo?.slug
-        ? `${window.location.origin}${window.location.origin.includes('app.myparents.co.kr') || window.location.hostname === 'localhost' ? `/centers/${centerInfo.slug}` : ''}`
-        : window.location.origin;
+    const seo = useLocalSEO();
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950" />;
 
     return (
         <div className={`min-h-screen font-sans overflow-x-hidden transition-colors ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
             <Helmet>
-                <title>{brandName} - {getSetting('home_subtitle')?.slice(0, 20) || '아이의 행복한 성장을 함께합니다'}</title>
-                <meta name="description" content={getSetting('home_subtitle') || DEFAULT_CONTENT.hero.description} />
-                <link rel="canonical" href={canonicalUrl} />
-                <meta property="og:title" content={brandName} />
-                <meta property="og:description" content={getSetting('home_subtitle') || DEFAULT_CONTENT.hero.description} />
+                <title>{seo.pageTitle('home')}</title>
+                <meta name="description" content={seo.pageDesc('home')} />
+                <meta name="keywords" content={seo.pageKeywords('home')} />
+                <link rel="canonical" href={seo.canonical()} />
+                <meta property="og:title" content={seo.pageTitle('home')} />
+                <meta property="og:description" content={seo.pageDesc('home')} />
                 <meta property="og:image" content={bgImage} />
-                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:url" content={seo.canonical()} />
                 <meta property="og:type" content="website" />
-                <meta property="og:site_name" content={brandName} />
+                <meta property="og:site_name" content={seo.centerName} />
                 <meta property="og:locale" content="ko_KR" />
-                {getSetting('seo_keywords') && <meta name="keywords" content={getSetting('seo_keywords')} />}
+                <script type="application/ld+json">{JSON.stringify(seo.structuredData('home'))}</script>
             </Helmet>
 
             {!loading && noticeText && (
