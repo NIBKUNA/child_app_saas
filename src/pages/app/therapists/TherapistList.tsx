@@ -280,14 +280,34 @@ export function TherapistList() {
 
                 if (therapistError) throw therapistError;
 
-                // 2. Auth 계정 및 프로필 삭제 (보안 및 DB 정리)
+                // 2. ✨ [핵심] RPC로 user_profiles.status를 'retired'로 변경
+                //    SECURITY DEFINER 함수이므로 admin/manager도 RLS 우회 가능
                 if (staff.userId) {
-                    // ※ 중요: DB에서 therapists.profile_id 가 'ON DELETE SET NULL'로 설정되어 있어야 함
-                    const { error } = await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
-                    if (error) console.warn('Account removal note:', error.message);
+                    const { error: rpcError } = await (supabase.rpc as any)('retire_staff_user', {
+                        target_profile_id: staff.userId,
+                        target_center_id: centerId,
+                        is_retire: true
+                    });
+
+                    if (rpcError) {
+                        console.warn('Profile retirement note:', rpcError.message);
+                        // RPC 실패 시 직접 update 시도 (Super Admin fallback)
+                        if (isSuperAdmin(user?.email)) {
+                            await supabase
+                                .from('user_profiles')
+                                .update({ status: 'retired' } as any)
+                                .eq('id', staff.userId);
+                        }
+                    }
+
+                    // 3. Super Admin인 경우에만 Auth 계정 완전 삭제 시도 (선택적)
+                    if (isSuperAdmin(user?.email)) {
+                        const { error } = await supabase.rpc('admin_delete_user', { target_user_id: staff.userId });
+                        if (error) console.warn('Account removal note:', error.message);
+                    }
                 }
 
-                alert('퇴사 처리가 완료되었습니다. 직원의 로그인 계정은 삭제되었으며 정보는 보관함으로 이동했습니다.');
+                alert('퇴사 처리가 완료되었습니다. 해당 직원은 더 이상 로그인할 수 없으며, 정보는 보관함으로 이동했습니다.');
             } else {
                 // [복귀 처리]
                 const { error: therapistError } = await supabase
@@ -297,6 +317,26 @@ export function TherapistList() {
                     .eq('center_id', centerId);
 
                 if (therapistError) throw therapistError;
+
+                // ✨ [핵심] RPC로 user_profiles.status를 'active'로 복구
+                if (staff.userId) {
+                    const { error: rpcError } = await (supabase.rpc as any)('retire_staff_user', {
+                        target_profile_id: staff.userId,
+                        target_center_id: centerId,
+                        is_retire: false
+                    });
+
+                    if (rpcError) {
+                        console.warn('Profile restore note:', rpcError.message);
+                        // RPC 실패 시 직접 update 시도 (Super Admin fallback)
+                        if (isSuperAdmin(user?.email)) {
+                            await supabase
+                                .from('user_profiles')
+                                .update({ status: 'active' } as any)
+                                .eq('id', staff.userId);
+                        }
+                    }
+                }
 
                 alert('근무 중으로 복귀되었습니다. 로그인이 필요한 경우 다시 초대해 주세요.');
             }
