@@ -42,9 +42,20 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCenterState(data);
   };
 
-  useEffect(() => {
-    setLoading(true);
+  // ✨ [Performance] 경로 변경의 '범주'만 추적 (같은 /app/ 내 이동 시 재쿼리 방지)
+  const getRouteCategory = (pathname: string) => {
+    if (pathname.startsWith('/master')) return 'master';
+    if (pathname.startsWith('/app/')) return 'app';
+    if (pathname.startsWith('/parent/')) return 'parent';
+    const parts = pathname.split('/');
+    const ci = parts.indexOf('centers');
+    if (ci !== -1 && parts.length > ci + 1) return `center:${parts[ci + 1]}`;
+    return pathname; // 글로벌 라우트는 정확한 경로 추적
+  };
 
+  const routeCategory = getRouteCategory(location.pathname);
+
+  useEffect(() => {
     const fetchCenter = async () => {
       const pathParts = location.pathname.split('/');
 
@@ -62,11 +73,16 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         : null;
 
       if (urlSlug) {
+        if (center && center.slug === urlSlug) {
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
         await loadCenterBySlug(urlSlug);
         return;
       }
 
-      // ── 3. /app/ 경로 → localStorage 우선 (Super Admin 센터 전환 지원)
+      // ── 3. /app/ 경로 → 센터 이미 로드됨이면 skip
       const isAppRoute = location.pathname.startsWith('/app/') || location.pathname.startsWith('/parent/');
       if (isAppRoute) {
         const savedSlug = localStorage.getItem('zarada_center_slug');
@@ -75,6 +91,7 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setLoading(false);
             return;
           }
+          setLoading(true);
           await loadCenterBySlug(savedSlug);
           return;
         }
@@ -86,6 +103,12 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const isDefaultDomain = checkMainDomain(cleanHostname);
 
       if (!isDefaultDomain) {
+        if (center) {
+          // 이미 로드된 센터가 있으면 skip
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
         try {
           const { data: domainCenter } = await supabase
             .from('centers')
@@ -112,6 +135,11 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // ── 6. 프로필 기반 센터 (일반 유저)
       const isSuper = profile?.role === 'super_admin' || (profile?.email && isSuperAdmin(profile.email));
       if (!authLoading && profile?.center_id && !isSuper) {
+        if (center && center.id === profile.center_id) {
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
         try {
           const { data: profileCenter } = await supabase
             .from('centers')
@@ -165,7 +193,7 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     fetchCenter();
-  }, [location.pathname, profile?.center_id, authLoading]);
+  }, [routeCategory, profile?.center_id, authLoading]);
 
   return (
     <CenterContext.Provider value={{ center, loading, error, setCenter }}>

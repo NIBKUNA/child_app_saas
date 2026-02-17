@@ -87,14 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let mounted = true;
         const initSession = async () => {
-            // ✨ [Safety] 3초 후에도 로딩이 안 끝나면 강제로 종료 (Infinite Loading 방지)
+            // ✨ [Safety] 4초 후에도 로딩이 안 끝나면 강제로 종료 (Infinite Loading 방지)
             const safetyTimeout = setTimeout(() => {
                 if (mounted && !initialLoadComplete.current) {
                     console.warn("⚠️ Auth Check Timed Out - Forcing Load Complete");
                     setLoading(false);
                     initialLoadComplete.current = true;
                 }
-            }, 3000);
+            }, 4000);
 
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
@@ -255,9 +255,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setLoading(false);
                 initialLoadComplete.current = true;
             } else {
-                // 프로필 없을 시 재시도 (최대 5회)
-                if (retryCount < 5) {
-                    setTimeout(() => executeFetchRole(forceUpdate, retryCount + 1), 500);
+                // 프로필 없을 시 재시도 (최대 3회, 300ms 간격 → 최대 0.9초)
+                if (retryCount < 3) {
+                    setTimeout(() => executeFetchRole(forceUpdate, retryCount + 1), 300);
                 } else {
                     // 정말 없으면 Parent 취급
                     setRole('parent');
