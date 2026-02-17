@@ -18,18 +18,23 @@ BEGIN
   UPDATE public.children SET parent_id = NULL WHERE parent_id = v_user_id;
   DELETE FROM public.family_relationships WHERE parent_id = v_user_id;
   
-  -- 2. 알림 및 프로필 삭제
+  -- 2. 알림 삭제
   DELETE FROM public.admin_notifications WHERE user_id = v_user_id;
   
-  -- 3. 스토리지 정리 (본인이 올린 파일)
-  DELETE FROM storage.objects WHERE owner = v_user_id;
+  -- 3. 푸시 구독 삭제
+  DELETE FROM public.push_subscriptions WHERE user_id = v_user_id;
   
-  -- 4. 프로필 및 계정 삭제 (Auth는 SECURITY DEFINER 함수로 처리)
+  -- 4. parents 테이블 삭제 (부모 역할 데이터)
+  DELETE FROM public.parents WHERE profile_id = v_user_id;
+  
+  -- 5. therapists 테이블 정리 (치료사 역할 데이터 - profile_id 연결 해제)
+  UPDATE public.therapists SET profile_id = NULL WHERE profile_id = v_user_id;
+  
+  -- 6. 프로필 삭제
   DELETE FROM public.user_profiles WHERE id = v_user_id;
   
-  -- 🗑️ Auth 계정 삭제 유도 (실제 Auth 삭제는 트리거 혹은 수동 처리가 필요할 수 있으나 보안상 RPC에서 세션 종료)
-  -- Note: Supabase 환경에 따라 auth.users를 직접 삭제하거나 Edge Function을 호출해야 함. 
-  -- 여기서는 DB 무결성을 위해 프로필을 먼저 지움.
+  -- 7. Auth 계정 완전 삭제 (SECURITY DEFINER로 auth.users 접근 가능)
+  DELETE FROM auth.users WHERE id = v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -41,8 +46,8 @@ DECLARE
   caller_role TEXT;
 BEGIN
   -- 1. 권한 체크
-  SELECT role INTO caller_role FROM public.profiles WHERE id = auth.uid();
-  IF caller_role != 'super_admin' THEN
+  SELECT role INTO caller_role FROM public.user_profiles WHERE id = auth.uid();
+  IF caller_role NOT IN ('super_admin', 'admin') THEN
     RAISE EXCEPTION 'Access Denied: Only Super Admin can wipe a center.';
   END IF;
 
@@ -61,15 +66,9 @@ BEGIN
   DELETE FROM public.admin_notifications WHERE center_id = target_center_id;
   
   -- 4. 유저 프로필 및 Auth 연동 계정 정리 (지점 소속 유저들)
-  -- Note: Auth 삭제는 트리거를 활용하거나 Edge Function 권장. 
-  -- 여기서는 프로필을 비워서 유령 회원화를 방지함.
   DELETE FROM public.user_profiles WHERE center_id = target_center_id;
 
-  -- 5. 스토리지 정리 (해당 지점 경로의 모든 오브젝트)
-  -- 파일 경로가 지점 ID로 시작하는 파일들 삭제
-  DELETE FROM storage.objects WHERE name LIKE (target_center_id::text || '/%');
-  
-  -- 6. 지점 레코드 삭제
+  -- 5. 지점 레코드 삭제
   DELETE FROM public.centers WHERE id = target_center_id;
 
   RAISE NOTICE 'Center % and all associated infrastructure successfully wiped.', target_center_id;
@@ -82,12 +81,11 @@ CREATE OR REPLACE FUNCTION public.on_auth_user_deleted()
 RETURNS trigger AS $$
 BEGIN
   -- Auth 계정이 지워지면 프로필과 모든 연계 데이터를 즉시 제거하여 유령 회원화를 방지
-  DELETE FROM public.user_profiles WHERE id = OLD.id;
-  DELETE FROM public.therapists WHERE profile_id = OLD.id;
   DELETE FROM public.parents WHERE profile_id = OLD.id;
-  
-  -- 스토리지 오브젝트 자산 정리
-  DELETE FROM storage.objects WHERE owner = OLD.id;
+  DELETE FROM public.family_relationships WHERE parent_id = OLD.id;
+  DELETE FROM public.push_subscriptions WHERE user_id = OLD.id;
+  UPDATE public.therapists SET profile_id = NULL WHERE profile_id = OLD.id;
+  DELETE FROM public.user_profiles WHERE id = OLD.id;
   
   RETURN OLD;
 END;
