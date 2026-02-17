@@ -327,6 +327,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
                 if (targetTherapist?.profile_id && targetTherapist.profile_id !== currentUser?.id) {
                     await supabase.from('admin_notifications').insert([{
+                        center_id: centerId,
                         user_id: targetTherapist.profile_id,
                         type: 'schedule',
                         title: '🚀 새로운 일정 등록',
@@ -385,6 +386,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
                     if (targetTherapist?.profile_id && targetTherapist.profile_id !== currentUser?.id) {
                         await supabase.from('admin_notifications').insert([{
+                            center_id: centerId,
                             user_id: targetTherapist.profile_id,
                             type: 'schedule',
                             title: '📅 새 일정이 등록되었습니다',
