@@ -413,25 +413,29 @@ export function Login() {
                             ) : '이메일로 로그인'}
                         </button>
                     </form>
-                    {/* Sign Up Section */}
+                    {/* Sign Up Section - 통합페이지(슈퍼어드민 전용)에서는 회원가입 숨김 */}
                     <div className="pt-6 border-t border-slate-100 dark:border-slate-800 text-center space-y-4">
-                        <p className={cn(
-                            "text-xs font-bold",
-                            isDark ? "text-slate-500" : "text-slate-400"
-                        )}>
-                            Zarada가 처음이신가요?
-                        </p>
-                        <Link
-                            to={slug ? `/centers/${slug}/register` : "/register"}
-                            className={cn(
-                                "flex w-full justify-center items-center py-4 px-4 text-sm font-black rounded-2xl border transition-all hover:scale-[1.02] active:scale-95",
-                                isDark
-                                    ? "border-slate-800 text-slate-300 hover:bg-slate-800"
-                                    : "border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
-                            )}
-                        >
-                            회원가입하고 시작하기
-                        </Link>
+                        {slug && (
+                            <>
+                                <p className={cn(
+                                    "text-xs font-bold",
+                                    isDark ? "text-slate-500" : "text-slate-400"
+                                )}>
+                                    Zarada가 처음이신가요?
+                                </p>
+                                <Link
+                                    to={`/centers/${slug}/register`}
+                                    className={cn(
+                                        "flex w-full justify-center items-center py-4 px-4 text-sm font-black rounded-2xl border transition-all hover:scale-[1.02] active:scale-95",
+                                        isDark
+                                            ? "border-slate-800 text-slate-300 hover:bg-slate-800"
+                                            : "border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
+                                    )}
+                                >
+                                    회원가입하고 시작하기
+                                </Link>
+                            </>
+                        )}
 
                         <Link
                             to={slug ? `/centers/${slug}` : "/"}
