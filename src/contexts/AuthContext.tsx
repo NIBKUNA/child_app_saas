@@ -233,7 +233,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setProfile(null);
                     alert('접근 권한이 없습니다. (퇴사 또는 계정 비활성화)\n관리자에게 문의하세요.');
                     await signOut();
-                    window.location.href = '/';
+                    // 센터 slug: URL → localStorage 순으로 탐색하여 센터 로그인으로 이동
+                    const slugMatch = window.location.pathname.match(/\/centers\/([^/]+)/);
+                    const centerSlug = slugMatch?.[1] || localStorage.getItem('zarada_center_slug');
+                    window.location.href = centerSlug ? `/centers/${centerSlug}/login` : '/login';
                     return;
                 }
 
@@ -241,14 +244,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setProfile(typedProfile);
                 setCenterId(typedProfile.center_id);
 
-                // 치료사 전용 ID 세팅
+                // 치료사 전용 ID 세팅 + 🚨 퇴사 상태 이중 체크
                 if (dbRole === 'therapist' && user.email) {
                     const { data: therapistData } = await supabase
                         .from('therapists')
-                        .select('id')
+                        .select('id, system_status')
                         .ilike('email', user.email)
                         .maybeSingle();
-                    const typedTherapistData = therapistData as { id: string } | null;
+                    const typedTherapistData = therapistData as { id: string; system_status: string } | null;
+
+                    // 🚨 [보안 강화] therapists.system_status가 'retired'이면 즉시 차단
+                    //    user_profiles.status가 업데이트 안 됐어도 여기서 잡아냄
+                    if (typedTherapistData?.system_status === 'retired') {
+                        console.warn('[Auth] Access Blocked: Therapist system_status is retired');
+                        setRole(null);
+                        setProfile(null);
+                        alert('접근 권한이 없습니다. (퇴사 처리됨)\n관리자에게 문의하세요.');
+                        await signOut();
+                        const slugMatch2 = window.location.pathname.match(/\/centers\/([^/]+)/);
+                        const centerSlug2 = slugMatch2?.[1] || localStorage.getItem('zarada_center_slug');
+                        window.location.href = centerSlug2 ? `/centers/${centerSlug2}/login` : '/login';
+                        return;
+                    }
+
                     if (typedTherapistData) setTherapistId(typedTherapistData.id);
                 }
 
