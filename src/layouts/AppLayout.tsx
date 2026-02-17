@@ -104,12 +104,14 @@ export function AppLayout() {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
                 .then((reg) => {
-                    // 업데이트 감지
+                    // 업데이트 감지 (최초 설치가 아닌 진짜 업데이트만)
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         if (newWorker) {
                             newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'activated') {
+                                // ✅ 기존 SW(controller)가 있을 때만 = 진짜 업데이트
+                                // 최초 설치 시에는 controller가 null이므로 배너 안 뜸
+                                if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
                                     setShowUpdateBanner(true);
                                 }
                             });
