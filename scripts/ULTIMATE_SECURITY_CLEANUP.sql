@@ -41,19 +41,41 @@ USING (
 
 -- 2. [AUTO-PROFILE] Automatically create profile for any new Auth user
 -- This solves the "Ghost User" problem for OAuth (Google/Kakao) logins.
+-- ✨ [SaaS V2] center_id & role을 메타데이터에서 읽어 정확한 센터 배정 보장
 CREATE OR REPLACE FUNCTION public.handle_new_user_profile()
 RETURNS trigger AS $$
+DECLARE
+  v_role TEXT;
+  v_center_id UUID;
+  v_name TEXT;
 BEGIN
-  -- We only create a profile if it doesn't exist yet
-  INSERT INTO public.user_profiles (id, email, name, role, status)
+  -- 메타데이터에서 역할과 센터 ID 추출
+  v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'parent');
+  v_center_id := (NEW.raw_user_meta_data->>'center_id')::UUID;
+  v_name := COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', 'New Member');
+
+  -- 1. user_profiles 생성 (center_id 포함!)
+  INSERT INTO public.user_profiles (id, email, name, role, center_id, status)
   VALUES (
     NEW.id, 
     NEW.email, 
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', 'New Member'),
-    'parent', -- Default to parent for safety
-    'pending' -- Require admin approval or onboarding completion
+    v_name,
+    v_role,
+    v_center_id,
+    'active' -- 이메일 가입은 즉시 활성화 (승인 필요 시 'pending'으로 변경)
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    center_id = COALESCE(public.user_profiles.center_id, EXCLUDED.center_id),
+    role = COALESCE(NULLIF(public.user_profiles.role, 'parent'), EXCLUDED.role);
+
+  -- 2. 부모(parent) 역할이면 parents 테이블에도 자동 생성
+  --    → 초대 코드(connect_child_with_code)가 parent_id를 참조하므로 필수
+  IF v_role = 'parent' AND v_center_id IS NOT NULL THEN
+    INSERT INTO public.parents (profile_id, center_id, name, email)
+    VALUES (NEW.id, v_center_id, v_name, NEW.email)
+    ON CONFLICT (profile_id) DO NOTHING;
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
