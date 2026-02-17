@@ -101,6 +101,9 @@ export function Schedule() {
 
     const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
 
+    // ✨ [권한] 일정 수정 가능 여부: admin, manager, super_admin만 수정 가능
+    const canEditSchedule = role === 'admin' || role === 'manager' || role === 'super_admin';
+
     useEffect(() => {
         if (centerId && centerId.length >= 32) {
             fetchSchedules();
@@ -244,13 +247,17 @@ export function Schedule() {
         setTooltipInfo(null);
     };
 
+    // ✨ [권한 분리] 치료사는 날짜 클릭으로 새 일정 생성 불가
     const handleDateClick = (info: { date: Date }) => {
+        if (!canEditSchedule) return;
         setSelectedScheduleId(null);
         setClickedDate(info.date);
         setIsModalOpen(true);
     };
 
+    // ✨ [권한 분리] 치료사는 새 일정 등록 불가
     const handleNewEventClick = () => {
+        if (!canEditSchedule) return;
         setSelectedScheduleId(null);
         setClickedDate(new Date());
         setIsModalOpen(true);
@@ -411,16 +418,18 @@ export function Schedule() {
                         isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50",
                         "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible" // Mobile: Limit height and scroll
                     )}>
-                        {/* New Schedule Button inside Sidebar */}
-                        <button
-                            onClick={handleNewEventClick}
-                            className={cn(
-                                "flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg hover:-translate-y-0.5 shrink-0",
-                                isDark ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-900/20" : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200"
-                            )}
-                        >
-                            <Plus className="w-5 h-5 stroke-[3]" /> <span className="md:inline">일정 등록</span>
-                        </button>
+                        {/* New Schedule Button inside Sidebar — 치료사에게는 숨김 */}
+                        {canEditSchedule && (
+                            <button
+                                onClick={handleNewEventClick}
+                                className={cn(
+                                    "flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg hover:-translate-y-0.5 shrink-0",
+                                    isDark ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-900/20" : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200"
+                                )}
+                            >
+                                <Plus className="w-5 h-5 stroke-[3]" /> <span className="md:inline">일정 등록</span>
+                            </button>
+                        )}
 
                         <div className="hidden md:block w-full h-px bg-slate-100 dark:bg-slate-800 shrink-0" />
 
@@ -589,6 +598,7 @@ export function Schedule() {
                         scheduleId={selectedScheduleId}
                         initialDate={clickedDate}
                         onSuccess={() => handleModalClose(true)}
+                        readOnly={!canEditSchedule}
                     />
                 )
                 }

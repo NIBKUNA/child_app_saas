@@ -123,12 +123,13 @@ interface ScheduleModalProps {
     scheduleId?: string | null;
     initialDate?: string | Date | any;
     onSuccess: () => void;
+    readOnly?: boolean; // ✨ 치료사 권한일 때 true → 읽기 전용
 }
 
 // ✨ [Helper] 공통 타임존 변환 유틸
 import { toLocalTimeStr, toLocalDateStr } from '@/utils/timezone';
 
-export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess }: ScheduleModalProps) {
+export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSuccess, readOnly = false }: ScheduleModalProps) {
     const { center } = useCenter();
     const centerId = center?.id;
     const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
@@ -534,7 +535,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
                 <div className="p-5 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0">
-                    <h2 className="text-lg font-black text-slate-800 dark:text-white">{scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
+                    <h2 className="text-lg font-black text-slate-800 dark:text-white">{readOnly ? '일정 상세' : scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><X className="w-5 h-5 text-slate-500 dark:text-slate-400" /></button>
                 </div>
                 {fetching ? (
@@ -544,98 +545,108 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     </div>
                 ) : (
                     <div className="overflow-y-auto flex-1 custom-scrollbar">
-                        <form onSubmit={handleSubmit} className="p-6 space-y-5 pb-32">
-                            <SearchableSelect
-                                label="아동 선택"
-                                placeholder="아동을 선택하세요"
-                                options={childrenList}
-                                value={formData.child_id}
-                                onChange={val => setFormData({ ...formData, child_id: val })}
-                            />
-                            <SearchableSelect
-                                label="담당 선생님"
-                                placeholder="선생님을 선택하세요"
-                                options={therapistsList}
-                                value={formData.therapist_id}
-                                onChange={val => setFormData({ ...formData, therapist_id: val })}
-                            />
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
-                                <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
-                                    <option value="">프로그램을 선택하세요</option>
-                                    {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400">일시</label>
-                                <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                                <div className="flex gap-2 mb-3">
-                                    <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.start_time} onChange={e => handleStartTimeChange(e.target.value)} />
-                                    <span className="self-center text-slate-400">~</span>
-                                    <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
+                        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-6 space-y-5 pb-32">
+                            <fieldset disabled={readOnly} className={readOnly ? 'opacity-70 pointer-events-none' : ''}>
+                                <SearchableSelect
+                                    label="아동 선택"
+                                    placeholder="아동을 선택하세요"
+                                    options={childrenList}
+                                    value={formData.child_id}
+                                    onChange={val => setFormData({ ...formData, child_id: val })}
+                                />
+                                <SearchableSelect
+                                    label="담당 선생님"
+                                    placeholder="선생님을 선택하세요"
+                                    options={therapistsList}
+                                    value={formData.therapist_id}
+                                    onChange={val => setFormData({ ...formData, therapist_id: val })}
+                                />
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
+                                    <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
+                                        <option value="">프로그램을 선택하세요</option>
+                                        {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
                                 </div>
-
-                                {!scheduleId && (
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
-                                                <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
-                                            </div>
-                                            <input
-                                                type="checkbox"
-                                                className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
-                                                checked={isRecurring}
-                                                onChange={e => setIsRecurring(e.target.checked)}
-                                            />
-                                        </div>
-                                        {isRecurring && (
-                                            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-                                                <input
-                                                    type="number"
-                                                    min="2"
-                                                    max="52"
-                                                    className="w-20 p-2 border dark:border-slate-600 rounded-lg text-sm font-bold bg-white dark:bg-slate-900"
-                                                    value={repeatWeeks}
-                                                    onChange={e => setRepeatWeeks(parseInt(e.target.value) || 0)}
-                                                />
-                                                <span className="text-xs font-bold text-slate-500">주 동안 반복 등록합니다.</span>
-                                            </div>
-                                        )}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">일시</label>
+                                    <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                                    <div className="flex gap-2 mb-3">
+                                        <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.start_time} onChange={e => handleStartTimeChange(e.target.value)} />
+                                        <span className="self-center text-slate-400">~</span>
+                                        <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
                                     </div>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-4 gap-2">
-                                {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
-                                    <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
-                                        {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex gap-2 pt-4">
-                                {scheduleId && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(false)}
-                                            className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"
-                                            title="이 일정만 삭제"
-                                        >
-                                            <Trash2 className="w-5" />
+
+                                    {!scheduleId && (
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
+                                                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
+                                                    checked={isRecurring}
+                                                    onChange={e => setIsRecurring(e.target.checked)}
+                                                />
+                                            </div>
+                                            {isRecurring && (
+                                                <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                                                    <input
+                                                        type="number"
+                                                        min="2"
+                                                        max="52"
+                                                        className="w-20 p-2 border dark:border-slate-600 rounded-lg text-sm font-bold bg-white dark:bg-slate-900"
+                                                        value={repeatWeeks}
+                                                        onChange={e => setRepeatWeeks(parseInt(e.target.value) || 0)}
+                                                    />
+                                                    <span className="text-xs font-bold text-slate-500">주 동안 반복 등록합니다.</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
+                                        <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
+                                            {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(true)}
-                                            className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-100 dark:border-amber-900/50 flex items-center gap-2 text-xs font-black"
-                                            title="이후 모든 일정 삭제"
-                                        >
-                                            <CalendarClock className="w-5" /> 이후 삭제
+                                    ))}
+                                </div>
+                            </fieldset>
+                            <div className="flex gap-2 pt-4">
+                                {readOnly ? (
+                                    <button type="button" onClick={onClose} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-300 dark:hover:bg-slate-600">
+                                        닫기
+                                    </button>
+                                ) : (
+                                    <>
+                                        {scheduleId && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(false)}
+                                                    className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"
+                                                    title="이 일정만 삭제"
+                                                >
+                                                    <Trash2 className="w-5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(true)}
+                                                    className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-100 dark:border-amber-900/50 flex items-center gap-2 text-xs font-black"
+                                                    title="이후 모든 일정 삭제"
+                                                >
+                                                    <CalendarClock className="w-5" /> 이후 삭제
+                                                </button>
+                                            </>
+                                        )}
+                                        <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-md">
+                                            {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
                                         </button>
                                     </>
                                 )}
-                                <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-md">
-                                    {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
-                                </button>
                             </div>
                         </form>
                     </div>
