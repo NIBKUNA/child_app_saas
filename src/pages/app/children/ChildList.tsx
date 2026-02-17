@@ -39,6 +39,7 @@ export interface Child {
     registration_number: string | null;
     invitation_code: string | null;
     parent_id: string | null;      // parents.id 참조
+    parent_name?: string | null;   // JOIN된 부모 이름 (실제 존재 확인용)
     center_id: string;
     is_active: boolean | null;
     status: 'active' | 'waiting' | 'inactive' | null;
@@ -89,7 +90,7 @@ export function ChildList() {
         try {
             let query = supabase
                 .from('children')
-                .select(`*`)
+                .select(`*, parents:parent_id(id, name)`)
                 .eq('center_id', centerId);
 
             // ✨ [권한 분리] 치료사는 본인이 담당하는 아동만 조회 가능
@@ -107,7 +108,13 @@ export function ChildList() {
             const { data, error } = await query.order('name');
 
             if (error) throw error;
-            setChildren((data || []) as unknown as Child[]);
+            // parents JOIN 결과를 parent_name으로 평탄화
+            const mapped = (data || []).map((c: any) => ({
+                ...c,
+                parent_name: c.parents?.name || null,
+                parent_id: c.parents?.id ? c.parent_id : null, // 부모 실제 존재 시에만 유지
+            }));
+            setChildren(mapped as unknown as Child[]);
         } catch (error) {
             console.error('아동 목록 로딩 실패:', error);
         } finally {
