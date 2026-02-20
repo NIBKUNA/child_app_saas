@@ -47,7 +47,16 @@ function categorizeSource(referrer: string, utmSource?: string | null): string {
 
     const lowerRef = referrer.toLowerCase();
 
-    // 내부 트래픽 무시
+    // ✨ [차단] 인프라/개발 도메인 — 유입으로 치지 않음
+    if (lowerRef.includes('vercel.com') || lowerRef.includes('vercel.app') ||
+        lowerRef.includes('localhost') || lowerRef.includes('127.0.0.1') ||
+        lowerRef.includes('brainlitix.net')) return 'Direct';
+
+    // ✨ [자사 도메인] 플랫폼 내부 도메인 — 내부 이동으로 처리
+    if (lowerRef.includes('zarada') || lowerRef.includes('myparents.co.kr') ||
+        lowerRef.includes('creatorlink-gabia') || lowerRef.includes('withmemedical')) return 'Direct';
+
+    // 내부 트래픽 무시 (현재 도메인)
     if (lowerRef.includes(window.location.hostname)) return 'Direct';
 
     // Naver 세분화 (referrer URL 기반)
@@ -111,17 +120,22 @@ export function useTrafficSource() {
             sessionStorage.setItem('marketing_source', derivedSource);
         }
 
-        // ✨ [DB Persistence] 세션당 한 번만 방문 기록 저장 (단, 블로그 보기는 매번 기록)
+        // ✨ [FIX] localStorage + 채널별 + 날짜별 중복 방지
+        // 같은 사람이 같은 채널 링크를 같은 날 반복 클릭 → 1회만 기록
+        // 다른 채널 유입은 허용, 다음 날은 다시 카운트
+        const category = categorizeSource(referrer, source);
+        const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
         const isBlogPage = window.location.pathname.includes('/blog/');
-        const visitRecorded = sessionStorage.getItem('visit_recorded');
 
-        // 블로그 페이지는 visit_recorded와 상관없이 (또는 해당 블로그 포스트별로) 기록을 남겨야 통계가 잡힘
-        const blogVisitKey = `blog_recorded_${window.location.pathname}`;
-        const blogRecorded = sessionStorage.getItem(blogVisitKey);
+        // 채널+날짜 기반 중복 키 (블로그는 포스트별로 별도 관리)
+        const dedupeKey = isBlogPage
+            ? `zv_${todayStr}_${category}_${window.location.pathname}`
+            : `zv_${todayStr}_${category}`;
 
-        if (!visitRecorded || (isBlogPage && !blogRecorded)) {
-            const category = categorizeSource(referrer, source);
+        const alreadyRecorded = localStorage.getItem(dedupeKey);
 
+        // ✨ [FIX] Direct 트래픽은 DB에 기록하지 않음 (인프라/자사 도메인 노이즈 방지)
+        if (!alreadyRecorded && category !== 'Direct') {
             const recordVisit = async () => {
                 if (!center?.id) return; // ✨ Wait for center context
 
@@ -143,11 +157,21 @@ export function useTrafficSource() {
                         return;
                     }
 
-                    if (isBlogPage) {
-                        sessionStorage.setItem(blogVisitKey, 'true');
-                    } else {
-                        sessionStorage.setItem('visit_recorded', 'true');
-                    }
+                    // ✅ 기록 성공 → localStorage에 마킹
+                    localStorage.setItem(dedupeKey, '1');
+
+                    // 🧹 [Auto-Cleanup] 7일 이상 된 방문 기록 키 자동 정리
+                    try {
+                        const cleanupDate = new Date();
+                        cleanupDate.setDate(cleanupDate.getDate() - 7);
+                        const cleanupStr = cleanupDate.toISOString().split('T')[0];
+                        for (let i = localStorage.length - 1; i >= 0; i--) {
+                            const key = localStorage.key(i);
+                            if (key?.startsWith('zv_') && key < `zv_${cleanupStr}`) {
+                                localStorage.removeItem(key);
+                            }
+                        }
+                    } catch (e) { /* cleanup 실패해도 무시 */ }
                 } catch (error) {
                     console.warn('⚠️ [Traffic] System error:', error);
                 }

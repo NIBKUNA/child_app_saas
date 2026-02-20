@@ -133,8 +133,7 @@ export function ConsultationList() {
 
             const writtenScheduleIds = new Set((writtenLogs as any[])?.map((l: any) => l.schedule_id));
 
-            // ✨ [FIX] 상태 조건 완화 - 완료됐거나 OR 상담 당일이 지난 일정 모두 포함
-            const today = new Date().toISOString().split('T')[0];
+
 
             // ✨ [Optimization] Performance Guard: Limit to last 60 days
             // Prevents fetching thousands of old sessions for long-running centers
@@ -142,12 +141,19 @@ export function ConsultationList() {
             limitDate.setDate(limitDate.getDate() - 60);
             const minDate = limitDate.toISOString().split('T')[0];
 
+            // ✨ [FIX] 오늘 수업은 completed만, 과거 수업은 상태 무관하게 포함
+            // 기존: start_time < today 23:59:59 → 오늘 예정된 미완료 수업도 포함되는 버그
+            // 수정: start_time < today 00:00:00 (어제까지만) OR status=completed
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayEnd = yesterday.toISOString().split('T')[0] + 'T23:59:59';
+
             let sessionQuery = (supabase
                 .from('schedules'))
                 .select(`id, child_id, status, therapist_id, start_time, service_type, children!inner (id, name, center_id)`)
                 .eq('children.center_id', centerId)
                 .gte('start_time', minDate) // 🛡️ Performance Filter
-                .or(`status.eq.completed,start_time.lt.${today}T23:59:59`);
+                .or(`status.eq.completed,start_time.lte.${yesterdayEnd}`);
 
             // ✨ [FIX] therapist 테이블의 ID로 필터 (user.id가 아님!)
             if (!isAdmin && currentTherapistId) {
