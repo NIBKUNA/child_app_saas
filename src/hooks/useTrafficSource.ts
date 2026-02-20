@@ -26,6 +26,7 @@ function categorizeSource(referrer: string, utmSource?: string | null): string {
         if (lower.includes('naver_place') || lower.includes('naver-place') || lower.includes('naver_map')) return 'Naver Place';
         if (lower.includes('naver')) return 'Naver Blog'; // 네이버 기본값 = 블로그 (가장 일반적인 네이버 마케팅)
         // Google 세분화
+        if (lower.includes('google_maps') || lower.includes('google-maps') || lower.includes('googlemaps')) return 'Google Maps';
         if (lower.includes('google')) return 'Google Search';
         // 영상/SNS
         if (lower.includes('youtube')) return 'Youtube';
@@ -55,7 +56,8 @@ function categorizeSource(referrer: string, utmSource?: string | null): string {
     if (lowerRef.includes('search.naver') || lowerRef.includes('naver.com')) return 'Naver Blog'; // 네이버 검색 = 블로그 노출이 대부분
     if (lowerRef.includes('daum.net') || lowerRef.includes('daum.co.kr')) return 'Others';
 
-    // Google
+    // Google 세분화 (Maps vs 검색)
+    if (lowerRef.includes('maps.google') || lowerRef.includes('google.com/maps') || lowerRef.includes('goo.gl/maps')) return 'Google Maps';
     if (lowerRef.includes('google.com') || lowerRef.includes('google.co.kr')) return 'Google Search';
 
     // 영상/SNS
@@ -90,12 +92,20 @@ export function useTrafficSource() {
             let derivedSource = 'referrer_other';
             const lowerRef = referrer.toLowerCase();
 
-            if (lowerRef.includes('naver')) derivedSource = 'naver_search';
+            // ✨ [FIX] Naver 세분화 — Blog vs Place vs 검색 구분
+            if (lowerRef.includes('blog.naver') || lowerRef.includes('m.blog.naver')) derivedSource = 'naver_blog';
+            else if (lowerRef.includes('map.naver') || lowerRef.includes('place.naver') || lowerRef.includes('m.place.naver') || lowerRef.includes('naver.me')) derivedSource = 'naver_place';
+            else if (lowerRef.includes('naver')) derivedSource = 'naver_search';
+            // ✨ [FIX] Google 세분화 — Maps vs 검색 구분
+            else if (lowerRef.includes('maps.google') || lowerRef.includes('google.com/maps') || lowerRef.includes('goo.gl/maps')) derivedSource = 'google_maps';
             else if (lowerRef.includes('google')) derivedSource = 'google_search';
+            // 영상/SNS
             else if (lowerRef.includes('youtube') || lowerRef.includes('youtu.be')) derivedSource = 'youtube';
+            else if (lowerRef.includes('instagram') || lowerRef.includes('l.instagram')) derivedSource = 'instagram';
+            else if (lowerRef.includes('facebook') || lowerRef.includes('fb.com') || lowerRef.includes('l.facebook')) derivedSource = 'facebook';
+            // ✨ [FIX] 카카오톡 감지 추가
+            else if (lowerRef.includes('kakao')) derivedSource = 'kakaotalk';
             else if (lowerRef.includes('daum')) derivedSource = 'daum_search';
-            else if (lowerRef.includes('instagram')) derivedSource = 'instagram';
-            else if (lowerRef.includes('facebook')) derivedSource = 'facebook';
             else if (lowerRef.includes(window.location.hostname)) return; // Ignore internal clicks
 
             sessionStorage.setItem('marketing_source', derivedSource);

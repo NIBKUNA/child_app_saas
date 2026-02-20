@@ -174,8 +174,12 @@ export function ConsultationSurveyForm({ centerId, initialData, onSuccess }: Con
             const utmCampaign = localStorage.getItem('utm_campaign');
             const utmContent = localStorage.getItem('utm_content');
 
+            // ✨ [FIX] UTM 없이 유기적 유입(네이버 블로그 클릭, 인스타 링크 등)도 자동 감지 소스 캡처
+            const autoDetectedSource = getSource(); // sessionStorage 기반 자동 감지 or 'direct'
+            const effectiveSource = utmSource || (autoDetectedSource !== 'direct' ? autoDetectedSource : null);
+
             const marketingInfo = [
-                utmSource ? `Source: ${utmSource}` : null,
+                effectiveSource ? `Source: ${effectiveSource}` : null,
                 utmMedium ? `Medium: ${utmMedium}` : null,
                 utmCampaign ? `Campaign: ${utmCampaign}` : null,
                 utmContent ? `Content: ${utmContent}` : null,

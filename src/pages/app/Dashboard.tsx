@@ -85,6 +85,26 @@ interface DashboardLead {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1'];
 const AGE_COLORS = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF', '#FFCD56'];
 
+// ✨ [FIX] Raw 소스명 → 표준 채널명 정규화 (자동 감지된 referrer 기반 소스 매핑)
+function normalizeChannelName(raw: string): string {
+    const lower = raw.toLowerCase().trim();
+    if (lower.includes('naver') && (lower.includes('place') || lower.includes('map'))) return 'Naver Place';
+    if (lower.includes('naver')) return 'Naver Blog';
+    if (lower.includes('google') && (lower.includes('map'))) return 'Google Maps';
+    if (lower.includes('google')) return 'Google Search';
+    if (lower.includes('youtube') || lower.includes('youtu.be')) return 'Youtube';
+    if (lower.includes('instagram')) return 'Instagram';
+    if (lower.includes('facebook') || lower.includes('fb')) return 'Facebook';
+    if (lower.includes('kakao')) return 'KakaoTalk';
+    if (lower.includes('daum')) return 'Others';
+    if (lower.includes('signage') || lower.includes('qr')) return 'Signage';
+    if (lower.includes('flyer') || lower.includes('leaflet')) return 'Flyer';
+    if (lower.includes('hospital') || lower.includes('clinic')) return 'Hospital';
+    if (lower.includes('referral') || lower.includes('partner')) return 'Referral';
+    if (lower === 'direct') return 'Direct';
+    return raw;
+}
+
 // Dynamic tooltip props for theme support
 const getTooltipProps = (isDark: boolean) => ({
     contentStyle: {
@@ -529,7 +549,7 @@ export function Dashboard() {
             // Process site_visits for traffic source statistics
             // ✨ SNS 세분화: 개별 플랫폼으로 초기화
             const trafficMap: Record<string, number> = {
-                'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0,
+                'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0, 'Google Maps': 0,
                 'Instagram': 0, 'Youtube': 0, 'Facebook': 0, 'KakaoTalk': 0,
                 'Referral': 0, 'Signage': 0, 'Flyer': 0, 'Hospital': 0, 'Partnership': 0,
                 'Direct': 0, 'Others': 0
@@ -587,6 +607,7 @@ export function Dashboard() {
                 'Naver Blog': '#03C75A',
                 'Naver Place': '#00d2d2',
                 'Google Search': '#4285F4',
+                'Google Maps': '#34A853',
                 'Youtube': '#FF0000',
                 'Instagram': '#E1306C',
                 'Facebook': '#1877F2',
@@ -676,12 +697,12 @@ export function Dashboard() {
 
                     // ✨ [CHANNEL CONVERSION] Handle Formatted Strings (Extract Main Channel)
                     if (m === selectedMonth) {
-                        let channel = lead.inflow_source || 'Direct';
+                        let channel = normalizeChannelName(lead.inflow_source || 'Direct');
 
-                        // If marketing_source has standard formatting, extract main source
+                        // If marketing_source has standard formatting, extract main source (overrides self-reported)
                         if (lead.marketing_source && lead.marketing_source.includes('Source: ')) {
                             const srcMatch = lead.marketing_source.match(/Source: ([^/|]*)/);
-                            if (srcMatch && srcMatch[1]) channel = srcMatch[1].trim();
+                            if (srcMatch && srcMatch[1]) channel = normalizeChannelName(srcMatch[1].trim());
                         }
 
                         if (!channelLeadsMap[channel]) channelLeadsMap[channel] = { total: 0, converted: 0 };
