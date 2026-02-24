@@ -172,7 +172,7 @@ export function ChildModal({ isOpen, onClose, childId, onSuccess }: ChildModalPr
 
             let result;
             if (childId) {
-                result = await supabase.from('children').update(submissionData).eq('id', childId);
+                result = await supabase.from('children').update(submissionData).eq('id', childId).eq('center_id', centerId); // 🔒 [Security] 센터 격리
                 if (result.error) throw result.error;
                 alert('성공적으로 저장되었습니다.');
                 onSuccess();
