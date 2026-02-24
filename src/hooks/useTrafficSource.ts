@@ -10,7 +10,7 @@
  */
 
 import { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 
@@ -80,6 +80,7 @@ function categorizeSource(referrer: string, utmSource?: string | null): string {
 
 export function useTrafficSource() {
     const [searchParams] = useSearchParams();
+    const location = useLocation(); // ✨ React-tracked pathname
     const { center } = useCenter(); // ✨ Get center context
 
     useEffect(() => {
@@ -125,11 +126,11 @@ export function useTrafficSource() {
         // 다른 채널 유입은 허용, 다음 날은 다시 카운트
         const category = categorizeSource(referrer, source);
         const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
-        const isBlogPage = window.location.pathname.includes('/blog/');
+        const isBlogPage = location.pathname.includes('/blog/');
 
         // 채널+날짜 기반 중복 키 (블로그는 포스트별로 별도 관리)
         const dedupeKey = isBlogPage
-            ? `zv_${todayStr}_${category}_${window.location.pathname}`
+            ? `zv_${todayStr}_${category}_${location.pathname}`
             : `zv_${todayStr}_${category}`;
 
         const alreadyRecorded = localStorage.getItem(dedupeKey);
@@ -179,7 +180,7 @@ export function useTrafficSource() {
 
             recordVisit();
         }
-    }, [searchParams, center?.id, window.location.pathname]); // ✨ Add center and path to dependencies
+    }, [searchParams, center?.id, location.pathname]); // ✨ Add center and path to dependencies
 
     // ✨ [For Form Submission] Get the stored source data
     const getSource = () => {

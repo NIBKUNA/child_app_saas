@@ -129,19 +129,24 @@ function AppHomeRedirect() {
 function App() {
   // 🚀 [Critical] Force full purge if HMR fails - v1.3.0 (SCHEMA ALIGNMENT)
   useEffect(() => {
-    const SAAS_ENGINE_VER = "1.3.0";
-    if (localStorage.getItem('zarada_ver') !== SAAS_ENGINE_VER) {
-      const token = localStorage.getItem('zarada-auth-token');
-      const rememberMe = localStorage.getItem('remember_me');
+    try {
+      const SAAS_ENGINE_VER = "1.3.0";
+      if (localStorage.getItem('zarada_ver') !== SAAS_ENGINE_VER) {
+        const token = localStorage.getItem('zarada-auth-token');
+        const rememberMe = localStorage.getItem('remember_me');
 
-      localStorage.clear();
-      sessionStorage.clear();
+        localStorage.clear();
+        sessionStorage.clear();
 
-      if (token) localStorage.setItem('zarada-auth-token', token);
-      if (rememberMe) localStorage.setItem('remember_me', rememberMe);
+        if (token) localStorage.setItem('zarada-auth-token', token);
+        if (rememberMe) localStorage.setItem('remember_me', rememberMe);
 
-      localStorage.setItem('zarada_ver', SAAS_ENGINE_VER);
-      window.location.reload();
+        localStorage.setItem('zarada_ver', SAAS_ENGINE_VER);
+        window.location.reload();
+      }
+    } catch (e) {
+      // localStorage 접근 실패 시 무한 reload 방지 — 조용히 진행
+      console.warn('[App] Version purge skipped due to storage error:', e);
     }
   }, []);
 

@@ -42,7 +42,7 @@ export function Register() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [centerId, setCenterId] = useState(center?.id || import.meta.env.VITE_CENTER_ID || '');
+    const [centerId, setCenterId] = useState(center?.id || '');
 
     useEffect(() => {
         if (center?.id) setCenterId(center.id);
