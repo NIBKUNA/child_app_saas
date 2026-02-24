@@ -229,17 +229,17 @@ export default function ConsultationInquiryList() {
                                 <button onClick={() => deleteInquiry(inq.id)} className="p-3 text-slate-200 dark:text-slate-500 hover:text-rose-500 transition-all"><Trash2 className="w-5 h-5" /></button>
                             </div>
 
-                            <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-6 md:mb-8">{inq.child_name} 아동 <span className="text-slate-300 dark:text-slate-500 text-lg">({inq.child_gender})</span></h3>
+                            <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-6 md:mb-8">{inq.child_name || '이름 미입력'} 아동 {inq.child_gender && <span className="text-slate-300 dark:text-slate-500 text-lg">({inq.child_gender})</span>}</h3>
 
                             {/* 부모님 작성 내용 */}
                             <div className="bg-slate-50 dark:bg-slate-700/50 p-5 md:p-8 rounded-[24px] md:rounded-[32px] mb-6 border border-slate-100 dark:border-slate-600">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 text-sm mb-6 pb-6 border-b border-slate-200/50 dark:border-slate-600">
-                                    <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Phone className="w-5 h-5 text-indigo-400" /> {inq.guardian_phone} ({inq.guardian_name})</p>
-                                    <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Clock className="w-5 h-5 text-indigo-400" /> {inq.preferred_consult_schedule}</p>
+                                    <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Phone className="w-5 h-5 text-indigo-400" /> {inq.guardian_phone || '번호 없음'} {inq.guardian_name ? `(${inq.guardian_name})` : ''}</p>
+                                    <p className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-3"><Clock className="w-5 h-5 text-indigo-400" /> {inq.preferred_consult_schedule || '미정'}</p>
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-[11px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">부모님 고민사항</p>
-                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.concern}</p>
+                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{inq.concern || '내용 없음'}</p>
                                 </div>
                             </div>
 
