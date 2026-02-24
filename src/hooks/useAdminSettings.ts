@@ -173,11 +173,8 @@ export const useAdminSettings = () => {
                 return updated;
             });
 
-            // ✨ [Global Sync] 설정 변경 이벤트 발송
+            // ✨ [Global Sync] 설정 변경 이벤트 발송 → 리스너가 자동 refetch
             window.dispatchEvent(new Event('settings-updated'));
-
-            // Refetch immediately to ensure strict consistency
-            await fetchSettings();
 
             return { success: true };
         } catch (err: any) {
@@ -204,7 +201,7 @@ export const useAdminSettings = () => {
         return () => {
             window.removeEventListener('settings-updated', handleSync);
         };
-    }, [center]);
+    }, [center?.id]); // ✨ [Perf] ID만 추적 → 객체 참조 변경 시 불필요한 refetch 방지
 
     const getSetting = (key: AdminSettingKey) => settings[key] || '';
 
