@@ -143,7 +143,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
 
     const [isRecurring, setIsRecurring] = useState(false);
-    const [repeatWeeks, setRepeatWeeks] = useState(4);
+    const RECURRING_WEEKS = 26; // 6개월 자동 반복
 
     const [formData, setFormData] = useState({
         child_id: '',
@@ -161,7 +161,6 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         if (isOpen && centerId && centerId.length >= 32) {
             loadInitialData(centerId);
             setIsRecurring(false);
-            setRepeatWeeks(4);
         }
     }, [isOpen, scheduleId, initialDate, centerId]);
 
@@ -306,21 +305,41 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             // ✨ [핵심 수정] KST 타임존 명시 — TIMESTAMPTZ에 UTC로 해석되는 것을 방지
             const makeIsoString = (date: string, time: string) => `${date}T${time}:00+09:00`;
 
-            if (!scheduleId && isRecurring && repeatWeeks > 1) {
-                const schedulesToInsert = [];
+            if (!scheduleId && isRecurring) {
+                // ✨ [매주 반복 등록] 6개월(26주) 자동 생성 — parent_schedule_id로 그룹 추적
                 const [y, m, d] = formData.date.split('-').map(Number);
-                for (let i = 0; i < repeatWeeks; i++) {
+
+                // 1단계: 첫 번째 일정 생성 (이것이 parent가 됨)
+                const firstDateStr = formData.date;
+                const { data: firstSchedule, error: firstError } = await supabase.from('schedules').insert([{
+                    ...basePayload,
+                    date: firstDateStr,
+                    start_time: makeIsoString(firstDateStr, formData.start_time),
+                    end_time: makeIsoString(firstDateStr, formData.end_time),
+                    is_recurring: true,
+                    recurrence_rule: 'WEEKLY'
+                }]).select('id').single();
+                if (firstError) throw firstError;
+
+                const parentId = firstSchedule.id;
+
+                // 2단계: 나머지 25주 일정 생성 (parent_schedule_id로 연결)
+                const remainingSchedules = [];
+                for (let i = 1; i < RECURRING_WEEKS; i++) {
                     const nextDate = new Date(y, m - 1, d + (i * 7));
                     const nextDateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
-                    schedulesToInsert.push({
+                    remainingSchedules.push({
                         ...basePayload,
                         date: nextDateStr,
                         start_time: makeIsoString(nextDateStr, formData.start_time),
-                        end_time: makeIsoString(nextDateStr, formData.end_time)
+                        end_time: makeIsoString(nextDateStr, formData.end_time),
+                        is_recurring: true,
+                        recurrence_rule: 'WEEKLY',
+                        parent_schedule_id: parentId
                     });
                 }
-                const { data: _insertedData, error } = await supabase.from('schedules').insert(schedulesToInsert).select();
-                if (error) throw error;
+                const { error: batchError } = await supabase.from('schedules').insert(remainingSchedules);
+                if (batchError) throw batchError;
 
                 // ✨ [Notification] 치료사에게 알림 생성
                 const targetTherapist = therapistsList.find(t => t.id === formData.therapist_id);
@@ -331,13 +350,13 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         center_id: centerId,
                         user_id: targetTherapist.profile_id,
                         type: 'schedule',
-                        title: '🚀 새로운 일정 등록',
-                        message: `${formData.date}부터 시작되는 ${repeatWeeks}주 반복 일정이 등록되었습니다.`,
+                        title: '🚀 매주 반복 일정 등록',
+                        message: `${formData.date}부터 ${RECURRING_WEEKS}주간 매주 반복 일정이 등록되었습니다.`,
                         is_read: false
                     }]);
                 }
 
-                alert(`${repeatWeeks}주 반복 일정이 등록되었습니다.`);
+                alert(`${RECURRING_WEEKS}주(약 6개월) 매주 반복 일정이 등록되었습니다.`);
             } else {
                 const payload = {
                     ...basePayload,
@@ -409,7 +428,6 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     const handleDelete = async (forceFuture = false) => {
         setLoading(true);
         try {
-            // ✨ [Request #1] 뒷일정 삭제 기능 포함 확인창
             let deleteFuture = forceFuture;
 
             // 결제 여부 확인 (Ghost Credit 방지)
@@ -432,50 +450,71 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             }
 
             if (deleteFuture) {
-                let query = supabase
+                // ✨ [반복 그룹 삭제] parent_schedule_id 기반 + 날짜 기반 하이브리드
+                // 현재 일정의 반복 그룹 정보 확인
+                const { data: currentSchedule } = await supabase
                     .from('schedules')
-                    .select('id')
-                    .eq('center_id', centerId!) // 🔒 [Security] 센터 격리 필수
-                    .eq('child_id', formData.child_id)
-                    .eq('program_id', formData.program_id)
-                    .gte('date', formData.date);
+                    .select('id, parent_schedule_id, is_recurring, date')
+                    .eq('id', scheduleId!)
+                    .single();
 
-                // ✨ [Fix] therapist_id가 null이거나 비어있는 경우(치료사 정보가 삭제된 경우) 대응
-                if (formData.therapist_id) {
-                    query = query.eq('therapist_id', formData.therapist_id);
+                // 반복 그룹 ID 결정 (자신이 parent이면 자신의 ID, 아니면 parent_schedule_id)
+                const groupId = currentSchedule?.parent_schedule_id || currentSchedule?.id;
+
+                let futureIds: string[] = [];
+
+                if (currentSchedule?.is_recurring && groupId) {
+                    // ✨ [방법 1] parent_schedule_id 기반 정확한 그룹 삭제
+                    const { data: groupSchedules } = await supabase
+                        .from('schedules')
+                        .select('id')
+                        .eq('center_id', centerId!)
+                        .gte('date', formData.date)
+                        .or(`id.eq.${groupId},parent_schedule_id.eq.${groupId}`);
+
+                    futureIds = (groupSchedules || []).map((s: any) => s.id);
                 } else {
-                    query = query.is('therapist_id', null);
+                    // ✨ [방법 2] 레거시 호환: 아동+프로그램+치료사+날짜 기반 매칭
+                    let query = supabase
+                        .from('schedules')
+                        .select('id')
+                        .eq('center_id', centerId!)
+                        .eq('child_id', formData.child_id)
+                        .eq('program_id', formData.program_id)
+                        .gte('date', formData.date);
+
+                    if (formData.therapist_id) {
+                        query = query.eq('therapist_id', formData.therapist_id);
+                    } else {
+                        query = query.is('therapist_id', null);
+                    }
+
+                    const { data: futureSchedules } = await query;
+                    futureIds = (futureSchedules || []).map((s: any) => s.id);
                 }
 
-                const { data: futureSchedules } = await query;
-
-                if (futureSchedules && futureSchedules.length > 0) {
-                    const ids = futureSchedules.map((s: any) => s.id);
-
-                    // ✨ [핵심 수정] 하위 참조 데이터(development_assessments) 삭제를 위해 일지 ID 먼저 확보
+                if (futureIds.length > 0) {
+                    // 하위 참조 데이터 삭제
                     const { data: logs } = await supabase
                         .from('counseling_logs')
                         .select('id')
-                        .in('schedule_id', ids);
+                        .in('schedule_id', futureIds);
 
                     if (logs && logs.length > 0) {
                         const logIds = logs.map((l: any) => l.id);
                         await supabase.from('development_assessments').delete().in('log_id', logIds);
                     }
 
-                    // 참조 데이터 일괄 삭제
-                    await supabase.from('consultations').delete().in('schedule_id', ids);
-                    await supabase.from('payment_items').delete().in('schedule_id', ids);
-                    await supabase.from('counseling_logs').delete().in('schedule_id', ids);
+                    await supabase.from('consultations').delete().in('schedule_id', futureIds);
+                    await supabase.from('payment_items').delete().in('schedule_id', futureIds);
+                    await supabase.from('counseling_logs').delete().in('schedule_id', futureIds);
 
-                    // 본 일정 일괄 삭제
-                    const { error } = await supabase.from('schedules').delete().in('id', ids);
+                    const { error } = await supabase.from('schedules').delete().in('id', futureIds);
                     if (error) throw error;
-                    alert('해당 일자 이후의 모든 관련 일정이 삭제되었습니다.');
+                    alert(`이후 ${futureIds.length}개의 일정이 삭제되었습니다.`);
                 }
             } else {
-                // 기존 단일 삭제 로직
-                // ✨ [핵심 수정] 하위 참조 데이터 먼저 삭제
+                // 단일 삭제
                 const { data: logs } = await supabase
                     .from('counseling_logs')
                     .select('id')
@@ -486,12 +525,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     await supabase.from('development_assessments').delete().in('log_id', logIds);
                 }
 
-                // 1. 참조 데이터 수동 삭제
                 await supabase.from('consultations').delete().eq('schedule_id', scheduleId!);
                 await supabase.from('payment_items').delete().eq('schedule_id', scheduleId!);
                 await supabase.from('counseling_logs').delete().eq('schedule_id', scheduleId!);
 
-                // 2. 본 일정 삭제
                 const { error } = await supabase.from('schedules').delete().eq('id', scheduleId!);
                 if (error) throw error;
             }
@@ -592,16 +629,11 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                                 />
                                             </div>
                                             {isRecurring && (
-                                                <div className="flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-                                                    <input
-                                                        type="number"
-                                                        min="2"
-                                                        max="52"
-                                                        className="w-20 p-2 border dark:border-slate-600 rounded-lg text-sm font-bold bg-white dark:bg-slate-900"
-                                                        value={repeatWeeks}
-                                                        onChange={e => setRepeatWeeks(parseInt(e.target.value) || 0)}
-                                                    />
-                                                    <span className="text-xs font-bold text-slate-500">주 동안 반복 등록합니다.</span>
+                                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg">
+                                                    <Repeat className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                                        선택한 요일에 6개월간({RECURRING_WEEKS}주) 자동 반복 등록됩니다.
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
