@@ -8,7 +8,7 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
@@ -17,6 +17,100 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { isSuperAdmin } from '@/config/superAdmin';
+
+// ✨ 10분 단위 시간 목록 (00:00 ~ 23:50)
+const TIME_OPTIONS: string[] = [];
+for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 10) {
+        TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+}
+
+/** 케어플 스타일 시간 입력 (타이핑 + 드롭다운) */
+function TimeComboBox({ value, onChange, label, disabled = false }: { value: string; onChange: (v: string) => void; label: string; disabled?: boolean }) {
+    const [open, setOpen] = useState(false);
+    const [inputVal, setInputVal] = useState(value);
+    const listRef = useRef<HTMLDivElement>(null);
+    const wrapRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => { setInputVal(value); }, [value]);
+
+    // 드롭다운 열릴 때 현재 값 근처로 스크롤
+    useEffect(() => {
+        if (open && listRef.current) {
+            const idx = TIME_OPTIONS.indexOf(value);
+            if (idx >= 0) {
+                const item = listRef.current.children[idx] as HTMLElement;
+                if (item) item.scrollIntoView({ block: 'center' });
+            }
+        }
+    }, [open, value]);
+
+    // 바깥 클릭 시 닫기
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const commitValue = useCallback((raw: string) => {
+        const clean = raw.replace(/[^0-9:]/g, '');
+        const match = clean.match(/^(\d{1,2}):?(\d{0,2})$/);
+        if (match) {
+            const h = Math.min(23, Math.max(0, parseInt(match[1] || '0')));
+            const m = Math.min(59, Math.max(0, parseInt(match[2] || '0')));
+            const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            setInputVal(formatted);
+            onChange(formatted);
+        } else {
+            setInputVal(value);
+        }
+    }, [value, onChange]);
+
+    return (
+        <div className="flex-1 relative" ref={wrapRef}>
+            <span className="text-[10px] font-bold text-rose-500 mr-0.5">*</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{label}</span>
+            <input
+                type="text"
+                disabled={disabled}
+                className={cn(
+                    "w-full mt-1 p-2.5 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none text-center text-sm",
+                    disabled && "opacity-60 cursor-not-allowed"
+                )}
+                value={inputVal}
+                onChange={e => setInputVal(e.target.value)}
+                onFocus={() => !disabled && setOpen(true)}
+                onClick={() => !disabled && setOpen(true)}
+                onBlur={() => setTimeout(() => commitValue(inputVal), 150)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitValue(inputVal); setOpen(false); } }}
+                placeholder="HH:MM"
+            />
+            {open && !disabled && (
+                <div
+                    ref={listRef}
+                    className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-lg"
+                >
+                    {TIME_OPTIONS.map(t => (
+                        <button
+                            key={t}
+                            type="button"
+                            onMouseDown={e => { e.preventDefault(); onChange(t); setInputVal(t); setOpen(false); }}
+                            className={cn(
+                                "w-full px-3 py-2 text-sm font-bold text-left hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors",
+                                t === value ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-300"
+                            )}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 // ✨ [Searchable Select Component]
 // Moved import to top-level
@@ -606,12 +700,21 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">일시</label>
-                                    <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-2 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                                    <div className="flex gap-2 mb-3">
-                                        <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.start_time} onChange={e => handleStartTimeChange(e.target.value)} />
-                                        <span className="self-center text-slate-400">~</span>
-                                        <input type="time" required className="flex-1 p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} />
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
+                                    <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+
+                                    {/* ✨ 케어플 스타일: 타이핑 + 드롭다운 시간 선택 */}
+                                    <div className="flex items-start gap-3 mb-3">
+                                        <TimeComboBox
+                                            label="시작시간"
+                                            value={formData.start_time}
+                                            onChange={handleStartTimeChange}
+                                        />
+                                        <TimeComboBox
+                                            label="종료시간"
+                                            value={formData.end_time}
+                                            onChange={(v: string) => setFormData(prev => ({ ...prev, end_time: v }))}
+                                        />
                                     </div>
 
                                     {!scheduleId && (
