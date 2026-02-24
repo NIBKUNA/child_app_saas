@@ -405,6 +405,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
         if (currentGroup && !openGroups.includes(currentGroup)) {
             setOpenGroups(prev => [...prev, currentGroup]);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname, findGroupForPath]);
 
 

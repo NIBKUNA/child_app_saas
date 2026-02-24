@@ -491,7 +491,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         }
                     }
                 } else {
-                    const { data: _inserted, error } = await supabase.from('schedules').insert([payload]).select().single();
+                    const { error } = await supabase.from('schedules').insert([payload]).select().single();
                     if (error) throw error;
 
                     // ✨ [Notification] 치료사에게 알림 생성
@@ -522,7 +522,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     const handleDelete = async (forceFuture = false) => {
         setLoading(true);
         try {
-            let deleteFuture = forceFuture;
+            const deleteFuture = forceFuture;
 
             // 결제 여부 확인 (Ghost Credit 방지)
             const { data: payItems } = await supabase.from('payment_items').select('id, payment_id').eq('schedule_id', scheduleId!);
