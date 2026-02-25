@@ -109,7 +109,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         (schedules || []).forEach((s: { status: string | null }) => {
             sessionStats.total++;
             if (s.status === 'completed') sessionStats.completed++;
-            else if (s.status === 'cancelled' || s.status === 'canceled') sessionStats.cancelled++;
+            else if (s.status === 'cancelled') sessionStats.cancelled++;
             else if (s.status === 'scheduled') sessionStats.scheduled++;
         });
 

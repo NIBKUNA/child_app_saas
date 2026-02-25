@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { SUPER_ADMIN_EMAILS } from '@/config/superAdmin';
 
 // ✨ 스케줄 상태 타입
-type ScheduleStatus = 'scheduled' | 'completed' | 'canceled' | 'cancelled' | 'carried_over';
+type ScheduleStatus = 'scheduled' | 'completed' | 'cancelled' | 'carried_over';
 
 // ✨ 치료사 필터 옵션 타입
 interface TherapistOption {
@@ -193,7 +193,7 @@ export function Schedule() {
                     const originalColor = schedule.therapists?.color || '#94a3b8';
 
                     // ✨ [취소 상태 체크 및 시각화 로직 강화]
-                    const isCancelled = schedule.status === 'canceled' || schedule.status === 'cancelled';
+                    const isCancelled = schedule.status === 'cancelled';
 
                     // 1. 취소된 경우 색상을 회색(#cbd5e1)으로 변경, 아니면 선생님 고유색 사용
                     const eventColor = isCancelled ? '#cbd5e1' : originalColor;
@@ -293,7 +293,6 @@ export function Schedule() {
     const getStatusBadge = (status: ScheduleStatus) => {
         switch (status) {
             case 'completed': return { text: '출석 완료', class: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
-            case 'canceled':
             case 'cancelled': return { text: '수업 취소', class: 'bg-rose-50 text-rose-600 border-rose-200' };
             case 'carried_over': return { text: '이월됨', class: 'bg-purple-50 text-purple-600 border-purple-200' };
             default: return { text: '수업 예정', class: 'bg-blue-50 text-blue-600 border-blue-200' };
@@ -536,7 +535,7 @@ export function Schedule() {
                                 selectMirror={true}
                                 select={(info) => { handleDateClick({ date: info.start }); info.view.calendar.unselect(); }}
                                 eventContent={(arg) => {
-                                    const isCancelled = arg.event.extendedProps.status === 'canceled' || arg.event.extendedProps.status === 'cancelled';
+                                    const isCancelled = arg.event.extendedProps.status === 'cancelled';
                                     const color = arg.event.extendedProps.color;
 
                                     return (

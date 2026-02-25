@@ -101,7 +101,7 @@ interface TherapistData {
 interface ScheduleSessionData {
     id: string;
     therapist_id: string;
-    status: 'scheduled' | 'completed' | 'canceled' | 'cancelled';
+    status: 'scheduled' | 'completed' | 'cancelled';
     start_time: string;
     end_time: string;
     service_type: string | null;

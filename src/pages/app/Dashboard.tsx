@@ -477,7 +477,7 @@ export function Dashboard() {
                         const pName = s.programs?.name || s.service_type || '치료 세션';
                         progCountMap[pName] = (progCountMap[pName] || 0) + 1;
                     }
-                    else if (s.status === 'canceled' || s.status === 'cancelled') statusMap.cancelled++;
+                    else if (s.status === 'cancelled') statusMap.cancelled++;
                     else statusMap.scheduled++;
                 }
             });
@@ -847,7 +847,7 @@ export function Dashboard() {
                 if (!weeklyAttendance[weekNum]) weeklyAttendance[weekNum] = { completed: 0, cancelled: 0, total: 0 };
                 weeklyAttendance[weekNum].total++;
                 if (s.status === 'completed') weeklyAttendance[weekNum].completed++;
-                else if (s.status === 'canceled' || s.status === 'cancelled') weeklyAttendance[weekNum].cancelled++;
+                else if (s.status === 'cancelled') weeklyAttendance[weekNum].cancelled++;
             });
 
             const attendArr = Object.entries(weeklyAttendance)

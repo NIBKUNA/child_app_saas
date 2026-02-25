@@ -95,7 +95,6 @@ export default function SessionList() {
         switch (status) {
             case 'completed':
                 return <span className="flex items-center text-green-600"><CheckCircle className="w-4 h-4 mr-1" /> 완료</span>;
-            case 'canceled':
             case 'cancelled':
                 return <span className="flex items-center text-red-500 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium">취소됨</span>;
             case 'carried_over':
@@ -205,7 +204,7 @@ export default function SessionList() {
                                                 >
                                                     수정
                                                 </button>
-                                            ) : session.status === 'cancelled' || session.status === 'canceled' || session.status === 'carried_over' ? null : (
+                                            ) : session.status === 'cancelled' || session.status === 'carried_over' ? null : (
                                                 <button
                                                     className="px-3 py-1.5 text-xs font-medium bg-primary text-white rounded hover:bg-primary/90 flex items-center"
                                                     onClick={() => handleWriteNote(session.id)}
@@ -261,7 +260,7 @@ export default function SessionList() {
                                             >
                                                 수정하기
                                             </button>
-                                        ) : session.status === 'cancelled' || session.status === 'canceled' || session.status === 'carried_over' ? (
+                                        ) : session.status === 'cancelled' || session.status === 'carried_over' ? (
                                             <span className="text-xs text-slate-400">-</span>
                                         ) : (
                                             <button

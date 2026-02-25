@@ -502,7 +502,7 @@ export function ParentHomePage() {
                                 let titleClass = "text-[11px] font-black leading-tight truncate";
                                 let statusBadge = null;
 
-                                if (status === 'cancelled' || status === 'canceled') {
+                                if (status === 'cancelled') {
                                     bgStyle = { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }; // Gray
                                     titleClass += " text-slate-400 line-through decoration-slate-400";
                                     statusBadge = <span className="text-[9px] text-rose-500 font-black ml-1">(취소)</span>;
@@ -524,7 +524,7 @@ export function ParentHomePage() {
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <span className={cn(
                                                 "text-[10px] font-black leading-none",
-                                                (status === 'cancelled' || status === 'canceled') ? "text-slate-400" : "text-slate-600 opacity-80"
+                                                (status === 'cancelled') ? "text-slate-400" : "text-slate-600 opacity-80"
                                             )}>
                                                 {childInfo?.name}
                                             </span>
