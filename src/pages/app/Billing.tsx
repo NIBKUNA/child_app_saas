@@ -12,7 +12,7 @@ import { toLocalDateStr } from '@/utils/timezone';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     ChevronLeft, ChevronRight, Search, Loader2, User, X,
-    ArrowRightCircle, RotateCcw, History,
+    ArrowRightCircle, RotateCcw, History, Save,
     CheckCircle2, Clock, Ban,
     Receipt
 } from 'lucide-react';
@@ -319,12 +319,16 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     const [showHistory, setShowHistory] = useState(false);
     const [paymentHistory, setPaymentHistory] = useState<TableRow<'payments'>[]>([]);
 
-    // 세션별 수납 추적
-    const [paidMap, setPaidMap] = useState<Record<string, number>>({});
+    // 세션별 수납 추적 (상세정보 포함)
+    interface PaidDetail { amount: number; method: string; memo: string; paymentId: string; }
+    const [paidMap, setPaidMap] = useState<Record<string, PaidDetail>>({});
     const [paidMapLoaded, setPaidMapLoaded] = useState(false);
     const [sessionInputs, setSessionInputs] = useState<Record<string, { amount: number; method: string; memo: string }>>({});
     const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
     const [creditUsed, setCreditUsed] = useState(0);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editPaidInputs, setEditPaidInputs] = useState<Record<string, { method: string; memo: string }>>({})
+    const [editNoteInputs, setEditNoteInputs] = useState<Record<string, string>>({});;
 
     const updateSessionInput = (sid: string, field: string, value: string | number) =>
         setSessionInputs(prev => ({ ...prev, [sid]: { ...prev[sid], [field]: value } }));
@@ -335,15 +339,23 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         [activeGroup]
     );
 
-    // DB에서 세션별 수납 상태 로드
+    // DB에서 세션별 수납 상태+상세정보 로드
     useEffect(() => {
         const load = async () => {
             const ids = localSessions.map(s => s.id);
             if (ids.length === 0) return;
-            const { data } = await supabase.from('payment_items').select('schedule_id, amount').in('schedule_id', ids);
-            const map: Record<string, number> = {};
-            data?.forEach(item => {
-                if (item.schedule_id) map[item.schedule_id] = (map[item.schedule_id] || 0) + (Number(item.amount) || 0);
+            const { data } = await supabase.from('payment_items').select('schedule_id, amount, payment_id, payments(method, memo)').in('schedule_id', ids);
+            const map: Record<string, PaidDetail> = {};
+            data?.forEach((item: any) => {
+                if (item.schedule_id) {
+                    const prev = map[item.schedule_id];
+                    map[item.schedule_id] = {
+                        amount: (prev?.amount || 0) + (Number(item.amount) || 0),
+                        method: item.payments?.method || prev?.method || '',
+                        memo: item.payments?.memo || prev?.memo || '',
+                        paymentId: item.payment_id || prev?.paymentId || '',
+                    };
+                }
             });
             setPaidMap(map);
             setPaidMapLoaded(true);
@@ -359,7 +371,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
     // 계산값
     const payableSessions = sortedSessions.filter(s => !s.isCanceled && !s.isCarriedOver);
-    const unpaidPayable = payableSessions.filter(s => !paidMap[s.id]);
+    const unpaidPayable = payableSessions.filter(s => !paidMap[s.id]?.amount);
     const checkedTotal = [...checkedIds].reduce((sum, id) => sum + (sessionInputs[id]?.amount || 0), 0);
     // 요약 바: buildChildMap에서 정확히 계산한 paidAmount 사용 (payment_items 합산 괴리 방지)
     const groupPaidTotal = activeGroup?.paidAmount || 0;
@@ -463,7 +475,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     // 세션별 환불
     const handleSessionRefund = async (session: BillingSession) => {
         if (!center?.id) return;
-        const paidAmount = paidMap[session.id] || 0;
+        const paidAmount = paidMap[session.id]?.amount || 0;
         if (paidAmount <= 0) { alert('수납된 금액이 없습니다.'); return; }
         if (!confirm(`${session.date} (${paidAmount.toLocaleString()}원)을 환불하시겠습니까?`)) return;
         setLoading(true);
@@ -476,6 +488,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
             } as TableInsert<'payments'>);
             await supabase.from('payment_items').delete().eq('schedule_id', session.id);
             setPaidMap(prev => { const n = { ...prev }; delete n[session.id]; return n; });
+            setEditingId(null);
             alert('환불이 완료되었습니다.');
             onSuccess();
         } catch (e: any) { alert('환불 오류: ' + e.message); } finally { setLoading(false); }
@@ -483,7 +496,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
     // 스타일
     const getStyle = (s: BillingSession) => {
-        const isPaid = !!paidMap[s.id];
+        const isPaid = !!paidMap[s.id]?.amount;
         if (s.isCarriedOver) return { bg: isDark ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200', text: 'text-purple-600 dark:text-purple-400', icon: <ArrowRightCircle size={14} /> };
         if (s.isCanceled) return { bg: isDark ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200', text: 'text-rose-500 dark:text-rose-400', icon: <Ban size={14} /> };
         if (isPaid) return { bg: isDark ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600 dark:text-emerald-400', icon: <CheckCircle2 size={14} /> };
@@ -523,11 +536,42 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
                 } as TableInsert<'payment_items'>);
             }
-            setPaidMap(prev => ({ ...prev, [session.id]: inp.amount }));
+            setPaidMap(prev => ({
+                ...prev, [session.id]: {
+                    amount: inp.amount, method: inp.method,
+                    memo: inp.memo || activeGroup?.programName || '', paymentId: pay?.id || ''
+                }
+            }));
             setCheckedIds(prev => { const n = new Set(prev); n.delete(session.id); return n; });
             alert('수납이 완료되었습니다.');
             onSuccess();
         } catch (e: any) { alert('수납 오류: ' + e.message); } finally { setLoading(false); }
+    };
+
+    // 수납완료 세션 결제수단/메모 수정
+    const handleUpdatePayment = async (sid: string) => {
+        const detail = paidMap[sid];
+        const edit = editPaidInputs[sid];
+        if (!detail?.paymentId || !edit) return;
+        setLoading(true);
+        try {
+            await supabase.from('payments').update({ method: edit.method, memo: edit.memo }).eq('id', detail.paymentId);
+            setPaidMap(prev => ({ ...prev, [sid]: { ...prev[sid], method: edit.method, memo: edit.memo } }));
+            setEditingId(null);
+            alert('수정되었습니다.');
+            onSuccess();
+        } catch (e: any) { alert('수정 오류: ' + e.message); } finally { setLoading(false); }
+    };
+
+    // 세션 메모(취소/이월 등) 수정 — schedules.notes 업데이트
+    const handleUpdateNote = async (sid: string) => {
+        const note = editNoteInputs[sid] ?? '';
+        setLoading(true);
+        try {
+            await supabase.from('schedules').update({ notes: note }).eq('id', sid);
+            setEditingId(null);
+            alert('메모가 저장되었습니다.');
+        } catch (e: any) { alert('메모 저장 오류: ' + e.message); } finally { setLoading(false); }
     };
 
     return (
@@ -663,10 +707,13 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
                         {sortedSessions.map((s, i) => {
                             const ss = getStyle(s);
-                            const isPaid = !!paidMap[s.id];
+                            const isPaid = !!paidMap[s.id]?.amount;
                             const isPayable = !s.isCanceled && !s.isCarriedOver;
                             const isChecked = checkedIds.has(s.id);
                             const inp = sessionInputs[s.id];
+                            const paidDetail = paidMap[s.id];
+                            const isEditingThis = editingId === s.id;
+                            const editInp = editPaidInputs[s.id];
 
                             return (
                                 <div key={s.id} className="space-y-0">
@@ -688,6 +735,12 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 <span className="text-[11px] font-bold">
                                                     {s.isCarriedOver ? '이월' : s.isCanceled ? '취소' : isPaid ? '수납완료' : s.status === 'completed' ? '수업완료' : '예정'}
                                                 </span>
+                                                {/* 수납완료 시 결제수단 뱃지 */}
+                                                {isPaid && paidDetail?.method && (
+                                                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full ml-1", isDark ? "bg-emerald-900/40 text-emerald-400" : "bg-emerald-100 text-emerald-600")}>
+                                                        {paidDetail.method}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
@@ -711,19 +764,33 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 <span className={cn("text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>원</span>
                                             </div>
                                         ) : isPaid ? (
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <span className="text-sm font-black text-emerald-500">{paidMap[s.id].toLocaleString()}원</span>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <span className="text-sm font-black text-emerald-500">{paidDetail?.amount?.toLocaleString() || 0}원</span>
+                                                <button onClick={() => { setEditingId(isEditingThis ? null : s.id); if (!isEditingThis) setEditPaidInputs(prev => ({ ...prev, [s.id]: { method: paidDetail?.method || '카드', memo: paidDetail?.memo || '' } })); }}
+                                                    className={cn("px-2 py-1 rounded-lg text-[10px] font-black transition-all border",
+                                                        isEditingThis
+                                                            ? (isDark ? "bg-emerald-800 text-emerald-200 border-emerald-700" : "bg-emerald-100 text-emerald-700 border-emerald-300")
+                                                            : (isDark ? "border-slate-600 text-slate-400 hover:border-emerald-600 hover:text-emerald-400" : "border-slate-200 text-slate-400 hover:border-emerald-400 hover:text-emerald-600"))}>
+                                                    수정
+                                                </button>
                                                 <button onClick={() => handleSessionRefund(s)} disabled={loading} title="환불"
                                                     className={cn("p-1.5 rounded-lg transition-all", isDark ? "hover:bg-rose-900/40 text-slate-500 hover:text-rose-400" : "hover:bg-rose-50 text-slate-400 hover:text-rose-500")}>
                                                     <RotateCcw size={13} />
                                                 </button>
                                             </div>
                                         ) : (
-                                            <span className={cn("text-sm font-bold shrink-0", isDark ? "text-slate-600" : "text-slate-300")}>─</span>
+                                            /* 취소/이월 카드: 메모 버튼 */
+                                            <button onClick={() => { setEditingId(isEditingThis ? null : s.id); if (!isEditingThis) setEditNoteInputs(prev => ({ ...prev, [s.id]: '' })); }}
+                                                className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all border shrink-0",
+                                                    isEditingThis
+                                                        ? (isDark ? "bg-slate-700 text-slate-200 border-slate-600" : "bg-slate-200 text-slate-700 border-slate-300")
+                                                        : (isDark ? "border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300" : "border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-600"))}>
+                                                메모
+                                            </button>
                                         )}
                                     </div>
 
-                                    {/* 체크 시 확장: 결제수단 + 메모 + 개별수납 */}
+                                    {/* 미수납 체크 시 확장: 결제수단 + 메모 + 개별수납 */}
                                     {isChecked && isPayable && !isPaid && (
                                         <div className={cn("ml-11 mr-2 px-4 py-2.5 rounded-b-xl border border-t-0 flex items-center gap-2",
                                             isDark ? "bg-slate-800/60 border-slate-700" : "bg-slate-50 border-slate-200")}>
@@ -742,6 +809,52 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 className={cn("px-3 py-1.5 rounded-lg text-[11px] font-black transition-all shrink-0",
                                                     isDark ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white")}>
                                                 {loading ? '...' : '수납'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 수납완료 클릭 시 확장: 결제수단 + 메모 확인/수정 */}
+                                    {isEditingThis && isPaid && (
+                                        <div className={cn("ml-11 mr-2 px-4 py-2.5 rounded-b-xl border border-t-0 flex items-center gap-2",
+                                            isDark ? "bg-emerald-900/20 border-emerald-800/50" : "bg-emerald-50/50 border-emerald-200")}>
+                                            <select value={editInp?.method || '카드'}
+                                                onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], method: e.target.value } }))}
+                                                className={cn("px-2 py-1.5 rounded-lg text-[11px] font-bold outline-none border shrink-0 cursor-pointer",
+                                                    isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
+                                                <option value="카드">💳 카드</option>
+                                                <option value="현금">💵 현금</option>
+                                                <option value="계좌이체">🏦 계좌이체</option>
+                                                <option value="크레딧">🎫 크레딧</option>
+                                                <option value="혼합">🔄 혼합</option>
+                                            </select>
+                                            <input type="text" placeholder="메모" value={editInp?.memo || ''}
+                                                onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], memo: e.target.value } }))}
+                                                className={cn("flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none border min-w-0",
+                                                    isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
+                                            <button onClick={() => handleUpdatePayment(s.id)} disabled={loading}
+                                                className={cn("px-3 py-1.5 rounded-lg text-[11px] font-black transition-all shrink-0 flex items-center gap-1",
+                                                    isDark ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white")}>
+                                                <Save size={11} />
+                                                {loading ? '...' : '저장'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* 취소/이월 클릭 시 확장: 메모 작성 */}
+                                    {isEditingThis && !isPaid && !isPayable && (
+                                        <div className={cn("ml-11 mr-2 px-4 py-2.5 rounded-b-xl border border-t-0 flex items-center gap-2",
+                                            isDark ? (s.isCanceled ? "bg-rose-900/10 border-rose-800/50" : "bg-purple-900/10 border-purple-800/50")
+                                                : (s.isCanceled ? "bg-rose-50/50 border-rose-200" : "bg-purple-50/50 border-purple-200"))}>
+                                            <span className={cn("text-[11px] font-bold shrink-0", isDark ? "text-slate-400" : "text-slate-500")}>📝</span>
+                                            <input type="text" placeholder="메모 입력..." value={editNoteInputs[s.id] ?? ''}
+                                                onChange={e => setEditNoteInputs(prev => ({ ...prev, [s.id]: e.target.value }))}
+                                                className={cn("flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none border min-w-0",
+                                                    isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
+                                            <button onClick={() => handleUpdateNote(s.id)} disabled={loading}
+                                                className={cn("px-3 py-1.5 rounded-lg text-[11px] font-black transition-all shrink-0 flex items-center gap-1",
+                                                    isDark ? "bg-slate-600 hover:bg-slate-500 text-white" : "bg-slate-600 hover:bg-slate-700 text-white")}>
+                                                <Save size={11} />
+                                                {loading ? '...' : '저장'}
                                             </button>
                                         </div>
                                     )}
