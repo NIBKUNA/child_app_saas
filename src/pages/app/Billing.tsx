@@ -441,9 +441,9 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     }, [modalMonth]);
 
     // 계산값
-    const payableSessions = sortedSessions.filter(s => !s.isCanceled && !s.isCarriedOver);
-    const unpaidPayable = payableSessions.filter(s => !paidMap[s.id]?.amount);
-    const checkedTotal = [...checkedIds].reduce((sum, id) => sum + (sessionInputs[id]?.amount || 0), 0);
+    const payableSessions = useMemo(() => sortedSessions.filter(s => !s.isCanceled && !s.isCarriedOver), [sortedSessions]);
+    const unpaidPayable = useMemo(() => payableSessions.filter(s => !paidMap[s.id]?.amount), [payableSessions, paidMap]);
+    const checkedTotal = useMemo(() => [...checkedIds].reduce((sum, id) => sum + (sessionInputs[id]?.amount || 0), 0), [checkedIds, sessionInputs]);
     // 요약 바: paidMap에서 실시간 합계 계산 (수납/환불/수정 즉시 반영)
     const groupPaidTotal = useMemo(() =>
         sortedSessions.reduce((sum, s) => sum + (paidMap[s.id]?.amount || 0), 0),
