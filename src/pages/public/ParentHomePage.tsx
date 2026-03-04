@@ -143,7 +143,10 @@ export function ParentHomePage() {
                 setChildInfo(child);
                 setShowInvitationModal(false);
 
-                // 일정 데이터 가져오기
+                // 일정 데이터 가져오기 (최근 3개월 ~ 앞으로 3개월만 로드 → 속도 개선)
+                const now = new Date();
+                const rangeStart = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+                const rangeEnd = new Date(now.getFullYear(), now.getMonth() + 4, 0).toISOString();
                 const { data: schedules } = await supabase
                     .from('schedules')
                     .select(`
@@ -151,6 +154,8 @@ export function ParentHomePage() {
                         therapists (name, color)
                     `)
                     .eq('child_id', child.id)
+                    .gte('start_time', rangeStart)
+                    .lte('start_time', rangeEnd)
                     .order('start_time', { ascending: true });
 
                 if (schedules) {

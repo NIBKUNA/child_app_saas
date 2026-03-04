@@ -378,6 +378,26 @@
   }
 }
 
+/* 📱 iOS PWA standalone 모드: 상단 safe area (시간/배터리 겹침 방지) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* PWA standalone nav/header가 상단 notch 뒤로 안 들어가도록 */
+  .pwa-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
 /* ============================================
  * 🔒 UNIVERSAL OVERFLOW PREVENTION
  * Works on ALL devices (iPhone, Galaxy, etc.)

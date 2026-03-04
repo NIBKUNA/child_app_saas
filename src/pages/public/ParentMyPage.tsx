@@ -273,7 +273,7 @@ export function ParentMyPage() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-slate-300" />
                     </button>
-                    {pushSupported && (
+                    {pushSupported ? (
                         <button onClick={handleTogglePush} disabled={pushLoading} className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors text-left">
                             <div className="flex items-center gap-3">
                                 <div className={cn("p-2.5 rounded-xl", pushEnabled ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-400")}>
@@ -296,8 +296,45 @@ export function ParentMyPage() {
                                 )} />
                             </div>
                         </button>
+                    ) : (
+                        <div className="w-full flex items-center justify-between p-5 text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-slate-100 text-slate-400">
+                                    <BellOff className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-sm text-slate-900 dark:text-white">수업 알림 받기</span>
+                                    <p className={cn("text-[10px] mt-0.5", isDark ? "text-slate-500" : "text-slate-400")}>
+                                        {/iPhone|iPad/.test(navigator.userAgent)
+                                            ? '홈 화면에 앱을 추가하면 사용 가능합니다'
+                                            : '이 브라우저에서는 지원되지 않습니다'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="w-11 h-6 rounded-full bg-slate-200 dark:bg-slate-700 relative opacity-50">
+                                <div className="absolute top-0.5 translate-x-0.5 w-5 h-5 rounded-full bg-white shadow" />
+                            </div>
+                        </div>
                     )}
                     {/* 📱 iOS 홈 화면 추가 안내 — iOS + 아직 PWA 미설치 시만 표시 */}
+                    {!pushSupported && /iPhone|iPad/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches && (
+                        <div className={cn(
+                            "mx-5 mb-5 p-4 rounded-2xl border",
+                            isDark ? "bg-blue-500/5 border-blue-500/20" : "bg-blue-50 border-blue-100"
+                        )}>
+                            <p className={cn("text-xs font-black mb-2", isDark ? "text-blue-400" : "text-blue-700")}>
+                                📱 iPhone에서 알림을 받으려면
+                            </p>
+                            <ol className={cn("text-[11px] font-medium space-y-1.5 leading-relaxed", isDark ? "text-slate-400" : "text-blue-600")}>
+                                <li>1. Safari 하단의 <strong className={isDark ? "text-white" : "text-blue-800"}>공유 버튼 (□↑)</strong> 터치</li>
+                                <li>2. <strong className={isDark ? "text-white" : "text-blue-800"}>"홈 화면에 추가"</strong> 선택</li>
+                                <li>3. 추가된 앱에서 알림 켜기</li>
+                            </ol>
+                            <p className={cn("text-[10px] mt-2 font-medium", isDark ? "text-slate-500" : "text-blue-400")}>
+                                ※ iOS 16.4 이상에서만 지원됩니다.
+                            </p>
+                        </div>
+                    )}
                     {pushSupported && !pushEnabled && /iPhone|iPad/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches && (
                         <div className={cn(
                             "mx-5 mb-5 p-4 rounded-2xl border",
