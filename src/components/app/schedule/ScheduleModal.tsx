@@ -681,10 +681,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     </div>
                 ) : (
                     <div className="overflow-y-auto flex-1 custom-scrollbar">
-                        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-6 pb-32">
-                            <div className="flex gap-6">
+                        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-4 md:p-6 pb-4">
+                            <div className="flex flex-col md:flex-row gap-4 md:gap-6">
                                 {/* 왼쪽: 일정 정보 */}
-                                <fieldset disabled={readOnly} className={cn("flex-1 space-y-5 min-w-0", readOnly && 'opacity-70 pointer-events-none')}>
+                                <fieldset disabled={readOnly} className={cn("flex-1 space-y-4 md:space-y-5 min-w-0", readOnly && 'opacity-70 pointer-events-none')}>
                                     <SearchableSelect
                                         label="아동 선택"
                                         placeholder="아동을 선택하세요"
@@ -708,7 +708,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
-                                        <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                                        <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-3 md:mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
 
                                         <div className="flex items-start gap-3 mb-3">
                                             <TimeComboBox
@@ -724,8 +724,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                         </div>
 
                                         {!scheduleId && (
-                                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                                <div className="flex items-center justify-between mb-3">
+                                            <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                <div className="flex items-center justify-between mb-2 md:mb-3">
                                                     <div className="flex items-center gap-2">
                                                         <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
                                                         <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
@@ -757,8 +757,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                     </div>
                                 </fieldset>
 
-                                {/* 오른쪽: 메모 */}
-                                <div className="w-64 shrink-0 flex flex-col">
+                                {/* 오른쪽: 메모 (모바일에서는 하단) */}
+                                <div className="w-full md:w-64 md:shrink-0 flex flex-col">
                                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
                                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                         메모
@@ -766,7 +766,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                     <textarea
                                         disabled={readOnly}
                                         className={cn(
-                                            "flex-1 min-h-[320px] p-3.5 border dark:border-slate-700 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none leading-relaxed",
+                                            "flex-1 min-h-[120px] md:min-h-[320px] p-3.5 border dark:border-slate-700 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none leading-relaxed",
                                             readOnly && "opacity-70 cursor-not-allowed"
                                         )}
                                         placeholder="수업 관련 메모, 주의사항, 특이사항 등을 기록하세요..."
@@ -780,7 +780,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             </div>
 
                             {/* 하단 버튼 */}
-                            <div className="flex gap-2 pt-5 mt-5 border-t dark:border-slate-800">
+                            <div className="flex gap-2 pt-4 md:pt-5 mt-4 md:mt-5 border-t dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 pb-2">
                                 {readOnly ? (
                                     <button type="button" onClick={onClose} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-300 dark:hover:bg-slate-600">
                                         닫기

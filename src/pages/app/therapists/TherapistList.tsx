@@ -92,8 +92,7 @@ export function TherapistList() {
     const { center } = useCenter(); // ✨ Use Center Context
     const centerId = center?.id;
     const [staffs, setStaffs] = useState<Therapist[]>([]);
-    const [, setLoading] = useState(true);
-    const [searchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'active' | 'retired'>('active');
@@ -434,13 +433,19 @@ export function TherapistList() {
         if (viewMode === 'active') return s.system_status !== 'retired' && s.system_status !== 'rejected';
         if (viewMode === 'retired') return s.system_status === 'retired';
         return false;
-    }).filter(s => s.name.includes(searchTerm));
+    });
 
     const isSuper = isSuperAdmin(user?.email);
 
     return (
         <div className="space-y-6 pb-20 p-8 bg-slate-50/50 dark:bg-slate-950 min-h-screen">
             <Helmet><title>직원 관리 - 자라다</title></Helmet>
+
+            {loading && (
+                <div className="flex justify-center py-10">
+                    <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                </div>
+            )}
 
             <div className="flex justify-between items-end mb-8">
                 <div>

@@ -187,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCenterId(null); // ✨ Global Access
 
             // 프로필 데이터가 없어도 무방하나, 있으면 로드.
-            supabase.from('user_profiles').select('*').eq('id', user.id).maybeSingle()
+            supabase.from('user_profiles').select('id, email, name, phone, role, status, center_id, avatar_url, created_at, updated_at').eq('id', user.id).maybeSingle()
                 .then(({ data }) => {
                     if (data) {
                         // 👑 [Conflict Resolution] Super Admin has NO primary center
@@ -208,7 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 1. [Sync] 프로필 조회
             const { data: dbProfile } = await supabase
                 .from('user_profiles')
-                .select('*')
+                .select('id, email, name, phone, role, status, center_id, avatar_url, created_at, updated_at')
                 .eq('id', user.id)
                 .maybeSingle();
 

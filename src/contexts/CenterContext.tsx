@@ -29,7 +29,6 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (data) {
       if (lastLoggedId.current !== data.id) {
         lastLoggedId.current = data.id;
-        console.log(`✅ [CenterContext] Loaded: ${data.name}`, { id: data.id, slug: data.slug });
       }
     }
     if (data?.slug) {

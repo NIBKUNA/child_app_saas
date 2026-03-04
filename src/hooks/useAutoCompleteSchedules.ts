@@ -39,7 +39,7 @@ export function useAutoCompleteSchedules(centerId: string | undefined) {
                     if (updateError) {
                         console.error('[AutoComplete] 업데이트 실패:', updateError);
                     } else {
-                        console.log(`[AutoComplete] ${ids.length}건의 수업이 자동 완료 처리됨`);
+                        // Auto-completed ${ids.length} schedules
                     }
                 }
 
