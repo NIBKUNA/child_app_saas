@@ -18,7 +18,7 @@ import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { toLocalDateStr } from '@/utils/timezone';
 import {
     Clock, CheckCircle2,
-    Pencil, Trash2, BarChart3
+    Pencil, Trash2, BarChart3, Search
 } from 'lucide-react';
 import { AssessmentFormModal } from '@/pages/app/children/AssessmentFormModal';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
@@ -71,6 +71,7 @@ export function ConsultationList() {
     const [isAssessModalOpen, setIsAssessModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState<Session | null>(null);
     const [editingAssessmentId, setEditingAssessmentId] = useState<string | null>(null);  // ✨ [수정 모드]
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         if (user && centerId) {
@@ -286,44 +287,69 @@ export function ConsultationList() {
 
             {/* 작성 대기 목록 */}
             <section>
-                <div className="flex items-center justify-between mb-8 px-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 px-4 gap-4">
                     <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-3">
                         <div className="p-2 bg-rose-100 dark:bg-rose-900/30 rounded-2xl"><Clock className="w-6 h-6 text-rose-500" /></div>
                         평가 대기 목록
-                        <span className="ml-2 text-rose-500 bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded-xl text-lg">{todoChildren.length}</span>
+                        <span className="ml-2 text-rose-500 bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded-xl text-lg">{todoChildren.filter(s => s.children?.name?.toLowerCase().includes(searchTerm.toLowerCase())).length}</span>
                     </h2>
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="아동 이름 검색..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all"
+                        />
+                        {searchTerm && (
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {todoChildren.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {todoChildren.map((session) => (
-                            <div key={session.id} className="bg-white dark:bg-slate-800 p-10 rounded-[48px] border-2 border-slate-50 dark:border-slate-700 shadow-sm hover:border-primary/20 dark:hover:border-indigo-500/30 transition-all group relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-8">
-                                    <span className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{toLocalDateStr(session.start_time)}</span>
-                                </div>
-                                <div className="mb-8">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-[28px] flex items-center justify-center text-3xl font-black text-indigo-400 group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all shadow-inner mb-6">
-                                        {session.children?.name[0]}
+                {(() => {
+                    const filteredTodo = todoChildren.filter(s =>
+                        s.children?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                    return filteredTodo.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {filteredTodo.map((session) => (
+                                <div key={session.id} className="bg-white dark:bg-slate-800 p-10 rounded-[48px] border-2 border-slate-50 dark:border-slate-700 shadow-sm hover:border-primary/20 dark:hover:border-indigo-500/30 transition-all group relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8">
+                                        <span className="text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{toLocalDateStr(session.start_time)}</span>
                                     </div>
-                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{session.children?.name} 아동</h3>
-                                    <p className="text-primary dark:text-indigo-400 text-xs font-black mt-2">{session.service_type || '치료 세션'}</p>
+                                    <div className="mb-8">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-[28px] flex items-center justify-center text-3xl font-black text-indigo-400 group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all shadow-inner mb-6">
+                                            {session.children?.name[0]}
+                                        </div>
+                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white">{session.children?.name} 아동</h3>
+                                        <p className="text-primary dark:text-indigo-400 text-xs font-black mt-2">{session.service_type || '치료 세션'}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleOpenAssessment(session)}
+                                        className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-[24px] font-black text-sm hover:from-indigo-700 hover:to-purple-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 flex items-center justify-center gap-2"
+                                    >
+                                        <BarChart3 className="w-5 h-5" />
+                                        발달 평가 작성하기
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => handleOpenAssessment(session)}
-                                    className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-[24px] font-black text-sm hover:from-indigo-700 hover:to-purple-700 transition-all active:scale-95 shadow-xl shadow-indigo-100 flex items-center justify-center gap-2"
-                                >
-                                    <BarChart3 className="w-5 h-5" />
-                                    발달 평가 작성하기
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="col-span-full bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[56px] p-24 text-center">
-                        <CheckCircle2 className="w-12 h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4" />
-                        <p className="text-slate-400 dark:text-slate-500 font-black text-lg">모든 발달 평가 작성을 완료했습니다!</p>
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="col-span-full bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[56px] p-24 text-center">
+                            <CheckCircle2 className="w-12 h-12 text-slate-200 dark:text-slate-600 mx-auto mb-4" />
+                            <p className="text-slate-400 dark:text-slate-500 font-black text-lg">
+                                {searchTerm ? `"${searchTerm}" 검색 결과가 없습니다.` : '모든 발달 평가 작성을 완료했습니다!'}
+                            </p>
+                        </div>
+                    );
+                })()}
             </section>
 
             {/* 최근 작성 내역 */}

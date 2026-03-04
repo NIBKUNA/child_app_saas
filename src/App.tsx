@@ -45,18 +45,21 @@ import { ParentLogsPage } from '@/pages/public/ParentLogsPage';
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
-const Dashboard = lazy(() => import('@/pages/app/Dashboard').then(m => ({ default: m.Dashboard })));
-const Schedule = lazy(() => import('@/pages/app/Schedule').then(m => ({ default: m.Schedule })));
-const ChildList = lazy(() => import('@/pages/app/children/ChildList').then(m => ({ default: m.ChildList })));
+// ⚡ [Eager Loading] 자주 사용하는 핵심 페이지 — 즉시 로드
+import { Dashboard } from '@/pages/app/Dashboard';
+import { Schedule } from '@/pages/app/Schedule';
+import { ChildList } from '@/pages/app/children/ChildList';
+import { ConsultationList } from '@/pages/app/consultations/ConsultationList';
+import { Billing } from '@/pages/app/Billing';
+
+// ⚡ [Lazy Loading] 덜 사용하는 페이지 — 필요 시 로드
 const ParentList = lazy(() => import('@/pages/app/parents/ParentList').then(m => ({ default: m.ParentList })));
 const TherapistList = lazy(() => import('@/pages/app/therapists/TherapistList').then(m => ({ default: m.TherapistList })));
 const SessionList = lazy(() => import('@/pages/app/sessions/SessionList'));
 const SessionNote = lazy(() => import('@/pages/app/sessions/SessionNote'));
 const ConsultationInquiryList = lazy(() => import('@/pages/app/consultations/ConsultationInquiryList'));
 const Programs = lazy(() => import('@/pages/app/Programs'));
-const Billing = lazy(() => import('@/pages/app/Billing').then(m => ({ default: m.Billing })));
 const Settlement = lazy(() => import('@/pages/app/Settlement').then(m => ({ default: m.Settlement })));
-const ConsultationList = lazy(() => import('@/pages/app/consultations/ConsultationList').then(m => ({ default: m.ConsultationList })));
 const SettingsPage = lazy(() => import('@/pages/app/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const CenterList = lazy(() => import('@/pages/app/admin/CenterList').then(m => ({ default: m.CenterList })));
 const CenterDetailPage = lazy(() => import('@/pages/app/admin/CenterDetailPage').then(m => ({ default: m.CenterDetailPage })));

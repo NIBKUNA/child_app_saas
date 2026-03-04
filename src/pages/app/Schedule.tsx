@@ -19,6 +19,7 @@ import koLocale from '@fullcalendar/core/locales/ko';
 import type { EventClickArg, EventInput } from '@fullcalendar/core';
 import { Plus, Loader2, Clock, User } from 'lucide-react';
 import { ScheduleModal } from '@/components/app/schedule/ScheduleModal';
+import { MobileScheduleView } from '@/components/app/schedule/MobileScheduleView';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -49,6 +50,8 @@ interface ScheduleExtendedProps {
     therapistName: string;
     color: string;
     hasNote: boolean;
+    notes: string | null;
+    service_type: string | null;
 }
 
 // ✨ 툴팁 정보 타입
@@ -103,6 +106,15 @@ export function Schedule() {
 
     // ✨ [권한] 일정 수정 가능 여부: admin, manager, super_admin만 수정 가능
     const canEditSchedule = role === 'admin' || role === 'manager' || role === 'super_admin';
+
+    // 📱 모바일 감지
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
 
     useEffect(() => {
         if (centerId && centerId.length >= 32) {
@@ -227,7 +239,9 @@ export function Schedule() {
                             programName: schedule.programs?.name || '프로그램 미정',
                             therapistName: therapistName,
                             color: eventColor,
-                            hasNote: hasAssessment || !!schedule.notes  // ✨ schedule.notes로 수정 (데이터 스키마 일치)
+                            hasNote: hasAssessment || !!schedule.notes,
+                            notes: schedule.notes,
+                            service_type: schedule.service_type
                         }
                     };
                 });
@@ -407,153 +421,176 @@ export function Schedule() {
             `}</style>
 
             <div className={cn("flex flex-col relative", isDark && "bg-slate-900", "min-h-screen md:h-full")}>
-                {/* Header removed and Button relocated to Sidebar for maximum vertical space */}
 
-                <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 pt-4 pb-4 md:overflow-hidden">
-                    {/* 1. Sidebar - Responsive (Collapsible on Mobile, Fixed on Desktop) */}
-                    <aside className={cn(
-                        "flex flex-col gap-5 p-5 rounded-[32px] border transition-all relative shrink-0",
-                        "md:w-56 w-full md:h-auto", // Desktop: Fixed width, Mobile: Full width
-                        isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50",
-                        "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible" // Mobile: Limit height and scroll
-                    )}>
-                        {/* New Schedule Button inside Sidebar — 치료사에게는 숨김 */}
-                        {canEditSchedule && (
-                            <button
-                                onClick={handleNewEventClick}
-                                className={cn(
-                                    "flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg hover:-translate-y-0.5 shrink-0",
-                                    isDark ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-900/20" : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200"
-                                )}
-                            >
-                                <Plus className="w-5 h-5 stroke-[3]" /> <span className="md:inline">일정 등록</span>
-                            </button>
-                        )}
+                {isMobile ? (
+                    /* 📱 모바일: 케어플 스타일 콤팩트 캘린더 */
+                    <MobileScheduleView
+                        events={selectedTherapistIds.has('all')
+                            ? events as any
+                            : (events as any).filter((e: any) => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id))}
+                        onEventClick={(eventId, extProps) => {
+                            setSelectedScheduleId(eventId);
+                            setClickedDate(extProps as any);
+                            setIsModalOpen(true);
+                        }}
+                        onDateClick={(date) => {
+                            if (!canEditSchedule) return;
+                            setSelectedScheduleId(null);
+                            setClickedDate(date);
+                            setIsModalOpen(true);
+                        }}
+                        isDark={isDark}
+                        canEdit={canEditSchedule}
+                    />
+                ) : (
+                    /* 🖥️ 데스크톱: FullCalendar */
 
-                        <div className="hidden md:block w-full h-px bg-slate-100 dark:bg-slate-800 shrink-0" />
-
-                        {/* Therapist Selection (Category Filter) */}
-                        <div className="flex-1 flex flex-col min-h-0">
-                            <div className="flex items-center justify-between mb-4 px-1 shrink-0">
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">치료사 필터</h3>
+                    <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 pt-4 pb-4 md:overflow-hidden">
+                        {/* 1. Sidebar - Responsive (Collapsible on Mobile, Fixed on Desktop) */}
+                        <aside className={cn(
+                            "flex flex-col gap-5 p-5 rounded-[32px] border transition-all relative shrink-0",
+                            "md:w-56 w-full md:h-auto", // Desktop: Fixed width, Mobile: Full width
+                            isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50",
+                            "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible" // Mobile: Limit height and scroll
+                        )}>
+                            {/* New Schedule Button inside Sidebar — 치료사에게는 숨김 */}
+                            {canEditSchedule && (
                                 <button
-                                    onClick={() => setSelectedTherapistIds(new Set(['all']))}
-                                    className="text-[10px] font-bold text-indigo-500 hover:underline"
-                                >
-                                    전체
-                                </button>
-                            </div>
-
-                            <div className={cn(
-                                "space-y-1.5 overflow-y-auto pr-1 no-scrollbar p-1",
-                                "flex flex-row md:flex-col gap-2 md:gap-0 overflow-x-auto md:overflow-x-hidden" // Mobile: Horizontal Scroll
-                            )}>
-                                <button
-                                    onClick={() => setSelectedTherapistIds(new Set(['all']))}
+                                    onClick={handleNewEventClick}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all shrink-0 whitespace-nowrap",
-                                        "md:w-full",
-                                        selectedTherapistIds.has('all')
-                                            ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
-                                            : "hover:bg-slate-50 text-slate-500"
+                                        "flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg hover:-translate-y-0.5 shrink-0",
+                                        isDark ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-900/20" : "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200"
                                     )}
                                 >
-                                    <div className={cn("w-2 h-2 rounded-full shrink-0", selectedTherapistIds.has('all') ? "bg-indigo-400" : "bg-slate-300")} />
-                                    <span>전체</span>
+                                    <Plus className="w-5 h-5 stroke-[3]" /> <span className="md:inline">일정 등록</span>
                                 </button>
+                            )}
 
-                                {therapists.map(t => {
-                                    const isSelected = selectedTherapistIds.has(t.id);
-                                    return (
-                                        <button
-                                            key={t.id}
-                                            onClick={() => {
-                                                const newSet = new Set(selectedTherapistIds);
-                                                if (newSet.has('all')) newSet.delete('all');
-                                                if (newSet.has(t.id)) {
-                                                    newSet.delete(t.id);
-                                                    if (newSet.size === 0) newSet.add('all');
-                                                } else {
-                                                    newSet.add(t.id);
-                                                }
-                                                setSelectedTherapistIds(newSet);
-                                            }}
-                                            className={cn(
-                                                "flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all text-left shrink-0 whitespace-nowrap",
-                                                "md:w-full",
-                                                isSelected ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                            )}
-                                        >
-                                            <div
-                                                className="w-3.5 h-3.5 rounded-md border-2 transition-all flex items-center justify-center shrink-0"
-                                                style={{
-                                                    borderColor: t.color || '#94a3b8',
-                                                    backgroundColor: isSelected ? (t.color || '#94a3b8') : 'transparent'
+                            <div className="hidden md:block w-full h-px bg-slate-100 dark:bg-slate-800 shrink-0" />
+
+                            {/* Therapist Selection (Category Filter) */}
+                            <div className="flex-1 flex flex-col min-h-0">
+                                <div className="flex items-center justify-between mb-4 px-1 shrink-0">
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">치료사 필터</h3>
+                                    <button
+                                        onClick={() => setSelectedTherapistIds(new Set(['all']))}
+                                        className="text-[10px] font-bold text-indigo-500 hover:underline"
+                                    >
+                                        전체
+                                    </button>
+                                </div>
+
+                                <div className={cn(
+                                    "space-y-1.5 overflow-y-auto pr-1 no-scrollbar p-1",
+                                    "flex flex-row md:flex-col gap-2 md:gap-0 overflow-x-auto md:overflow-x-hidden" // Mobile: Horizontal Scroll
+                                )}>
+                                    <button
+                                        onClick={() => setSelectedTherapistIds(new Set(['all']))}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all shrink-0 whitespace-nowrap",
+                                            "md:w-full",
+                                            selectedTherapistIds.has('all')
+                                                ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                                                : "hover:bg-slate-50 text-slate-500"
+                                        )}
+                                    >
+                                        <div className={cn("w-2 h-2 rounded-full shrink-0", selectedTherapistIds.has('all') ? "bg-indigo-400" : "bg-slate-300")} />
+                                        <span>전체</span>
+                                    </button>
+
+                                    {therapists.map(t => {
+                                        const isSelected = selectedTherapistIds.has(t.id);
+                                        return (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => {
+                                                    const newSet = new Set(selectedTherapistIds);
+                                                    if (newSet.has('all')) newSet.delete('all');
+                                                    if (newSet.has(t.id)) {
+                                                        newSet.delete(t.id);
+                                                        if (newSet.size === 0) newSet.add('all');
+                                                    } else {
+                                                        newSet.add(t.id);
+                                                    }
+                                                    setSelectedTherapistIds(newSet);
                                                 }}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all text-left shrink-0 whitespace-nowrap",
+                                                    "md:w-full",
+                                                    isSelected ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white" : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                )}
                                             >
-                                                {isSelected && <Plus className="w-2 h-2 text-white rotate-45" />}
+                                                <div
+                                                    className="w-3.5 h-3.5 rounded-md border-2 transition-all flex items-center justify-center shrink-0"
+                                                    style={{
+                                                        borderColor: t.color || '#94a3b8',
+                                                        backgroundColor: isSelected ? (t.color || '#94a3b8') : 'transparent'
+                                                    }}
+                                                >
+                                                    {isSelected && <Plus className="w-2 h-2 text-white rotate-45" />}
+                                                </div>
+                                                <span className="truncate">{t.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </aside>
+
+                        {/* 2. Main Calendar Content (Canvas Style) */}
+                        <div className={cn(
+                            "flex-1 flex flex-col min-w-0 rounded-[40px] border shadow-2xl relative transition-all",
+                            "md:overflow-hidden", /* FIXED: Removed overflow-hidden logic that trapped mobile scroll */
+                            isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-50 shadow-slate-200/50"
+                        )}>
+                            <div className="flex-1 p-2 flex flex-col md:overflow-hidden"> {/* Allow scroll on mobile */}
+                                <FullCalendar
+                                    ref={calendarRef}
+                                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                                    initialView="dayGridMonth"
+                                    locale={koLocale}
+                                    nowIndicator={true}
+                                    headerToolbar={{
+                                        left: 'prev,next today',
+                                        center: 'title',
+                                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                                    }}
+                                    buttonText={{ today: '오늘', month: '월간', week: '주간', day: '일간' }}
+                                    events={selectedTherapistIds.has('all')
+                                        ? events
+                                        : events.filter(e => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id as string))}
+                                    height="100%"
+                                    dayMaxEvents={5} // ✨ 인원 많아져도 볼 수 있게 최대 표시 개수 상향
+                                    eventDisplay="block"
+                                    eventClassNames="cursor-pointer hover:bg-slate-50 transition-all border-0 font-medium text-[11px] p-0 rounded-md overflow-hidden bg-transparent"
+                                    eventClick={handleEventClick}
+                                    dateClick={handleDateClick}
+                                    eventMouseEnter={handleEventMouseEnter}
+                                    eventMouseLeave={handleEventMouseLeave}
+                                    selectable={true}
+                                    selectMirror={true}
+                                    select={(info) => { handleDateClick({ date: info.start }); info.view.calendar.unselect(); }}
+                                    eventContent={(arg) => {
+                                        const isCancelled = arg.event.extendedProps.status === 'cancelled';
+                                        const color = arg.event.extendedProps.color;
+
+                                        return (
+                                            <div className={cn("flex items-center gap-1.5 py-0.5 px-1 truncate", isCancelled && "opacity-40 line-through")}>
+                                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                                <span className={cn("truncate font-bold", isDark ? "text-slate-200" : "text-slate-700")}>
+                                                    {arg.event.extendedProps.childName}
+                                                </span>
+                                                <span className={cn("truncate opacity-60 text-[10px]", isDark ? "text-slate-400" : "text-slate-500")}>
+                                                    ({arg.event.extendedProps.programName})
+                                                </span>
                                             </div>
-                                            <span className="truncate">{t.name}</span>
-                                        </button>
-                                    );
-                                })}
+                                        );
+                                    }}
+                                />
                             </div>
                         </div>
-                    </aside>
-
-                    {/* 2. Main Calendar Content (Canvas Style) */}
-                    <div className={cn(
-                        "flex-1 flex flex-col min-w-0 rounded-[40px] border shadow-2xl relative transition-all",
-                        "md:overflow-hidden", /* FIXED: Removed overflow-hidden logic that trapped mobile scroll */
-                        isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-50 shadow-slate-200/50"
-                    )}>
-                        <div className="flex-1 p-2 flex flex-col md:overflow-hidden"> {/* Allow scroll on mobile */}
-                            <FullCalendar
-                                ref={calendarRef}
-                                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                                initialView="dayGridMonth"
-                                locale={koLocale}
-                                nowIndicator={true}
-                                headerToolbar={{
-                                    left: 'prev,next today',
-                                    center: 'title',
-                                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                                }}
-                                buttonText={{ today: '오늘', month: '월간', week: '주간', day: '일간' }}
-                                events={selectedTherapistIds.has('all')
-                                    ? events
-                                    : events.filter(e => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id as string))}
-                                height="100%"
-                                dayMaxEvents={5} // ✨ 인원 많아져도 볼 수 있게 최대 표시 개수 상향
-                                eventDisplay="block"
-                                eventClassNames="cursor-pointer hover:bg-slate-50 transition-all border-0 font-medium text-[11px] p-0 rounded-md overflow-hidden bg-transparent"
-                                eventClick={handleEventClick}
-                                dateClick={handleDateClick}
-                                eventMouseEnter={handleEventMouseEnter}
-                                eventMouseLeave={handleEventMouseLeave}
-                                selectable={true}
-                                selectMirror={true}
-                                select={(info) => { handleDateClick({ date: info.start }); info.view.calendar.unselect(); }}
-                                eventContent={(arg) => {
-                                    const isCancelled = arg.event.extendedProps.status === 'cancelled';
-                                    const color = arg.event.extendedProps.color;
-
-                                    return (
-                                        <div className={cn("flex items-center gap-1.5 py-0.5 px-1 truncate", isCancelled && "opacity-40 line-through")}>
-                                            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                            <span className={cn("truncate font-bold", isDark ? "text-slate-200" : "text-slate-700")}>
-                                                {arg.event.extendedProps.childName}
-                                            </span>
-                                            <span className={cn("truncate opacity-60 text-[10px]", isDark ? "text-slate-400" : "text-slate-500")}>
-                                                ({arg.event.extendedProps.programName})
-                                            </span>
-                                        </div>
-                                    );
-                                }}
-                            />
-                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* 툴팁 영역 */}
                 <div className={`fixed z-50 bg-slate-900/95 text-white p-4 rounded-xl shadow-2xl pointer-events-none transition-opacity duration-300 ease-in-out text-sm min-w-[220px] backdrop-blur-sm ${tooltipInfo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ top: tooltipInfo ? tooltipInfo.y : 0, left: tooltipInfo ? tooltipInfo.x : 0, transform: 'translate(-50%, -100%) translateY(-10px)' }}>

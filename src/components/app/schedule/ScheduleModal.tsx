@@ -247,7 +247,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         start_time: '10:00',
         end_time: '10:40',
         status: 'scheduled',
-        service_type: 'therapy'
+        service_type: 'therapy',
+        notes: ''
     });
 
     // ✨ [ScheduleModal] Initialization
@@ -316,7 +317,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         start_time: sTime || '10:00',
                         end_time: eTime || '10:40',
                         status: data.status,
-                        service_type: data.service_type || 'therapy'
+                        service_type: data.service_type || 'therapy',
+                        notes: data.notes || ''
                     });
                 } else {
                     const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
@@ -332,7 +334,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             start_time: sTime || '10:00',
                             end_time: eTime || '10:40',
                             status: data.status ?? 'scheduled',
-                            service_type: data.service_type || 'therapy'
+                            service_type: data.service_type || 'therapy',
+                            notes: data.notes ?? ''
                         });
                     }
                 }
@@ -360,7 +363,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     start_time: timeStr === '00:00' ? '10:00' : timeStr,
                     end_time: calculateEndTime(timeStr === '00:00' ? '10:00' : timeStr, 40),
                     status: 'scheduled',
-                    service_type: 'therapy'
+                    service_type: 'therapy',
+                    notes: ''
                 });
             }
         } finally {
@@ -393,7 +397,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 program_id: formData.program_id || null,
                 therapist_id: formData.therapist_id || null,
                 status: formData.status as any,
-                service_type: formData.service_type
+                service_type: formData.service_type,
+                notes: formData.notes || null
             };
 
             // ✨ [핵심 수정] KST 타임존 명시 — TIMESTAMPTZ에 UTC로 해석되는 것을 방지
@@ -664,7 +669,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
                 <div className="p-5 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0">
                     <h2 className="text-lg font-black text-slate-800 dark:text-white">{readOnly ? '일정 상세' : scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><X className="w-5 h-5 text-slate-500 dark:text-slate-400" /></button>
@@ -676,81 +681,106 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     </div>
                 ) : (
                     <div className="overflow-y-auto flex-1 custom-scrollbar">
-                        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-6 space-y-5 pb-32">
-                            <fieldset disabled={readOnly} className={readOnly ? 'opacity-70 pointer-events-none' : ''}>
-                                <SearchableSelect
-                                    label="아동 선택"
-                                    placeholder="아동을 선택하세요"
-                                    options={childrenList}
-                                    value={formData.child_id}
-                                    onChange={val => setFormData({ ...formData, child_id: val })}
-                                />
-                                <SearchableSelect
-                                    label="담당 선생님"
-                                    placeholder="선생님을 선택하세요"
-                                    options={therapistsList}
-                                    value={formData.therapist_id}
-                                    onChange={val => setFormData({ ...formData, therapist_id: val })}
-                                />
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
-                                    <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
-                                        <option value="">프로그램을 선택하세요</option>
-                                        {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
-                                    <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-
-                                    {/* ✨ 케어플 스타일: 타이핑 + 드롭다운 시간 선택 */}
-                                    <div className="flex items-start gap-3 mb-3">
-                                        <TimeComboBox
-                                            label="시작시간"
-                                            value={formData.start_time}
-                                            onChange={handleStartTimeChange}
-                                        />
-                                        <TimeComboBox
-                                            label="종료시간"
-                                            value={formData.end_time}
-                                            onChange={(v: string) => setFormData(prev => ({ ...prev, end_time: v }))}
-                                        />
+                        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-6 pb-32">
+                            <div className="flex gap-6">
+                                {/* 왼쪽: 일정 정보 */}
+                                <fieldset disabled={readOnly} className={cn("flex-1 space-y-5 min-w-0", readOnly && 'opacity-70 pointer-events-none')}>
+                                    <SearchableSelect
+                                        label="아동 선택"
+                                        placeholder="아동을 선택하세요"
+                                        options={childrenList}
+                                        value={formData.child_id}
+                                        onChange={val => setFormData({ ...formData, child_id: val })}
+                                    />
+                                    <SearchableSelect
+                                        label="담당 선생님"
+                                        placeholder="선생님을 선택하세요"
+                                        options={therapistsList}
+                                        value={formData.therapist_id}
+                                        onChange={val => setFormData({ ...formData, therapist_id: val })}
+                                    />
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
+                                        <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
+                                            <option value="">프로그램을 선택하세요</option>
+                                            {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                        </select>
                                     </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
+                                        <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
 
-                                    {!scheduleId && (
-                                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
-                                                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
-                                                </div>
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
-                                                    checked={isRecurring}
-                                                    onChange={e => setIsRecurring(e.target.checked)}
-                                                />
-                                            </div>
-                                            {isRecurring && (
-                                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg">
-                                                    <Repeat className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                                                        선택한 요일에 6개월간({RECURRING_WEEKS}주) 자동 반복 등록됩니다.
-                                                    </span>
-                                                </div>
-                                            )}
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <TimeComboBox
+                                                label="시작시간"
+                                                value={formData.start_time}
+                                                onChange={handleStartTimeChange}
+                                            />
+                                            <TimeComboBox
+                                                label="종료시간"
+                                                value={formData.end_time}
+                                                onChange={(v: string) => setFormData(prev => ({ ...prev, end_time: v }))}
+                                            />
                                         </div>
+
+                                        {!scheduleId && (
+                                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
+                                                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
+                                                        checked={isRecurring}
+                                                        onChange={e => setIsRecurring(e.target.checked)}
+                                                    />
+                                                </div>
+                                                {isRecurring && (
+                                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg">
+                                                        <Repeat className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                                            선택한 요일에 6개월간({RECURRING_WEEKS}주) 자동 반복 등록됩니다.
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
+                                            <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
+                                                {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </fieldset>
+
+                                {/* 오른쪽: 메모 */}
+                                <div className="w-64 shrink-0 flex flex-col">
+                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        메모
+                                    </label>
+                                    <textarea
+                                        disabled={readOnly}
+                                        className={cn(
+                                            "flex-1 min-h-[320px] p-3.5 border dark:border-slate-700 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none leading-relaxed",
+                                            readOnly && "opacity-70 cursor-not-allowed"
+                                        )}
+                                        placeholder="수업 관련 메모, 주의사항, 특이사항 등을 기록하세요..."
+                                        value={formData.notes}
+                                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                    />
+                                    {formData.notes && (
+                                        <p className="text-[10px] text-slate-400 mt-1.5 text-right">{formData.notes.length}자</p>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-4 gap-2">
-                                    {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
-                                        <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
-                                            {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </fieldset>
-                            <div className="flex gap-2 pt-4">
+                            </div>
+
+                            {/* 하단 버튼 */}
+                            <div className="flex gap-2 pt-5 mt-5 border-t dark:border-slate-800">
                                 {readOnly ? (
                                     <button type="button" onClick={onClose} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-300 dark:hover:bg-slate-600">
                                         닫기
