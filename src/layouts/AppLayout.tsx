@@ -9,52 +9,20 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 import React from 'react';
-import { Outlet, useNavigate, Link } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
-import { LogOut, ShieldAlert, MonitorCheck, RefreshCw } from 'lucide-react';
+import { LogOut, ShieldAlert, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin'; // kept for profile check
 import { useAutoCompleteSchedules } from '@/hooks/useAutoCompleteSchedules';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
-function SuperAdminBadge() {
-    const { role, user } = useAuth();
-    const { center } = useCenter();
-    const navigate = useNavigate();
 
-    // ✨ [Precision] Check for Super Admin identity
-    const isSuper = role === 'super_admin' || checkSuperAdmin(user?.email);
-    if (!isSuper) return null;
-
-    return (
-        <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="relative z-[100] w-full h-10 bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center gap-4 px-4 shadow-md overflow-hidden shrink-0"
-        >
-            <div className="flex items-center gap-2 text-white font-black text-xs">
-                <MonitorCheck className="w-4 h-4" />
-                <span>SUPER ADMIN MODE: </span>
-                <span className="bg-white/20 px-2 py-0.5 rounded-lg">{center?.name || 'No Center'}</span>
-            </div>
-
-            <button
-                onClick={() => {
-                    localStorage.removeItem('zarada_center_slug');
-                    navigate('/master/centers');
-                }}
-                className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-black transition-all active:scale-95"
-            >
-                <RefreshCw className="w-3 h-3" />
-                센터 전환
-            </button>
-        </motion.div>
-    );
-}
 
 export function AppLayout() {
     const { profile, loading, role, user } = useAuth();
@@ -62,10 +30,25 @@ export function AppLayout() {
     const { theme } = useTheme();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
     const [showUpdateBanner, setShowUpdateBanner] = React.useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(() => {
+        try { return localStorage.getItem('zarada_sidebar_collapsed') === 'true'; } catch { return false; }
+    });
     const mainRef = React.useRef<HTMLElement>(null);
 
     // ✨ [PWA] Pull-to-Refresh for iOS PWA
     const { pullDistance, isRefreshing } = usePullToRefresh({ containerRef: mainRef });
+
+    const toggleSidebarCollapse = React.useCallback(() => {
+        setIsSidebarCollapsed(prev => {
+            const next = !prev;
+            try { localStorage.setItem('zarada_sidebar_collapsed', String(next)); } catch { }
+            return next;
+        });
+        // CSS transition(300ms) 동안 연속 resize로 FullCalendar 실시간 크기 조정
+        [50, 150, 250, 320, 400].forEach(ms =>
+            setTimeout(() => window.dispatchEvent(new Event('resize')), ms)
+        );
+    }, []);
 
     // ✨ [Auto-Complete] 앱 진입 시 과거 예정 수업 자동 완료 처리
     useAutoCompleteSchedules(center?.id);
@@ -297,8 +280,6 @@ export function AppLayout() {
 
     return (
         <div className={`flex flex-col h-screen ${mainBg} font-sans relative overflow-hidden`}>
-            {/* 👑 Super Admin Impersonation Indicator (Static, pushes content down) */}
-            <SuperAdminBadge />
 
             {/* 🔄 SW Update Banner */}
             {showUpdateBanner && (
@@ -356,9 +337,9 @@ export function AppLayout() {
                 )}
 
                 {/* 사이드바 영역 */}
-                <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+                <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} isCollapsed={isSidebarCollapsed} onToggleCollapse={toggleSidebarCollapse} />
 
-                <div className="flex-1 flex flex-col overflow-hidden ml-0 md:ml-64 transition-all duration-300">
+                <div className={cn("flex-1 flex flex-col overflow-hidden ml-0 transition-all duration-300", isSidebarCollapsed ? "md:ml-[68px]" : "md:ml-64")}>
                     {/* Header Top Bar Spacer if needed, or Main Content */}
                     <main ref={mainRef} className={`flex-1 overflow-y-auto ${mainBg} px-4 pb-4 pt-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
                         {/* ✨ Pull-to-Refresh Indicator (Mobile PWA) */}
@@ -374,15 +355,14 @@ export function AppLayout() {
                                 <span>{isRefreshing ? '새로고침 중...' : pullDistance >= 80 ? '놓으면 새로고침' : '당겨서 새로고침'}</span>
                             </div>
                         </div>
-                        {/* 개별 페이지 렌더링 (Framer Motion Transition) */}
-                        <AnimatePresence mode="wait">
+                        {/* 개별 페이지 렌더링 */}
+                        <AnimatePresence>
                             <motion.div
                                 key={location.pathname}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.15, ease: 'easeOut' }}
-                                className="w-full h-full"
+                                transition={{ duration: 0.08, ease: 'easeOut' }}
+                                className="w-full h-full relative"
                             >
                                 <Outlet />
                             </motion.div>
