@@ -12,7 +12,7 @@ import { toLocalDateStr } from '@/utils/timezone';
 import { ExcelExportButton } from '@/components/common/ExcelExportButton';
 import {
     ChevronLeft, ChevronRight, Search, Loader2, User, X,
-    ArrowRightCircle, RotateCcw, History, Save,
+    ArrowRightCircle, RotateCcw, History, Save, Pencil,
     CheckCircle2, Clock, Ban,
     Receipt
 } from 'lucide-react';
@@ -327,8 +327,11 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
     const [creditUsed, setCreditUsed] = useState(0);
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [editPaidInputs, setEditPaidInputs] = useState<Record<string, { method: string; memo: string }>>({})
-    const [editNoteInputs, setEditNoteInputs] = useState<Record<string, string>>({});;
+    const [editPaidInputs, setEditPaidInputs] = useState<Record<string, { amount: number; method: string; memo: string }>>({})
+
+    // 월 이동
+    const [modalMonth, setModalMonth] = useState(month);
+    const [isLoadingMonth, setIsLoadingMonth] = useState(false);
 
     const updateSessionInput = (sid: string, field: string, value: string | number) =>
         setSessionInputs(prev => ({ ...prev, [sid]: { ...prev[sid], [field]: value } }));
@@ -336,7 +339,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     const activeGroup = localGroups.find(g => g.programId === expandedId) ?? localGroups[0];
     const sortedSessions = useMemo(() =>
         activeGroup ? [...activeGroup.sessions].sort((a, b) => a.date.localeCompare(b.date)) : [],
-        [activeGroup]
+        [activeGroup?.sessions]
     );
 
     // DB에서 세션별 수납 상태+상세정보 로드
@@ -369,12 +372,83 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     // 탭 전환 시 체크 초기화
     useEffect(() => { setCheckedIds(new Set()); setCreditUsed(0); }, [expandedId]);
 
+    // 월 이동 시 데이터 재로드
+    useEffect(() => {
+        if (modalMonth === month) {
+            setLocalSessions(childData.sessions);
+            setLocalGroups(childData.programGroups);
+            return;
+        }
+        const fetchOtherMonth = async () => {
+            if (!center?.id) return;
+            setIsLoadingMonth(true);
+            try {
+                const d = new Date(`${modalMonth}-01T00:00:00`);
+                d.setMonth(d.getMonth() + 1);
+                const nextM = d.toISOString().slice(0, 10);
+                const { data: sData } = await supabase.from('schedules')
+                    .select('*, children(*), programs(*)').eq('child_id', childData.id)
+                    .gte('start_time', `${modalMonth}-01`).lt('start_time', nextM)
+                    .order('start_time', { ascending: false });
+                const { data: pData } = await supabase.from('payments')
+                    .select('*, payment_items(*)').eq('child_id', childData.id)
+                    .eq('payment_month', modalMonth);
+
+                const sessions: BillingSession[] = ((sData || []) as any[]).map(item => {
+                    const isCanceled = item.status === 'cancelled';
+                    const isCarriedOver = item.status === 'carried_over';
+                    const programPrice = item.programs?.price || 0;
+                    return { ...item, date: toLocalDateStr(item.start_time), price: (isCanceled || isCarriedOver) ? 0 : programPrice, isCanceled, isCarriedOver };
+                });
+                const gMap: Record<string, ProgramGroup> = {};
+                sessions.forEach(s => {
+                    const pid = (s.programs as any)?.id || 'unknown';
+                    if (!gMap[pid]) gMap[pid] = {
+                        programId: pid, programName: (s.programs as any)?.name || '미분류',
+                        programCategory: (s.programs as any)?.category || null, programDescription: (s.programs as any)?.description || null,
+                        pricePerSession: (s.programs as any)?.price || 0, sessions: [],
+                        totalFee: 0, completedFee: 0, paidAmount: 0,
+                        completedCount: 0, scheduledCount: 0, cancelledCount: 0, carriedOverCount: 0,
+                    };
+                    gMap[pid].sessions.push(s);
+                    if (!s.isCanceled && !s.isCarriedOver) gMap[pid].totalFee += s.price;
+                    if (s.status === 'completed') { gMap[pid].completedFee += s.price; gMap[pid].completedCount++; }
+                    else if (s.isCarriedOver) gMap[pid].carriedOverCount++;
+                    else if (s.isCanceled) gMap[pid].cancelledCount++;
+                    else if (s.status === 'scheduled') gMap[pid].scheduledCount++;
+                });
+                const payments = (pData || []) as any[];
+                Object.values(gMap).forEach(g => {
+                    const sids = new Set(g.sessions.map(s => s.id));
+                    const direct = payments.filter(p => p.program_id === g.programId)
+                        .reduce((sum, p) => sum + (Number(p.amount) || 0) + (Number(p.credit_used) || 0), 0);
+                    const legacy = payments.filter(p => !p.program_id)
+                        .reduce((sum, p) => {
+                            const items: any[] = p.payment_items || [];
+                            return sum + items.filter((i: any) => sids.has(i.schedule_id))
+                                .reduce((ss: number, i: any) => ss + (Number(i.amount) || 0), 0);
+                        }, 0);
+                    g.paidAmount = direct + legacy;
+                });
+                setLocalSessions(sessions);
+                const groups = Object.values(gMap);
+                setLocalGroups(groups);
+                if (groups.length > 0) setExpandedId(groups[0].programId);
+            } catch (e) { console.error('월 데이터 로드 오류', e); }
+            finally { setIsLoadingMonth(false); }
+        };
+        fetchOtherMonth();
+    }, [modalMonth]);
+
     // 계산값
     const payableSessions = sortedSessions.filter(s => !s.isCanceled && !s.isCarriedOver);
     const unpaidPayable = payableSessions.filter(s => !paidMap[s.id]?.amount);
     const checkedTotal = [...checkedIds].reduce((sum, id) => sum + (sessionInputs[id]?.amount || 0), 0);
-    // 요약 바: buildChildMap에서 정확히 계산한 paidAmount 사용 (payment_items 합산 괴리 방지)
-    const groupPaidTotal = activeGroup?.paidAmount || 0;
+    // 요약 바: paidMap에서 실시간 합계 계산 (수납/환불/수정 즉시 반영)
+    const groupPaidTotal = useMemo(() =>
+        sortedSessions.reduce((sum, s) => sum + (paidMap[s.id]?.amount || 0), 0),
+        [sortedSessions, paidMap]
+    );
     const groupRemaining = (activeGroup?.totalFee || 0) - groupPaidTotal;
 
     const toggleCheck = (sid: string) => setCheckedIds(prev => { const n = new Set(prev); n.has(sid) ? n.delete(sid) : n.add(sid); return n; });
@@ -383,7 +457,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     // 수납 이력
     const loadPaymentHistory = async () => {
         if (!showHistory) {
-            const { data } = await supabase.from('payments').select('*').eq('child_id', childData.id).eq('payment_month', month).order('created_at', { ascending: false });
+            const { data } = await supabase.from('payments').select('*').eq('child_id', childData.id).eq('payment_month', modalMonth).order('created_at', { ascending: false });
             setPaymentHistory(data || []);
         }
         setShowHistory(p => !p);
@@ -451,7 +525,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                 child_id: childData.id, center_id: center.id,
                 amount: cashAmount, credit_used: creditAmt,
                 method: payMethod, memo: payMemo,
-                payment_month: month,
+                payment_month: modalMonth,
                 ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
             } as TableInsert<'payments'>).select().maybeSingle();
             if (error) throw error;
@@ -482,34 +556,69 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         try {
             await supabase.from('payments').insert({
                 child_id: childData.id, center_id: center.id,
-                amount: -paidAmount, method: '환불', payment_month: month,
+                amount: -paidAmount, method: '환불', payment_month: modalMonth,
                 memo: `환불: ${session.date}`,
                 ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
             } as TableInsert<'payments'>);
             await supabase.from('payment_items').delete().eq('schedule_id', session.id);
             setPaidMap(prev => { const n = { ...prev }; delete n[session.id]; return n; });
-            setEditingId(null);
             alert('환불이 완료되었습니다.');
             onSuccess();
         } catch (e: any) { alert('환불 오류: ' + e.message); } finally { setLoading(false); }
     };
 
-    // 스타일
-    const getStyle = (s: BillingSession) => {
-        const isPaid = !!paidMap[s.id]?.amount;
-        if (s.isCarriedOver) return { bg: isDark ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200', text: 'text-purple-600 dark:text-purple-400', icon: <ArrowRightCircle size={14} /> };
-        if (s.isCanceled) return { bg: isDark ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200', text: 'text-rose-500 dark:text-rose-400', icon: <Ban size={14} /> };
-        if (isPaid) return { bg: isDark ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600 dark:text-emerald-400', icon: <CheckCircle2 size={14} /> };
-        if (s.status === 'completed') return { bg: isDark ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200', text: 'text-blue-600 dark:text-blue-400', icon: <CheckCircle2 size={14} /> };
-        return { bg: isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200', text: 'text-slate-500 dark:text-slate-400', icon: <Clock size={14} /> };
+    // 전체 환불
+    const handleBulkRefund = async () => {
+        if (!center?.id) return;
+        const paidSessions = sortedSessions.filter(s => (paidMap[s.id]?.amount || 0) > 0);
+        if (paidSessions.length === 0) { alert('환불할 수납 건이 없습니다.'); return; }
+        const totalRefund = paidSessions.reduce((sum, s) => sum + (paidMap[s.id]?.amount || 0), 0);
+        if (!confirm(`${paidSessions.length}건, 총 ${totalRefund.toLocaleString()}원을 전체 환불하시겠습니까?`)) return;
+        setLoading(true);
+        try {
+            for (const s of paidSessions) {
+                const amt = paidMap[s.id]?.amount || 0;
+                await supabase.from('payments').insert({
+                    child_id: childData.id, center_id: center.id,
+                    amount: -amt, method: '환불', payment_month: modalMonth,
+                    memo: `전체환불: ${s.date}`,
+                    ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
+                } as TableInsert<'payments'>);
+                await supabase.from('payment_items').delete().eq('schedule_id', s.id);
+            }
+            setPaidMap(prev => {
+                const n = { ...prev };
+                paidSessions.forEach(s => delete n[s.id]);
+                return n;
+            });
+            alert(`${paidSessions.length}건 전체 환불이 완료되었습니다.`);
+            onSuccess();
+        } catch (e: any) { alert('전체 환불 오류: ' + e.message); } finally { setLoading(false); }
     };
 
-    const programColors = [
+    const styleIcons = useMemo(() => ({
+        carryOver: <ArrowRightCircle size={14} />,
+        cancel: <Ban size={14} />,
+        paid: <CheckCircle2 size={14} />,
+        completed: <CheckCircle2 size={14} />,
+        default: <Clock size={14} />,
+    }), []);
+
+    const getStyle = useCallback((s: BillingSession) => {
+        const isPaid = !!paidMap[s.id]?.amount;
+        if (s.isCarriedOver) return { bg: isDark ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200', text: 'text-purple-600 dark:text-purple-400', icon: styleIcons.carryOver };
+        if (s.isCanceled) return { bg: isDark ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200', text: 'text-rose-500 dark:text-rose-400', icon: styleIcons.cancel };
+        if (isPaid) return { bg: isDark ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600 dark:text-emerald-400', icon: styleIcons.paid };
+        if (s.status === 'completed') return { bg: isDark ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200', text: 'text-blue-600 dark:text-blue-400', icon: styleIcons.completed };
+        return { bg: isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200', text: 'text-slate-500 dark:text-slate-400', icon: styleIcons.default };
+    }, [paidMap, isDark, styleIcons]);
+
+    const programColors = useMemo(() => [
         { bar: 'bg-blue-500', tab: isDark ? 'bg-blue-900/60 text-blue-300 border-blue-700' : 'bg-blue-600 text-white border-blue-600', tabOff: isDark ? 'text-slate-400 hover:text-blue-300' : 'text-slate-500 hover:text-blue-600', pay: isDark ? 'bg-blue-600 hover:bg-blue-500' : 'bg-blue-600 hover:bg-blue-700' },
         { bar: 'bg-violet-500', tab: isDark ? 'bg-violet-900/60 text-violet-300 border-violet-700' : 'bg-violet-600 text-white border-violet-600', tabOff: isDark ? 'text-slate-400 hover:text-violet-300' : 'text-slate-500 hover:text-violet-600', pay: isDark ? 'bg-violet-600 hover:bg-violet-500' : 'bg-violet-600 hover:bg-violet-700' },
         { bar: 'bg-teal-500', tab: isDark ? 'bg-teal-900/60 text-teal-300 border-teal-700' : 'bg-teal-600 text-white border-teal-600', tabOff: isDark ? 'text-slate-400 hover:text-teal-300' : 'text-slate-500 hover:text-teal-600', pay: isDark ? 'bg-teal-600 hover:bg-teal-500' : 'bg-teal-600 hover:bg-teal-700' },
         { bar: 'bg-orange-500', tab: isDark ? 'bg-orange-900/60 text-orange-300 border-orange-700' : 'bg-orange-500 text-white border-orange-500', tabOff: isDark ? 'text-slate-400 hover:text-orange-300' : 'text-slate-500 hover:text-orange-600', pay: isDark ? 'bg-orange-500 hover:bg-orange-400' : 'bg-orange-500 hover:bg-orange-600' },
-    ];
+    ], [isDark]);
     const activeColorIdx = localGroups.findIndex(g => g.programId === activeGroup?.programId) % programColors.length;
     const pc = programColors[activeColorIdx >= 0 ? activeColorIdx : 0];
 
@@ -525,7 +634,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                 child_id: childData.id, center_id: center.id,
                 amount: inp.amount, credit_used: 0,
                 method: inp.method, memo: inp.memo || activeGroup?.programName || '',
-                payment_month: month,
+                payment_month: modalMonth,
                 ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
             } as TableInsert<'payments'>).select().maybeSingle();
             if (error) throw error;
@@ -548,41 +657,108 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         } catch (e: any) { alert('수납 오류: ' + e.message); } finally { setLoading(false); }
     };
 
-    // 수납완료 세션 결제수단/메모 수정
+    // 수납완료 세션 인라인 수정
+    const startEditPaid = (sid: string) => {
+        const detail = paidMap[sid];
+        if (!detail) return;
+        setEditingId(sid);
+        setEditPaidInputs(prev => ({ ...prev, [sid]: { amount: detail.amount, method: detail.method || '카드', memo: detail.memo || '' } }));
+    };
     const handleUpdatePayment = async (sid: string) => {
         const detail = paidMap[sid];
         const edit = editPaidInputs[sid];
         if (!detail?.paymentId || !edit) return;
         setLoading(true);
         try {
-            await supabase.from('payments').update({ method: edit.method, memo: edit.memo }).eq('id', detail.paymentId);
-            setPaidMap(prev => ({ ...prev, [sid]: { ...prev[sid], method: edit.method, memo: edit.memo } }));
+            // 해당 세션이 공유 payment에 속해있는지 확인
+            const { data: siblingItems } = await supabase
+                .from('payment_items').select('id')
+                .eq('payment_id', detail.paymentId);
+            const isShared = (siblingItems?.length || 0) > 1;
+
+            if (isShared) {
+                // 공유 payment → 해당 세션을 분리하여 개별 payment 생성
+                // 1. 기존 payment_item 삭제
+                await supabase.from('payment_items').delete()
+                    .eq('schedule_id', sid).eq('payment_id', detail.paymentId);
+
+                // 2. 기존 payment 금액 차감
+                const { data: oldPay } = await supabase.from('payments')
+                    .select('amount').eq('id', detail.paymentId).single();
+                if (oldPay) {
+                    const remainingAmt = (oldPay.amount || 0) - detail.amount;
+                    if (remainingAmt <= 0) {
+                        await supabase.from('payments').delete().eq('id', detail.paymentId);
+                    } else {
+                        await supabase.from('payments').update({ amount: remainingAmt }).eq('id', detail.paymentId);
+                    }
+                }
+
+                // 3. 새 개별 payment 생성
+                const { data: newPay } = await supabase.from('payments').insert({
+                    child_id: childData.id, center_id: center?.id || '',
+                    amount: edit.amount, credit_used: 0,
+                    method: edit.method, memo: edit.memo,
+                    payment_month: modalMonth,
+                    ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
+                } as TableInsert<'payments'>).select().maybeSingle();
+
+                // 4. 새 payment_item 생성
+                if (newPay) {
+                    await supabase.from('payment_items').insert({
+                        payment_id: newPay.id, schedule_id: sid,
+                        amount: edit.amount,
+                        ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
+                    } as TableInsert<'payment_items'>);
+                    setPaidMap(prev => ({
+                        ...prev,
+                        [sid]: { amount: edit.amount, method: edit.method, memo: edit.memo, paymentId: newPay.id }
+                    }));
+                }
+            } else {
+                // 단독 payment → 직접 수정
+                await supabase.from('payments').update({
+                    amount: edit.amount, method: edit.method, memo: edit.memo
+                }).eq('id', detail.paymentId);
+                await supabase.from('payment_items').update({ amount: edit.amount })
+                    .eq('schedule_id', sid).eq('payment_id', detail.paymentId);
+                setPaidMap(prev => ({
+                    ...prev,
+                    [sid]: { ...prev[sid], amount: edit.amount, method: edit.method, memo: edit.memo }
+                }));
+            }
+
             setEditingId(null);
-            alert('수정되었습니다.');
             onSuccess();
         } catch (e: any) { alert('수정 오류: ' + e.message); } finally { setLoading(false); }
     };
-
-    // 세션 메모(취소/이월 등) 수정 — schedules.notes 업데이트
-    const handleUpdateNote = async (sid: string) => {
-        const note = editNoteInputs[sid] ?? '';
-        setLoading(true);
-        try {
-            await supabase.from('schedules').update({ notes: note }).eq('id', sid);
-            setEditingId(null);
-            alert('메모가 저장되었습니다.');
-        } catch (e: any) { alert('메모 저장 오류: ' + e.message); } finally { setLoading(false); }
-    };
-
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className={cn("rounded-2xl w-full max-w-3xl flex flex-col shadow-2xl overflow-hidden", isDark ? "bg-slate-900" : "bg-white")} style={{ height: 'min(90vh, 820px)' }}>
+            <div className={cn("rounded-2xl w-full max-w-5xl flex flex-col shadow-2xl overflow-hidden", isDark ? "bg-slate-900" : "bg-white")} style={{ height: 'min(90vh, 820px)' }}>
 
                 {/* ── 헤더 */}
                 <div className={cn("px-7 py-5 flex justify-between items-start shrink-0 border-b", isDark ? "bg-slate-800 border-slate-700" : "bg-white border-gray-200")}>
                     <div>
                         <h2 className={cn("text-2xl font-black", isDark ? "text-white" : "text-slate-900")}>{childData.name}</h2>
-                        <p className={cn("text-sm mt-0.5", isDark ? "text-slate-400" : "text-slate-500")}>{month.replace('-', '년 ')}월 수납 상세</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <button onClick={() => { const d = new Date(modalMonth + '-01'); d.setMonth(d.getMonth() - 1); setModalMonth(d.toISOString().slice(0, 7)); }}
+                                className={cn("p-1 rounded-lg transition-colors", isDark ? "hover:bg-slate-700 text-slate-500" : "hover:bg-slate-100 text-slate-400")}>
+                                <ChevronLeft size={16} />
+                            </button>
+                            <p className={cn("text-sm font-bold", isDark ? "text-slate-300" : "text-slate-600")}>
+                                {modalMonth.replace('-', '년 ')}월 수납 상세
+                            </p>
+                            <button onClick={() => { const d = new Date(modalMonth + '-01'); d.setMonth(d.getMonth() + 1); setModalMonth(d.toISOString().slice(0, 7)); }}
+                                className={cn("p-1 rounded-lg transition-colors", isDark ? "hover:bg-slate-700 text-slate-500" : "hover:bg-slate-100 text-slate-400")}>
+                                <ChevronRight size={16} />
+                            </button>
+                            {modalMonth !== month && (
+                                <button onClick={() => setModalMonth(month)}
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 ml-1">
+                                    이번 달
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <button onClick={loadPaymentHistory} className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all", showHistory ? (isDark ? "bg-blue-800 text-blue-300" : "bg-blue-100 text-blue-600") : (isDark ? "hover:bg-slate-700 text-slate-400" : "hover:bg-slate-100 text-slate-500"))}>
@@ -628,7 +804,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     {localGroups.map((g, gi) => {
                         const gpc = programColors[gi % programColors.length];
                         const isActive = expandedId === g.programId;
-                        const gPaid = g.paidAmount;
+                        const gPaid = isActive ? groupPaidTotal : g.paidAmount;
                         const gBalance = g.totalFee - gPaid;
                         const gStatus = g.totalFee === 0 && gPaid === 0 ? 'none'
                             : gBalance < 0 ? 'over' : gBalance === 0 ? 'full' : 'unpaid';
@@ -688,179 +864,198 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     </div>
                 )}
 
-                {/* ── 세션 카드 리스트 (스크롤) */}
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
-                    {!paidMapLoaded ? (
+                {/* ── 세션 테이블 (스크롤) */}
+                <div className="flex-1 overflow-y-auto px-4 py-3">
+                    {(!paidMapLoaded || isLoadingMonth) ? (
                         <div className="flex items-center justify-center py-12">
                             <Loader2 size={24} className="animate-spin text-slate-400" />
                         </div>
                     ) : (<>
-                        {/* 전체선택 헤더 */}
-                        <div className="flex items-center justify-between mb-1">
-                            <p className={cn("text-xs font-black", isDark ? "text-slate-500" : "text-slate-400")}>회기별 상태</p>
-                            {unpaidPayable.length > 0 && (
-                                <button onClick={selectAllUnpaid} className={cn("text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all", isDark ? "hover:bg-slate-800 text-blue-400" : "hover:bg-blue-50 text-blue-500")}>
-                                    미수납 전체 선택 ({unpaidPayable.length}건)
-                                </button>
-                            )}
+                        {/* 상단 액션 바 */}
+                        <div className="flex items-center justify-between mb-2 gap-2">
+                            <p className={cn("text-xs font-black shrink-0", isDark ? "text-slate-500" : "text-slate-400")}>회기별 상태</p>
+                            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                                {unpaidPayable.length > 0 && (['카드', '현금', '계좌이체'] as const).map(method => (
+                                    <button key={method}
+                                        onClick={() => { selectAllUnpaid(); unpaidPayable.forEach(s => updateSessionInput(s.id, 'method', method)); }}
+                                        className={cn("text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap shrink-0 border",
+                                            isDark ? "border-slate-700 text-blue-400 hover:bg-slate-800" : "border-blue-200 text-blue-600 hover:bg-blue-50")}>
+                                        {method === '카드' ? '💳' : method === '현금' ? '💵' : '🏦'} 전체 {method}
+                                    </button>
+                                ))}
+                                {sortedSessions.some(s => (paidMap[s.id]?.amount || 0) > 0) && (
+                                    <button onClick={handleBulkRefund} disabled={loading}
+                                        className={cn("text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap shrink-0 border",
+                                            isDark ? "border-rose-800 text-rose-400 hover:bg-rose-900/40" : "border-rose-200 text-rose-500 hover:bg-rose-50")}>
+                                        ↻ 전체 환불
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
-                        {sortedSessions.map((s, i) => {
-                            const ss = getStyle(s);
-                            const isPaid = !!paidMap[s.id]?.amount;
-                            const isPayable = !s.isCanceled && !s.isCarriedOver;
-                            const isChecked = checkedIds.has(s.id);
-                            const inp = sessionInputs[s.id];
-                            const paidDetail = paidMap[s.id];
-                            const isEditingThis = editingId === s.id;
-                            const editInp = editPaidInputs[s.id];
+                        {sortedSessions.length === 0 ? (
+                            <div className={cn("py-12 text-center rounded-xl border-2 border-dashed",
+                                isDark ? "border-slate-700 text-slate-600" : "border-slate-200 text-slate-400")}>
+                                <p className="font-bold">이 달에는 수업 기록이 없습니다.</p>
+                            </div>
+                        ) : (
+                            <div className={cn("rounded-xl border overflow-hidden", isDark ? "border-slate-700" : "border-slate-200")}>
+                                {/* 테이블 헤더 */}
+                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider",
+                                    isDark ? "bg-slate-800/60 text-slate-500" : "bg-slate-50 text-slate-400")}>
+                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span>메모</span><span className="text-right">관리</span>
+                                </div>
 
-                            return (
-                                <div key={s.id} className="space-y-0">
-                                    <div className={cn("rounded-xl border p-3.5 flex items-center gap-3 transition-all hover:shadow-md", ss.bg, isChecked && 'ring-2 ring-blue-400 dark:ring-blue-600')}>
-                                        {/* 체크박스 */}
-                                        {isPayable && !isPaid ? (
-                                            <input type="checkbox" checked={isChecked} onChange={() => toggleCheck(s.id)}
-                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0 accent-blue-600" />
-                                        ) : <div className="w-4 shrink-0" />}
+                                {/* 테이블 행 */}
+                                {sortedSessions.map((s, i) => {
+                                    const ss = getStyle(s);
+                                    const isPaid = !!paidMap[s.id]?.amount;
+                                    const isPayable = !s.isCanceled && !s.isCarriedOver;
+                                    const isChecked = checkedIds.has(s.id);
+                                    const inp = sessionInputs[s.id];
+                                    const paidDetail = paidMap[s.id];
 
-                                        {/* 회기 번호 */}
-                                        <span className={cn("w-7 h-7 rounded-lg text-[11px] font-black flex items-center justify-center shrink-0", isDark ? "bg-black/20" : "bg-white/70", ss.text)}>{i + 1}</span>
+                                    return (
+                                        <div key={s.id} className={cn(
+                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 items-center border-t [&>*]:min-w-0",
+                                            isDark ? "border-slate-800" : "border-slate-100",
+                                            isChecked && (isDark ? "bg-blue-900/20" : "bg-blue-50/60"),
+                                            s.isCarriedOver && (isDark ? "bg-purple-900/10" : "bg-purple-50/30"),
+                                            s.isCanceled && (isDark ? "bg-rose-900/10" : "bg-rose-50/30"),
+                                            isPaid && (isDark ? "bg-emerald-900/10" : "bg-emerald-50/30"),
+                                        )}>
+                                            {/* 체크박스 */}
+                                            {isPayable && !isPaid ? (
+                                                <input type="checkbox" checked={isChecked} onChange={() => toggleCheck(s.id)}
+                                                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 cursor-pointer accent-blue-600" />
+                                            ) : <div className="w-3.5" />}
 
-                                        {/* 날짜 + 상태 */}
-                                        <div className="flex-1 min-w-0">
-                                            <p className={cn("text-sm font-bold", isDark ? "text-slate-200" : "text-slate-700")}>{s.date}</p>
-                                            <div className={cn("flex items-center gap-1 mt-0.5", ss.text)}>
-                                                {ss.icon}
-                                                <span className="text-[11px] font-bold">
-                                                    {s.isCarriedOver ? '이월' : s.isCanceled ? '취소' : isPaid ? '수납완료' : s.status === 'completed' ? '수업완료' : '예정'}
-                                                </span>
-                                                {/* 수납완료 시 결제수단 뱃지 */}
-                                                {isPaid && paidDetail?.method && (
-                                                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full ml-1", isDark ? "bg-emerald-900/40 text-emerald-400" : "bg-emerald-100 text-emerald-600")}>
-                                                        {paidDetail.method}
+                                            {/* # */}
+                                            <span className={cn("text-[10px] font-black", ss.text)}>{i + 1}</span>
+
+                                            {/* 날짜 + 상태 */}
+                                            <div className="min-w-0">
+                                                <span className={cn("text-xs font-bold", isDark ? "text-slate-200" : "text-slate-700")}>{s.date.slice(5)}</span>
+                                                <div className={cn("flex items-center gap-1 mt-0.5", ss.text)}>
+                                                    {ss.icon}
+                                                    <span className="text-[9px] font-bold">
+                                                        {s.isCarriedOver ? '이월' : s.isCanceled ? '취소' : isPaid ? '수납완료' : s.status === 'completed' ? '수업완료' : '예정'}
                                                     </span>
+                                                </div>
+                                            </div>
+
+                                            {/* 결제수단 */}
+                                            {isPayable && !isPaid ? (
+                                                <select value={inp?.method || '카드'} onChange={e => updateSessionInput(s.id, 'method', e.target.value)}
+                                                    className={cn("px-1 py-0.5 rounded text-[10px] font-bold outline-none border w-full cursor-pointer",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
+                                                    <option value="카드">💳카드</option>
+                                                    <option value="현금">💵현금</option>
+                                                    <option value="계좌이체">🏦계좌</option>
+                                                </select>
+                                            ) : isPaid && editingId === s.id ? (
+                                                <select value={editPaidInputs[s.id]?.method || '카드'}
+                                                    onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], method: e.target.value } }))}
+                                                    className={cn("px-1 py-0.5 rounded text-[10px] font-bold outline-none border w-full cursor-pointer",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
+                                                    <option value="카드">💳카드</option>
+                                                    <option value="현금">💵현금</option>
+                                                    <option value="계좌이체">🏦계좌</option>
+                                                    <option value="크레딧">🎫크레딧</option>
+                                                    <option value="혼합">🔄혼합</option>
+                                                </select>
+                                            ) : isPaid ? (
+                                                <span className={cn("text-[10px] font-bold", isDark ? "text-emerald-400" : "text-emerald-600")}>{paidDetail?.method || '-'}</span>
+                                            ) : (
+                                                <span className={cn("text-[10px]", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
+                                            )}
+
+                                            {/* 금액 */}
+                                            {isPayable && !isPaid ? (
+                                                <input type="number" value={inp?.amount || ''}
+                                                    onChange={e => updateSessionInput(s.id, 'amount', Number(e.target.value))}
+                                                    className={cn("w-full text-right font-black text-[11px] outline-none rounded px-1 py-0.5 border",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-800")} />
+                                            ) : isPaid && editingId === s.id ? (
+                                                <input type="number" value={editPaidInputs[s.id]?.amount || ''}
+                                                    onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], amount: Number(e.target.value) } }))}
+                                                    className={cn("w-full text-right font-black text-[11px] outline-none rounded px-1 py-0.5 border",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-800")} />
+                                            ) : isPaid ? (
+                                                <span className="text-[11px] font-black text-emerald-500 text-right">{paidDetail?.amount?.toLocaleString()}</span>
+                                            ) : (
+                                                <span className={cn("text-[11px] text-right", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
+                                            )}
+
+                                            {/* 메모 */}
+                                            {isPayable && !isPaid ? (
+                                                <input type="text" placeholder="메모" value={inp?.memo || ''}
+                                                    onChange={e => updateSessionInput(s.id, 'memo', e.target.value)}
+                                                    className={cn("w-full px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
+                                            ) : isPaid && editingId === s.id ? (
+                                                <input type="text" placeholder="메모" value={editPaidInputs[s.id]?.memo || ''}
+                                                    onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], memo: e.target.value } }))}
+                                                    className={cn("w-full px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
+                                            ) : isPaid ? (
+                                                <span title={paidDetail?.memo || ''} className={cn("text-[10px] break-all leading-tight", isDark ? "text-slate-400" : "text-slate-500")}>{paidDetail?.memo || '-'}</span>
+                                            ) : (
+                                                <span className={cn("text-[10px]", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
+                                            )}
+
+                                            {/* 관리 */}
+                                            <div className="flex items-center gap-1 justify-end shrink-0">
+                                                {isPayable && !isPaid && (
+                                                    <button onClick={() => handleSinglePay(s)} disabled={loading}
+                                                        className="px-2 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white shrink-0">
+                                                        수납
+                                                    </button>
+                                                )}
+                                                {isPaid && editingId === s.id ? (
+                                                    <>
+                                                        <button onClick={() => handleUpdatePayment(s.id)} disabled={loading}
+                                                            className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-600 text-white shrink-0 flex items-center gap-0.5">
+                                                            <Save size={9} /> 저장
+                                                        </button>
+                                                        <button onClick={() => setEditingId(null)}
+                                                            className={cn("px-1.5 py-0.5 rounded text-[9px] font-black border shrink-0",
+                                                                isDark ? "border-slate-600 text-slate-400" : "border-slate-200 text-slate-400")}>
+                                                            취소
+                                                        </button>
+                                                    </>
+                                                ) : isPaid ? (
+                                                    <>
+                                                        <button onClick={() => startEditPaid(s.id)}
+                                                            className={cn("px-1.5 py-0.5 rounded text-[9px] font-black border flex items-center gap-0.5 shrink-0",
+                                                                isDark ? "border-slate-600 text-slate-400" : "border-slate-200 text-slate-400")}>
+                                                            <Pencil size={9} /> 수정
+                                                        </button>
+                                                        <button onClick={() => handleSessionRefund(s)} disabled={loading}
+                                                            className={cn("px-1.5 py-0.5 rounded text-[9px] font-black border flex items-center gap-0.5 shrink-0",
+                                                                isDark ? "border-rose-800 text-rose-400" : "border-rose-200 text-rose-500")}>
+                                                            <RotateCcw size={9} /> 환불
+                                                        </button>
+                                                    </>
+                                                ) : null}
+                                                {!isPaid && (
+                                                    <select value={s.status}
+                                                        onChange={e => handleStatusChange(s.id, e.target.value as ScheduleStatus)}
+                                                        disabled={loading}
+                                                        className={cn("text-[9px] font-bold px-1 py-0.5 rounded border-none outline-none cursor-pointer",
+                                                            isDark ? "bg-black/30 text-white" : "bg-white text-slate-500 shadow-sm")}>
+                                                        <option value="scheduled">예정</option>
+                                                        <option value="completed">완료</option>
+                                                        <option value="cancelled">취소</option>
+                                                        <option value="carried_over">이월</option>
+                                                    </select>
                                                 )}
                                             </div>
                                         </div>
-
-                                        {/* 상태 변경 */}
-                                        <select value={s.status}
-                                            onChange={e => handleStatusChange(s.id, e.target.value as ScheduleStatus)}
-                                            disabled={loading}
-                                            className={cn("text-[11px] font-bold px-2 py-1.5 rounded-lg border-none outline-none cursor-pointer shrink-0", isDark ? "bg-black/30 text-white" : "bg-white text-slate-600 shadow-sm")}>
-                                            <option value="scheduled">예정</option>
-                                            <option value="completed">완료</option>
-                                            <option value="cancelled">취소</option>
-                                            <option value="carried_over">이월</option>
-                                        </select>
-
-                                        {/* 금액 */}
-                                        {isPayable && !isPaid ? (
-                                            <div className="flex items-center gap-0.5 shrink-0">
-                                                <input type="number" value={inp?.amount || ''}
-                                                    onChange={e => updateSessionInput(s.id, 'amount', Number(e.target.value))}
-                                                    className={cn("w-24 text-right font-black text-sm outline-none rounded-lg px-2 py-1.5 border transition-all", isDark ? "bg-slate-700 border-slate-600 text-white focus:border-blue-500" : "bg-white border-slate-200 text-slate-800 focus:border-blue-400")} />
-                                                <span className={cn("text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>원</span>
-                                            </div>
-                                        ) : isPaid ? (
-                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                <span className="text-sm font-black text-emerald-500">{paidDetail?.amount?.toLocaleString() || 0}원</span>
-                                                <button onClick={() => { setEditingId(isEditingThis ? null : s.id); if (!isEditingThis) setEditPaidInputs(prev => ({ ...prev, [s.id]: { method: paidDetail?.method || '카드', memo: paidDetail?.memo || '' } })); }}
-                                                    className={cn("px-2 py-1 rounded-lg text-[10px] font-black transition-all border",
-                                                        isEditingThis
-                                                            ? (isDark ? "bg-emerald-800 text-emerald-200 border-emerald-700" : "bg-emerald-100 text-emerald-700 border-emerald-300")
-                                                            : (isDark ? "border-slate-600 text-slate-400 hover:border-emerald-600 hover:text-emerald-400" : "border-slate-200 text-slate-400 hover:border-emerald-400 hover:text-emerald-600"))}>
-                                                    수정
-                                                </button>
-                                                <button onClick={() => handleSessionRefund(s)} disabled={loading} title="환불"
-                                                    className={cn("p-1.5 rounded-lg transition-all", isDark ? "hover:bg-rose-900/40 text-slate-500 hover:text-rose-400" : "hover:bg-rose-50 text-slate-400 hover:text-rose-500")}>
-                                                    <RotateCcw size={13} />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            /* 취소/이월 카드: 메모 버튼 */
-                                            <button onClick={() => { setEditingId(isEditingThis ? null : s.id); if (!isEditingThis) setEditNoteInputs(prev => ({ ...prev, [s.id]: '' })); }}
-                                                className={cn("px-2.5 py-1 rounded-lg text-[10px] font-black transition-all border shrink-0",
-                                                    isEditingThis
-                                                        ? (isDark ? "bg-slate-700 text-slate-200 border-slate-600" : "bg-slate-200 text-slate-700 border-slate-300")
-                                                        : (isDark ? "border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300" : "border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-600"))}>
-                                                메모
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* 미수납 체크 시 확장: 결제수단 + 메모 + 개별수납 */}
-                                    {isChecked && isPayable && !isPaid && (
-                                        <div className={cn("ml-11 mr-2 px-4 py-2.5 rounded-b-xl border border-t-0 flex items-center gap-2",
-                                            isDark ? "bg-slate-800/60 border-slate-700" : "bg-slate-50 border-slate-200")}>
-                                            <select value={inp?.method || '카드'} onChange={e => updateSessionInput(s.id, 'method', e.target.value)}
-                                                className={cn("px-2 py-1.5 rounded-lg text-[11px] font-bold outline-none border shrink-0 cursor-pointer",
-                                                    isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
-                                                <option value="카드">💳 카드</option>
-                                                <option value="현금">💵 현금</option>
-                                                <option value="계좌이체">🏦 계좌이체</option>
-                                            </select>
-                                            <input type="text" placeholder="메모" value={inp?.memo || ''}
-                                                onChange={e => updateSessionInput(s.id, 'memo', e.target.value)}
-                                                className={cn("flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none border min-w-0",
-                                                    isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
-                                            <button onClick={() => handleSinglePay(s)} disabled={loading}
-                                                className={cn("px-3 py-1.5 rounded-lg text-[11px] font-black transition-all shrink-0",
-                                                    isDark ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-blue-600 hover:bg-blue-700 text-white")}>
-                                                {loading ? '...' : '수납'}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* 수납완료 클릭 시 확장: 결제수단 + 메모 확인/수정 */}
-                                    {isEditingThis && isPaid && (
-                                        <div className={cn("ml-11 mr-2 px-4 py-2.5 rounded-b-xl border border-t-0 flex items-center gap-2",
-                                            isDark ? "bg-emerald-900/20 border-emerald-800/50" : "bg-emerald-50/50 border-emerald-200")}>
-                                            <select value={editInp?.method || '카드'}
-                                                onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], method: e.target.value } }))}
-                                                className={cn("px-2 py-1.5 rounded-lg text-[11px] font-bold outline-none border shrink-0 cursor-pointer",
-                                                    isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
-                                                <option value="카드">💳 카드</option>
-                                                <option value="현금">💵 현금</option>
-                                                <option value="계좌이체">🏦 계좌이체</option>
-                                                <option value="크레딧">🎫 크레딧</option>
-                                                <option value="혼합">🔄 혼합</option>
-                                            </select>
-                                            <input type="text" placeholder="메모" value={editInp?.memo || ''}
-                                                onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], memo: e.target.value } }))}
-                                                className={cn("flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none border min-w-0",
-                                                    isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
-                                            <button onClick={() => handleUpdatePayment(s.id)} disabled={loading}
-                                                className={cn("px-3 py-1.5 rounded-lg text-[11px] font-black transition-all shrink-0 flex items-center gap-1",
-                                                    isDark ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-emerald-600 hover:bg-emerald-700 text-white")}>
-                                                <Save size={11} />
-                                                {loading ? '...' : '저장'}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* 취소/이월 클릭 시 확장: 메모 작성 */}
-                                    {isEditingThis && !isPaid && !isPayable && (
-                                        <div className={cn("ml-11 mr-2 px-4 py-2.5 rounded-b-xl border border-t-0 flex items-center gap-2",
-                                            isDark ? (s.isCanceled ? "bg-rose-900/10 border-rose-800/50" : "bg-purple-900/10 border-purple-800/50")
-                                                : (s.isCanceled ? "bg-rose-50/50 border-rose-200" : "bg-purple-50/50 border-purple-200"))}>
-                                            <span className={cn("text-[11px] font-bold shrink-0", isDark ? "text-slate-400" : "text-slate-500")}>📝</span>
-                                            <input type="text" placeholder="메모 입력..." value={editNoteInputs[s.id] ?? ''}
-                                                onChange={e => setEditNoteInputs(prev => ({ ...prev, [s.id]: e.target.value }))}
-                                                className={cn("flex-1 px-2.5 py-1.5 rounded-lg text-[11px] outline-none border min-w-0",
-                                                    isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
-                                            <button onClick={() => handleUpdateNote(s.id)} disabled={loading}
-                                                className={cn("px-3 py-1.5 rounded-lg text-[11px] font-black transition-all shrink-0 flex items-center gap-1",
-                                                    isDark ? "bg-slate-600 hover:bg-slate-500 text-white" : "bg-slate-600 hover:bg-slate-700 text-white")}>
-                                                <Save size={11} />
-                                                {loading ? '...' : '저장'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </div>
+                        )}
                     </>)}
                 </div>
 
@@ -877,11 +1072,29 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                         </div>
                     )}
 
-                    {/* 일괄 수납 버튼 */}
+                    {/* 일괄 수납 버튼 + 결제수단 일괄 변경 */}
                     <div className="flex items-center gap-2">
-                        <p className={cn("flex-1 text-xs font-bold", isDark ? "text-slate-500" : "text-slate-400")}>
-                            {checkedIds.size > 0 ? `${checkedIds.size}건 선택됨 · 각 카드에서 결제수단/메모 설정` : '체크박스로 수납할 회기를 선택하세요'}
-                        </p>
+                        {checkedIds.size > 0 ? (
+                            <>
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {(['카드', '현금', '계좌이체'] as const).map(m => (
+                                        <button key={m}
+                                            onClick={() => [...checkedIds].forEach(id => updateSessionInput(id, 'method', m))}
+                                            className={cn("px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
+                                                isDark ? "border-slate-600 text-slate-300 hover:border-blue-500 hover:text-blue-400" : "border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600")}>
+                                            {m === '카드' ? '💳' : m === '현금' ? '💵' : '🏦'}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className={cn("flex-1 text-xs font-bold min-w-0", isDark ? "text-slate-500" : "text-slate-400")}>
+                                    {checkedIds.size}건 선택
+                                </p>
+                            </>
+                        ) : (
+                            <p className={cn("flex-1 text-xs font-bold", isDark ? "text-slate-500" : "text-slate-400")}>
+                                체크박스로 수납할 회기를 선택하세요
+                            </p>
+                        )}
                         <button onClick={handleBulkPay} disabled={loading || checkedIds.size === 0}
                             className={cn("px-5 py-2.5 rounded-xl font-black text-sm transition-all flex items-center gap-2 shadow shrink-0 whitespace-nowrap",
                                 checkedIds.size > 0
