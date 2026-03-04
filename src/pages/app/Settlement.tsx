@@ -20,7 +20,7 @@ import { useCenter } from '@/contexts/CenterContext';
 import { SUPER_ADMIN_EMAILS, isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 
 // ✨ 고용 형태 타입
-type HireType = 'freelancer' | 'fulltime' | 'regular';
+type HireType = 'freelancer' | 'fulltime' | 'parttime' | 'regular';
 
 // ✨ 시스템 역할 타입
 type SystemRole = 'therapist' | 'manager' | 'admin' | 'super_admin' | 'parent';
@@ -115,6 +115,7 @@ export function Settlement() {
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [settlementList, setSettlementList] = useState<SettlementData[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [_totalStats, setTotalStats] = useState<TotalStats>({ payout: 0, count: 0 });
 
     // ✨ [Fix] Missing State Definitions
@@ -453,20 +454,14 @@ export function Settlement() {
                         type="text"
                         placeholder="직원 이름으로 검색..."
                         className="flex-1 font-bold text-slate-700 dark:text-white bg-transparent outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                        onChange={(e) => {
-                            const searchTerm = e.target.value.toLowerCase();
-                            if (!searchTerm) {
-                                fetchSettlements(); // Reset to full list
-                            } else {
-                                setSettlementList(prev => prev.filter(s => s.name.toLowerCase().includes(searchTerm)));
-                            }
-                        }}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
                 {/* ✨ Staff List */}
                 <div className="grid grid-cols-1 gap-4">
-                    {settlementList.map((t) => (
+                    {settlementList.filter(s => !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((t) => (
                         <div key={t.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
                             {editingId === t.id ? (
                                 <div className="space-y-4">
