@@ -398,21 +398,43 @@ export function Dashboard() {
                 monthsToShow.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
             }
 
-            // ✨ [SECURITY] Enforce Center ID Filter using Inner Join on Children
-            const { data: allSchedules } = await supabase
-                .from('schedules')
-                .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday), programs (name)`)
-                .eq('children.center_id', center.id)
-                .order('start_time', { ascending: true });
+            const lastDayOfMonth = new Date(selYear, selMonth, 0).getDate();
 
-            // ✨ [SECURITY] Fetch Children only for this center
-            const { data: existingChildren } = await supabase
-                .from('children')
-                .select('id, name, gender, birth_date, created_at, status')
-                .eq('center_id', center.id); // 🔒 Security Filter
+            // ⚡ [PERF] Batch 1: 독립적 쿼리 4개 병렬 실행 (기존 순차 → 병렬)
+            const [schedulesRes, childrenRes, siteVisitsRes, leadsRes] = await Promise.all([
+                // 1. Schedules (전체)
+                supabase
+                    .from('schedules')
+                    .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday), programs (name)`)
+                    .eq('children.center_id', center.id)
+                    .order('start_time', { ascending: true }),
+                // 2. Children (센터)
+                supabase
+                    .from('children')
+                    .select('id, name, gender, birth_date, created_at, status')
+                    .eq('center_id', center.id),
+                // 3. Site Visits (월별)
+                supabase
+                    .from('site_visits')
+                    .select('source_category, visited_at, referrer_url, page_url')
+                    .eq('center_id', center.id)
+                    .gte('visited_at', selectedMonth + '-01')
+                    .lte('visited_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0')),
+                // 4. Consultations / Leads
+                supabase
+                    .from('consultations')
+                    .select('id, marketing_source, inflow_source, status, created_at, child_id')
+                    .eq('center_id', center.id)
+                    .gte('created_at', monthsToShow[0] + '-01')
+                    .lte('created_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0'))
+            ]);
+
+            const allSchedules = schedulesRes.data;
+            const existingChildren = childrenRes.data;
+            const siteVisits = siteVisitsRes.data;
+            const allLeads = leadsRes.data;
 
             // ✨ [FIX] status enum 기반 활성 아동 필터링
-            // status가 'active'이거나, status가 null/undefined인 경우(마이그레이션 전 데이터) active로 간주
             const activeChildren = (existingChildren as DashboardChild[])?.filter(c =>
                 c.status === 'active' || (!c.status)
             ) || [];
@@ -427,15 +449,31 @@ export function Dashboard() {
                 }
             });
 
-            // ✨ [Fix] 아동이 없으면 .in([]) 에러 방지
-            let allPayments: any[] | null = null;
-            if (validChildIds.size > 0) {
-                const { data } = await supabase
-                    .from('payments')
-                    .select('amount, credit_used, child_id, paid_at, payment_month')
-                    .in('child_id', [...validChildIds]); // 🔒 Security Filter
-                allPayments = data;
-            }
+            const completedScheduleIds = (allSchedules as DashboardSchedule[])?.filter(s =>
+                s.status === 'completed' && s.start_time?.startsWith(selectedMonth)
+            ).map(s => s.id) || [];
+
+            // ⚡ [PERF] Batch 2: 의존적 쿼리 2개 병렬 실행 (Batch 1 결과 필요)
+            const [paymentsRes, notesRes] = await Promise.all([
+                // Payments — validChildIds 필요
+                validChildIds.size > 0
+                    ? supabase
+                        .from('payments')
+                        .select('amount, credit_used, child_id, paid_at, payment_month')
+                        .in('child_id', [...validChildIds])
+                    : Promise.resolve({ data: null }),
+                // Counseling Logs — completedScheduleIds 필요
+                completedScheduleIds.length > 0
+                    ? supabase
+                        .from('counseling_logs')
+                        .select('schedule_id')
+                        .in('schedule_id', completedScheduleIds)
+                    : Promise.resolve({ data: null })
+            ]);
+
+            const allPayments = paymentsRes.data;
+            const notesSet = new Set<string>();
+            (notesRes.data as { schedule_id: string }[] || []).forEach(n => notesSet.add(n.schedule_id));
 
             // Calculation Maps
             const monthlyRevMap: Record<string, number> = {};
@@ -449,8 +487,6 @@ export function Dashboard() {
             const childContribMap: Record<string, number> = {};
 
             // ✨ [FIX] Payment Processing — 실제 결제 금액 기반 매출 계산
-            // 1단계: 월별 매출 집계 + 선택 월 아동별 결제 총액 산출
-            // ✨ [FIX] credit_used 포함 + payment_month 기준 통일 (수납 관리와 일치)
             const childMonthlyPayment: Record<string, number> = {};
             (allPayments as DashboardPayment[])?.forEach(p => {
                 if (p.child_id && validChildIds.has(p.child_id) && childrenWithCompletedSchedules.has(p.child_id)) {
@@ -458,7 +494,6 @@ export function Dashboard() {
                     if (!m) return;
                     const totalPaidAmount = (p.amount || 0) + (p.credit_used || 0);
                     if (monthlyRevMap[m] !== undefined) monthlyRevMap[m] += totalPaidAmount;
-                    // 선택 월의 아동별 결제 총액 (치료사·아동 매출 배분용)
                     if (m === selectedMonth) {
                         childMonthlyPayment[p.child_id] = (childMonthlyPayment[p.child_id] || 0) + totalPaidAmount;
                     }
@@ -473,7 +508,6 @@ export function Dashboard() {
                         statusMap.completed++;
                         if (s.child_id) childSessionCount[s.child_id] = (childSessionCount[s.child_id] || 0) + 1;
 
-                        // Program / Service Type
                         const pName = s.programs?.name || s.service_type || '치료 세션';
                         progCountMap[pName] = (progCountMap[pName] || 0) + 1;
                     }
@@ -483,7 +517,6 @@ export function Dashboard() {
             });
 
             // 3단계: 치료사별 매출 — 실제 결제금을 완료 세션 수로 비례 배분
-            // (아동 A가 30만원 결제, 3회 완료 → 각 세션 담당 치료사에 10만원씩)
             (allSchedules as DashboardSchedule[])?.forEach(s => {
                 if (s.start_time?.startsWith(selectedMonth) && s.status === 'completed' && s.child_id) {
                     const tName = s.therapists?.name || '미배정';
@@ -494,7 +527,7 @@ export function Dashboard() {
                 }
             });
 
-            // 4단계: 상위 기여 아동 — 실제 결제 총액 기준
+            // 4단계: 상위 기여 아동
             const childNameMap: Record<string, string> = {};
             (existingChildren as DashboardChild[])?.forEach(c => { childNameMap[c.id] = c.name; });
             Object.entries(childMonthlyPayment).forEach(([childId, amount]) => {
@@ -504,11 +537,9 @@ export function Dashboard() {
 
             // Demographics (from activeChildren only)
             activeChildren.forEach(c => {
-                // ✨ [FIX] 다양한 성별 포맷 지원 (케어플 이관 데이터 포함)
                 const gRaw = (c.gender || '').trim().toLowerCase();
                 if (gRaw === '남' || gRaw === '남아' || gRaw === 'male' || gRaw === 'm' || gRaw === '남자') mCount++;
                 else if (gRaw === '여' || gRaw === '여아' || gRaw === 'female' || gRaw === 'f' || gRaw === '여자') fCount++;
-                // else: unknown gender, skip count
 
                 if (c.birth_date) {
                     const year = parseInt(c.birth_date.split('-')[0]);
@@ -537,29 +568,18 @@ export function Dashboard() {
 
             setTopChildren(Object.entries(childContribMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5));
 
-            // ✨ [TRAFFIC ANALYSIS] Fetch site_visits for overall visitor traffic source
-            const lastDayOfMonth = new Date(selYear, selMonth, 0).getDate(); // Get last day of selected month
-            const { data: siteVisits } = await supabase
-                .from('site_visits')
-                .select('source_category, visited_at, referrer_url, page_url') // ✨ Added page_url
-                .eq('center_id', center.id) // 🔒 Security Filter
-                .gte('visited_at', selectedMonth + '-01')
-                .lte('visited_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0'));
-
-            // Process site_visits for traffic source statistics
-            // ✨ SNS 세분화: 개별 플랫폼으로 초기화
+            // ✨ [TRAFFIC ANALYSIS] Process site_visits
             const trafficMap: Record<string, number> = {
                 'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0, 'Google Maps': 0,
                 'Instagram': 0, 'Youtube': 0, 'Facebook': 0, 'KakaoTalk': 0,
                 'Referral': 0, 'Signage': 0, 'Flyer': 0, 'Hospital': 0, 'Partnership': 0,
                 'Direct': 0, 'Others': 0
             };
-            const blogTrafficMap: Record<string, Record<string, number>> = {}; // ✨ Blog Traffic Aggregation
+            const blogTrafficMap: Record<string, Record<string, number>> = {};
 
             siteVisits?.forEach((v: SiteVisit) => {
                 let cat = v.source_category || 'Others';
 
-                // ✨ [Filter] Exclude Dev/Infra referrer domains
                 if (v.referrer_url) {
                     try {
                         const hostname = new URL(v.referrer_url).hostname.replace('www.', '');
@@ -568,19 +588,16 @@ export function Dashboard() {
                             hostname.includes('vercel.app') ||
                             hostname.includes('vercel.com') ||
                             hostname.includes('brainlitix.net')) {
-                            return; // Skip dev/infra visits
+                            return;
                         }
                     } catch (e) {
-                        // Invalid URL — continue with source_category
+                        // Invalid URL
                     }
                 }
 
-                // ✨ source_category는 useTrafficSource의 categorizeSource()에서 이미 세분화된 키로 저장됨
-                // trafficMap에 미리 정의된 키면 그대로 집계, 아니면 새 키로 추가
                 if (trafficMap[cat] === undefined) trafficMap[cat] = 0;
                 trafficMap[cat] += 1;
 
-                // ✨ [Blog Analytics] Aggregate traffic per blog post (Exclude Direct entries with NO info)
                 const isBlog = v.page_url?.includes('/blog/') ?? false;
                 const hasInfo = cat !== 'Direct' || v.referrer_url;
 
@@ -591,7 +608,6 @@ export function Dashboard() {
                             const slug = parts[1].split('?')[0];
                             if (slug) {
                                 if (!blogTrafficMap[slug]) blogTrafficMap[slug] = {};
-                                // Use the categorized source 'cat' which is already normalized
                                 if (!blogTrafficMap[slug][cat]) blogTrafficMap[slug][cat] = 0;
                                 blogTrafficMap[slug][cat]++;
                             }
@@ -602,7 +618,6 @@ export function Dashboard() {
                 }
             });
 
-            // ✨ SNS 세분화: 개별 플랫폼 색상 매핑
             const channelColors: Record<string, string> = {
                 'Naver Blog': '#03C75A',
                 'Naver Place': '#00d2d2',
@@ -622,34 +637,24 @@ export function Dashboard() {
             };
 
             const marketingArr = Object.entries(trafficMap)
-                .filter(([name]) => name !== 'Direct') // ✨ [MOD] 'Direct' 제외
-                .filter(([_, value]) => value > 0) // ✨ [MOD] Hide empty channels to clean up UI
+                .filter(([name]) => name !== 'Direct')
+                .filter(([_, value]) => value > 0)
                 .map(([name, value], idx) => ({
                     cat: 'CHANNEL',
                     name,
                     value,
-                    // Use predefined color or pick from palette for dynamic domains
                     color: channelColors[name] || COLORS[idx % COLORS.length]
                 }))
                 .sort((a, b) => b.value - a.value);
 
             setMarketingData(marketingArr);
 
-            // ✨ [MOD] Total inflow based ONLY on displayed channels (Direct excluded)
             const totalDisplayedVisits = marketingArr.reduce((acc, curr) => acc + curr.value, 0);
             setTotalInflow(totalDisplayedVisits);
 
             if (marketingArr.length > 0) setBestChannel(marketingArr[0]);
 
-            // ✨ [LEADS CONVERSION ANALYSIS] Fetch LEADS data (from 'consultations' table)
-            const { data: allLeads } = await supabase
-                .from('consultations')
-                .select('id, marketing_source, inflow_source, status, created_at, child_id')
-                .eq('center_id', center.id)
-                .gte('created_at', monthsToShow[0] + '-01')
-                .lte('created_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0'));
-
-            // ✨ [HQ INTELLIGENCE] Lead Velocity & Campaign Deep Dive
+            // ✨ [LEADS CONVERSION ANALYSIS]
             const monthlyLeadsMap: Record<string, { consults: number; converted: number }> = {};
             monthsToShow.forEach(m => monthlyLeadsMap[m] = { consults: 0, converted: 0 });
 
@@ -662,14 +667,11 @@ export function Dashboard() {
                 if (lead.created_at) {
                     const m = (lead.created_at as string).slice(0, 7);
 
-                    // Monthly Trend Data
                     if (monthlyLeadsMap[m]) {
                         monthlyLeadsMap[m].consults++;
-                        // ✨ [FIX] 전환 기준 통일: 채널별 전환율과 동일한 기준 적용
                         if (lead.child_id || lead.status === 'completed' || lead.status === 'converted') monthlyLeadsMap[m].converted++;
                     }
 
-                    // ✨ [Campaign Analytics] Extract Campaign Name if available
                     if (lead.marketing_source && lead.marketing_source.includes('Campaign: ')) {
                         const campMatch = lead.marketing_source.match(/Campaign: ([^/|]*)/);
                         if (campMatch && campMatch[1]) {
@@ -678,9 +680,6 @@ export function Dashboard() {
                         }
                     }
 
-                    // ✨ [Lead Velocity] Calculate days from Lead to Consultation Schedule
-                    // This requires finding a schedule for the same child_id or name
-                    // (Simplified logic: time to first schedule after lead date)
                     if (lead.child_id && lead.created_at) {
                         const firstSchedule = (allSchedules as DashboardSchedule[])?.find(s =>
                             s.child_id === lead.child_id &&
@@ -688,18 +687,16 @@ export function Dashboard() {
                         );
                         if (firstSchedule) {
                             const diffDays = Math.ceil((new Date(firstSchedule.start_time).getTime() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24));
-                            if (diffDays > 0 && diffDays < 100) { // Exclude outliers
+                            if (diffDays > 0 && diffDays < 100) {
                                 leadTimeTotal += diffDays;
                                 leadTimeCount++;
                             }
                         }
                     }
 
-                    // ✨ [CHANNEL CONVERSION] Handle Formatted Strings (Extract Main Channel)
                     if (m === selectedMonth) {
                         let channel = normalizeChannelName(lead.inflow_source || 'Direct');
 
-                        // If marketing_source has standard formatting, extract main source (overrides self-reported)
                         if (lead.marketing_source && lead.marketing_source.includes('Source: ')) {
                             const srcMatch = lead.marketing_source.match(/Source: ([^/|]*)/);
                             if (srcMatch && srcMatch[1]) channel = normalizeChannelName(srcMatch[1].trim());
@@ -708,7 +705,6 @@ export function Dashboard() {
                         if (!channelLeadsMap[channel]) channelLeadsMap[channel] = { total: 0, converted: 0 };
                         channelLeadsMap[channel].total++;
 
-                        // Converted = became a child or status confirmed
                         if (lead.child_id || lead.status === 'completed' || lead.status === 'converted') {
                             channelLeadsMap[channel].converted++;
                         }
@@ -716,17 +712,14 @@ export function Dashboard() {
                 }
             });
 
-            // Set HQ Lead Time
             setAvgLeadTime(leadTimeCount > 0 ? Math.round(leadTimeTotal / leadTimeCount) : 0);
 
-            // Set Campaign Data
             const campArr = Object.entries(campaignMap)
                 .map(([name, value]) => ({ name, value }))
                 .sort((a, b) => b.value - a.value)
                 .slice(0, 10);
             setCampaignData(campArr);
 
-            // ✨ Set monthly conversion data for existing chart
             const conversionArr = monthsToShow.map(m => ({
                 name: m.slice(5) + '월',
                 consults: monthlyLeadsMap[m].consults,
@@ -737,7 +730,6 @@ export function Dashboard() {
             }));
             setConversionData(conversionArr);
 
-            // ✨ Set channel conversion data for new chart
             const channelConvArr = Object.entries(channelLeadsMap)
                 .map(([name, data], idx) => ({
                     name,
@@ -750,7 +742,7 @@ export function Dashboard() {
                 .sort((a, b) => b.total - a.total);
             setChannelConversionData(channelConvArr);
 
-            // ✨ [신규] 시간대별 문의 분석 + 평균 문의 시간
+            // ✨ 시간대별 문의 분석 + 평균 문의 시간
             const hourBuckets: Record<number, number> = {};
             for (let h = 0; h < 24; h++) hourBuckets[h] = 0;
             let totalMinutes = 0;
@@ -794,12 +786,11 @@ export function Dashboard() {
                 setAvgInquiryTime('');
             }
 
-            // ✨ [NEW CHILDREN KPI] Count active children registered in the selected month
+            // ✨ [NEW CHILDREN KPI]
             const newCount = activeChildren.filter(c =>
                 c.created_at && (c.created_at as string).startsWith(selectedMonth)
             ).length || 0;
 
-            // Set KPI (✨ active 아동만 카운트)
             setKpi({
                 revenue: monthlyRevMap[selectedMonth] || 0,
                 active: activeChildren.length,
@@ -807,20 +798,7 @@ export function Dashboard() {
                 new: newCount
             });
 
-            // ✨ [신규] 일지 미작성 분석
-            const completedScheduleIds = (allSchedules as DashboardSchedule[])?.filter(s =>
-                s.status === 'completed' && s.start_time?.startsWith(selectedMonth)
-            ).map(s => s.id) || [];
-
-            let notesSet = new Set<string>();
-            if (completedScheduleIds.length > 0) {
-                const { data: existingNotes } = await supabase
-                    .from('counseling_logs')
-                    .select('schedule_id')
-                    .in('schedule_id', completedScheduleIds);
-                (existingNotes as { schedule_id: string }[] || []).forEach(n => notesSet.add(n.schedule_id));
-            }
-
+            // ✨ 일지 미작성 분석
             const therapistMissing: Record<string, { count: number; total: number }> = {};
             (allSchedules as DashboardSchedule[])?.filter(s =>
                 s.status === 'completed' && s.start_time?.startsWith(selectedMonth)
@@ -837,7 +815,7 @@ export function Dashboard() {
             setMissingNotes(missingArr);
             setMissingNoteTotal(missingArr.reduce((acc, m) => acc + m.count, 0));
 
-            // ✨ [신규] 출석률 통계 (주차별)
+            // ✨ 출석률 통계 (주차별)
             const weeklyAttendance: Record<string, { completed: number; cancelled: number; total: number }> = {};
             (allSchedules as DashboardSchedule[])?.filter(s =>
                 s.start_time?.startsWith(selectedMonth)
