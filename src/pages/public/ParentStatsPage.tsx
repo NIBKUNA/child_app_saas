@@ -151,11 +151,13 @@ export function ParentStatsPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("로그인이 필요합니다.");
 
+            const today = new Date().toISOString().split('T')[0];
+
             const payload: TableInsert<'development_assessments'> = {
                 center_id: center.id,
                 child_id: selectedChildId,
                 therapist_id: therapistId, // ✨ 배정된 치료사 ID 연동
-                evaluation_date: new Date().toISOString().split('T')[0],
+                evaluation_date: today,
                 score_communication: (parentChecks.communication?.length || 0),
                 score_social: (parentChecks.social?.length || 0),
                 score_cognitive: (parentChecks.cognitive?.length || 0),
@@ -166,19 +168,42 @@ export function ParentStatsPage() {
                 therapist_notes: '부모님이 앱에서 직접 체크하여 저장한 발달 데이터입니다. 상담 시 참고하세요.'
             };
 
+            // ✨ 같은 날짜에 같은 아이의 부모 자가진단이 이미 있으면 업데이트
+            const { data: existing } = await supabase
+                .from('development_assessments')
+                .select('id')
+                .eq('child_id', selectedChildId)
+                .eq('evaluation_date', today)
+                .eq('summary', '부모님 자가진단 기록')
+                .maybeSingle();
 
-            const { error } = await supabase.from('development_assessments').insert(payload);
+            let error;
+            if (existing) {
+                // 기존 레코드 업데이트
+                ({ error } = await supabase
+                    .from('development_assessments')
+                    .update({
+                        score_communication: payload.score_communication,
+                        score_social: payload.score_social,
+                        score_cognitive: payload.score_cognitive,
+                        score_motor: payload.score_motor,
+                        score_adaptive: payload.score_adaptive,
+                        assessment_details: payload.assessment_details,
+                    })
+                    .eq('id', existing.id));
+            } else {
+                // 새 레코드 삽입
+                ({ error } = await supabase.from('development_assessments').insert(payload));
+            }
 
             if (error) throw error;
 
             alert("✅ 자가진단 결과가 성공적으로 저장되었습니다.\n성장 추이 그래프에서 변화를 확인해보세요!");
 
-            // ✨ [유저 요청] 저장 후 체크 리스트 초기화 (다음에 새로 체크할 수 있도록)
-            setParentChecks({
-                communication: [], social: [], cognitive: [], motor: [], adaptive: []
-            });
-
-            // 갱신 시 체크 항목 다시 채우지 않도록 false 전달
+            // ✨ [Fix] 저장 후 체크 상태 유지
+            // 기존: 체크를 전부 리셋 → 차트가 0으로 표시, 재체크 시 처음부터 다시 클릭 필요
+            // 변경: 현재 체크 상태 그대로 유지 → 차트에서 방금 저장한 점수 표시, 수정도 이어서 가능
+            // DB 데이터만 새로고침 (shouldInitChecks=false → 체크 상태를 DB 값으로 덮어쓰지 않음)
             await loadChildStats(selectedChildId, false);
         } catch (e: any) {
             console.error(e);

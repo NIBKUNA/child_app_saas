@@ -106,13 +106,34 @@ export function ParentDevelopmentChart({
         </div>
     );
 
-    const latest = assessments[0] || {
-        evaluation_date: '진단 기록 없음',
-        score_communication: 0, score_social: 0, score_cognitive: 0, score_motor: 0, score_adaptive: 0,
-        assessment_details: {}
-    };
+    // ✨ 실시간 자가진단(첫 번째)이 비어있는지 확인 (저장 직후에도 체크 유지하므로 보통 false)
+    const activeEntry = assessments[0];
+    const isActiveEmpty = activeEntry?.evaluation_date === '실시간 자가진단' &&
+        (activeEntry.score_communication || 0) === 0 &&
+        (activeEntry.score_social || 0) === 0 &&
+        (activeEntry.score_cognitive || 0) === 0 &&
+        (activeEntry.score_motor || 0) === 0 &&
+        (activeEntry.score_adaptive || 0) === 0;
 
-    const previous = assessments.length > 1 ? assessments[1] : null;
+    // ✨ 저장된 DB 데이터만 필터
+    const savedAssessments = assessments.filter(a => a.evaluation_date !== '실시간 자가진단');
+
+    // ✨ latest 결정
+    const latest = isActiveEmpty
+        ? (savedAssessments[0] || activeEntry)
+        : (assessments[0] || {
+            evaluation_date: '진단 기록 없음',
+            score_communication: 0, score_social: 0, score_cognitive: 0, score_motor: 0, score_adaptive: 0,
+            assessment_details: {}
+        });
+
+    // ✨ previous 결정: latest와 다른 날짜의 가장 최근 기록을 찾음
+    // 같은 날짜/같은 점수를 "이전"으로 보여주면 겹쳐서 의미 없음
+    const latestDate = isActiveEmpty
+        ? savedAssessments[0]?.evaluation_date
+        : new Date().toISOString().split('T')[0]; // 실시간 체크 = 오늘 날짜 취급
+
+    const previous = savedAssessments.find(a => a.evaluation_date !== latestDate) || null;
 
     const radarData = [
         { subject: '언어/의사소통', A: latest.score_communication || 0, B: previous?.score_communication || 0, fullMark: 5 },
@@ -122,17 +143,32 @@ export function ParentDevelopmentChart({
         { subject: '자조/적응', A: latest.score_adaptive || 0, B: previous?.score_adaptive || 0, fullMark: 5 },
     ];
 
-    const historyData = assessments
+    // ✨ 날짜 포맷 개선: 같은 월에 여러 데이터가 있으면 MM/DD로 세분화
+    const dbAssessments = assessments
         .filter(a => a.evaluation_date !== '실시간 자가진단')
-        .reverse()
-        .map(a => ({
-            date: a.evaluation_date?.includes('-') ? a.evaluation_date.slice(5, 7) + '월' : a.evaluation_date,
+        .reverse();
+
+    const monthCounts = new Map<string, number>();
+    dbAssessments.forEach(a => {
+        const month = a.evaluation_date?.includes('-') ? a.evaluation_date.slice(5, 7) + '월' : a.evaluation_date;
+        monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
+    });
+
+    const historyData = dbAssessments.map(a => {
+        const month = a.evaluation_date?.includes('-') ? a.evaluation_date.slice(5, 7) + '월' : a.evaluation_date;
+        // 같은 월에 2개 이상이면 MM/DD로 표시
+        const date = (monthCounts.get(month) || 0) > 1 && a.evaluation_date?.includes('-')
+            ? a.evaluation_date.slice(5).replace('-', '/')
+            : month;
+        return {
+            date,
             '언어': a.score_communication,
             '사회': a.score_social,
             '인지': a.score_cognitive,
             '운동': a.score_motor,
             '자조': a.score_adaptive,
-        } as Record<string, any>));
+        } as Record<string, any>;
+    });
 
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
@@ -166,13 +202,19 @@ export function ParentDevelopmentChart({
                             <div>
                                 <h3 className="text-lg font-black text-slate-900 leading-none">영역별 발달 밸런스</h3>
                                 <p className="text-xs text-indigo-600 mt-2 font-black">
-                                    {latest.evaluation_date === '실시간 자가진단' ? '✨ 부모 자가진단 결과가 반영된 그래프입니다.' : `최근 기록일: ${latest.evaluation_date}`}
+                                    {isActiveEmpty
+                                        ? `최근 저장 기록: ${latest.evaluation_date}`
+                                        : latest.evaluation_date === '실시간 자가진단'
+                                            ? '✨ 부모 자가진단 결과가 반영된 그래프입니다.'
+                                            : `최근 기록일: ${latest.evaluation_date}`}
                                 </p>
                             </div>
                             <div className="flex flex-col items-end gap-1">
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-                                    <span className="text-[10px] font-bold text-slate-600">현재 체크</span>
+                                    <span className="text-[10px] font-bold text-slate-600">
+                                        {isActiveEmpty ? '최신 저장' : '현재 체크'}
+                                    </span>
                                 </div>
                                 {previous && (
                                     <div className="flex items-center gap-2">
@@ -266,7 +308,7 @@ export function ParentDevelopmentChart({
                     )}
                 </>
             ) : (
-                <section className="bg-white rounded-[40px] shadow-sm border border-slate-50 overflow-hidden">
+                <section className="bg-white rounded-[28px] md:rounded-[40px] shadow-sm border border-slate-50 overflow-hidden">
                     <div className="flex overflow-x-auto p-4 gap-2 border-b border-slate-100 no-scrollbar">
                         {DOMAINS_META.map(d => (
                             <button
@@ -287,7 +329,7 @@ export function ParentDevelopmentChart({
                         ))}
                     </div>
 
-                    <div className="p-6 md:p-8 space-y-4">
+                    <div className="p-4 md:p-8 space-y-4">
                         <div className="flex items-center justify-between mb-4">
                             <h4 className="text-lg font-black text-slate-800">
                                 {DOMAINS_META.find(d => d.key === selectedTab)?.label} 체크리스트

@@ -323,18 +323,7 @@
     min-width: 500px;
   }
   
-  /* Cards and containers - tighter padding on mobile */
-  .rounded-\\[32px\\] {
-    border-radius: 1rem;
-  }
-  
-  .p-6 {
-    padding: 1rem;
-  }
-  
-  .p-8 {
-    padding: 1.25rem;
-  }
+  /* Cards and containers padding - handled by components with responsive classes (e.g. p-4 md:p-8) */
   
   /* Fix badge/tag text from breaking */
   .rounded-full,
