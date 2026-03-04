@@ -158,7 +158,7 @@ export function MobileScheduleView({ events, onEventClick, onDateClick, isDark, 
         <div className={cn("flex flex-col h-full", isDark && "bg-slate-950")}>
             {/* 월 헤더 */}
             <div className={cn(
-                "flex items-center justify-between px-5 py-4 sticky top-0 z-10",
+                "flex items-center justify-between px-5 py-4",
                 isDark ? "bg-slate-900" : "bg-white"
             )}>
                 <button onClick={goToPrevMonth} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all">

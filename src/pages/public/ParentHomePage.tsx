@@ -31,6 +31,7 @@ import { InvitationCodeModal } from '@/components/InvitationCodeModal';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useCenter } from '@/contexts/CenterContext';
 import { centerPath } from '@/config/domain';
+import { ParentMobileCalendar } from '@/components/public/ParentMobileCalendar';
 
 
 interface ChildInfo extends TableRow<'children'> { }
@@ -77,6 +78,15 @@ export function ParentHomePage() {
     // ✨ 관찰 일기 상태
     const [observationText, setObservationText] = useState('');
     const [savingObs, setSavingObs] = useState(false);
+
+    // 📱 모바일 감지
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
 
 
 
@@ -422,10 +432,18 @@ export function ParentHomePage() {
                         <h2 className={cn("text-xl font-black", isDark ? "text-white" : "text-slate-900")}>수업 일정표</h2>
                     </div>
                     <div className={cn(
-                        "rounded-[32px] p-2 md:p-8 shadow-lg border bg-white overflow-hidden",
+                        "rounded-[32px] p-4 md:p-8 shadow-lg border overflow-hidden",
                         isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-slate-200/50"
                     )}>
-                        <style>{`
+                        {isMobile ? (
+                            <ParentMobileCalendar
+                                events={calendarEvents}
+                                childName={childInfo?.name || '아동'}
+                                isDark={isDark}
+                            />
+                        ) : (
+                            <>
+                                <style>{`
                             .fc { font-family: 'Pretendard', sans-serif; --fc-border-color: transparent; } 
                             .fc table, .fc-scrollgrid { table-layout: fixed !important; width: 100% !important; }
                             .fc-header-toolbar { flex-wrap: wrap; gap: 8px; margin-bottom: 24px !important; }
@@ -445,19 +463,9 @@ export function ParentHomePage() {
                                 font-weight: 700;
                                 font-size: 0.75rem;
                                 line-height: 1.1;
-                                word-break: break-all; /* Force break everywhere */
+                                word-break: break-all;
                             }
                             .fc-daygrid-event-dot { display: none; }
-                            
-                            /* Mobile Optimization */
-                            @media (max-width: 768px) {
-                                .fc-header-toolbar { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 12px !important; }
-                                .fc-toolbar-title { font-size: 1rem !important; }
-                                .fc-event-main { font-size: 0.65rem !important; }
-                                .fc-col-header-cell-cushion { font-size: 0.75rem !important; padding: 4px 0 !important; }
-                                .fc-daygrid-day-number { font-size: 0.7rem !important; padding: 2px !important; }
-                                .fc-button { padding: 4px 8px !important; font-size: 0.75rem !important; }
-                            }
 
                             ${isDark ? `
                             .fc { --fc-border-color: #334155; --fc-page-bg-color: #0f172a; }
@@ -475,72 +483,67 @@ export function ParentHomePage() {
                             .fc-daygrid-day-number { color: #334155; font-weight: 600; }
                             `}
                         `}</style>
-                        <FullCalendar
-                            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                            initialView="dayGridMonth"
-                            locale={koLocale}
-                            headerToolbar={{
-                                left: 'prev,next today',
-                                center: 'title',
-                                right: ''
-                            }}
-                            buttonText={{ today: '오늘' }}
-                            events={calendarEvents}
-                            height="auto"
-                            contentHeight="auto"
-                            dayMaxEvents={3}
-                            eventDisplay="block"
-                            moreLinkClick="popover"
-                            editable={false}
-                            selectable={false}
-                            eventContent={(eventInfo) => {
-                                const { therapistColor, status } = eventInfo.event.extendedProps;
+                                <FullCalendar
+                                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                                    initialView="dayGridMonth"
+                                    locale={koLocale}
+                                    headerToolbar={{
+                                        left: 'prev,next today',
+                                        center: 'title',
+                                        right: ''
+                                    }}
+                                    buttonText={{ today: '오늘' }}
+                                    events={calendarEvents}
+                                    height="auto"
+                                    contentHeight="auto"
+                                    dayMaxEvents={3}
+                                    eventDisplay="block"
+                                    moreLinkClick="popover"
+                                    editable={false}
+                                    selectable={false}
+                                    eventContent={(eventInfo) => {
+                                        const { therapistColor, status } = eventInfo.event.extendedProps;
+                                        let containerClass = "flex flex-col py-1.5 px-2 rounded-lg border-l-[3px] shadow-sm mb-1 overflow-hidden transition-all";
+                                        let bgStyle = {};
+                                        let titleClass = "text-[11px] font-black leading-tight truncate";
+                                        let statusBadge = null;
 
-                                // ✨ 상태별 스타일링 정의
-                                let containerClass = "flex flex-col py-1.5 px-2 rounded-lg border-l-[3px] shadow-sm mb-1 overflow-hidden transition-all";
-                                let bgStyle = {};
-                                let titleClass = "text-[11px] font-black leading-tight truncate";
-                                let statusBadge = null;
+                                        if (status === 'cancelled') {
+                                            bgStyle = { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' };
+                                            titleClass += " text-slate-400 line-through decoration-slate-400";
+                                            statusBadge = <span className="text-[9px] text-rose-500 font-black ml-1">(취소)</span>;
+                                        } else if (status === 'completed') {
+                                            bgStyle = { backgroundColor: `${therapistColor}25`, borderColor: therapistColor };
+                                            titleClass += " text-slate-700 opacity-80";
+                                            statusBadge = <span className="text-[9px] text-indigo-600 font-black ml-1">(완료)</span>;
+                                        } else {
+                                            bgStyle = { backgroundColor: `${therapistColor}15`, borderColor: therapistColor };
+                                            titleClass += " text-slate-900";
+                                        }
 
-                                if (status === 'cancelled') {
-                                    bgStyle = { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }; // Gray
-                                    titleClass += " text-slate-400 line-through decoration-slate-400";
-                                    statusBadge = <span className="text-[9px] text-rose-500 font-black ml-1">(취소)</span>;
-                                } else if (status === 'completed') {
-                                    bgStyle = { backgroundColor: `${therapistColor}25`, borderColor: therapistColor }; // Slightly darker pastel
-                                    titleClass += " text-slate-700 opacity-80";
-                                    statusBadge = <span className="text-[9px] text-indigo-600 font-black ml-1">(완료)</span>;
-                                } else {
-                                    // Scheduled (Default)
-                                    bgStyle = { backgroundColor: `${therapistColor}15`, borderColor: therapistColor };
-                                    titleClass += " text-slate-900";
-                                }
-
-                                return (
-                                    <div
-                                        className={containerClass}
-                                        style={bgStyle}
-                                    >
-                                        <div className="flex items-center gap-1.5 mb-0.5">
-                                            <span className={cn(
-                                                "text-[10px] font-black leading-none",
-                                                (status === 'cancelled') ? "text-slate-400" : "text-slate-600 opacity-80"
-                                            )}>
-                                                {childInfo?.name}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <span className={titleClass}>
-                                                {eventInfo.event.title}
-                                            </span>
-                                            {statusBadge}
-                                        </div>
-                                    </div>
-                                );
-                            }}
-                            eventClick={(info) => alert(`${childInfo?.name} 아동\n${info.event.title}\n시간: ${info.event.start?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
-                        />
-
+                                        return (
+                                            <div className={containerClass} style={bgStyle}>
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <span className={cn(
+                                                        "text-[10px] font-black leading-none",
+                                                        (status === 'cancelled') ? "text-slate-400" : "text-slate-600 opacity-80"
+                                                    )}>
+                                                        {childInfo?.name}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className={titleClass}>
+                                                        {eventInfo.event.title}
+                                                    </span>
+                                                    {statusBadge}
+                                                </div>
+                                            </div>
+                                        );
+                                    }}
+                                    eventClick={(info) => alert(`${childInfo?.name} 아동\n${info.event.title}\n시간: ${info.event.start?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)}
+                                />
+                            </>
+                        )}
                     </div>
                 </section>
 

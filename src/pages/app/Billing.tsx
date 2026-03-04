@@ -228,15 +228,69 @@ export function Billing() {
             </div>
 
             <div className={cn("rounded-[28px] border shadow-xl overflow-hidden", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200")}>
-                <div className={cn("px-8 py-5 border-b flex justify-between items-center", isDark ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200")}>
+                <div className={cn("px-4 md:px-8 py-4 md:py-5 border-b flex flex-col md:flex-row gap-3 md:justify-between md:items-center", isDark ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200")}>
                     <div className={cn("flex items-center gap-2 font-bold", isDark ? "text-white" : "text-slate-800")}><Receipt className="text-blue-600" size={18} /> {selectedMonth.split('-')[1]}월 수납 대장</div>
                     <div className="relative">
                         <Search className={cn("absolute left-3 top-3 w-4 h-4", isDark ? "text-slate-500" : "text-slate-400")} />
                         <input type="text" placeholder="아동 이름 검색.." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                            className={cn("pl-9 pr-4 py-2.5 border rounded-xl text-sm outline-none w-64", isDark ? "bg-slate-800 border-slate-700 text-white placeholder-slate-500" : "border-slate-200 bg-white")} />
+                            className={cn("pl-9 pr-4 py-2.5 border rounded-xl text-sm outline-none w-full md:w-64", isDark ? "bg-slate-800 border-slate-700 text-white placeholder-slate-500" : "border-slate-200 bg-white")} />
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+
+                {/* 📱 모바일 카드 레이아웃 */}
+                <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {loading ? (
+                        <div className="p-12 text-center"><Loader2 className="animate-spin inline-block w-8 h-8 text-blue-500" /></div>
+                    ) : stats.childList.length === 0 ? (
+                        <div className={cn("p-12 text-center font-bold", isDark ? "text-slate-600" : "text-slate-400")}>해당 조건의 데이터가 없습니다.</div>
+                    ) : stats.childList.map(child => {
+                        const balance = child.totalFee - child.paid;
+                        const status = getBillingStatus(child);
+                        return (
+                            <div key={child.id} onClick={() => { setSelectedChild(child); setIsModalOpen(true); }}
+                                className={cn("p-4 space-y-2.5 active:bg-blue-50/30 cursor-pointer transition-colors", isDark && "active:bg-slate-800/40")}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0", isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-400")}><User size={16} /></div>
+                                        <div>
+                                            <p className={cn("font-black text-base", isDark ? "text-white" : "text-slate-900")}>{child.name}</p>
+                                            <p className={cn("text-[11px]", isDark ? "text-slate-500" : "text-slate-400")}>
+                                                완료 {child.completedCount}회
+                                                {child.carriedOverCount > 0 && <span className="text-purple-400 ml-1">· 이월 {child.carriedOverCount}회</span>}
+                                                {child.cancelledCount > 0 && <span className="text-rose-400 ml-1">· 취소 {child.cancelledCount}회</span>}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-black shrink-0", status.color)}>{status.label}</span>
+                                </div>
+                                <div className="flex gap-1 flex-wrap">
+                                    {child.programGroups.map(pg => (
+                                        <span key={pg.programId} className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500")}>{pg.programName}</span>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-xs pt-1">
+                                    <div>
+                                        <span className={cn("block text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>수업료</span>
+                                        <span className={cn("font-black", isDark ? "text-slate-200" : "text-slate-700")}>{child.totalFee.toLocaleString()}원</span>
+                                    </div>
+                                    <div>
+                                        <span className={cn("block text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>기수납</span>
+                                        <span className={cn("font-bold", isDark ? "text-slate-400" : "text-slate-500")}>{child.paid.toLocaleString()}원</span>
+                                    </div>
+                                    <div>
+                                        <span className={cn("block text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>미수금</span>
+                                        <span className={cn("font-black text-sm", balance > 0 ? "text-rose-500" : balance < 0 ? "text-indigo-500" : "text-emerald-500")}>
+                                            {balance === 0 ? "0원" : balance > 0 ? `${balance.toLocaleString()}원` : `+${Math.abs(balance).toLocaleString()}원`}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* 🖥️ 데스크톱 테이블 */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className={cn("text-xs font-bold uppercase tracking-wider", isDark ? "bg-slate-800/60 text-slate-500" : "bg-slate-50 text-slate-400")}>
                             <tr>
@@ -961,8 +1015,6 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                     <option value="카드">💳카드</option>
                                                     <option value="현금">💵현금</option>
                                                     <option value="계좌이체">🏦계좌</option>
-                                                    <option value="크레딧">🎫크레딧</option>
-                                                    <option value="혼합">🔄혼합</option>
                                                 </select>
                                             ) : isPaid ? (
                                                 <span className={cn("text-[10px] font-bold", isDark ? "text-emerald-400" : "text-emerald-600")}>{paidDetail?.method || '-'}</span>

@@ -228,7 +228,62 @@ export function ChildList() {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    {/* 📱 모바일 카드 레이아웃 */}
+                    <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
+                        {filteredChildren.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400 dark:text-slate-500 font-bold">
+                                {activeFilter === 'inactive' ? '종결/퇴원 아동이 없습니다.' : activeFilter === 'waiting' ? '대기 아동이 없습니다.' : '등록된 아동 정보가 없습니다.'}
+                            </div>
+                        ) : filteredChildren.map((child) => {
+                            const s = child.status || (child.is_active === false ? 'inactive' : 'active');
+                            const cfg = {
+                                active: { label: '이용중', cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' },
+                                waiting: { label: '대기', cls: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+                                inactive: { label: '종결', cls: 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500' },
+                            }[s] || { label: s, cls: 'bg-slate-100 text-slate-400' };
+                            return (
+                                <div key={child.id} className={cn("p-4 space-y-3", child.status === 'inactive' && 'opacity-50')}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="font-black text-base text-slate-900 dark:text-white">{child.name}</div>
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${cfg.cls}`}>{cfg.label}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <button onClick={() => handleOpenDetail(child)} className="p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-400 transition-all" title="상세 보기">
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleEdit(child.id)} className="p-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-400 transition-all" title="수정">
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                                        <div><span className="text-slate-400 dark:text-slate-500 font-bold">생년월일</span> <span className="text-slate-600 dark:text-slate-300 font-bold ml-1">{child.birth_date || '-'} {child.gender === 'male' ? '(남)' : child.gender === 'female' ? '(여)' : ''}</span></div>
+                                        <div><span className="text-slate-400 dark:text-slate-500 font-bold">보호자</span> <span className="text-slate-600 dark:text-slate-300 font-bold ml-1">{child.guardian_name || '-'}</span></div>
+                                        <div><span className="text-slate-400 dark:text-slate-500 font-bold">연락처</span> <span className="text-slate-600 dark:text-slate-300 font-bold ml-1">{child.contact || '-'}</span></div>
+                                        <div>
+                                            {child.parent_id ? (
+                                                <span className="inline-flex items-center gap-1 text-emerald-600 font-black"><LinkIcon className="w-3 h-3" />앱 연결됨</span>
+                                            ) : (
+                                                <span className="text-slate-300 font-bold">앱 미연결</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {child.invitation_code && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); copyInvitationCode(child.invitation_code!); }}
+                                            className={cn("flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition-all", copiedCode === child.invitation_code ? "bg-emerald-100 text-emerald-600" : "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400")}
+                                        >
+                                            {copiedCode === child.invitation_code ? (<><Check className="w-3.5 h-3.5" /> 복사됨!</>) : (<><Copy className="w-3.5 h-3.5" /> 초대코드: {child.invitation_code}</>)}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* 🖥️ 데스크톱 테이블 */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left min-w-[700px]">
                             <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 font-black uppercase text-[11px] tracking-wider">
                                 <tr>

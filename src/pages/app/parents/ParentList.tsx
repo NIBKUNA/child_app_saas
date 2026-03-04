@@ -281,7 +281,62 @@ export function ParentList() {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left min-w-[700px]">
+                    {/* 📱 모바일 카드 레이아웃 */}
+                    <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-700">
+                        {filteredParents.length === 0 ? (
+                            <div className="p-12 text-center text-slate-400 dark:text-slate-500 font-bold">
+                                {activeTab === 'blocked' ? '차단된 계정이 없습니다.' : '검색 결과가 없습니다.'}
+                            </div>
+                        ) : filteredParents.map((parent) => (
+                            <div key={parent.id} className="p-4 space-y-3">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                            <User className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <div className="font-black text-slate-900 dark:text-white">{parent.name}</div>
+                                            <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">{parent.email}</div>
+                                        </div>
+                                    </div>
+                                    {parent.status === 'active' ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 text-[10px] font-black">
+                                            <CheckCircle className="w-3 h-3" /> Active
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-[10px] font-black">
+                                            <Ban className="w-3 h-3" /> Blocked
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="text-xs">
+                                    <span className="text-slate-400 dark:text-slate-500 font-bold">자녀</span>
+                                    {parent.children && parent.children.length > 0 ? (
+                                        <span className="ml-2">{parent.children.map(c => (
+                                            <span key={c.id} className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-xs font-bold mr-1">{c.name}</span>
+                                        ))}</span>
+                                    ) : (
+                                        <span className="ml-2 text-slate-300">없음</span>
+                                    )}
+                                </div>
+                                <div className="text-[10px] text-slate-400">가입: {parent.created_at ? new Date(parent.created_at).toLocaleDateString() : '-'}</div>
+                                <div className="flex items-center gap-2 pt-1">
+                                    <button onClick={() => handleResetPasswordEmail(parent.email)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="비밀번호 재설정">
+                                        <Mail className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleToggleStatus(parent)} className={cn("p-2 rounded-lg transition-colors", parent.status === 'active' ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30" : "text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30")} title={parent.status === 'active' ? "계정 차단" : "차단 해제"}>
+                                        {parent.status === 'active' ? <Shield className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
+                                    </button>
+                                    <button onClick={() => handleDeleteParent(parent)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="계정 삭제">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 🖥️ 데스크톱 테이블 */}
+                    <table className="hidden md:table w-full text-sm text-left min-w-[700px]">
                         <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 font-black uppercase text-[11px] tracking-wider">
                             <tr>
                                 <th className="px-6 py-5">프로필 정보</th>
