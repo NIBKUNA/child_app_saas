@@ -19,6 +19,7 @@ import { LogOut, ShieldAlert, MonitorCheck, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 import { useAutoCompleteSchedules } from '@/hooks/useAutoCompleteSchedules';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 function SuperAdminBadge() {
     const { role, user } = useAuth();
@@ -61,6 +62,10 @@ export function AppLayout() {
     const { theme } = useTheme();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
     const [showUpdateBanner, setShowUpdateBanner] = React.useState(false);
+    const mainRef = React.useRef<HTMLElement>(null);
+
+    // ✨ [PWA] Pull-to-Refresh for iOS PWA
+    const { pullDistance, isRefreshing } = usePullToRefresh({ containerRef: mainRef });
 
     // ✨ [Auto-Complete] 앱 진입 시 과거 예정 수업 자동 완료 처리
     useAutoCompleteSchedules(center?.id);
@@ -355,7 +360,20 @@ export function AppLayout() {
 
                 <div className="flex-1 flex flex-col overflow-hidden ml-0 md:ml-64 transition-all duration-300">
                     {/* Header Top Bar Spacer if needed, or Main Content */}
-                    <main className={`flex-1 overflow-y-auto ${mainBg} px-4 pb-4 pt-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
+                    <main ref={mainRef} className={`flex-1 overflow-y-auto ${mainBg} px-4 pb-4 pt-4 md:p-6 pb-[env(safe-area-inset-bottom,24px)]`}>
+                        {/* ✨ Pull-to-Refresh Indicator (Mobile PWA) */}
+                        <div
+                            className="flex items-center justify-center overflow-hidden transition-all duration-200 md:hidden"
+                            style={{
+                                height: pullDistance > 0 ? `${pullDistance}px` : '0px',
+                                opacity: Math.min(pullDistance / 80, 1),
+                            }}
+                        >
+                            <div className={`flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-bold ${isRefreshing ? 'animate-pulse' : ''}`}>
+                                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+                                <span>{isRefreshing ? '새로고침 중...' : pullDistance >= 80 ? '놓으면 새로고침' : '당겨서 새로고침'}</span>
+                            </div>
+                        </div>
                         {/* 개별 페이지 렌더링 (Framer Motion Transition) */}
                         <AnimatePresence mode="wait">
                             <motion.div

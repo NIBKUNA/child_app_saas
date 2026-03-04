@@ -25,11 +25,7 @@ type HireType = 'freelancer' | 'fulltime' | 'parttime' | 'regular';
 // ✨ 시스템 역할 타입
 type SystemRole = 'therapist' | 'manager' | 'admin' | 'super_admin' | 'parent';
 
-// ✨ 정산 통계 타입
-interface TotalStats {
-    payout: number;
-    count: number;
-}
+
 
 // ✨ 세션 카운트 타입
 interface SessionCounts {
@@ -111,12 +107,12 @@ export function Settlement() {
     const { user } = useAuth();
     const { center } = useCenter();
     const centerId = center?.id;
-    const [_loading, setLoading] = useState(true);
+
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [settlementList, setSettlementList] = useState<SettlementData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [_totalStats, setTotalStats] = useState<TotalStats>({ payout: 0, count: 0 });
+
 
     // ✨ [Fix] Missing State Definitions
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -223,7 +219,7 @@ export function Settlement() {
     const fetchSettlements = async () => {
         if (!centerId) return; // ✨ Wait for auth
 
-        setLoading(true);
+
         try {
             // 1. Get Staff for this Center
             // ⚠️ 직원관리에서 정식 등록된 활성 직원만 (배치마스터 전시용 프로필 & 퇴사자 제외)
@@ -401,17 +397,8 @@ export function Settlement() {
 
             setSettlementList(calculatedList);
 
-            const totalPay = calculatedList.reduce((acc, curr) => acc + curr.payout, 0);
-
-            setTotalStats({
-                payout: totalPay,
-                count: sessionData?.length || 0
-            });
-
         } catch (error) {
             console.error('Error fetching settlements:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
