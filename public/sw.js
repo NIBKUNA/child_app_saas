@@ -54,14 +54,11 @@ self.addEventListener('activate', (event) => {
         }).then(() => {
             // 새 SW가 모든 클라이언트를 즉시 컨트롤
             return self.clients.claim();
-        }).then(() => {
-            // 모든 열린 탭에 업데이트 알림 전송
-            return self.clients.matchAll({ type: 'window' }).then((clients) => {
-                clients.forEach((client) => {
-                    client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
-                });
-            });
         })
+        // ⚠️ SW_UPDATED 메시지 전송 제거
+        // activate는 최초 설치 시에도 호출되므로 여기서 알림을 보내면
+        // 실제 업데이트가 아닌데도 "새로운 버전" 배너가 뜸.
+        // 업데이트 감지는 AppLayout.tsx의 updatefound 리스너에서 처리.
     );
     console.log('[SW] Activated');
 });

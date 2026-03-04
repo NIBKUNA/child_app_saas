@@ -102,6 +102,10 @@ export function AppLayout() {
         }
 
         if ('serviceWorker' in navigator) {
+            // ✅ register 시점에 이미 controller가 있는지 확인
+            // controller가 있다 = 기존 SW가 있다 = 이후 updatefound는 "진짜 업데이트"
+            const hadController = !!navigator.serviceWorker.controller;
+
             navigator.serviceWorker.register('/sw.js')
                 .then((reg) => {
                     // 업데이트 감지 (최초 설치가 아닌 진짜 업데이트만)
@@ -109,9 +113,9 @@ export function AppLayout() {
                         const newWorker = reg.installing;
                         if (newWorker) {
                             newWorker.addEventListener('statechange', () => {
-                                // ✅ 기존 SW(controller)가 있을 때만 = 진짜 업데이트
-                                // 최초 설치 시에는 controller가 null이므로 배너 안 뜸
-                                if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                                // ✅ register 전에 이미 controller가 있었을 때만 = 진짜 업데이트
+                                // 최초 설치 시에는 hadController가 false이므로 배너 안 뜸
+                                if (newWorker.state === 'activated' && hadController) {
                                     setShowUpdateBanner(true);
                                 }
                             });

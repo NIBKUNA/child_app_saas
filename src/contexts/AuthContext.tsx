@@ -337,10 +337,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.warn('Supabase signout request failed (possibly already expired):', e);
         } finally {
-            // ✨ [Snapshot] 로그아웃 전 현재 센터 정보 백업 (이게 지워져서 튕기는 것)
+            // ✨ [Snapshot] 로그아웃 전 현재 센터 정보 백업
             const savedSlug = localStorage.getItem('zarada_center_slug');
 
-            // ✨ [Security Nuclear Option] 서버 결과와 관계없이 모든 로컬 데이터 파괴
+            // ✨ [Security] 모든 로컬 데이터 파괴
             localStorage.clear();
             sessionStorage.clear();
 
@@ -353,18 +353,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            // 전역 상태 초기화
-            setSession(null);
-            setUser(null);
-            setRole(null);
-            setProfile(null);
-            setTherapistId(null);
-            setCenterId(null);
-            initialLoadComplete.current = false;
+            // ⚠️ [Fix] setState / initialLoadComplete 리셋 제거
+            // window.location.href로 전체 페이지가 새로 로드되므로 React 상태 초기화 불필요.
+            // 오히려 setState → 리렌더링 → 로딩 오버레이 재표시 → location 이동 지연
+            // 순서로 모바일에서 무한 로딩이 발생했음.
 
             // ✨ [Redirect Logic] 백업해둔 센터 정보로 정확하게 이동
             if (savedSlug) {
-                // 재로그인 시 편의를 위해 슬러그 복원
                 localStorage.setItem('zarada_center_slug', savedSlug);
                 window.location.href = `/centers/${savedSlug}/login`;
             } else {

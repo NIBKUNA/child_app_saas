@@ -12,25 +12,29 @@ export function PWAInstallPrompt() {
         const ios = /iphone|ipad|ipod/.test(userAgent);
         setIsIOS(ios);
 
+        // Check if already installed (standalone mode)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+        if (isStandalone) return; // 이미 설치된 경우 — 아무것도 안 함
+
         // Capture install event (Android/PC)
         const handler = (e: any) => {
             e.preventDefault();
             setDeferredPrompt(e);
+            setShowPrompt(true); // ✅ 실제로 설치 가능할 때만 배너 표시
         };
         window.addEventListener('beforeinstallprompt', handler);
 
-        // Show prompt after 5 seconds
-        const timer = setTimeout(() => {
-            // Check if already installed (standalone mode)
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-            if (!isStandalone) {
+        // iOS: beforeinstallprompt 없으므로 5초 후 안내 배너 표시
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        if (ios) {
+            timer = setTimeout(() => {
                 setShowPrompt(true);
-            }
-        }, 5000);
+            }, 5000);
+        }
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handler);
-            clearTimeout(timer);
+            if (timer) clearTimeout(timer);
         };
     }, []);
 

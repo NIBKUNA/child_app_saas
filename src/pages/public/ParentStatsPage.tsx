@@ -216,7 +216,7 @@ export function ParentStatsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-6">
+        <div className="min-h-screen bg-[#F8FAFC] px-3 py-4 md:p-6">
             <div className="max-w-2xl mx-auto print-container pb-20">
                 <div className="flex justify-between items-center mb-6 no-print">
                     <button onClick={() => navigate(-1)} className="flex items-center gap-2 font-black text-slate-400">
@@ -233,7 +233,7 @@ export function ParentStatsPage() {
                     )}
                 </div>
 
-                <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 mb-6 flex items-center justify-between">
+                <div className="bg-white p-4 md:p-6 rounded-[24px] md:rounded-[32px] shadow-sm border border-slate-100 mb-4 md:mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-indigo-50 rounded-2xl">
                             <BarChart3 className="w-6 h-6 text-indigo-600" />

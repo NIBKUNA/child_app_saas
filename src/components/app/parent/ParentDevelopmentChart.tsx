@@ -135,7 +135,7 @@ export function ParentDevelopmentChart({
         } as Record<string, any>));
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500">
             {/* View Mode Toggle */}
             <div className="flex bg-slate-100 p-1 rounded-2xl w-fit mx-auto">
                 <button
@@ -161,7 +161,7 @@ export function ParentDevelopmentChart({
             {viewMode === 'chart' ? (
                 <>
                     {/* 1. 최신 발달 밸런스 (Radar Chart) */}
-                    <section className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-50 relative overflow-hidden">
+                    <section className="bg-white p-4 md:p-8 rounded-[28px] md:rounded-[40px] shadow-sm border border-slate-50 relative overflow-hidden">
                         <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
                             <div>
                                 <h3 className="text-lg font-black text-slate-900 leading-none">영역별 발달 밸런스</h3>
@@ -185,11 +185,11 @@ export function ParentDevelopmentChart({
                             </div>
                         </div>
 
-                        <div className="h-[300px] md:h-[340px] w-full">
+                        <div className="h-[280px] md:h-[340px] w-full -mx-2 md:mx-0">
                             <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                                <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
                                     <PolarGrid stroke="#e2e8f0" />
-                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 'bold' }} />
                                     <PolarRadiusAxis domain={[0, 5]} tick={false} axisLine={false} />
 
                                     {previous && (
@@ -215,11 +215,11 @@ export function ParentDevelopmentChart({
                             </ResponsiveContainer>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+                        <div className="flex gap-2 mt-4 overflow-x-auto pb-1 no-scrollbar md:grid md:grid-cols-5 md:gap-3 md:overflow-visible">
                             {DOMAINS_META.map(d => (
-                                <div key={d.key} className={cn("flex flex-col items-center gap-1 p-2.5 rounded-2xl border border-transparent transition-all", d.bg)}>
+                                <div key={d.key} className={cn("flex flex-col items-center gap-1 p-2.5 rounded-2xl border border-transparent transition-all min-w-[72px] shrink-0 md:min-w-0 md:shrink", d.bg)}>
                                     <d.icon className={cn("w-3.5 h-3.5", d.color)} />
-                                    <span className={cn("text-xs font-black", d.color)}>
+                                    <span className={cn("text-sm font-black", d.color)}>
                                         {getScore(latest, d.key) || 0}
                                     </span>
                                     <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">{d.label}</span>
@@ -230,16 +230,16 @@ export function ParentDevelopmentChart({
 
                     {/* 2. 성장 추이 (Line Chart) */}
                     {historyData.length > 0 && (
-                        <section className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-slate-50">
+                        <section className="bg-white p-4 md:p-8 rounded-[28px] md:rounded-[40px] shadow-sm border border-slate-50">
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h3 className="text-lg font-black text-slate-900">우리 아이 성장 변화</h3>
                                     <p className="text-xs text-slate-400 mt-1 font-bold">누적된 체크 결과를 통해 발달 추이를 확인하세요.</p>
                                 </div>
                             </div>
-                            <div className="h-[250px] w-full">
+                            <div className="h-[220px] md:h-[250px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <LineChart data={historyData} margin={{ top: 10, right: 8, left: -25, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                         <XAxis
                                             dataKey="date"
@@ -254,11 +254,11 @@ export function ParentDevelopmentChart({
                                             itemStyle={{ fontSize: '11px', fontWeight: 'black', padding: '2px 0' }}
                                             labelStyle={{ fontSize: '12px', fontWeight: 'black', marginBottom: '8px', color: '#1e293b' }}
                                         />
-                                        <Line type="monotone" dataKey="언어" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-                                        <Line type="monotone" dataKey="사회" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-                                        <Line type="monotone" dataKey="인지" stroke="#a855f7" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-                                        <Line type="monotone" dataKey="운동" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-                                        <Line type="monotone" dataKey="적응" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
+                                        <Line type="monotone" dataKey="언어" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
+                                        <Line type="monotone" dataKey="사회" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
+                                        <Line type="monotone" dataKey="인지" stroke="#a855f7" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
+                                        <Line type="monotone" dataKey="운동" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
+                                        <Line type="monotone" dataKey="적응" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -331,7 +331,7 @@ export function ParentDevelopmentChart({
             )}
 
             {/* Scientific Advice (Always visible) */}
-            <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-8 space-y-4">
+            <div className="bg-slate-50 border border-slate-100 rounded-[24px] md:rounded-[32px] p-5 md:p-8 space-y-3 md:space-y-4">
                 <div className="flex items-center gap-2 text-slate-500">
                     <Brain className="w-5 h-5" />
                     <h4 className="text-sm font-black italic">Scientific Basis & Research Summary</h4>
