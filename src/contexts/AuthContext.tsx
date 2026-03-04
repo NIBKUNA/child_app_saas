@@ -14,16 +14,16 @@ import { isSuperAdmin } from '@/config/superAdmin';
 // ✨ UserRole 타입 유지 (단순화: admin, manager, therapist, parent, super_admin)
 export type UserRole = 'super_admin' | 'admin' | 'manager' | 'therapist' | 'parent' | 'retired' | null;
 
-// ✨ UserProfile 타입 정의 (DB user_profiles 테이블 스키마 기반)
+// ✨ UserProfile 타입 정의 (DB user_profiles 테이블 스키마 기반 — schema.sql 참조)
 export interface UserProfile {
     id: string;
     email: string | null;
     name: string | null;
     phone: string | null;
     role: UserRole;
-    status: 'active' | 'inactive' | 'retired' | null;
+    is_active: boolean | null;
+    status: string | null;
     center_id: string | null;
-    avatar_url: string | null;
     created_at: string | null;
     updated_at: string | null;
 }
@@ -187,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCenterId(null); // ✨ Global Access
 
             // 프로필 데이터가 없어도 무방하나, 있으면 로드.
-            supabase.from('user_profiles').select('id, email, name, phone, role, status, center_id, avatar_url, created_at, updated_at').eq('id', user.id).maybeSingle()
+            supabase.from('user_profiles').select('id, email, name, phone, role, is_active, status, center_id, created_at, updated_at').eq('id', user.id).maybeSingle()
                 .then(({ data }) => {
                     if (data) {
                         // 👑 [Conflict Resolution] Super Admin has NO primary center
@@ -205,35 +205,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!initialLoadComplete.current) setLoading(true);
 
         try {
-            // 1. [Sync] 프로필 조회
-            const { data: dbProfile } = await supabase
+            // 1. [Sync] 프로필 조회 — 실제 DB 스키마 컬럼만 명시 (schema.sql 참조)
+            const { data: dbProfile, error: profileError } = await supabase
                 .from('user_profiles')
-                .select('id, email, name, phone, role, status, center_id, avatar_url, created_at, updated_at')
+                .select('id, email, name, phone, role, is_active, status, center_id, created_at, updated_at')
                 .eq('id', user.id)
                 .maybeSingle();
+
+            // 🚨 [진단] 쿼리 에러 시 로그 출력 (컬럼 미존재 등 DB 스키마 불일치 감지용)
+            if (profileError) {
+                console.error('[Auth] user_profiles 쿼리 실패:', profileError.message, profileError.code);
+            }
 
             // ✨ Type assertion for dbProfile
             const typedProfile = dbProfile as unknown as UserProfile | null;
 
-            // 2. ✨ [Self-Healing] Removed hardcoded repair relying on CURRENT_CENTER_ID
-            // If needed, we can implement dynamic repair later.
-            /* 
-            if (!dbProfile || dbProfile.role === 'parent') {
-                // ... (Logic removed for SaaS safety)
-            }
-            */
-
             if (typedProfile) {
-                const dbRole = (typedProfile.role as UserRole) || 'parent';
+                // 🛡️ [핵심] role이 null/빈값이면 therapists 테이블에서 교차 확인 (자가 복구)
+                let dbRole = typedProfile.role as UserRole;
+                if (!dbRole && user.email) {
+                    console.warn('[Auth] user_profiles.role is null/empty, cross-checking therapists table...');
+                    const { data: therapistRecord } = await supabase
+                        .from('therapists')
+                        .select('system_role')
+                        .ilike('email', user.email)
+                        .maybeSingle();
+                    const crossRole = (therapistRecord as { system_role: string } | null)?.system_role as UserRole;
+                    if (crossRole && crossRole !== 'parent') {
+                        dbRole = crossRole;
+                        console.log('[Auth] Role recovered from therapists table:', crossRole);
+                    } else {
+                        dbRole = 'parent'; // 진짜 아무 데도 없으면 최종 폴백
+                    }
+                }
 
                 // 🚨 [보안] 퇴사자 및 비활성 계정 철저 차단
-                if (typedProfile.status === 'retired' || typedProfile.status === 'inactive' || dbRole === 'retired') {
+                if (typedProfile.status === 'retired' || typedProfile.status === 'inactive' || typedProfile.is_active === false || dbRole === 'retired') {
                     console.warn('[Auth] Access Blocked: Retired/Inactive User');
                     setRole(null);
                     setProfile(null);
                     alert('접근 권한이 없습니다. (퇴사 또는 계정 비활성화)\n관리자에게 문의하세요.');
                     await signOut();
-                    // 센터 slug: URL → localStorage 순으로 탐색하여 센터 로그인으로 이동
                     const slugMatch = window.location.pathname.match(/\/centers\/([^/]+)/);
                     const centerSlug = slugMatch?.[1] || localStorage.getItem('zarada_center_slug');
                     window.location.href = centerSlug ? `/centers/${centerSlug}/login` : '/login';
@@ -254,7 +266,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const typedTherapistData = therapistData as { id: string; system_status: string } | null;
 
                     // 🚨 [보안 강화] therapists.system_status가 'retired'이면 즉시 차단
-                    //    user_profiles.status가 업데이트 안 됐어도 여기서 잡아냄
                     if (typedTherapistData?.system_status === 'retired') {
                         console.warn('[Auth] Access Blocked: Therapist system_status is retired');
                         setRole(null);
@@ -272,21 +283,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 setLoading(false);
                 initialLoadComplete.current = true;
+
+            } else if (profileError) {
+                // 🚨 [핵심 수정] DB 쿼리 자체가 실패한 경우 (RLS 차단, 네트워크 등)
+                // therapists 테이블에서 교차 확인하여 최대한 복구 시도
+                console.error('[Auth] Profile query failed, attempting therapists cross-check...');
+                if (user.email) {
+                    const { data: therapistFallback } = await supabase
+                        .from('therapists')
+                        .select('id, system_role, system_status, center_id')
+                        .ilike('email', user.email)
+                        .maybeSingle();
+                    const typedFallback = therapistFallback as { id: string; system_role: string; system_status: string; center_id: string } | null;
+
+                    if (typedFallback && typedFallback.system_status !== 'retired') {
+                        const fallbackRole = (typedFallback.system_role as UserRole) || 'therapist';
+                        console.log('[Auth] Role recovered from therapists:', fallbackRole);
+                        setRole(fallbackRole);
+                        setCenterId(typedFallback.center_id);
+                        if (fallbackRole === 'therapist') setTherapistId(typedFallback.id);
+                        setLoading(false);
+                        initialLoadComplete.current = true;
+                        return;
+                    }
+                }
+                // 교차 확인도 실패하면 parent 폴백 (진짜 최후의 수단)
+                console.error('[Auth] All cross-checks failed. Falling back to parent.');
+                setRole('parent');
+                setLoading(false);
+                initialLoadComplete.current = true;
+
             } else {
-                // 프로필 없을 시 재시도 (최대 3회, 300ms 간격 → 최대 0.9초)
+                // 프로필 레코드 자체가 없는 경우 — 재시도 (최대 3회, 300ms 간격)
                 if (retryCount < 3) {
                     setTimeout(() => executeFetchRole(forceUpdate, retryCount + 1), 300);
                 } else {
-                    // 정말 없으면 Parent 취급
+                    // 재시도 후에도 없으면 therapists 테이블에서 교차 확인
+                    if (user.email) {
+                        const { data: therapistFallback2 } = await supabase
+                            .from('therapists')
+                            .select('id, system_role, system_status, center_id')
+                            .ilike('email', user.email)
+                            .maybeSingle();
+                        const typedFallback2 = therapistFallback2 as { id: string; system_role: string; system_status: string; center_id: string } | null;
+
+                        if (typedFallback2 && typedFallback2.system_status !== 'retired') {
+                            const fb2Role = (typedFallback2.system_role as UserRole) || 'therapist';
+                            console.log('[Auth] No profile found but recovered from therapists:', fb2Role);
+                            setRole(fb2Role);
+                            setCenterId(typedFallback2.center_id);
+                            if (fb2Role === 'therapist') setTherapistId(typedFallback2.id);
+                            setLoading(false);
+                            initialLoadComplete.current = true;
+                            return;
+                        }
+                    }
+                    // 정말 어디에도 없으면 Parent 취급
+                    console.warn('[Auth] No profile or therapist record found. Final fallback: parent');
                     setRole('parent');
                     setLoading(false);
                     initialLoadComplete.current = true;
                 }
             }
         } catch (e) {
-            console.error('Auth Check Error:', e);
-            // 에러 시 보안을 위해 parent로 강등하거나 에러 페이지
-            setRole('parent');
+            console.error('[Auth] Critical Auth Check Error:', e);
+            // 🛡️ [핵심 수정] 에러 시에도 기존 역할이 있으면 유지 (불필요한 parent 강등 방지)
+            if (!role) {
+                // 역할이 아직 설정되지 않은 초기 상태에서만 parent 폴백
+                setRole('parent');
+            }
+            // role이 이미 있으면 (예: 이전 세션에서 admin 등) 그대로 유지
             setLoading(false);
             initialLoadComplete.current = true;
         }
