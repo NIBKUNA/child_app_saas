@@ -207,7 +207,20 @@ function App() {
             <Route path="programs" element={<ProgramsPage />} />
             <Route path="therapists" element={<TherapistsPage />} />
             <Route path="contact" element={<ContactPage />} />
-            {/* Blog routes removed */}
+          </Route>
+
+          {/* 2-1. Custom Domain Routes (커스텀 도메인에서 /about, /contact 등 직접 접근) */}
+          <Route path="/about" element={<CenterGuard><PublicLayout /></CenterGuard>}>
+            <Route index element={<AboutPage />} />
+          </Route>
+          <Route path="/programs" element={<CenterGuard><PublicLayout /></CenterGuard>}>
+            <Route index element={<ProgramsPage />} />
+          </Route>
+          <Route path="/therapists" element={<CenterGuard><PublicLayout /></CenterGuard>}>
+            <Route index element={<TherapistsPage />} />
+          </Route>
+          <Route path="/contact" element={<CenterGuard><PublicLayout /></CenterGuard>}>
+            <Route index element={<ContactPage />} />
           </Route>
 
           {/* 3. Authentication (Global & Branded) */}
