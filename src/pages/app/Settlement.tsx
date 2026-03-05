@@ -146,7 +146,6 @@ export function Settlement() {
 
     const saveEdit = async (id: string) => {
         if (!centerId) return;
-        if (!window.confirm('저장하시겠습니까?')) return;
         try {
             const updatePayload = {
                 hire_type: editForm.hire_type,
@@ -161,12 +160,12 @@ export function Settlement() {
             };
             const { error } = await supabase.from('therapists').update(updatePayload as never).eq('id', id).eq('center_id', centerId);
             if (error) throw error;
-            alert('저장되었습니다.');
+            alert('✅ 저장되었습니다.');
             setEditingId(null);
             fetchSettlements();
         } catch (error) {
             console.error(error);
-            alert('저장 실패');
+            alert('❌ 저장 실패');
         }
     };
 
@@ -454,9 +453,9 @@ export function Settlement() {
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center border-b dark:border-slate-800 pb-2">
                                         <span className="font-bold text-slate-800 dark:text-white">{t.name} 선생님 조건 수정</span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => saveEdit(t.id)} className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold">저장</button>
-                                            <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg text-xs font-bold">취소</button>
+                                        <div className="flex gap-2 relative z-10">
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); saveEdit(t.id); }} className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 active:scale-95 transition-all">저장</button>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); setEditingId(null); }} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all">취소</button>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
