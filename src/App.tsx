@@ -209,18 +209,14 @@ function App() {
             <Route path="contact" element={<ContactPage />} />
           </Route>
 
-          {/* 2-1. Custom Domain Routes (커스텀 도메인에서 /about, /contact 등 직접 접근) */}
-          <Route path="/about" element={<CenterGuard><PublicLayout /></CenterGuard>}>
-            <Route index element={<AboutPage />} />
-          </Route>
-          <Route path="/programs" element={<CenterGuard><PublicLayout /></CenterGuard>}>
-            <Route index element={<ProgramsPage />} />
-          </Route>
-          <Route path="/therapists" element={<CenterGuard><PublicLayout /></CenterGuard>}>
-            <Route index element={<TherapistsPage />} />
-          </Route>
-          <Route path="/contact" element={<CenterGuard><PublicLayout /></CenterGuard>}>
-            <Route index element={<ContactPage />} />
+          {/* 2-1. Custom Domain Routes — 커스텀 도메인에서 /about, /contact 등 직접 접근
+              /centers/:slug 없이 최상위 경로로 공개 페이지에 접근하는 경우를 처리합니다.
+              CenterGuard가 커스텀 도메인을 감지하여 센터 컨텍스트를 자동 주입합니다. */}
+          <Route element={<CenterGuard><PublicLayout /></CenterGuard>}>
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/programs" element={<ProgramsPage />} />
+            <Route path="/therapists" element={<TherapistsPage />} />
+            <Route path="/contact" element={<ContactPage />} />
           </Route>
 
           {/* 3. Authentication (Global & Branded) */}

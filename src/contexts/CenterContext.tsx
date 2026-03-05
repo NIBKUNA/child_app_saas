@@ -49,6 +49,8 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const parts = pathname.split('/');
     const ci = parts.indexOf('centers');
     if (ci !== -1 && parts.length > ci + 1) return `center:${parts[ci + 1]}`;
+    // 커스텀 도메인 공개 경로는 같은 카테고리로 묶어 불필요한 재쿼리 방지
+    if (['/about', '/programs', '/therapists', '/contact'].includes(pathname)) return 'public';
     return pathname; // 글로벌 라우트는 정확한 경로 추적
   };
 
