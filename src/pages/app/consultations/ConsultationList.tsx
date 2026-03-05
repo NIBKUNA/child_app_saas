@@ -176,22 +176,37 @@ export function ConsultationList() {
             setTodoChildren(pending);
 
             // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)
-            // ✨ [권한 분리] 부모님이 직접 작성한 '자가진단 기록'은 치료사 리스트에서 제외
-            let assessQuery = (supabase
-                .from('development_assessments'))
-                .select('*, children!inner(id, name, center_id)')
-                .eq('children.center_id', centerId)
-                .not('summary', 'eq', '부모님 자가진단 기록') // ✨ [User Request] 부모 자가진단 제외
-                .order('created_at', { ascending: false })
-                .limit(20);
+            // ✨ [FIX] children!inner 조인이 FK 매칭 실패로 400 에러 발생 → 2단계 쿼리로 변경
+            // Step 1: 해당 센터 아동 ID 목록 조회
+            const { data: centerChildren } = await supabase
+                .from('children')
+                .select('id, name, center_id')
+                .eq('center_id', centerId);
+            const childIds = (centerChildren || []).map((c: any) => c.id);
+            const childMap: Record<string, any> = {};
+            (centerChildren || []).forEach((c: any) => { childMap[c.id] = c; });
 
-            // ✨ [FIX] therapist 테이블의 ID로 필터
-            if (!isAdmin && currentTherapistId) {
-                assessQuery = assessQuery.eq('therapist_id', currentTherapistId);
+            if (childIds.length > 0) {
+                // Step 2: 해당 아동들의 평가 조회
+                let assessQuery = supabase
+                    .from('development_assessments')
+                    .select('*')
+                    .in('child_id', childIds)
+                    .not('summary', 'eq', '부모님 자가진단 기록')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (!isAdmin && currentTherapistId) {
+                    assessQuery = assessQuery.eq('therapist_id', currentTherapistId);
+                }
+                const { data: assessments, error: assessError } = await assessQuery;
+                if (assessError) console.error('[ConsultationList] assessments error:', assessError);
+                // 아동 정보 병합
+                const merged = (assessments || []).map((a: any) => ({ ...a, children: childMap[a.child_id] || { id: a.child_id, name: '아동', center_id: centerId } }));
+                setRecentAssessments(merged);
+            } else {
+                setRecentAssessments([]);
             }
-            const { data: assessments, error: assessError } = await assessQuery;
-            console.log('[ConsultationList] assessments result:', { count: assessments?.length, assessError, isAdmin, centerId });
-            setRecentAssessments((assessments as any) || []);
 
         } catch (e) {
             console.error("데이터 로드 오류:", e);
@@ -245,22 +260,19 @@ export function ConsultationList() {
     };
 
     const handleDelete = async (assess: DevelopmentAssessment) => {
-        if (!confirm("정말 이 발달 평가를 삭제하시겠습니까?\n부모님 앱에서도 즉시 사라집니다.")) return;
+        if (!confirm("정말 이 발달 평가를 삭제하시겠습니까?\n삭제 후 해당 아동은 다시 평가 대기 목록에 나타납니다.")) return;
 
         try {
             // 1. 평가 삭제
             const { error: assessError } = await (supabase.from('development_assessments')).delete().eq('id', assess.id);
             if (assessError) throw assessError;
 
-            // 2. 연결된 일지가 '발달 평가용 자동 생성 일지'라면 일지도 함께 삭제하여 깨끗하게 정리
+            // 2. 연결된 counseling_log 삭제 → 해당 세션이 다시 "평가 대기 목록"에 나타남
             if (assess.log_id) {
-                const { data: log } = await (supabase.from('counseling_logs')).select('content').eq('id', assess.log_id).maybeSingle();
-                if ((log as any)?.content?.includes('발달 평가 작성을 위해 자동 생성')) {
-                    await (supabase.from('counseling_logs')).delete().eq('id', assess.log_id);
-                }
+                await (supabase.from('counseling_logs')).delete().eq('id', assess.log_id);
             }
 
-            alert("삭제되었습니다.");
+            alert("삭제되었습니다. 해당 아동이 평가 대기 목록에 다시 나타납니다.");
             fetchData();
         } catch (e) {
             console.error(e);
