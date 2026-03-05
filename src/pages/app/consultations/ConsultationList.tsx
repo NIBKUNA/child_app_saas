@@ -93,8 +93,6 @@ export function ConsultationList() {
             const isSuperAdmin = role === 'super_admin' || checkSuperAdmin(user?.email || '');
             const isAdmin = role === 'admin' || role === 'manager' || isSuperAdmin;
 
-            // 🔍 [DEBUG] 실제 런타임 값 확인
-            console.log('[ConsultationList] DEBUG:', { authRole, role, isAdmin, isSuperAdmin, centerId, userId: user.id, email: user.email });
 
             // ✨ [FIX] therapists 테이블에서 현재 유저의 therapist 레코드 조회
             // therapists.profile_id = profiles.id = auth.users.id 이므로 profile_id로 조회
@@ -120,10 +118,7 @@ export function ConsultationList() {
                     currentTherapistId = (legacyTherapist as any)?.id;
                 }
 
-                console.log('[ConsultationList] therapistId:', currentTherapistId);
-
                 if (!currentTherapistId) {
-                    console.warn('[ConsultationList] ⚠️ Not admin, no therapist ID found → empty result');
                     setTodoChildren([]);
                     setRecentAssessments([]);
                     setLoading(false);
@@ -172,12 +167,11 @@ export function ConsultationList() {
 
             // 2. 일지가 없는(ID가 Set에 없는) 스케줄만 필터링
             const pending = (sessions as any[])?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
-            console.log('[ConsultationList] sessions:', { total: sessions?.length, pending: pending.length, sessError });
             setTodoChildren(pending);
 
             // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)
             // ✨ [FIX] children!inner 조인이 FK 매칭 실패로 400 에러 발생 → 2단계 쿼리로 변경
-            // Step 1: 해당 센터 아동 ID 목록 조회
+            // Step 1: 해당 센터 아동 ID + 치료사 이름 목록 조회
             const { data: centerChildren } = await supabase
                 .from('children')
                 .select('id, name, center_id')
@@ -185,6 +179,14 @@ export function ConsultationList() {
             const childIds = (centerChildren || []).map((c: any) => c.id);
             const childMap: Record<string, any> = {};
             (centerChildren || []).forEach((c: any) => { childMap[c.id] = c; });
+
+            // 치료사 이름 맵 (therapist_id → name)
+            const { data: therapists } = await supabase
+                .from('therapists')
+                .select('id, name')
+                .eq('center_id', centerId);
+            const therapistMap: Record<string, string> = {};
+            (therapists || []).forEach((t: any) => { therapistMap[t.id] = t.name; });
 
             if (childIds.length > 0) {
                 // Step 2: 해당 아동들의 평가 조회
@@ -201,8 +203,12 @@ export function ConsultationList() {
                 }
                 const { data: assessments, error: assessError } = await assessQuery;
                 if (assessError) console.error('[ConsultationList] assessments error:', assessError);
-                // 아동 정보 병합
-                const merged = (assessments || []).map((a: any) => ({ ...a, children: childMap[a.child_id] || { id: a.child_id, name: '아동', center_id: centerId } }));
+                // 아동 + 치료사 정보 병합
+                const merged = (assessments || []).map((a: any) => ({
+                    ...a,
+                    children: childMap[a.child_id] || { id: a.child_id, name: '아동', center_id: centerId },
+                    therapist_name: therapistMap[a.therapist_id] || null,
+                }));
                 setRecentAssessments(merged);
             } else {
                 setRecentAssessments([]);
@@ -386,6 +392,7 @@ export function ConsultationList() {
                             <tr>
                                 <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Date</th>
                                 <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Child Name</th>
+                                <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">치료사</th>
                                 <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Avg Score</th>
                                 <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">Actions</th>
                             </tr>
@@ -393,13 +400,14 @@ export function ConsultationList() {
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
                             {recentAssessments.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="p-12 text-center text-slate-400 dark:text-slate-500 font-bold">아직 작성된 발달 평가가 없습니다.</td>
+                                    <td colSpan={5} className="p-12 text-center text-slate-400 dark:text-slate-500 font-bold">아직 작성된 발달 평가가 없습니다.</td>
                                 </tr>
                             ) : (
                                 recentAssessments.map((assess) => (
                                     <tr key={assess.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="p-8 text-sm font-bold text-slate-500 dark:text-slate-400">{assess.evaluation_date || assess.created_at?.split('T')[0]}</td>
                                         <td className="p-8 text-base font-black text-slate-900 dark:text-white">{assess.children?.name || '아동'}</td>
+                                        <td className="p-8 text-sm font-bold text-slate-600 dark:text-slate-300">{(assess as any).therapist_name || <span className="text-slate-300 italic text-xs">미상</span>}</td>
                                         <td className="p-8 text-center">
                                             {calcAvg(assess) > 0 ? (
                                                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl font-black text-indigo-700 text-xs">
