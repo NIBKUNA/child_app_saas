@@ -12,6 +12,7 @@ import { CenterGuard } from '@/components/auth/CenterGuard';
 import ProtectedRoute from '@/components/ProtectedRoute'; // Ensure this exports UserRole or accept string[]
 import { useAuth } from '@/contexts/AuthContext';
 import { isMainDomain as checkMainDomain } from '@/config/domain';
+import { isSuperAdmin } from '@/config/superAdmin';
 
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { AppLayout } from '@/layouts/AppLayout';
@@ -78,7 +79,7 @@ function LazyFallback() {
 }
 
 function AppHomeRedirect() {
-  const { role, loading } = useAuth();
+  const { role, loading, user } = useAuth();
   const { center, loading: centerLoading } = useCenter();
 
   // ✨ [Domain Check] Identify if we are on a custom domain
@@ -86,11 +87,19 @@ function AppHomeRedirect() {
   const isSaaSDomain = checkMainDomain(hostname);
   const isCustomDomain = !isSaaSDomain;
 
+  // 👑 [Super Admin Check] email 기반 + role 기반 이중 체크
+  const isSuper = role === 'super_admin' || (user?.email ? isSuperAdmin(user.email) : false);
+
   if (loading || centerLoading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
+
+  // 👑 [Super Admin] super_admin은 어디서든 GlobalLanding 표시 (센터로 강제 리다이렉트 방지)
+  if (isSuper) {
+    return <GlobalLanding />;
+  }
 
   // ✨ [Sovereign SaaS] Smart Redirection
   // If a center-affiliated staff/admin logs in, take them to their workspace.
-  if (role && role !== 'parent' && role !== 'super_admin' && center?.slug) {
+  if (role && role !== 'parent' && center?.slug) {
     if (role === 'manager' || role === 'therapist') {
       return <Navigate to="/app/schedule" replace />;
     }
@@ -98,17 +107,12 @@ function AppHomeRedirect() {
   }
 
   // ✨ [Custom Domain / Center Redirect]
-  // 커스텀 도메인에서는 항상 센터 페이지로 이동 (super_admin 포함)
-  // SaaS 도메인에서는 super_admin만 통합페이지(GlobalLanding) 표시
+  // 커스텀 도메인에서는 센터 페이지로 이동
   if (center?.slug) {
-    const skipForSuperAdmin = isSaaSDomain && role === 'super_admin';
-    if (!skipForSuperAdmin) {
-      return <Navigate to={`/centers/${center.slug}`} replace />;
-    }
+    return <Navigate to={`/centers/${center.slug}`} replace />;
   }
 
   // 🚨 [Safety] If on a custom domain but NO center found, DO NOT show Global Landing.
-  // This prevents "Zarada Portal" from appearing on "Jamsil Center's" domain.
   if (isCustomDomain) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-gray-50">
