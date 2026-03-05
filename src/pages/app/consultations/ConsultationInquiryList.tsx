@@ -128,10 +128,29 @@ export default function ConsultationInquiryList() {
 
     const deleteInquiry = async (id: string) => {
         if (!confirm("이 상담 문의를 영구적으로 삭제하시겠습니까?")) return;
-        if (!centerId) return;
-        const { error } = await supabase.from('consultations').delete().eq('id', id).eq('center_id', centerId);
-        if (!error) {
+        if (!centerId) {
+            console.error('[Delete] centerId가 없습니다. 센터를 먼저 선택해주세요.');
+            alert('센터가 선택되지 않았습니다. 센터를 먼저 선택해주세요.');
+            return;
+        }
+        try {
+            const { error } = await supabase
+                .from('consultations')
+                .delete()
+                .eq('id', id)
+                .eq('center_id', centerId);
+
+            if (error) {
+                console.error('[Delete] 삭제 실패:', error);
+                alert('삭제 실패: ' + error.message);
+                return;
+            }
+            // UI에서 즉시 제거 + 서버 재조회
             setInquiries(prev => prev.filter(item => item.id !== id));
+            alert('상담 문의가 삭제되었습니다.');
+        } catch (err: any) {
+            console.error('[Delete] 예외 발생:', err);
+            alert('삭제 중 오류가 발생했습니다: ' + (err?.message || '알 수 없는 오류'));
         }
     };
 
