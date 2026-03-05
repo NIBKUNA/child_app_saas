@@ -19,7 +19,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { BASE_URL } from './_config';
+import { BASE_URL } from './_config.js';
 
 const SITEMAP_URL = `${BASE_URL}/sitemap.xml`;
 

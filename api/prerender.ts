@@ -11,7 +11,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { BASE_URL, isDefaultDomain as checkDefaultDomain } from './_config';
+import { BASE_URL, isDefaultDomain as checkDefaultDomain } from './_config.js';
 
 interface CenterData {
     id: string;

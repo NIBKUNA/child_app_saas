@@ -14,7 +14,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { BASE_URL } from './_config';
+import { BASE_URL } from './_config.js';
 
 const SUB_PAGES = ['', '/about', '/programs', '/therapists', '/contact'];
 

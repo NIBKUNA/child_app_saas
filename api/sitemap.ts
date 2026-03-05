@@ -11,7 +11,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { BASE_URL } from './_config';
+import { BASE_URL } from './_config.js';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
