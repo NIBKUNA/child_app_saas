@@ -411,10 +411,13 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
             data?.forEach((item: any) => {
                 if (item.schedule_id) {
                     const prev = map[item.schedule_id];
+                    const isRefundItem = item.payments?.method === '환불';
+                    const prevIsRefund = prev?.method === '환불';
                     map[item.schedule_id] = {
                         amount: (prev?.amount || 0) + (Number(item.amount) || 0),
-                        method: item.payments?.method || prev?.method || '',
-                        memo: item.payments?.memo || prev?.memo || '',
+                        // 환불 항목이 하나라도 있으면 '환불'로 고정
+                        method: (isRefundItem || prevIsRefund) ? '환불' : (item.payments?.method || prev?.method || ''),
+                        memo: isRefundItem ? (item.payments?.memo || prev?.memo || '') : (prev?.memo || item.payments?.memo || ''),
                         paymentId: item.payment_id || prev?.paymentId || '',
                     };
                 }
