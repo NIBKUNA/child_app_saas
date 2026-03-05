@@ -18,7 +18,7 @@ import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
     Phone, Clock,
     RefreshCcw, Trash2,
-    CheckCircle2, XCircle, Hourglass, Save, StickyNote
+    CheckCircle2, XCircle, Hourglass, Save, StickyNote, AlertTriangle
 } from 'lucide-react';
 
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ');
@@ -30,6 +30,7 @@ export default function ConsultationInquiryList() {
     const [loading, setLoading] = useState(true);
     const [memoValues, setMemoValues] = useState<{ [key: string]: string }>({}); // 각 문의별 메모 임시 상태
     const [viewMode, setViewMode] = useState<'pending' | 'archived'>('pending'); // ✨ Tab State
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null); // ✨ 삭제 확인 모달
     const { center } = useCenter(); // ✨ Use Center
     const centerId = center?.id;
 
@@ -126,31 +127,30 @@ export default function ConsultationInquiryList() {
         }
     };
 
-    const deleteInquiry = async (id: string) => {
-        if (!confirm("이 상담 문의를 영구적으로 삭제하시겠습니까?")) return;
-        if (!centerId) {
-            console.error('[Delete] centerId가 없습니다. 센터를 먼저 선택해주세요.');
-            alert('센터가 선택되지 않았습니다. 센터를 먼저 선택해주세요.');
-            return;
-        }
+    // ✨ 삭제 확인 모달 열기
+    const deleteInquiry = (id: string) => {
+        setDeleteTargetId(id);
+    };
+
+    // ✨ 실제 삭제 실행
+    const confirmDelete = async () => {
+        if (!deleteTargetId || !centerId) return;
         try {
             const { error } = await supabase
                 .from('consultations')
                 .delete()
-                .eq('id', id)
+                .eq('id', deleteTargetId)
                 .eq('center_id', centerId);
 
             if (error) {
-                console.error('[Delete] 삭제 실패:', error);
                 alert('삭제 실패: ' + error.message);
                 return;
             }
-            // UI에서 즉시 제거 + 서버 재조회
-            setInquiries(prev => prev.filter(item => item.id !== id));
-            alert('상담 문의가 삭제되었습니다.');
+            setInquiries(prev => prev.filter(item => item.id !== deleteTargetId));
         } catch (err: any) {
-            console.error('[Delete] 예외 발생:', err);
-            alert('삭제 중 오류가 발생했습니다: ' + (err?.message || '알 수 없는 오류'));
+            alert('삭제 오류: ' + (err?.message || '알 수 없는 오류'));
+        } finally {
+            setDeleteTargetId(null);
         }
     };
 
@@ -245,7 +245,15 @@ export default function ConsultationInquiryList() {
                                         return <>{t.full} 접수 <span className="ml-1 text-indigo-400">({t.relative})</span></>;
                                     })()}</span>
                                 </div>
-                                <button onClick={() => deleteInquiry(inq.id)} className="p-3 text-slate-200 dark:text-slate-500 hover:text-rose-500 transition-all"><Trash2 className="w-5 h-5" /></button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        console.log('[Delete] 🗑️ 삭제 버튼 클릭됨 - ID:', inq.id);
+                                        deleteInquiry(inq.id);
+                                    }}
+                                    className="p-3 text-slate-300 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all relative z-10 cursor-pointer"
+                                    title="삭제"
+                                ><Trash2 className="w-5 h-5" /></button>
                             </div>
 
                             <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mb-6 md:mb-8">{inq.child_name || '이름 미입력'} 아동 {inq.child_gender && <span className="text-slate-300 dark:text-slate-500 text-lg">({inq.child_gender})</span>}</h3>
@@ -299,6 +307,33 @@ export default function ConsultationInquiryList() {
                         </div>
                     ))}
             </div>
+
+            {/* ✨ 삭제 확인 모달 (브라우저 confirm 대체) */}
+            {deleteTargetId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDeleteTargetId(null)}>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-sm mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-2xl">
+                                <AlertTriangle className="w-6 h-6 text-rose-500" />
+                            </div>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white">삭제 확인</h3>
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                            이 상담 문의를 영구적으로 삭제합니다.<br />삭제 후 복구할 수 없습니다.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteTargetId(null)}
+                                className="flex-1 py-3 rounded-2xl font-bold text-sm bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                            >취소</button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 py-3 rounded-2xl font-bold text-sm bg-rose-500 text-white hover:bg-rose-600 transition-all shadow-lg shadow-rose-100 dark:shadow-rose-900/30"
+                            >삭제</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
