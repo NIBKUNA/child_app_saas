@@ -28,6 +28,11 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const setCenter = (data: any) => {
     if (data) {
       if (lastLoggedId.current !== data.id) {
+        // ✨ [센터 ID 추적] 센터가 변경될 때마다 콘솔에 알림
+        if (lastLoggedId.current && lastLoggedId.current !== data.id) {
+          console.warn(`🔄 [CenterContext] 센터 전환 감지: ${lastLoggedId.current.slice(0, 8)} → ${data.id.slice(0, 8)} (${data.name || data.slug})`);
+        }
+        console.log(`✅ [CenterContext] 센터 로드: ${data.name || '이름없음'} (ID: ${data.id.slice(0, 8)}..., slug: ${data.slug})`);
         lastLoggedId.current = data.id;
       }
     }
@@ -35,7 +40,7 @@ export const CenterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem('zarada_center_slug', data.slug);
     }
     if (data && !data.id) {
-      console.error("CenterContext: Attempted to set center without ID", data);
+      console.error("❌ [CenterContext] ID 없는 센터 데이터 감지!", data);
       return;
     }
     setCenterState(data);
