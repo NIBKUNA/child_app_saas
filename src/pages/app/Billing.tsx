@@ -938,7 +938,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
                 {/* ── 프로그램 요약 바 */}
                 {activeGroup && (
-                    <div className={cn("px-6 py-3 flex items-center gap-6 border-b shrink-0 text-xs", isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-gray-100")}>
+                    <div className={cn("px-6 py-3 flex items-center gap-6 border-b shrink-0 text-sm", isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-gray-100")}>
                         <span className={cn("font-bold", isDark ? "text-slate-500" : "text-slate-400")}>{activeGroup.pricePerSession.toLocaleString()}원/회</span>
                         <span className={cn("font-black", isDark ? "text-slate-300" : "text-slate-600")}>
                             총 {activeGroup.sessions.length}회기
@@ -951,17 +951,17 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                         </span>
                         <div className="ml-auto flex items-center gap-4">
                             <div className="text-right">
-                                <p className={cn("text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>수업료</p>
+                                <p className={cn("text-xs font-bold", isDark ? "text-slate-500" : "text-slate-400")}>수업료</p>
                                 <p className={cn("text-sm font-black", isDark ? "text-white" : "text-slate-800")}>{activeGroup.totalFee.toLocaleString()}원</p>
                             </div>
                             <div className={cn("w-px h-8", isDark ? "bg-slate-700" : "bg-gray-200")} />
                             <div className="text-right">
-                                <p className={cn("text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>수납완료</p>
+                                <p className={cn("text-xs font-bold", isDark ? "text-slate-500" : "text-slate-400")}>수납완료</p>
                                 <p className={cn("text-sm font-black", groupPaidTotal >= activeGroup.totalFee ? "text-emerald-500" : "text-blue-500")}>{groupPaidTotal.toLocaleString()}원</p>
                             </div>
                             <div className={cn("w-px h-8", isDark ? "bg-slate-700" : "bg-gray-200")} />
                             <div className="text-right">
-                                <p className={cn("text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>
+                                <p className={cn("text-xs font-bold", isDark ? "text-slate-500" : "text-slate-400")}>
                                     {groupRemaining < 0 ? '과납' : '미수금'}
                                 </p>
                                 <p className={cn("text-sm font-black",
@@ -982,7 +982,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     ) : (<>
                         {/* 상단 액션 바 */}
                         <div className="flex items-center justify-between mb-2 gap-2">
-                            <p className={cn("text-xs font-black shrink-0", isDark ? "text-slate-500" : "text-slate-400")}>회기별 상태</p>
+                            <p className={cn("text-sm font-black shrink-0", isDark ? "text-slate-500" : "text-slate-400")}>회기별 상태</p>
                             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
                                 {unpaidPayable.length > 0 && (['카드', '현금', '계좌이체'] as const).map(method => (
                                     <button key={method}
@@ -1010,9 +1010,9 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                         ) : (
                             <div className={cn("rounded-xl border overflow-hidden", isDark ? "border-slate-700" : "border-slate-200")}>
                                 {/* 테이블 헤더 */}
-                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider",
+                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wider",
                                     isDark ? "bg-slate-800/60 text-slate-500" : "bg-slate-50 text-slate-400")}>
-                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span><span className="flex items-center gap-0.5"><StickyNote size={10} />메모</span></span><span className="text-right">관리</span>
+                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span><span className="flex items-center gap-0.5"><StickyNote size={12} />메모</span></span><span className="text-right">관리</span>
                                 </div>
 
                                 {/* 테이블 행 */}
@@ -1026,7 +1026,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
                                     return (
                                         <div key={s.id} className={cn(
-                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 items-center border-t [&>*]:min-w-0",
+                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-3 items-center border-t [&>*]:min-w-0",
                                             isDark ? "border-slate-800" : "border-slate-100",
                                             isChecked && (isDark ? "bg-blue-900/20" : "bg-blue-50/60"),
                                             s.isCarriedOver && (isDark ? "bg-purple-900/10" : "bg-purple-50/30"),
@@ -1041,14 +1041,14 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                             ) : <div className="w-3.5" />}
 
                                             {/* # */}
-                                            <span className={cn("text-[10px] font-black", ss.text)}>{i + 1}</span>
+                                            <span className={cn("text-xs font-black", ss.text)}>{i + 1}</span>
 
                                             {/* 날짜 + 상태 */}
                                             <div className="min-w-0">
-                                                <span className={cn("text-xs font-bold", isDark ? "text-slate-200" : "text-slate-700")}>{s.date.slice(5)}</span>
+                                                <span className={cn("text-sm font-bold", isDark ? "text-slate-200" : "text-slate-700")}>{s.date.slice(5)}</span>
                                                 <div className={cn("flex items-center gap-1 mt-0.5", ss.text)}>
                                                     {ss.icon}
-                                                    <span className="text-[9px] font-bold">
+                                                    <span className="text-[11px] font-bold">
                                                         {paidDetail?.method === '환불' ? '환불완료' : s.isCarriedOver ? '이월' : s.isCanceled ? '취소' : isPaid ? '수납완료' : s.status === 'completed' ? '수업완료' : '예정'}
                                                     </span>
                                                 </div>
@@ -1057,7 +1057,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                             {/* 결제수단 */}
                                             {isPayable && !isPaid ? (
                                                 <select value={inp?.method || '카드'} onChange={e => updateSessionInput(s.id, 'method', e.target.value)}
-                                                    className={cn("px-1 py-0.5 rounded text-[10px] font-bold outline-none border w-full cursor-pointer",
+                                                    className={cn("px-1.5 py-1 rounded text-xs font-bold outline-none border w-full cursor-pointer",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
                                                     <option value="카드">💳카드</option>
                                                     <option value="현금">💵현금</option>
@@ -1066,33 +1066,33 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                             ) : isPaid && editingId === s.id ? (
                                                 <select value={editPaidInputs[s.id]?.method || '카드'}
                                                     onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], method: e.target.value } }))}
-                                                    className={cn("px-1 py-0.5 rounded text-[10px] font-bold outline-none border w-full cursor-pointer",
+                                                    className={cn("px-1.5 py-1 rounded text-xs font-bold outline-none border w-full cursor-pointer",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-600")}>
                                                     <option value="카드">💳카드</option>
                                                     <option value="현금">💵현금</option>
                                                     <option value="계좌이체">🏦계좌</option>
                                                 </select>
                                             ) : isPaid ? (
-                                                <span className={cn("text-[10px] font-bold", isDark ? "text-emerald-400" : "text-emerald-600")}>{paidDetail?.method || '-'}</span>
+                                                <span className={cn("text-xs font-bold", isDark ? "text-emerald-400" : "text-emerald-600")}>{paidDetail?.method || '-'}</span>
                                             ) : (
-                                                <span className={cn("text-[10px]", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
+                                                <span className={cn("text-xs", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
                                             )}
 
                                             {/* 금액 */}
                                             {isPayable && !isPaid ? (
                                                 <input type="number" value={inp?.amount || ''}
                                                     onChange={e => updateSessionInput(s.id, 'amount', Number(e.target.value))}
-                                                    className={cn("w-full text-right font-black text-[11px] outline-none rounded px-1 py-0.5 border",
+                                                    className={cn("w-full text-right font-black text-sm outline-none rounded px-1.5 py-1 border",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-800")} />
                                             ) : isPaid && editingId === s.id ? (
                                                 <input type="number" value={editPaidInputs[s.id]?.amount || ''}
                                                     onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], amount: Number(e.target.value) } }))}
-                                                    className={cn("w-full text-right font-black text-[11px] outline-none rounded px-1 py-0.5 border",
+                                                    className={cn("w-full text-right font-black text-sm outline-none rounded px-1.5 py-1 border",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-200 text-slate-800")} />
                                             ) : isPaid ? (
-                                                <span className="text-[11px] font-black text-emerald-500 text-right">{paidDetail?.amount?.toLocaleString()}</span>
+                                                <span className="text-sm font-black text-emerald-500 text-right">{paidDetail?.amount?.toLocaleString()}</span>
                                             ) : (
-                                                <span className={cn("text-[11px] text-right", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
+                                                <span className={cn("text-sm text-right", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
                                             )}
 
                                             {/* ✨ 통합 메모 (schedules.notes에 저장 — 모든 상태에서 편집 가능) */}
@@ -1101,7 +1101,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                     value={scheduleMemos[s.id] ?? ''}
                                                     onChange={e => setScheduleMemos(prev => ({ ...prev, [s.id]: e.target.value }))}
                                                     onKeyDown={e => { if (e.key === 'Enter') saveScheduleMemo(s.id); }}
-                                                    className={cn("flex-1 px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
+                                                    className={cn("flex-1 px-2 py-1 rounded text-xs outline-none border min-w-0",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
                                                 <button
                                                     onClick={() => saveScheduleMemo(s.id)}
@@ -1120,18 +1120,18 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                             <div className="flex items-center gap-1 justify-end shrink-0">
                                                 {isPayable && !isPaid && (
                                                     <button onClick={() => handleSinglePay(s)} disabled={loading}
-                                                        className="px-2 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white shrink-0">
+                                                        className="px-2.5 py-1 rounded text-[11px] font-black bg-blue-600 text-white shrink-0">
                                                         수납
                                                     </button>
                                                 )}
                                                 {isPaid && editingId === s.id ? (
                                                     <>
                                                         <button onClick={() => handleUpdatePayment(s.id)} disabled={loading}
-                                                            className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-600 text-white shrink-0 flex items-center gap-0.5">
+                                                            className="px-2.5 py-1 rounded text-[11px] font-black bg-emerald-600 text-white shrink-0 flex items-center gap-0.5">
                                                             <Save size={9} /> 저장
                                                         </button>
                                                         <button onClick={() => setEditingId(null)}
-                                                            className={cn("px-1.5 py-0.5 rounded text-[9px] font-black border shrink-0",
+                                                            className={cn("px-2 py-1 rounded text-[11px] font-black border shrink-0",
                                                                 isDark ? "border-slate-600 text-slate-400" : "border-slate-200 text-slate-400")}>
                                                             취소
                                                         </button>
@@ -1139,14 +1139,14 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 ) : isPaid ? (
                                                     <>
                                                         <button onClick={() => startEditPaid(s.id)}
-                                                            className={cn("px-1.5 py-0.5 rounded text-[9px] font-black border flex items-center gap-0.5 shrink-0",
+                                                            className={cn("px-2 py-1 rounded text-[11px] font-black border flex items-center gap-0.5 shrink-0",
                                                                 isDark ? "border-slate-600 text-slate-400" : "border-slate-200 text-slate-400")}>
-                                                            <Pencil size={9} /> 수정
+                                                            <Pencil size={10} /> 수정
                                                         </button>
                                                         <button onClick={() => handleSessionRefund(s)} disabled={loading}
-                                                            className={cn("px-1.5 py-0.5 rounded text-[9px] font-black border flex items-center gap-0.5 shrink-0",
+                                                            className={cn("px-2 py-1 rounded text-[11px] font-black border flex items-center gap-0.5 shrink-0",
                                                                 isDark ? "border-rose-800 text-rose-400" : "border-rose-200 text-rose-500")}>
-                                                            <RotateCcw size={9} /> 환불
+                                                            <RotateCcw size={10} /> 환불
                                                         </button>
                                                     </>
                                                 ) : null}
@@ -1154,7 +1154,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 <select value={s.status}
                                                     onChange={e => handleStatusChange(s.id, e.target.value as ScheduleStatus)}
                                                     disabled={loading}
-                                                    className={cn("text-[9px] font-bold px-1 py-0.5 rounded border-none outline-none cursor-pointer",
+                                                    className={cn("text-[11px] font-bold px-1.5 py-1 rounded border-none outline-none cursor-pointer",
                                                         isDark ? "bg-black/30 text-white" : "bg-white text-slate-500 shadow-sm")}>
                                                     <option value="scheduled">예정</option>
                                                     <option value="completed">완료</option>
