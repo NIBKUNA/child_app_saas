@@ -698,12 +698,15 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             const groupId = prevSchedule?.parent_schedule_id || scheduleId;
             const isRecurringGroup = prevSchedule?.is_recurring;
 
+            // ✨ date가 null일 수 있으므로 start_time 기반으로도 검색
+            const futureThreshold = `${formData.date}T23:59:59+09:00`;
+
             let futureQuery = supabase
                 .from('schedules')
-                .select('id, date')
+                .select('id, date, start_time, status')
                 .eq('center_id', centerId)
-                .gt('date', formData.date)
-                .in('status', ['scheduled']);
+                .gt('start_time', futureThreshold)
+                .neq('id', scheduleId); // 현재 일정 제외
 
             if (isRecurringGroup && groupId) {
                 futureQuery = futureQuery.or(`id.eq.${groupId},parent_schedule_id.eq.${groupId}`);
@@ -716,11 +719,20 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 }
             }
 
-            const { data: futureSchedules } = await futureQuery;
+            const { data: allFuture, error: futureError } = await futureQuery;
+            if (futureError) console.error('[TimeChange] query error:', futureError);
 
-            if (futureSchedules && futureSchedules.length > 0) {
+            // 예정(scheduled)된 것만 시간 변경 (완료/취소는 건드리지 않음)
+            const futureSchedules = (allFuture || []).filter((s: any) =>
+                !s.status || s.status === 'scheduled'
+            );
+
+            console.log('[TimeChange] found:', { total: allFuture?.length, scheduled: futureSchedules.length, futureError });
+
+            if (futureSchedules.length > 0) {
                 for (const fs of futureSchedules) {
-                    const fsDate = fs.date || formData.date;
+                    // date 또는 start_time에서 날짜 추출
+                    const fsDate = (fs as any).date || (fs.start_time ? fs.start_time.split('T')[0] : formData.date);
                     await supabase.from('schedules').update({
                         start_time: makeIsoString(fsDate, formData.start_time),
                         end_time: makeIsoString(fsDate, formData.end_time),
