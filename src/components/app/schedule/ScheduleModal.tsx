@@ -487,35 +487,35 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         .eq('id', scheduleId)
                         .single();
 
-                    // 현재 일정 먼저 수정
-                    await supabase.from('schedules').update(payload).eq('id', scheduleId);
+                    // 현재 일정 수정
+                    const { error: updateError } = await supabase.from('schedules').update(payload).eq('id', scheduleId);
+                    if (updateError) throw updateError;
 
-                    // ✨ [시간 변경 시] 커스텀 모달로 선택지 제공
-                    if (timeChanged) {
-                        setPendingTimeChange({ prevSchedule, makeIsoString });
-                        setShowTimeChangeModal(true);
-                    }
-
-                    // 이전 상태와 새 상태 비교
+                    // 이전 상태와 새 상태 비교 (크레딧 처리)
                     const prevStatus = prevSchedule?.status as string;
                     if (prevSchedule && prevStatus !== formData.status) {
                         const programPrice = programsList.find(p => p.id === (prevSchedule.program_id || formData.program_id))?.price || 0;
                         const childId = prevSchedule.child_id || formData.child_id;
 
                         if (programPrice > 0 && childId) {
-                            // 새로 이월된 경우 → 크레딧 적립
                             if (formData.status === 'carried_over' && prevStatus !== 'carried_over') {
                                 const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
                                 const newCredit = (child?.credit || 0) + programPrice;
                                 await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
-                            }
-                            // 이월에서 다른 상태로 변경 → 크레딧 차감
-                            else if (prevStatus === 'carried_over' && formData.status !== 'carried_over') {
+                            } else if (prevStatus === 'carried_over' && formData.status !== 'carried_over') {
                                 const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
                                 const newCredit = Math.max(0, (child?.credit || 0) - programPrice);
                                 await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
                             }
                         }
+                    }
+
+                    // ✨ [시간 변경 시] 커스텀 모달로 선택지 제공 — onSuccess는 모달 닫힌 후 호출
+                    if (timeChanged) {
+                        setPendingTimeChange({ prevSchedule, makeIsoString });
+                        setShowTimeChangeModal(true);
+                        setLoading(false);
+                        return; // ⛔ onSuccess() 호출하지 않음!
                     }
                 } else {
                     const { error } = await supabase.from('schedules').insert([payload]).select().single();
@@ -737,6 +737,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             setShowTimeChangeModal(false);
             setPendingTimeChange(null);
             setLoading(false);
+            onSuccess();
         }
     };
 
@@ -758,7 +759,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         </div>
                         <div className="p-4 space-y-3">
                             <button
-                                onClick={() => { setShowTimeChangeModal(false); setPendingTimeChange(null); }}
+                                onClick={() => { setShowTimeChangeModal(false); setPendingTimeChange(null); onSuccess(); }}
                                 className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-left group"
                             >
                                 <div className="flex items-center gap-3">
