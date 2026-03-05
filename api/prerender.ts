@@ -70,8 +70,8 @@ async function renderGlobalLanding(supabase: any): Promise<string> {
 
     const centerList = (centers || []) as { name: string; slug: string; address: string | null }[];
 
-    const title = '자라다(Zarada) | 아동발달센터 통합 관리 솔루션 - 언어치료·놀이치료·감각통합치료';
-    const description = '우리 아이가 다니는 아동발달센터를 검색하세요. 자라다는 아동발달센터의 효율적인 운영과 아이들의 성장을 돕는 차세대 ERP 솔루션입니다. 언어치료, 놀이치료, 감각통합치료, 인지치료 센터를 한 곳에서 관리하세요.';
+    const title = '자라다(Zarada) | 아동발달센터 컨설팅 · 마케팅 · 운영 솔루션';
+    const description = '아동발달센터 운영에 필요한 모든 것. 센터 컨설팅, 마케팅 대행, 아동 치료 프로그램, ERP 운영 솔루션까지. 소아과·재활의학과·아동발달센터 원장님을 위한 통합 파트너 자라다입니다.';
     const url = BASE_URL;
 
     const structuredData = {
@@ -128,7 +128,7 @@ async function renderGlobalLanding(supabase: any): Promise<string> {
         title, description, url,
         structuredData: [structuredData, faqData],
         body: `
-            <h1>자라다(Zarada) - 아동발달센터 통합 관리 솔루션</h1>
+            <h1>자라다(Zarada) - 아동발달센터 컨설팅 · 마케팅 · 운영 솔루션</h1>
             <p>${escapeHtml(description)}</p>
 
             <h2>주요 기능</h2>
@@ -665,7 +665,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }));
         }
     } catch (err) {
-        console.error('Prerender error:', err);
-        res.status(500).send('<!-- Prerender Error -->');
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        const errorStack = err instanceof Error ? err.stack : '';
+        console.error('Prerender error:', errorMsg, '\nPath:', path, '\nStack:', errorStack);
+        res.status(500).send(`<!-- Prerender Error: ${escapeHtml(errorMsg)} --><p>Internal Server Error</p>`);
     }
 }
