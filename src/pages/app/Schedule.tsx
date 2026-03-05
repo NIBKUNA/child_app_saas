@@ -262,6 +262,8 @@ export function Schedule() {
         setClickedDate(info.event.extendedProps as ScheduleExtendedProps);
         setIsModalOpen(true);
         setTooltipInfo(null);
+        // 팔오버 닫기
+        document.querySelectorAll('.fc-popover').forEach(el => (el as HTMLElement).style.display = 'none');
     };
 
     // ✨ [권한 분리] 치료사는 날짜 클릭으로 새 일정 생성 불가
@@ -374,17 +376,24 @@ export function Schedule() {
                 .fc-daygrid-day-events { margin: 0 !important; padding: 0 1px !important; }
                 .fc-daygrid-event { margin: 0 1px 1px !important; }
                 .fc-daygrid-day:hover { background-color: ${isDark ? '#1e293b' : '#f8fafc'} !important; }
-                .fc-daygrid-more-link { font-size: 10px !important; font-weight: 800 !important; padding: 0 4px !important; }
+                .fc-daygrid-more-link { font-size: 10px !important; font-weight: 800 !important; padding: 0 4px !important; color: #6366f1 !important; }
                 
                 /* ✨ DayGrid (월간) 이벤트 — 배경 없이 점+텍스트만 (케어플 스타일) */
                 .fc-daygrid-event { background-color: transparent !important; border: none !important; box-shadow: none !important; }
                 .fc-daygrid-event .fc-event-main { padding: 0 2px !important; }
                 
-                /* ✨ TimeGrid (주간/일간) 이벤트 — 진한 배경 + 좌측 컬러바 */
-                .fc-timegrid-event { border-left: 4px solid var(--fc-event-border-color) !important; border-radius: 6px !important; border-top: none !important; border-right: none !important; border-bottom: none !important; }
-                .fc-timegrid-event .fc-event-main { padding: 4px 6px !important; font-size: 11px !important; font-weight: 700 !important; color: ${isDark ? '#e2e8f0' : '#1e293b'} !important; }
-                .fc-timegrid-event .fc-event-title { font-weight: 800 !important; }
-                .fc-timegrid-col-events { margin: 0 2px !important; }
+                /* ✨ TimeGrid (주간/일간) — 슬롯 높이 증가 + 이벤트 overflow 해제 */
+                .fc-timegrid-slot { height: 42px !important; }
+                .fc-timegrid-event { border-radius: 6px !important; border: none !important; overflow: hidden !important; }
+                .fc-timegrid-event .fc-event-main { padding: 0 !important; overflow: hidden !important; }
+                .fc-timegrid-event .fc-event-main-frame { overflow: hidden !important; }
+                .fc-timegrid-event .fc-event-title-container { overflow: hidden !important; }
+                .fc-timegrid-col-events { margin: 0 1px !important; }
+                
+                /* ✨ +n개 팔오버 — 툴팁보다 위에 표시 */
+                .fc-popover { z-index: 60 !important; border-radius: 12px !important; box-shadow: 0 8px 30px rgba(0,0,0,0.15) !important; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'} !important; }
+                .fc-popover .fc-popover-header { background: ${isDark ? '#1e293b' : '#f8fafc'} !important; border-radius: 12px 12px 0 0 !important; padding: 8px 12px !important; font-weight: 800 !important; font-size: 13px !important; }
+                .fc-popover .fc-popover-body { padding: 4px !important; max-height: 300px !important; overflow-y: auto !important; }
                 
                 .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
                 
@@ -465,7 +474,7 @@ export function Schedule() {
                         {/* 1. Sidebar - Responsive (Collapsible on Mobile, Fixed on Desktop) */}
                         <aside className={cn(
                             "flex flex-col gap-4 p-4 rounded-2xl border transition-all relative shrink-0",
-                            "md:w-52 w-full",
+                            "md:w-44 w-full",
                             isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50",
                             "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible"
                         )}>
@@ -575,9 +584,9 @@ export function Schedule() {
                                         ? events
                                         : events.filter(e => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id as string))}
                                     height="100%"
-                                    dayMaxEvents={true} // ✨ 셀 높이에 맞춰 자동 계산
+                                    dayMaxEvents={true}
                                     eventDisplay="block"
-                                    eventClassNames="cursor-pointer hover:bg-slate-50 transition-all border-0 font-medium text-[11px] p-0 rounded-md overflow-hidden bg-transparent"
+                                    eventClassNames="cursor-pointer transition-all border-0 font-medium text-[11px] p-0 rounded-md bg-transparent"
                                     eventClick={handleEventClick}
                                     dateClick={handleDateClick}
                                     eventMouseEnter={handleEventMouseEnter}
@@ -589,16 +598,57 @@ export function Schedule() {
                                     eventContent={(arg) => {
                                         const isCancelled = arg.event.extendedProps.status === 'cancelled';
                                         const color = arg.event.extendedProps.color;
+                                        const isWeek = arg.view.type === 'timeGridWeek';
+                                        const isDay = arg.view.type === 'timeGridDay';
+                                        const childName = arg.event.extendedProps.childName;
+                                        const programName = arg.event.extendedProps.programName;
+                                        const notes = arg.event.extendedProps.notes;
+                                        const startTime = arg.event.start
+                                            ? arg.event.start.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                            : '';
 
+                                        // ✨ 일간 뷰: 넓은 공간 — 풀사이즈
+                                        if (isDay) {
+                                            return (
+                                                <div
+                                                    className={cn("w-full h-full overflow-hidden rounded-lg border-l-[4px] cursor-pointer p-2", isCancelled && "opacity-40 line-through")}
+                                                    style={{ backgroundColor: color + '20', borderLeftColor: color }}
+                                                >
+                                                    <div className={cn("text-[11px] font-bold", isDark ? "text-slate-300" : "text-slate-600")}>{startTime}</div>
+                                                    <div className={cn("text-[13px] font-black truncate mt-0.5", isDark ? "text-white" : "text-slate-900")}>{childName}</div>
+                                                    <div className={cn("text-[11px] truncate", isDark ? "text-slate-400" : "text-slate-500")}>
+                                                        <span className="font-semibold">{programName}</span>
+                                                        {notes && <span className={cn("ml-1.5", isDark ? "text-amber-400" : "text-amber-700")}>📝{notes}</span>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        // ✨ 주간 뷰
+                                        if (isWeek) {
+                                            return (
+                                                <div
+                                                    className={cn("w-full h-full overflow-hidden rounded-md border-l-[3px] cursor-pointer px-1.5 py-1", isCancelled && "opacity-40 line-through")}
+                                                    style={{ backgroundColor: color + '20', borderLeftColor: color }}
+                                                >
+                                                    <div className={cn("text-[9px] font-bold", isDark ? "text-slate-300" : "text-slate-600")}>{startTime}</div>
+                                                    <div className={cn("text-[11px] font-black truncate", isDark ? "text-white" : "text-slate-900")}>{childName}</div>
+                                                    <div className={cn("text-[9px] truncate", isDark ? "text-slate-400" : "text-slate-500")}>
+                                                        <span className="font-semibold">{programName}</span>
+                                                        {notes && <span className={cn("ml-1", isDark ? "text-amber-400" : "text-amber-700")}>📝{notes}</span>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        // ✨ 월간 뷰: 케어플 스타일 한 줄 — "시간 [아동명] 프로그램 #메모"
                                         return (
-                                            <div className={cn("flex items-center gap-1 px-1 truncate leading-tight text-[10px]", isCancelled && "opacity-40 line-through")}>
+                                            <div className={cn("flex items-center gap-1 px-1 truncate leading-tight text-[10px] cursor-pointer", isCancelled && "opacity-40 line-through")}>
                                                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                                <span className={cn("truncate font-bold", isDark ? "text-white" : "text-slate-900")}>
-                                                    {arg.event.extendedProps.childName}
-                                                </span>
-                                                <span className={cn("truncate font-semibold", isDark ? "text-slate-200" : "text-slate-600")}>
-                                                    ({arg.event.extendedProps.programName})
-                                                </span>
+                                                <span className={cn("shrink-0 font-bold whitespace-nowrap", isDark ? "text-slate-400" : "text-slate-500")}>{startTime}</span>
+                                                <span className={cn("shrink-0 font-black whitespace-nowrap", isDark ? "text-white" : "text-slate-900")}>{childName}</span>
+                                                <span className={cn("truncate font-medium", isDark ? "text-slate-400" : "text-slate-500")}>({programName})</span>
+                                                {notes && <span className="shrink-0" title={notes}>📝</span>}
                                             </div>
                                         );
                                     }}
@@ -609,7 +659,13 @@ export function Schedule() {
                 )}
 
                 {/* 툴팁 영역 */}
-                <div className={`fixed z-50 bg-slate-900/95 text-white p-4 rounded-xl shadow-2xl pointer-events-none transition-opacity duration-300 ease-in-out text-sm min-w-[220px] backdrop-blur-sm ${tooltipInfo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ top: tooltipInfo ? tooltipInfo.y : 0, left: tooltipInfo ? tooltipInfo.x : 0, transform: 'translate(-50%, -100%) translateY(-10px)' }}>
+                <div className={`fixed z-[9999] bg-slate-900/95 text-white p-4 rounded-xl shadow-2xl pointer-events-none transition-opacity duration-300 ease-in-out text-sm min-w-[220px] backdrop-blur-sm ${tooltipInfo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                    style={{
+                        top: tooltipInfo ? tooltipInfo.y : 0,
+                        left: tooltipInfo ? tooltipInfo.x : 0,
+                        transform: 'translate(-50%, -100%) translateY(-10px)',
+                    }}
+                >
                     {tooltipInfo && (
                         <>
                             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/10">
@@ -628,6 +684,19 @@ export function Schedule() {
                                     </span>
                                 </div>
                             </div>
+                            {/* ✨ 메모 표시 */}
+                            {tooltipInfo.event.extendedProps.notes && (
+                                <div className="mt-2 pt-2 border-t border-white/10">
+                                    <div className="flex items-start gap-1.5 text-amber-300">
+                                        <span className="text-[10px] shrink-0">📝</span>
+                                        <span className="text-[11px] font-medium leading-snug">
+                                            {tooltipInfo.event.extendedProps.notes.length > 50
+                                                ? tooltipInfo.event.extendedProps.notes.substring(0, 50) + '...'
+                                                : tooltipInfo.event.extendedProps.notes}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between gap-2 pt-1">
                                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getStatusBadge(tooltipInfo.event.extendedProps.status).class}`}>
                                     {getStatusBadge(tooltipInfo.event.extendedProps.status).text}
