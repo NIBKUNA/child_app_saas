@@ -167,10 +167,12 @@ export function ConsultationList() {
             if (!isAdmin && currentTherapistId) {
                 sessionQuery = sessionQuery.eq('therapist_id', currentTherapistId);
             }
-            const { data: sessions } = await sessionQuery.order('start_time', { ascending: false });
+            const { data: sessions, error: sessError } = await sessionQuery.order('start_time', { ascending: false });
+            if (sessError) console.error('[ConsultationList] sessions query error:', sessError);
 
             // 2. 일지가 없는(ID가 Set에 없는) 스케줄만 필터링
             const pending = (sessions as any[])?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
+            console.log('[ConsultationList] sessions:', { total: sessions?.length, pending: pending.length, sessError });
             setTodoChildren(pending);
 
             // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)

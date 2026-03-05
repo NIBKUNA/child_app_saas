@@ -38,16 +38,12 @@ export default function SessionList() {
         if (!centerId) return; // 🔒 [Security] center_id 없으면 조회 차단
         setLoading(true);
 
-        // ✨ [FIX] Auto-Complete DB 업데이트는 AppLayout의 useAutoCompleteSchedules에서 중앙 처리됨
-        // 여기서는 로컬 데이터 보정만 수행 (UI 정합성)
-
         const { data, error } = await supabase
             .from('schedules')
             .select(`
                 *,
                 children ( name ),
-                therapists ( name ),
-                counseling_logs ( created_at, session_date )
+                therapists ( name )
             `)
             .eq('center_id', centerId) // 🔒 [Security] 센터 격리 필수 필터
             .order('start_time', { ascending: false });
@@ -63,6 +59,21 @@ export default function SessionList() {
                     s.status = 'completed';
                 }
             });
+
+            // 일지 작성 여부 별도 조회
+            const ids = sessionData.map(s => s.id);
+            if (ids.length > 0) {
+                const { data: logs } = await supabase
+                    .from('counseling_logs')
+                    .select('schedule_id, created_at, session_date')
+                    .in('schedule_id', ids);
+                const logMap: Record<string, any> = {};
+                logs?.forEach((l: any) => { if (l.schedule_id) logMap[l.schedule_id] = l; });
+                sessionData.forEach((s: any) => {
+                    s.counseling_logs = logMap[s.id] ? [logMap[s.id]] : [];
+                });
+            }
+
             setSessions(sessionData);
         }
         setLoading(false);
