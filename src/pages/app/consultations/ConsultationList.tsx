@@ -126,30 +126,14 @@ export function ConsultationList() {
                 }
             }
 
-            // 1. 이미 일지가 작성된 '스케줄 ID' 수집 (교차 검증)
-            // counseling_logs 테이블에서 schedule_id를 가져와야 정확히 매칭됨
-            const { data: writtenLogs } = await (supabase
-                .from('counseling_logs'))
-                .select('schedule_id')
-                .eq('center_id', centerId) // 🔒 Security Filter
-                .not('schedule_id', 'is', null);
-
-            const writtenScheduleIds = new Set((writtenLogs as any[])?.map((l: any) => l.schedule_id));
-
-
-
-            // ✨ [Optimization] Performance Guard: Limit to last 60 days
-            // Prevents fetching thousands of old sessions for long-running centers
-            const limitDate = new Date();
-            limitDate.setDate(limitDate.getDate() - 60);
-            const minDate = limitDate.toISOString().split('T')[0];
-
-            // ✨ [FIX] 오늘 수업은 completed만, 과거 수업은 상태 무관하게 포함
-            // 기존: start_time < today 23:59:59 → 오늘 예정된 미완료 수업도 포함되는 버그
-            // 수정: start_time < today 00:00:00 (어제까지만) OR status=completed
+            // ✨ [Performance] 독립 쿼리 2개를 병렬 실행: counseling_logs + schedules
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayEnd = yesterday.toISOString().split('T')[0] + 'T23:59:59';
+
+            const limitDate = new Date();
+            limitDate.setDate(limitDate.getDate() - 60);
+            const minDate = limitDate.toISOString().split('T')[0];
 
             let sessionQuery = (supabase
                 .from('schedules'))
@@ -158,35 +142,44 @@ export function ConsultationList() {
                 .gte('start_time', minDate) // 🛡️ Performance Filter
                 .or(`status.eq.completed,start_time.lte.${yesterdayEnd}`);
 
-            // ✨ [FIX] therapist 테이블의 ID로 필터 (user.id가 아님!)
             if (!isAdmin && currentTherapistId) {
                 sessionQuery = sessionQuery.eq('therapist_id', currentTherapistId);
             }
-            const { data: sessions, error: sessError } = await sessionQuery.order('start_time', { ascending: false });
-            if (sessError) console.error('[ConsultationList] sessions query error:', sessError);
+
+            const [logsResult, sessionsResult] = await Promise.all([
+                (supabase.from('counseling_logs'))
+                    .select('schedule_id')
+                    .eq('center_id', centerId)
+                    .not('schedule_id', 'is', null),
+                sessionQuery.order('start_time', { ascending: false })
+            ]);
+
+            const writtenScheduleIds = new Set((logsResult.data as any[])?.map((l: any) => l.schedule_id));
+            if (sessionsResult.error) console.error('[ConsultationList] sessions query error:', sessionsResult.error);
 
             // 2. 일지가 없는(ID가 Set에 없는) 스케줄만 필터링
-            const pending = (sessions as any[])?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
+            const pending = (sessionsResult.data as any[])?.filter(s => s.children && !writtenScheduleIds.has(s.id)) || [];
             setTodoChildren(pending);
 
-            // 최근 작성된 발달 평가 (치료사/행정용 전문 일지)
-            // ✨ [FIX] children!inner 조인이 FK 매칭 실패로 400 에러 발생 → 2단계 쿼리로 변경
-            // Step 1: 해당 센터 아동 ID + 치료사 이름 목록 조회
-            const { data: centerChildren } = await supabase
-                .from('children')
-                .select('id, name, center_id')
-                .eq('center_id', centerId);
+            // ✨ [Performance] children + therapists 이름 조회도 병렬 실행
+            const [childrenResult, therapistsResult] = await Promise.all([
+                supabase
+                    .from('children')
+                    .select('id, name, center_id')
+                    .eq('center_id', centerId),
+                supabase
+                    .from('therapists')
+                    .select('id, name')
+                    .eq('center_id', centerId)
+            ]);
+
+            const centerChildren = childrenResult.data;
             const childIds = (centerChildren || []).map((c: any) => c.id);
             const childMap: Record<string, any> = {};
             (centerChildren || []).forEach((c: any) => { childMap[c.id] = c; });
 
-            // 치료사 이름 맵 (therapist_id → name)
-            const { data: therapists } = await supabase
-                .from('therapists')
-                .select('id, name')
-                .eq('center_id', centerId);
             const therapistMap: Record<string, string> = {};
-            (therapists || []).forEach((t: any) => { therapistMap[t.id] = t.name; });
+            (therapistsResult.data || []).forEach((t: any) => { therapistMap[t.id] = t.name; });
 
             if (childIds.length > 0) {
                 // Step 2: 해당 아동들의 평가 조회
