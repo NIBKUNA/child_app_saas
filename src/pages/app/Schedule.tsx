@@ -223,7 +223,7 @@ export function Schedule() {
                         title: isCancelled ? `[취소] ${childName}` : childName,
                         start: schedule.start_time,
                         end: schedule.end_time,
-                        backgroundColor: eventColor + (isCancelled ? '40' : '20'),
+                        backgroundColor: eventColor + (isCancelled ? '60' : 'C0'),
                         borderColor: eventColor,
                         textColor: isCancelled ? '#94a3b8' : '#1e293b',
                         classNames: eventClasses,
@@ -313,7 +313,7 @@ export function Schedule() {
         }
     };
 
-    if (loading) return <div className={cn("flex justify-center items-center h-screen", isDark && "bg-slate-950")}><Loader2 className="animate-spin w-8 h-8 text-blue-500" /></div>;
+    if (loading) return <div className={cn("flex justify-center items-center h-full", isDark && "bg-slate-950")}><Loader2 className="animate-spin w-8 h-8 text-blue-500" /></div>;
 
     return (
         <>
@@ -362,24 +362,37 @@ export function Schedule() {
                     color: #fff !important;
                     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
                 }
-                .fc-theme-standard .fc-scrollgrid { border-radius: 24px; overflow: hidden; border: 1px solid ${isDark ? '#334155' : '#f1f5f9'}; }
-                .fc-col-header-cell { padding: 12px 0 !important; background: ${isDark ? '#0f172a' : '#fdfdfd'}; text-transform: uppercase; letter-spacing: 1px; }
-                .fc-col-header-cell-cushion { font-size: 11px !important; font-weight: 900 !important; color: ${isDark ? '#64748b' : '#94a3b8'} !important; }
+                .fc-theme-standard .fc-scrollgrid { border-radius: 16px; overflow: hidden; border: 1px solid ${isDark ? '#334155' : '#f1f5f9'}; }
+                .fc-col-header-cell { padding: 6px 0 !important; background: ${isDark ? '#0f172a' : '#fdfdfd'}; text-transform: uppercase; letter-spacing: 1px; }
+                .fc-col-header-cell-cushion { font-size: 10px !important; font-weight: 900 !important; color: ${isDark ? '#64748b' : '#94a3b8'} !important; }
                 
-                .fc-daygrid-day-number { font-size: 13px !important; font-weight: 800 !important; padding: 12px !important; }
+                .fc-daygrid-day-number { font-size: 11px !important; font-weight: 800 !important; padding: 4px 8px !important; }
+                .fc-daygrid-day-frame { padding: 0 !important; }
+                .fc-daygrid-day-events { margin: 0 !important; padding: 0 1px !important; }
+                .fc-daygrid-event { margin: 0 1px 1px !important; }
                 .fc-daygrid-day:hover { background-color: ${isDark ? '#1e293b' : '#f8fafc'} !important; }
+                .fc-daygrid-more-link { font-size: 10px !important; font-weight: 800 !important; padding: 0 4px !important; }
+                
+                /* ✨ DayGrid (월간) 이벤트 — 배경 없이 점+텍스트만 (케어플 스타일) */
+                .fc-daygrid-event { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+                .fc-daygrid-event .fc-event-main { padding: 0 2px !important; }
+                
+                /* ✨ TimeGrid (주간/일간) 이벤트 — 진한 배경 + 좌측 컬러바 */
+                .fc-timegrid-event { border-left: 4px solid var(--fc-event-border-color) !important; border-radius: 6px !important; border-top: none !important; border-right: none !important; border-bottom: none !important; }
+                .fc-timegrid-event .fc-event-main { padding: 4px 6px !important; font-size: 11px !important; font-weight: 700 !important; color: ${isDark ? '#e2e8f0' : '#1e293b'} !important; }
+                .fc-timegrid-event .fc-event-title { font-weight: 800 !important; }
+                .fc-timegrid-col-events { margin: 0 2px !important; }
                 
                 .cancelled-event { text-decoration: line-through !important; opacity: 0.6 !important; }
                 
-                /* ✨ Mobile Calendar Optimization - Fit to Screen */
+                /* ✨ Calendar Fit */
                 .fc-view-harness {
-                    min-height: 400px; /* Ensure minimum height */
+                    /* No min-height — let flexbox handle it */
                 }
                 .fc-scrollgrid {
                     border: none !important;
                 }
                 
-                /* 📱 Mobile Specifics */
                 /* 📱 Mobile Specifics */
                 @media (max-width: 640px) {
                     .fc-header-toolbar {
@@ -420,7 +433,7 @@ export function Schedule() {
                 }
             `}</style>
 
-            <div className={cn("flex flex-col relative", isDark && "bg-slate-900", "min-h-screen md:h-full")}>
+            <div className={cn("absolute inset-0 flex flex-col overflow-hidden p-2", isDark && "bg-slate-900")}>
 
                 {isMobile ? (
                     /* 📱 모바일: 케어플 스타일 콤팩트 캘린더 */
@@ -445,13 +458,13 @@ export function Schedule() {
                 ) : (
                     /* 🖥️ 데스크톱: FullCalendar */
 
-                    <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 pt-4 pb-4 md:overflow-hidden">
+                    <div className="flex-1 flex flex-col md:flex-row gap-2 min-h-0 overflow-hidden">
                         {/* 1. Sidebar - Responsive (Collapsible on Mobile, Fixed on Desktop) */}
                         <aside className={cn(
-                            "flex flex-col gap-5 p-5 rounded-[32px] border transition-all relative shrink-0",
-                            "md:w-56 w-full md:h-auto", // Desktop: Fixed width, Mobile: Full width
+                            "flex flex-col gap-4 p-4 rounded-2xl border transition-all relative shrink-0",
+                            "md:w-52 w-full",
                             isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50",
-                            "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible" // Mobile: Limit height and scroll
+                            "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible"
                         )}>
                             {/* New Schedule Button inside Sidebar — 치료사에게는 숨김 */}
                             {canEditSchedule && (
@@ -539,11 +552,10 @@ export function Schedule() {
 
                         {/* 2. Main Calendar Content (Canvas Style) */}
                         <div className={cn(
-                            "flex-1 flex flex-col min-w-0 rounded-[40px] border shadow-2xl relative transition-all",
-                            "md:overflow-hidden", /* FIXED: Removed overflow-hidden logic that trapped mobile scroll */
-                            isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-50 shadow-slate-200/50"
+                            "flex-1 flex flex-col min-w-0 min-h-0 rounded-2xl border relative transition-all overflow-hidden",
+                            isDark ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100"
                         )}>
-                            <div className="flex-1 p-2 flex flex-col md:overflow-hidden"> {/* Allow scroll on mobile */}
+                            <div className="flex-1 p-1 flex flex-col overflow-hidden">
                                 <FullCalendar
                                     ref={calendarRef}
                                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -560,7 +572,7 @@ export function Schedule() {
                                         ? events
                                         : events.filter(e => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id as string))}
                                     height="100%"
-                                    dayMaxEvents={5} // ✨ 인원 많아져도 볼 수 있게 최대 표시 개수 상향
+                                    dayMaxEvents={true} // ✨ 셀 높이에 맞춰 자동 계산
                                     eventDisplay="block"
                                     eventClassNames="cursor-pointer hover:bg-slate-50 transition-all border-0 font-medium text-[11px] p-0 rounded-md overflow-hidden bg-transparent"
                                     eventClick={handleEventClick}
@@ -569,18 +581,19 @@ export function Schedule() {
                                     eventMouseLeave={handleEventMouseLeave}
                                     selectable={true}
                                     selectMirror={true}
+                                    slotEventOverlap={false}
                                     select={(info) => { handleDateClick({ date: info.start }); info.view.calendar.unselect(); }}
                                     eventContent={(arg) => {
                                         const isCancelled = arg.event.extendedProps.status === 'cancelled';
                                         const color = arg.event.extendedProps.color;
 
                                         return (
-                                            <div className={cn("flex items-center gap-1.5 py-0.5 px-1 truncate", isCancelled && "opacity-40 line-through")}>
+                                            <div className={cn("flex items-center gap-1 px-1 truncate leading-tight text-[10px]", isCancelled && "opacity-40 line-through")}>
                                                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                                <span className={cn("truncate font-bold", isDark ? "text-slate-200" : "text-slate-700")}>
+                                                <span className={cn("truncate font-bold", isDark ? "text-white" : "text-slate-900")}>
                                                     {arg.event.extendedProps.childName}
                                                 </span>
-                                                <span className={cn("truncate opacity-60 text-[10px]", isDark ? "text-slate-400" : "text-slate-500")}>
+                                                <span className={cn("truncate font-semibold", isDark ? "text-slate-200" : "text-slate-600")}>
                                                     ({arg.event.extendedProps.programName})
                                                 </span>
                                             </div>

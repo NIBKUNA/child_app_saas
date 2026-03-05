@@ -18,7 +18,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, type UserRole } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { cn } from "@/lib/utils";
 import { supabase } from '@/lib/supabase';
 import { useCenter } from '@/contexts/CenterContext';
@@ -268,7 +268,42 @@ function ThemeToggle() {
     );
 }
 
-export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+// ============================================
+// 💬 Sidebar Tooltip (for collapsed mode)
+// ============================================
+function SidebarTooltip({ label, children, show }: { label: string; children: React.ReactNode; show: boolean }) {
+    const [visible, setVisible] = React.useState(false);
+    const [pos, setPos] = React.useState({ top: 0, left: 0 });
+    const ref = React.useRef<HTMLDivElement>(null);
+
+    if (!show) return <>{children}</>;
+
+    const handleEnter = () => {
+        if (ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            setPos({ top: rect.top + rect.height / 2, left: rect.right + 12 });
+        }
+        setVisible(true);
+    };
+
+    return (
+        <div ref={ref} onMouseEnter={handleEnter} onMouseLeave={() => setVisible(false)} className="relative">
+            {children}
+            {visible && (
+                <div
+                    className="fixed z-[9999] px-3 py-1.5 bg-slate-800 dark:bg-slate-600 text-white text-[11px] font-bold rounded-lg shadow-xl whitespace-nowrap animate-in fade-in slide-in-from-left-1 duration-100"
+                    style={{ top: pos.top, left: pos.left, transform: 'translateY(-50%)' }}
+                >
+                    {label}
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-slate-800 dark:border-r-slate-600" />
+                </div>
+            )}
+        </div>
+    );
+}
+
+
+export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: { isOpen: boolean, onClose: () => void, isCollapsed: boolean, onToggleCollapse: () => void }) {
     const location = useLocation();
     const { role, user, signOut } = useAuth();
     const { center } = useCenter();
@@ -423,28 +458,28 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
         <>
             {/* Sidebar */}
             <aside className={cn(
-                "fixed top-0 left-0 z-[110] h-screen transition-all duration-300 w-64",
+                "fixed top-0 left-0 z-[110] h-screen transition-all duration-300",
+                isCollapsed ? "w-[68px]" : "w-64",
                 "bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800",
                 isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0 md:shadow-2xl"
             )}>
                 <div className="flex flex-col h-full">
                     {/* Header */}
-                    <div className="p-6 mb-2 border-b border-slate-200 dark:border-slate-800">
+                    <div className={cn("border-b border-slate-200 dark:border-slate-800", isCollapsed ? "p-3" : "p-6 mb-2")}>
                         <div className="flex items-center justify-between">
-                            <div className="flex flex-col items-start gap-1">
+                            <div className={cn("flex flex-col items-start gap-1", isCollapsed && "items-center w-full")}>
                                 <Link to="/app/dashboard" className="flex items-center group">
-                                    <img src={branding.logo_url || '/zarada_tree_logo.png'} alt={branding.name} className="h-14 w-auto object-contain transition-transform group-hover:scale-110" />
+                                    <img src={branding.logo_url || '/zarada_tree_logo.png'} alt={branding.name} className={cn("object-contain transition-transform group-hover:scale-110", isCollapsed ? "h-9 w-9" : "h-14 w-auto")} />
                                 </Link>
-                                {isSuperAdmin && (
+                                {isSuperAdmin && !isCollapsed && (
                                     <span className="text-[10px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-sm">
                                         SUPER ADMIN
                                     </span>
                                 )}
                             </div>
-                            <ThemeToggle />
+                            {!isCollapsed && <ThemeToggle />}
                         </div>
-                        {/* ✨ [Super Admin] 일반 등급 배지 대신 전용 UI */}
-                        {!isSuperAdmin && (
+                        {!isSuperAdmin && !isCollapsed && (
                             <div className="mt-2 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border inline-block text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700">
                                 {role}
                             </div>
@@ -452,16 +487,28 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto custom-scrollbar">
-                        {/* Homepage Link — 커스텀 도메인이면 /, 메인 플랫폼이면 /centers/:slug */}
-                        <Link
-                            to={isMainDomain() ? (center?.slug ? `/centers/${center.slug}` : '/') : '/'}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold border text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
-                            onClick={onClose}
-                        >
-                            {Icons.globe("w-5 h-5 text-blue-500 dark:text-blue-400")}
-                            홈페이지 바로가기
-                        </Link>
+                    <nav className={cn("flex-1 py-2 overflow-y-auto custom-scrollbar", isCollapsed ? "px-2" : "px-4", "space-y-4")}>
+                        {/* Homepage Link */}
+                        {!isCollapsed ? (
+                            <Link
+                                to={isMainDomain() ? (center?.slug ? `/centers/${center.slug}` : '/') : '/'}
+                                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold border text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                                onClick={onClose}
+                            >
+                                {Icons.globe("w-5 h-5 text-blue-500 dark:text-blue-400")}
+                                홈페이지 바로가기
+                            </Link>
+                        ) : (
+                            <SidebarTooltip label="홈페이지 바로가기" show={isCollapsed}>
+                                <Link
+                                    to={isMainDomain() ? (center?.slug ? `/centers/${center.slug}` : '/') : '/'}
+                                    className="flex items-center justify-center p-3 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800"
+                                    onClick={onClose}
+                                >
+                                    {Icons.globe("w-5 h-5 text-blue-500 dark:text-blue-400")}
+                                </Link>
+                            </SidebarTooltip>
+                        )}
 
                         {/* Menu Groups */}
                         {MENU_GROUPS.map((group) => {
@@ -473,72 +520,85 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                             const isGroupOpen = openGroups.includes(group.name);
 
                             return (
-                                <div
-                                    key={group.name}
-                                    className="space-y-1"
-                                >
-                                    <button
-                                        onClick={() => toggleGroup(group.name)}
-                                        className={cn(
-                                            "flex items-center justify-between w-full px-4 py-3 text-xs font-black uppercase tracking-widest transition-colors rounded-lg group",
-                                            isGroupOpen
-                                                ? "bg-slate-50 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
-                                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
-                                        )}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            {group.icon("w-4 h-4")}
-                                            {group.name}
-                                        </span>
-                                        {isGroupOpen ? Icons.chevronDown("w-3.5 h-3.5") : Icons.chevronRight("w-3.5 h-3.5")}
-                                    </button>
+                                <div key={group.name} className="space-y-1">
+                                    {!isCollapsed ? (
+                                        /* Expanded: full group header */
+                                        <button
+                                            onClick={() => toggleGroup(group.name)}
+                                            className={cn(
+                                                "flex items-center justify-between w-full px-4 py-3 text-xs font-black uppercase tracking-widest transition-colors rounded-lg group",
+                                                isGroupOpen
+                                                    ? "bg-slate-50 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
+                                                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                                            )}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                {group.icon("w-4 h-4")}
+                                                {group.name}
+                                            </span>
+                                            {isGroupOpen ? Icons.chevronDown("w-3.5 h-3.5") : Icons.chevronRight("w-3.5 h-3.5")}
+                                        </button>
+                                    ) : (
+                                        /* Collapsed: icon-only group divider */
+                                        <div className="flex items-center justify-center py-2">
+                                            <div className="w-8 h-px bg-slate-200 dark:bg-slate-700" />
+                                        </div>
+                                    )}
 
-                                    {isGroupOpen && (
-                                        <div className="space-y-1 animate-in fade-in slide-in-from-top-1 duration-200 border-l-2 border-slate-100 dark:border-slate-800 ml-6 pl-2 my-1">
+                                    {(isCollapsed || isGroupOpen) && (
+                                        <div className={cn(
+                                            isCollapsed
+                                                ? "space-y-1"
+                                                : "space-y-1 animate-in fade-in slide-in-from-top-1 duration-200 border-l-2 border-slate-100 dark:border-slate-800 ml-6 pl-2 my-1"
+                                        )}>
                                             {visibleItems.map((item) => {
                                                 const isActive = location.pathname === item.path;
                                                 const isExternal = item.path.startsWith('http');
 
                                                 if (isExternal) {
                                                     return (
-                                                        <a
-                                                            key={item.path}
-                                                            href={item.path}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className={cn(
-                                                                "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm gpu-accelerate relative",
-                                                                "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white"
-                                                            )}
-                                                            onClick={() => handleMenuClick(item.name)}
-                                                        >
-                                                            {item.icon("w-4 h-4 text-emerald-500")}
-                                                            {item.name}
-                                                            <span className="ml-auto text-[9px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black">NEW</span>
-                                                        </a>
+                                                        <SidebarTooltip key={item.path} label={item.name} show={isCollapsed}>
+                                                            <a
+                                                                href={item.path}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={cn(
+                                                                    "flex items-center gap-3 rounded-xl transition-all duration-200 font-bold text-sm gpu-accelerate relative",
+                                                                    isCollapsed ? "justify-center p-3" : "px-4 py-2.5",
+                                                                    "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white"
+                                                                )}
+                                                                onClick={() => handleMenuClick(item.name)}
+                                                            >
+                                                                {item.icon("w-4 h-4 text-emerald-500")}
+                                                                {!isCollapsed && item.name}
+                                                                {!isCollapsed && <span className="ml-auto text-[9px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-black">NEW</span>}
+                                                            </a>
+                                                        </SidebarTooltip>
                                                     );
                                                 }
 
                                                 return (
-                                                    <Link
-                                                        key={item.path}
-                                                        to={item.path}
-                                                        className={cn(
-                                                            "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 font-bold text-sm gpu-accelerate relative",
-                                                            isActive
-                                                                ? "bg-indigo-600 dark:bg-yellow-400 text-white dark:text-slate-900 shadow-lg"
-                                                                : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white"
-                                                        )}
-                                                        onClick={() => handleMenuClick(item.name)}
-                                                    >
-                                                        {item.icon(cn("w-4 h-4", isActive ? "text-white dark:text-slate-900" : "text-slate-400 dark:text-slate-500"))}
-                                                        {item.name}
+                                                    <SidebarTooltip key={item.path} label={item.name} show={isCollapsed}>
+                                                        <Link
+                                                            to={item.path}
+                                                            className={cn(
+                                                                "flex items-center gap-3 rounded-xl transition-all duration-200 font-bold text-sm gpu-accelerate relative",
+                                                                isCollapsed ? "justify-center p-3" : "px-4 py-2.5",
+                                                                isActive
+                                                                    ? "bg-indigo-600 dark:bg-yellow-400 text-white dark:text-slate-900 shadow-lg"
+                                                                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-900 dark:hover:text-white"
+                                                            )}
+                                                            onClick={() => handleMenuClick(item.name)}
+                                                        >
+                                                            {item.icon(cn("w-4 h-4", isActive ? "text-white dark:text-slate-900" : "text-slate-400 dark:text-slate-500"))}
+                                                            {!isCollapsed && item.name}
 
-                                                        {/* ✨ [Notification Dot] 노란색 알림 표시 */}
-                                                        {((item.name === '상담문의' && hasUnreadInquiry) || (item.name === '치료 일정' && hasUnreadSchedule)) && (
-                                                            <span className="absolute right-3 w-2 h-2 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.6)] animate-pulse" />
-                                                        )}
-                                                    </Link>
+                                                            {/* Notification Dot */}
+                                                            {((item.name === '상담문의' && hasUnreadInquiry) || (item.name === '치료 일정' && hasUnreadSchedule)) && (
+                                                                <span className={cn("w-2 h-2 bg-yellow-400 rounded-full shadow-[0_0_8px_rgba(250,204,21,0.6)] animate-pulse", isCollapsed ? "absolute top-1 right-1" : "absolute right-3")} />
+                                                            )}
+                                                        </Link>
+                                                    </SidebarTooltip>
                                                 );
                                             })}
                                         </div>
@@ -549,16 +609,32 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean, onClose: () => v
                     </nav>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 space-y-2">
                         <button
-                            onClick={() => {
-                                if (onClose) onClose();
-                                handleLogout();
-                            }}
-                            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl transition-all font-bold text-sm text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950"
+                            onClick={onToggleCollapse}
+                            className="hidden md:flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl transition-all text-xs font-bold text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300"
                         >
-                            {Icons.logout("w-4 h-4")} 로그아웃
+                            {isCollapsed ? Icons.chevronRight("w-4 h-4") : (
+                                <>
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" stroke="currentColor" /></svg>
+                                    사이드바 접기
+                                </>
+                            )}
                         </button>
+                        <SidebarTooltip label="로그아웃" show={isCollapsed}>
+                            <button
+                                onClick={() => {
+                                    if (onClose) onClose();
+                                    handleLogout();
+                                }}
+                                className={cn(
+                                    "flex items-center gap-3 w-full rounded-xl transition-all font-bold text-sm text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950",
+                                    isCollapsed ? "justify-center p-3" : "px-4 py-3"
+                                )}
+                            >
+                                {Icons.logout("w-4 h-4")} {!isCollapsed && '로그아웃'}
+                            </button>
+                        </SidebarTooltip>
                     </div>
                 </div>
             </aside>

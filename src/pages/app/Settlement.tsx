@@ -20,16 +20,12 @@ import { useCenter } from '@/contexts/CenterContext';
 import { SUPER_ADMIN_EMAILS, isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 
 // ✨ 고용 형태 타입
-type HireType = 'freelancer' | 'fulltime' | 'regular';
+type HireType = 'freelancer' | 'fulltime' | 'parttime' | 'regular';
 
 // ✨ 시스템 역할 타입
 type SystemRole = 'therapist' | 'manager' | 'admin' | 'super_admin' | 'parent';
 
-// ✨ 정산 통계 타입
-interface TotalStats {
-    payout: number;
-    count: number;
-}
+
 
 // ✨ 세션 카운트 타입
 interface SessionCounts {
@@ -111,11 +107,12 @@ export function Settlement() {
     const { user } = useAuth();
     const { center } = useCenter();
     const centerId = center?.id;
-    const [_loading, setLoading] = useState(true);
+
 
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [settlementList, setSettlementList] = useState<SettlementData[]>([]);
-    const [_totalStats, setTotalStats] = useState<TotalStats>({ payout: 0, count: 0 });
+    const [searchTerm, setSearchTerm] = useState('');
+
 
     // ✨ [Fix] Missing State Definitions
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -222,7 +219,7 @@ export function Settlement() {
     const fetchSettlements = async () => {
         if (!centerId) return; // ✨ Wait for auth
 
-        setLoading(true);
+
         try {
             // 1. Get Staff for this Center
             // ⚠️ 직원관리에서 정식 등록된 활성 직원만 (배치마스터 전시용 프로필 & 퇴사자 제외)
@@ -400,17 +397,8 @@ export function Settlement() {
 
             setSettlementList(calculatedList);
 
-            const totalPay = calculatedList.reduce((acc, curr) => acc + curr.payout, 0);
-
-            setTotalStats({
-                payout: totalPay,
-                count: sessionData?.length || 0
-            });
-
         } catch (error) {
             console.error('Error fetching settlements:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -453,20 +441,14 @@ export function Settlement() {
                         type="text"
                         placeholder="직원 이름으로 검색..."
                         className="flex-1 font-bold text-slate-700 dark:text-white bg-transparent outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                        onChange={(e) => {
-                            const searchTerm = e.target.value.toLowerCase();
-                            if (!searchTerm) {
-                                fetchSettlements(); // Reset to full list
-                            } else {
-                                setSettlementList(prev => prev.filter(s => s.name.toLowerCase().includes(searchTerm)));
-                            }
-                        }}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
 
                 {/* ✨ Staff List */}
                 <div className="grid grid-cols-1 gap-4">
-                    {settlementList.map((t) => (
+                    {settlementList.filter(s => !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((t) => (
                         <div key={t.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
                             {editingId === t.id ? (
                                 <div className="space-y-4">

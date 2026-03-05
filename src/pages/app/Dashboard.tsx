@@ -366,7 +366,7 @@ export function Dashboard() {
     // ✨ [신규] 일지 미작성 & 출석률 통계
     const [missingNotes, setMissingNotes] = useState<{ therapist: string; count: number; total: number }[]>([]);
     const [missingNoteTotal, setMissingNoteTotal] = useState(0);
-    const [attendanceData, setAttendanceData] = useState<{ name: string; completed: number; cancelled: number; total: number; rate: number }[]>([]);
+    const [attendanceData, setAttendanceData] = useState<{ name: string; completed: number; cancelled: number; total: number; rate: number | null }[]>([]);
     const [overallAttendance, setOverallAttendance] = useState(0);
 
     const [exporting, setExporting] = useState(false);
@@ -815,10 +815,17 @@ export function Dashboard() {
             setMissingNotes(missingArr);
             setMissingNoteTotal(missingArr.reduce((acc, m) => acc + m.count, 0));
 
-            // ✨ 출석률 통계 (주차별)
+            // ✨ 출석률 통계 (주차별) — completed/cancelled만 집계 (scheduled 미래 예약 제외)
+            // 해당 월의 전체 주차 수 계산 (전환율 차트처럼 모든 주차 표시)
+            const totalWeeks = Math.ceil(lastDayOfMonth / 7);
             const weeklyAttendance: Record<string, { completed: number; cancelled: number; total: number }> = {};
+            for (let w = 1; w <= totalWeeks; w++) {
+                weeklyAttendance[`${w}주차`] = { completed: 0, cancelled: 0, total: 0 };
+            }
+
             (allSchedules as DashboardSchedule[])?.filter(s =>
-                s.start_time?.startsWith(selectedMonth)
+                s.start_time?.startsWith(selectedMonth) &&
+                (s.status === 'completed' || s.status === 'cancelled')
             ).forEach(s => {
                 const day = new Date(s.start_time).getDate();
                 const weekNum = `${Math.ceil(day / 7)}주차`;
@@ -835,7 +842,7 @@ export function Dashboard() {
                     completed: data.completed,
                     cancelled: data.cancelled,
                     total: data.total,
-                    rate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0
+                    rate: data.total > 0 ? Math.round((data.completed / data.total) * 100) : null as number | null
                 }));
             setAttendanceData(attendArr);
 
@@ -1170,9 +1177,9 @@ export function Dashboard() {
                                                         <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                                                         <RechartsTooltip {...tooltipProps} />
                                                         <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
-                                                        <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
-                                                        <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} stackId="a" />
-                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} />
+                                                        <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} />
+                                                        <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} />
+                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} connectNulls={false} />
                                                     </ComposedChart>
                                                 </ResponsiveContainer>
                                             </SafeChart>

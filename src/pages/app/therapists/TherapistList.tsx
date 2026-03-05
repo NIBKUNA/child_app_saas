@@ -193,6 +193,9 @@ export function TherapistList() {
                     title: '초대장 발송 완료!',
                     message: `${formData.name}님에게 이메일 초대가 발송되었습니다.\n수신함에서 스팸 메일함도 꼭 확인해주세요.`
                 });
+
+                fetchStaffs();
+                setIsModalOpen(false);
             } else {
                 // ✨ [SECURITY] 슈퍼 어드민이 아닌 경우 역할 변경 차단 (서버 레벨 방어)
                 const currentIsSuper = isSuperAdmin(user?.email);
