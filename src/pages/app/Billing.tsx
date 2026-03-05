@@ -14,7 +14,7 @@ import {
     ChevronLeft, ChevronRight, Search, Loader2, User, X,
     ArrowRightCircle, RotateCcw, History, Save, Pencil,
     CheckCircle2, Clock, Ban,
-    Receipt
+    Receipt, StickyNote
 } from 'lucide-react';
 import type { Database } from '@/types/database.types';
 
@@ -31,6 +31,7 @@ interface ScheduleData extends Omit<TableRow<'schedules'>, 'status'> {
 interface BillingSession {
     id: string; date: string; status: ScheduleStatus;
     price: number; isCanceled: boolean; isCarriedOver: boolean;
+    notes?: string | null;
     programs?: { id: string; name: string; price: number; category: string | null; description: string | null } | null;
 }
 
@@ -84,7 +85,7 @@ export function Billing() {
                 .eq('children.center_id', center.id)
                 .gte('start_time', `${selectedMonth}-01`)
                 .lt('start_time', nextMonth)
-                .order('start_time', { ascending: false });
+                .order('start_time', { ascending: false }) as { data: any[] | null };
 
             const { data: pData } = await supabase
                 .from('payments')
@@ -126,7 +127,7 @@ export function Billing() {
             const price = (isCanceled || isCarriedOver) ? 0 : programPrice;
             const date = toLocalDateStr(item.start_time);
 
-            childMap[childId].sessions.push({ ...item, date, price, isCanceled, isCarriedOver });
+            childMap[childId].sessions.push({ ...item, date, price, isCanceled, isCarriedOver, notes: (item as any).notes || null });
 
             if (!isCanceled && !isCarriedOver) childMap[childId].totalFee += price;
             if (item.status === 'completed') childMap[childId].completedCount++;
@@ -383,6 +384,10 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editPaidInputs, setEditPaidInputs] = useState<Record<string, { amount: number; method: string; memo: string }>>({})
 
+    // ✨ [NEW] 스케줄 메모 (모든 상태에서 사용 가능 — schedules.notes 컬럼에 저장)
+    const [scheduleMemos, setScheduleMemos] = useState<Record<string, string>>({});
+    const [savingMemoId, setSavingMemoId] = useState<string | null>(null);
+
     // 월 이동
     const [modalMonth, setModalMonth] = useState(month);
     const [isLoadingMonth, setIsLoadingMonth] = useState(false);
@@ -419,8 +424,13 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         };
         load();
         const inputs: Record<string, { amount: number; method: string; memo: string }> = {};
-        localSessions.forEach(s => { inputs[s.id] = { amount: s.price, method: '카드', memo: '' }; });
+        const memos: Record<string, string> = {};
+        localSessions.forEach(s => {
+            inputs[s.id] = { amount: s.price, method: '카드', memo: '' };
+            memos[s.id] = s.notes || '';
+        });
         setSessionInputs(inputs);
+        setScheduleMemos(memos);
     }, [localSessions]);
 
     // 탭 전환 시 체크 초기화
@@ -452,7 +462,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     const isCanceled = item.status === 'cancelled';
                     const isCarriedOver = item.status === 'carried_over';
                     const programPrice = item.programs?.price || 0;
-                    return { ...item, date: toLocalDateStr(item.start_time), price: (isCanceled || isCarriedOver) ? 0 : programPrice, isCanceled, isCarriedOver };
+                    return { ...item, date: toLocalDateStr(item.start_time), price: (isCanceled || isCarriedOver) ? 0 : programPrice, isCanceled, isCarriedOver, notes: item.notes || null };
                 });
                 const gMap: Record<string, ProgramGroup> = {};
                 sessions.forEach(s => {
@@ -711,6 +721,26 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         } catch (e: any) { alert('수납 오류: ' + e.message); } finally { setLoading(false); }
     };
 
+    // ✨ [NEW] 스케줄 메모 개별 저장 (모든 상태에서 가능)
+    const saveScheduleMemo = async (sid: string) => {
+        const memo = scheduleMemos[sid] ?? '';
+        setSavingMemoId(sid);
+        try {
+            const { error } = await supabase
+                .from('schedules')
+                .update({ notes: memo || null } as never)
+                .eq('id', sid);
+            if (error) throw error;
+            // 로컬 세션 데이터에도 반영
+            setLocalSessions(prev => prev.map(s => s.id === sid ? { ...s, notes: memo || null } : s));
+            alert('메모가 저장되었습니다.');
+        } catch (e: any) {
+            alert('메모 저장 실패: ' + e.message);
+        } finally {
+            setSavingMemoId(null);
+        }
+    };
+
     // 수납완료 세션 인라인 수정
     const startEditPaid = (sid: string) => {
         const detail = paidMap[sid];
@@ -955,9 +985,9 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                         ) : (
                             <div className={cn("rounded-xl border overflow-hidden", isDark ? "border-slate-700" : "border-slate-200")}>
                                 {/* 테이블 헤더 */}
-                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider",
+                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.2fr_1fr_auto] gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider",
                                     isDark ? "bg-slate-800/60 text-slate-500" : "bg-slate-50 text-slate-400")}>
-                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span>메모</span><span className="text-right">관리</span>
+                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span>수납메모</span><span><span className="flex items-center gap-0.5"><StickyNote size={10} />메모</span></span><span className="text-right">관리</span>
                                 </div>
 
                                 {/* 테이블 행 */}
@@ -971,7 +1001,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
                                     return (
                                         <div key={s.id} className={cn(
-                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 items-center border-t [&>*]:min-w-0",
+                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.2fr_1fr_auto] gap-2 px-3 py-2 items-center border-t [&>*]:min-w-0",
                                             isDark ? "border-slate-800" : "border-slate-100",
                                             isChecked && (isDark ? "bg-blue-900/20" : "bg-blue-50/60"),
                                             s.isCarriedOver && (isDark ? "bg-purple-900/10" : "bg-purple-50/30"),
@@ -1039,14 +1069,14 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 <span className={cn("text-[11px] text-right", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
                                             )}
 
-                                            {/* 메모 */}
+                                            {/* 수납메모 (수납 시 payments.memo에 저장) */}
                                             {isPayable && !isPaid ? (
-                                                <input type="text" placeholder="메모" value={inp?.memo || ''}
+                                                <input type="text" placeholder="수납메모" value={inp?.memo || ''}
                                                     onChange={e => updateSessionInput(s.id, 'memo', e.target.value)}
                                                     className={cn("w-full px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
                                             ) : isPaid && editingId === s.id ? (
-                                                <input type="text" placeholder="메모" value={editPaidInputs[s.id]?.memo || ''}
+                                                <input type="text" placeholder="수납메모" value={editPaidInputs[s.id]?.memo || ''}
                                                     onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], memo: e.target.value } }))}
                                                     className={cn("w-full px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
@@ -1055,6 +1085,26 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                             ) : (
                                                 <span className={cn("text-[10px]", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
                                             )}
+
+                                            {/* ✨ [NEW] 메모 (모든 상태에서 사용 가능 — schedules.notes에 저장) */}
+                                            <div className="flex items-center gap-1 min-w-0">
+                                                <input type="text" placeholder="메모 입력..."
+                                                    value={scheduleMemos[s.id] ?? ''}
+                                                    onChange={e => setScheduleMemos(prev => ({ ...prev, [s.id]: e.target.value }))}
+                                                    className={cn("flex-1 px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
+                                                        isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
+                                                <button
+                                                    onClick={() => saveScheduleMemo(s.id)}
+                                                    disabled={savingMemoId === s.id || (scheduleMemos[s.id] ?? '') === (s.notes ?? '')}
+                                                    title="메모 저장"
+                                                    className={cn("p-0.5 rounded shrink-0 transition-all",
+                                                        (scheduleMemos[s.id] ?? '') !== (s.notes ?? '')
+                                                            ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 dark:text-amber-400"
+                                                            : "text-slate-300 dark:text-slate-600 cursor-not-allowed")}
+                                                >
+                                                    {savingMemoId === s.id ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                                                </button>
+                                            </div>
 
                                             {/* 관리 */}
                                             <div className="flex items-center gap-1 justify-end shrink-0">
