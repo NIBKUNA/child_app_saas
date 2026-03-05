@@ -92,22 +92,22 @@ function AppHomeRedirect() {
 
   if (loading || centerLoading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
 
-  // 👑 [Super Admin] super_admin은 어디서든 GlobalLanding 표시 (센터로 강제 리다이렉트 방지)
-  if (isSuper) {
+  // 👑 [Super Admin on SaaS Domain] → 통합 포탈 표시
+  // 커스텀 도메인에서는 해당 센터의 공개 홈페이지를 보여줘야 하므로 SaaS 도메인에서만 적용
+  if (isSuper && isSaaSDomain) {
     return <GlobalLanding />;
   }
 
-  // ✨ [Sovereign SaaS] Smart Redirection
-  // If a center-affiliated staff/admin logs in, take them to their workspace.
-  if (role && role !== 'parent' && center?.slug) {
+  // ✨ [Staff Redirect] 센터 소속 직원은 자기 워크스페이스로 이동
+  // super_admin은 제외 — 커스텀 도메인에서 센터 홈페이지를 봐야 하므로
+  if (role && role !== 'parent' && role !== 'super_admin' && center?.slug) {
     if (role === 'manager' || role === 'therapist') {
       return <Navigate to="/app/schedule" replace />;
     }
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  // ✨ [Custom Domain / Center Redirect]
-  // 커스텀 도메인에서는 센터 페이지로 이동
+  // ✨ [Center Redirect] 커스텀 도메인 or 센터 컨텍스트가 있으면 센터 홈페이지
   if (center?.slug) {
     return <Navigate to={`/centers/${center.slug}`} replace />;
   }
