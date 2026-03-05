@@ -86,7 +86,35 @@ export function HomePage() {
 
     const seo = useLocalSEO();
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950" />;
+    if (loading) return (
+        <div className={`min-h-screen font-sans overflow-x-hidden ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+            {/* Hero Skeleton */}
+            <div className="relative h-[70vh] md:h-[85vh] bg-slate-800 animate-pulse">
+                <div className="container relative z-10 mx-auto px-6 md:px-12 pt-[30vh]">
+                    <div className="h-4 w-32 bg-white/20 rounded-full mb-6" />
+                    <div className="h-12 w-[70%] bg-white/15 rounded-2xl mb-4" />
+                    <div className="h-12 w-[50%] bg-white/10 rounded-2xl mb-6" />
+                    <div className="h-5 w-[40%] bg-white/10 rounded-xl mb-8" />
+                    <div className="h-14 w-48 bg-white/20 rounded-full" />
+                </div>
+            </div>
+            {/* Cards Skeleton */}
+            <div className={`-mt-20 rounded-tl-[80px] px-4 pb-32 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+                <div className="container mx-auto pt-24 px-2 md:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className={`rounded-[40px] p-8 animate-pulse ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                                <div className={`h-12 w-12 rounded-2xl mb-6 ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`} />
+                                <div className={`h-6 w-32 rounded-xl mb-4 ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`} />
+                                <div className={`h-4 w-full rounded-lg mb-2 ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`} />
+                                <div className={`h-4 w-3/4 rounded-lg ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`} />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className={`min-h-screen font-sans overflow-x-hidden transition-colors ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>

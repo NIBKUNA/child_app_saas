@@ -38,8 +38,6 @@ export function useAutoCompleteSchedules(centerId: string | undefined) {
 
                     if (updateError) {
                         console.error('[AutoComplete] 업데이트 실패:', updateError);
-                    } else {
-                        // Auto-completed ${ids.length} schedules
                     }
                 }
 
@@ -49,6 +47,8 @@ export function useAutoCompleteSchedules(centerId: string | undefined) {
             }
         };
 
-        autoComplete();
+        // ✨ [Performance] 초기 페이지 데이터 로드 후 실행 (네트워크 경합 방지)
+        const timer = setTimeout(autoComplete, 3000);
+        return () => clearTimeout(timer);
     }, [centerId]);
 }

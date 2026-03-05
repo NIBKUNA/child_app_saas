@@ -118,8 +118,11 @@ export function Schedule() {
 
     useEffect(() => {
         if (centerId && centerId.length >= 32) {
-            fetchSchedules();
-            fetchTherapists(centerId);
+            // ✨ [Performance] 병렬 실행으로 로딩 시간 단축
+            Promise.all([
+                fetchSchedules(),
+                fetchTherapists(centerId)
+            ]);
         }
     }, [centerId, authTherapistId, role]); // ✨ Added auth deps
 
