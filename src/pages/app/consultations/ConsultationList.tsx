@@ -93,6 +93,9 @@ export function ConsultationList() {
             const isSuperAdmin = role === 'super_admin' || checkSuperAdmin(user?.email || '');
             const isAdmin = role === 'admin' || role === 'manager' || isSuperAdmin;
 
+            // 🔍 [DEBUG] 실제 런타임 값 확인
+            console.log('[ConsultationList] DEBUG:', { authRole, role, isAdmin, isSuperAdmin, centerId, userId: user.id, email: user.email });
+
             // ✨ [FIX] therapists 테이블에서 현재 유저의 therapist 레코드 조회
             // therapists.profile_id = profiles.id = auth.users.id 이므로 profile_id로 조회
             let currentTherapistId = null;
@@ -117,7 +120,10 @@ export function ConsultationList() {
                     currentTherapistId = (legacyTherapist as any)?.id;
                 }
 
+                console.log('[ConsultationList] therapistId:', currentTherapistId);
+
                 if (!currentTherapistId) {
+                    console.warn('[ConsultationList] ⚠️ Not admin, no therapist ID found → empty result');
                     setTodoChildren([]);
                     setRecentAssessments([]);
                     setLoading(false);
@@ -181,7 +187,8 @@ export function ConsultationList() {
             if (!isAdmin && currentTherapistId) {
                 assessQuery = assessQuery.eq('therapist_id', currentTherapistId);
             }
-            const { data: assessments } = await assessQuery;
+            const { data: assessments, error: assessError } = await assessQuery;
+            console.log('[ConsultationList] assessments result:', { count: assessments?.length, assessError, isAdmin, centerId });
             setRecentAssessments((assessments as any) || []);
 
         } catch (e) {
