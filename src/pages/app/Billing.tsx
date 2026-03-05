@@ -618,15 +618,25 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         if (!confirm(`${session.date} (${paidAmount.toLocaleString()}원)을 환불하시겠습니까?`)) return;
         setLoading(true);
         try {
-            await supabase.from('payments').insert({
+            // 1) 환불 payment 레코드 생성 (음수 금액)
+            const { data: refundPayment, error: refundError } = await supabase.from('payments').insert({
                 child_id: childData.id, center_id: center.id,
                 amount: -paidAmount, method: '환불', payment_month: modalMonth,
                 memo: `환불: ${session.date}`,
                 ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
-            } as TableInsert<'payments'>);
-            await supabase.from('payment_items').delete().eq('schedule_id', session.id);
-            // ✨ 환불완료 표시: paidMap에 환불 마크 남기기
-            setPaidMap(prev => ({ ...prev, [session.id]: { amount: 0, method: '환불', memo: `환불완료 (${paidAmount.toLocaleString()}원)`, paymentId: '' } }));
+            } as TableInsert<'payments'>).select('id').single();
+            if (refundError) throw refundError;
+
+            // 2) 환불 payment_item 추가 (음수 금액) — 기존 payment_items는 삭제하지 않음!
+            //    이렇게 하면 load() 시 합산 금액=0 + method='환불' → "환불완료" 유지
+            await supabase.from('payment_items').insert({
+                schedule_id: session.id,
+                payment_id: refundPayment.id,
+                amount: -paidAmount,
+            } as any);
+
+            // 3) 로컬 상태 업데이트
+            setPaidMap(prev => ({ ...prev, [session.id]: { amount: 0, method: '환불', memo: `환불완료 (${paidAmount.toLocaleString()}원)`, paymentId: refundPayment.id } }));
             alert('환불이 완료되었습니다.');
             onSuccess();
         } catch (e: any) { alert('환불 오류: ' + e.message); } finally { setLoading(false); }
@@ -641,21 +651,25 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         if (!confirm(`${paidSessions.length}건, 총 ${totalRefund.toLocaleString()}원을 전체 환불하시겠습니까?`)) return;
         setLoading(true);
         try {
+            const newPaidMap = { ...paidMap };
             for (const s of paidSessions) {
                 const amt = paidMap[s.id]?.amount || 0;
-                await supabase.from('payments').insert({
+                const { data: refundPayment, error } = await supabase.from('payments').insert({
                     child_id: childData.id, center_id: center.id,
                     amount: -amt, method: '환불', payment_month: modalMonth,
                     memo: `전체환불: ${s.date}`,
                     ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
-                } as TableInsert<'payments'>);
-                await supabase.from('payment_items').delete().eq('schedule_id', s.id);
+                } as TableInsert<'payments'>).select('id').single();
+                if (error) throw error;
+                // 음수 payment_item 추가 (기존 삭제하지 않음)
+                await supabase.from('payment_items').insert({
+                    schedule_id: s.id,
+                    payment_id: refundPayment.id,
+                    amount: -amt,
+                } as any);
+                newPaidMap[s.id] = { amount: 0, method: '환불', memo: `환불완료 (${amt.toLocaleString()}원)`, paymentId: refundPayment.id };
             }
-            setPaidMap(prev => {
-                const n = { ...prev };
-                paidSessions.forEach(s => delete n[s.id]);
-                return n;
-            });
+            setPaidMap(newPaidMap);
             alert(`${paidSessions.length}건 전체 환불이 완료되었습니다.`);
             onSuccess();
         } catch (e: any) { alert('전체 환불 오류: ' + e.message); } finally { setLoading(false); }

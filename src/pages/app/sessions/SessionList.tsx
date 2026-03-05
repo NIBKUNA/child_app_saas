@@ -153,16 +153,17 @@ export default function SessionList() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">상담 일지 관리</h1>
+                <h1 className="text-2xl font-bold tracking-tight">치료일지 관리</h1>
             </div>
 
             <div className="bg-white rounded-lg border shadow-sm">
                 {/* 📱 Desktop Header (md 이상에서만 표시) */}
                 <div className="hidden md:grid p-4 border-b bg-slate-50 font-medium grid-cols-12 gap-4 text-sm text-slate-500">
                     <div className="col-span-2">날짜</div>
-                    <div className="col-span-2">시간</div>
+                    <div className="col-span-1">시간</div>
                     <div className="col-span-2">아동</div>
-                    <div className="col-span-2">유형</div>
+                    <div className="col-span-2">치료사</div>
+                    <div className="col-span-1">유형</div>
                     <div className="col-span-2">상태</div>
                     <div className="col-span-2 text-center">관리</div>
                 </div>
@@ -236,13 +237,16 @@ export default function SessionList() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="col-span-1">
                                         {new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                     <div className="col-span-2">
                                         {session.children?.name || '-'}
                                     </div>
                                     <div className="col-span-2">
+                                        <span className="text-slate-700 font-medium">{session.therapists?.name || '-'}</span>
+                                    </div>
+                                    <div className="col-span-1">
                                         <span className="px-2 py-1 rounded-full bg-slate-100 text-xs text-slate-700">
                                             {session.service_type === 'evaluation' || session.service_type === 'assessment' ? '평가'
                                                 : session.service_type === 'counseling' || session.service_type === 'consultation' ? '상담'

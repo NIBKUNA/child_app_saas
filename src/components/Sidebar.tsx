@@ -210,6 +210,7 @@ const MENU_GROUPS: MenuGroup[] = [
             // ✨ [Therapist] Only Schedule & Consultations
             // ✨ [Manager] Schedule, Billing, Programs
             { name: '치료 일정', path: '/app/schedule', icon: Icons.calendar, roles: ['super_admin', 'admin', 'therapist', 'manager'] },
+            { name: '치료일지', path: '/app/sessions', icon: Icons.blog, roles: ['super_admin', 'admin', 'therapist', 'manager'] },
             { name: '수납 관리', path: '/app/billing', icon: Icons.billing, roles: ['super_admin', 'admin', 'manager'] },
             { name: '상담일지', path: '/app/consultations', icon: Icons.consultation, roles: ['super_admin', 'admin', 'therapist', 'manager'] },
             { name: '프로그램 관리', path: '/app/programs', icon: Icons.program, roles: ['super_admin', 'admin', 'manager'] },
