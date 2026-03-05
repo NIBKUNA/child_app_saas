@@ -43,5 +43,5 @@ description: 커스텀 도메인 환경에서 코드 변경 시 반드시 확인
 
 1. **도메인으로 권한을 판단하지 않는다** → `role` 기반으로만 판단
 2. **super_admin 체크는 항상 role + email 이중 체크** → `role === 'super_admin' || isSuperAdmin(user?.email)`
-3. **`isMainDomain()` 결과에 따라 super_admin 동작이 달라지면 안 된다**
+3. **커스텀 도메인에서 super_admin은 해당 센터 홈페이지를 봐야 한다** → GlobalLanding은 SaaS 도메인에서만
 4. **센터 데이터 쿼리는 반드시 `center_id` 필터** → 예외 없음
