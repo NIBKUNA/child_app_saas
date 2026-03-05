@@ -251,6 +251,9 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
         notes: ''
     });
 
+    // ✨ [원래 시간 추적] 시간 변경 감지용
+    const [originalTime, setOriginalTime] = useState({ start_time: '', end_time: '' });
+
     // ✨ [ScheduleModal] Initialization
     useEffect(() => {
         if (isOpen && centerId && centerId.length >= 32) {
@@ -320,6 +323,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                         service_type: data.service_type || 'therapy',
                         notes: data.notes || ''
                     });
+                    setOriginalTime({ start_time: sTime || '10:00', end_time: eTime || '10:40' });
                 } else {
                     const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
                     if (data) {
@@ -337,6 +341,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                             service_type: data.service_type || 'therapy',
                             notes: data.notes ?? ''
                         });
+                        setOriginalTime({ start_time: sTime || '10:00', end_time: eTime || '10:40' });
                     }
                 }
             } else {
@@ -465,14 +470,68 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 };
 
                 if (scheduleId) {
+                    // ✨ [시간 변경 감지] 원래 시간과 비교
+                    const timeChanged = originalTime.start_time !== formData.start_time || originalTime.end_time !== formData.end_time;
+
                     // ⭐ [이월 크레딧 연동] 상태 변경 시 크레딧 자동 처리
                     const { data: prevSchedule } = await supabase
                         .from('schedules')
-                        .select('status, program_id, child_id')
+                        .select('status, program_id, child_id, parent_schedule_id, is_recurring')
                         .eq('id', scheduleId)
                         .single();
 
+                    // 현재 일정 먼저 수정
                     await supabase.from('schedules').update(payload).eq('id', scheduleId);
+
+                    // ✨ [시간 변경 시] 이후 수업도 변경할지 확인
+                    if (timeChanged) {
+                        const applyToFuture = confirm(
+                            `수업 시간이 변경되었습니다.\n\n` +
+                            `변경: ${originalTime.start_time}~${originalTime.end_time} → ${formData.start_time}~${formData.end_time}\n\n` +
+                            `[확인] 이후 수업도 전부 변경\n` +
+                            `[취소] 이 수업만 변경`
+                        );
+
+                        if (applyToFuture) {
+                            // 반복 그룹 ID 결정
+                            const groupId = prevSchedule?.parent_schedule_id || scheduleId;
+                            const isRecurringGroup = prevSchedule?.is_recurring;
+
+                            let futureQuery = supabase
+                                .from('schedules')
+                                .select('id, date')
+                                .eq('center_id', centerId!)
+                                .gt('date', formData.date)
+                                .in('status', ['scheduled']); // 예정된 것만 변경 (완료/취소된 건 안 건들임)
+
+                            if (isRecurringGroup && groupId) {
+                                // 반복 그룹으로 정확한 매칭
+                                futureQuery = futureQuery.or(`id.eq.${groupId},parent_schedule_id.eq.${groupId}`);
+                            } else {
+                                // 반복 아니면 같은 아동+치료사+프로그램으로 매칭
+                                futureQuery = futureQuery
+                                    .eq('child_id', formData.child_id)
+                                    .eq('therapist_id', formData.therapist_id);
+                                if (formData.program_id) {
+                                    futureQuery = futureQuery.eq('program_id', formData.program_id);
+                                }
+                            }
+
+                            const { data: futureSchedules } = await futureQuery;
+
+                            if (futureSchedules && futureSchedules.length > 0) {
+                                // 각 이후 일정의 날짜는 유지하고 시간만 변경
+                                for (const fs of futureSchedules) {
+                                    const fsDate = fs.date || formData.date;
+                                    await supabase.from('schedules').update({
+                                        start_time: makeIsoString(fsDate, formData.start_time),
+                                        end_time: makeIsoString(fsDate, formData.end_time),
+                                    }).eq('id', fs.id);
+                                }
+                                alert(`이후 ${futureSchedules.length}개 수업의 시간도 함께 변경되었습니다.`);
+                            }
+                        }
+                    }
 
                     // 이전 상태와 새 상태 비교
                     const prevStatus = prevSchedule?.status as string;
