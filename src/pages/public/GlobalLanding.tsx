@@ -103,8 +103,8 @@ export const GlobalLanding = () => {
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans overflow-x-hidden">
             <Helmet>
-                <title>자라다(Zarada) | 아동발달센터 통합 관리 솔루션</title>
-                <meta name="description" content="우리 아이가 다니는 아동발달센터를 검색하세요. 자라다는 아동발달센터의 효율적인 운영과 아이들의 성장을 돕는 차세대 ERP 솔루션입니다." />
+                <title>자라다(Zarada) | 아동발달센터 컨설팅 · 마케팅 · 운영 솔루션</title>
+                <meta name="description" content="아동발달센터 운영에 필요한 모든 것. 센터 컨설팅, 마케팅 대행, 치료 프로그램, ERP 솔루션까지. 소아과·재활의학과·아동발달센터 원장님을 위한 통합 파트너입니다." />
             </Helmet>
 
             {/* ✨ Premium Header */}
@@ -274,22 +274,36 @@ export const GlobalLanding = () => {
                     {/* 🔍 SEO: Crawlable center list + JSON-LD structured data */}
                     {centers.length > 0 && (
                         <Helmet>
-                            <meta name="keywords" content={centers.map(c => `${c.name} ${c.address || ''}`).join(', ') + ', 아동발달센터, 언어치료, 놀이치료, 감각통합치료'} />
+                            <meta name="keywords" content={centers.map(c => `${c.name} ${c.address || ''}`).join(', ') + ', 아동발달 컨설팅, 아동발달 마케팅, 소아과 아동발달, 재활의학과 아동발달, 아동발달센터 창업, 아동발달센터 운영, 센터 원장, 치료실 관리, ERP 솔루션'} />
                             <script type="application/ld+json">{JSON.stringify({
                                 "@context": "https://schema.org",
-                                "@type": "ItemList",
-                                "name": "자라다 아동발달센터 목록",
-                                "description": "자라다(Zarada) 파트너 아동발달센터 전국 목록",
-                                "numberOfItems": centers.length,
-                                "itemListElement": centers.map((c, i) => ({
-                                    "@type": "ListItem",
-                                    "position": i + 1,
-                                    "item": {
-                                        "@type": "LocalBusiness",
-                                        "name": c.name,
-                                        "address": c.address || '대한민국',
-                                        "url": `${PLATFORM_URL}/centers/${c.slug}`
-                                    }
+                                "@type": "Organization",
+                                "name": "자라다 Zarada",
+                                "description": "아동발달센터 컨설팅, 마케팅, 운영 솔루션을 제공하는 통합 파트너",
+                                "url": PLATFORM_URL,
+                                "logo": `${PLATFORM_URL}/zaradalogo.png`,
+                                "sameAs": [],
+                                "address": {
+                                    "@type": "PostalAddress",
+                                    "addressLocality": "성남시",
+                                    "addressRegion": "경기도",
+                                    "addressCountry": "KR"
+                                },
+                                "hasOfferCatalog": {
+                                    "@type": "OfferCatalog",
+                                    "name": "아동발달센터 솔루션",
+                                    "itemListElement": [
+                                        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "아동발달센터 컨설팅" } },
+                                        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "아동발달 마케팅 대행" } },
+                                        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "센터 운영 ERP 솔루션" } },
+                                        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "치료 프로그램 관리" } }
+                                    ]
+                                },
+                                "knowsAbout": centers.map(c => ({
+                                    "@type": "LocalBusiness",
+                                    "name": c.name,
+                                    "address": c.address || "대한민국",
+                                    "url": `${PLATFORM_URL}/centers/${c.slug}`
                                 }))
                             })}</script>
                         </Helmet>
