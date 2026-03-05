@@ -59,10 +59,10 @@ interface DevelopmentAssessment {
 }
 
 export function ConsultationList() {
-    const { user } = useAuth();
+    const { user, role: authRole } = useAuth();
     const { center } = useCenter(); // ✨ Use Center
     const centerId = center?.id;
-    const [userRole, setUserRole] = useState('therapist');
+    const [userRole, setUserRole] = useState(authRole || 'therapist');
     const [todoChildren, setTodoChildren] = useState<Session[]>([]);
     const [recentAssessments, setRecentAssessments] = useState<DevelopmentAssessment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -77,20 +77,21 @@ export function ConsultationList() {
         if (user && centerId) {
             fetchData();
         }
-    }, [user, centerId]);
+    }, [user, centerId, authRole]);
 
     const fetchData = async () => {
         if (!centerId || typeof centerId !== 'string' || centerId.length < 32) return;
         if (!user) return; // ✨ Check user
         setLoading(true);
         try {
-            const { data: profile } = await (supabase.from('user_profiles')).select('role').eq('id', user.id).maybeSingle();
-            const role = (profile as any)?.role || 'therapist';
+            // ✨ [FIX] AuthContext에서 이미 정확한 role을 판단하므로 그대로 사용
+            // 기존: user_profiles에서 재조회 → therapists 교차 확인 누락으로 admin이 therapist로 인식되는 버그
+            const role = authRole || 'therapist';
             setUserRole(role);
 
             // ✨ [Refactor] Using Centralized Super Admin Check
             const isSuperAdmin = role === 'super_admin' || checkSuperAdmin(user?.email || '');
-            const isAdmin = role === 'admin' || isSuperAdmin;
+            const isAdmin = role === 'admin' || role === 'manager' || isSuperAdmin;
 
             // ✨ [FIX] therapists 테이블에서 현재 유저의 therapist 레코드 조회
             // therapists.profile_id = profiles.id = auth.users.id 이므로 profile_id로 조회
