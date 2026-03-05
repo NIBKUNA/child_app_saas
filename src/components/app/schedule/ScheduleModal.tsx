@@ -254,6 +254,13 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
     // ✨ [원래 시간 추적] 시간 변경 감지용
     const [originalTime, setOriginalTime] = useState({ start_time: '', end_time: '' });
 
+    // ✨ [시간 변경 범위 선택 모달]
+    const [showTimeChangeModal, setShowTimeChangeModal] = useState(false);
+    const [pendingTimeChange, setPendingTimeChange] = useState<{
+        prevSchedule: any;
+        makeIsoString: (d: string, t: string) => string;
+    } | null>(null);
+
     // ✨ [ScheduleModal] Initialization
     useEffect(() => {
         if (isOpen && centerId && centerId.length >= 32) {
@@ -483,54 +490,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     // 현재 일정 먼저 수정
                     await supabase.from('schedules').update(payload).eq('id', scheduleId);
 
-                    // ✨ [시간 변경 시] 이후 수업도 변경할지 확인
+                    // ✨ [시간 변경 시] 커스텀 모달로 선택지 제공
                     if (timeChanged) {
-                        const applyToFuture = confirm(
-                            `수업 시간이 변경되었습니다.\n\n` +
-                            `변경: ${originalTime.start_time}~${originalTime.end_time} → ${formData.start_time}~${formData.end_time}\n\n` +
-                            `[확인] 이후 수업도 전부 변경\n` +
-                            `[취소] 이 수업만 변경`
-                        );
-
-                        if (applyToFuture) {
-                            // 반복 그룹 ID 결정
-                            const groupId = prevSchedule?.parent_schedule_id || scheduleId;
-                            const isRecurringGroup = prevSchedule?.is_recurring;
-
-                            let futureQuery = supabase
-                                .from('schedules')
-                                .select('id, date')
-                                .eq('center_id', centerId!)
-                                .gt('date', formData.date)
-                                .in('status', ['scheduled']); // 예정된 것만 변경 (완료/취소된 건 안 건들임)
-
-                            if (isRecurringGroup && groupId) {
-                                // 반복 그룹으로 정확한 매칭
-                                futureQuery = futureQuery.or(`id.eq.${groupId},parent_schedule_id.eq.${groupId}`);
-                            } else {
-                                // 반복 아니면 같은 아동+치료사+프로그램으로 매칭
-                                futureQuery = futureQuery
-                                    .eq('child_id', formData.child_id)
-                                    .eq('therapist_id', formData.therapist_id);
-                                if (formData.program_id) {
-                                    futureQuery = futureQuery.eq('program_id', formData.program_id);
-                                }
-                            }
-
-                            const { data: futureSchedules } = await futureQuery;
-
-                            if (futureSchedules && futureSchedules.length > 0) {
-                                // 각 이후 일정의 날짜는 유지하고 시간만 변경
-                                for (const fs of futureSchedules) {
-                                    const fsDate = fs.date || formData.date;
-                                    await supabase.from('schedules').update({
-                                        start_time: makeIsoString(fsDate, formData.start_time),
-                                        end_time: makeIsoString(fsDate, formData.end_time),
-                                    }).eq('id', fs.id);
-                                }
-                                alert(`이후 ${futureSchedules.length}개 수업의 시간도 함께 변경되었습니다.`);
-                            }
-                        }
+                        setPendingTimeChange({ prevSchedule, makeIsoString });
+                        setShowTimeChangeModal(true);
                     }
 
                     // 이전 상태와 새 상태 비교
@@ -726,156 +689,257 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
     if (!isOpen) return null;
 
+    // ✨ [이후 수업 시간 일괄 변경]
+    const handleApplyFutureTimeChange = async () => {
+        if (!pendingTimeChange || !centerId || !scheduleId) return;
+        setLoading(true);
+        try {
+            const { prevSchedule, makeIsoString } = pendingTimeChange;
+            const groupId = prevSchedule?.parent_schedule_id || scheduleId;
+            const isRecurringGroup = prevSchedule?.is_recurring;
+
+            let futureQuery = supabase
+                .from('schedules')
+                .select('id, date')
+                .eq('center_id', centerId)
+                .gt('date', formData.date)
+                .in('status', ['scheduled']);
+
+            if (isRecurringGroup && groupId) {
+                futureQuery = futureQuery.or(`id.eq.${groupId},parent_schedule_id.eq.${groupId}`);
+            } else {
+                futureQuery = futureQuery
+                    .eq('child_id', formData.child_id)
+                    .eq('therapist_id', formData.therapist_id);
+                if (formData.program_id) {
+                    futureQuery = futureQuery.eq('program_id', formData.program_id);
+                }
+            }
+
+            const { data: futureSchedules } = await futureQuery;
+
+            if (futureSchedules && futureSchedules.length > 0) {
+                for (const fs of futureSchedules) {
+                    const fsDate = fs.date || formData.date;
+                    await supabase.from('schedules').update({
+                        start_time: makeIsoString(fsDate, formData.start_time),
+                        end_time: makeIsoString(fsDate, formData.end_time),
+                    }).eq('id', fs.id);
+                }
+                alert(`이후 ${futureSchedules.length}개 수업의 시간도 함께 변경되었습니다.`);
+            } else {
+                alert('이후 예정된 수업이 없습니다.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('이후 수업 시간 변경 중 오류가 발생했습니다.');
+        } finally {
+            setShowTimeChangeModal(false);
+            setPendingTimeChange(null);
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div className="p-5 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0">
-                    <h2 className="text-lg font-black text-slate-800 dark:text-white">{readOnly ? '일정 상세' : scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><X className="w-5 h-5 text-slate-500 dark:text-slate-400" /></button>
-                </div>
-                {fetching ? (
-                    <div className="p-10 flex flex-col items-center justify-center min-h-[300px]">
-                        <Loader2 className="w-8 h-8 text-slate-400 animate-spin mb-2" />
-                        <p className="text-xs text-slate-400 font-bold">데이터 불러오는 중...</p>
-                    </div>
-                ) : (
-                    <div className="overflow-y-auto flex-1 custom-scrollbar">
-                        <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-4 md:p-6 pb-4">
-                            <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-                                {/* 왼쪽: 일정 정보 */}
-                                <fieldset disabled={readOnly} className={cn("flex-1 space-y-4 md:space-y-5 min-w-0", readOnly && 'opacity-70 pointer-events-none')}>
-                                    <SearchableSelect
-                                        label="아동 선택"
-                                        placeholder="아동을 선택하세요"
-                                        options={childrenList}
-                                        value={formData.child_id}
-                                        onChange={val => setFormData({ ...formData, child_id: val })}
-                                    />
-                                    <SearchableSelect
-                                        label="담당 선생님"
-                                        placeholder="선생님을 선택하세요"
-                                        options={therapistsList}
-                                        value={formData.therapist_id}
-                                        onChange={val => setFormData({ ...formData, therapist_id: val })}
-                                    />
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
-                                        <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
-                                            <option value="">프로그램을 선택하세요</option>
-                                            {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
-                                        <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-3 md:mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
-
-                                        <div className="flex items-start gap-3 mb-3">
-                                            <TimeComboBox
-                                                label="시작시간"
-                                                value={formData.start_time}
-                                                onChange={handleStartTimeChange}
-                                            />
-                                            <TimeComboBox
-                                                label="종료시간"
-                                                value={formData.end_time}
-                                                onChange={(v: string) => setFormData(prev => ({ ...prev, end_time: v }))}
-                                            />
-                                        </div>
-
-                                        {!scheduleId && (
-                                            <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                                <div className="flex items-center justify-between mb-2 md:mb-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
-                                                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
-                                                    </div>
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
-                                                        checked={isRecurring}
-                                                        onChange={e => setIsRecurring(e.target.checked)}
-                                                    />
-                                                </div>
-                                                {isRecurring && (
-                                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg">
-                                                        <Repeat className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                                                            선택한 요일에 6개월간({RECURRING_WEEKS}주) 자동 반복 등록됩니다.
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
-                                            <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
-                                                {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </fieldset>
-
-                                {/* 오른쪽: 메모 (모바일에서는 하단) */}
-                                <div className="w-full md:w-64 md:shrink-0 flex flex-col">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                        메모
-                                    </label>
-                                    <textarea
-                                        disabled={readOnly}
-                                        className={cn(
-                                            "flex-1 min-h-[120px] md:min-h-[320px] p-3.5 border dark:border-slate-700 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none leading-relaxed",
-                                            readOnly && "opacity-70 cursor-not-allowed"
-                                        )}
-                                        placeholder="수업 관련 메모, 주의사항, 특이사항 등을 기록하세요..."
-                                        value={formData.notes}
-                                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                    />
-                                    {formData.notes && (
-                                        <p className="text-[10px] text-slate-400 mt-1.5 text-right">{formData.notes.length}자</p>
-                                    )}
+        <>
+            {/* ✨ 시간 변경 범위 선택 모달 */}
+            {showTimeChangeModal && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="p-5 border-b dark:border-slate-700">
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white">⏰ 수업 시간 변경</h3>
+                            <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+                                <div className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                                    <span className="line-through">{originalTime.start_time} ~ {originalTime.end_time}</span>
+                                    <span className="text-indigo-500">→</span>
+                                    <span className="text-indigo-700 dark:text-indigo-300 font-black">{formData.start_time} ~ {formData.end_time}</span>
                                 </div>
                             </div>
-
-                            {/* 하단 버튼 */}
-                            <div className="flex gap-2 pt-4 md:pt-5 mt-4 md:mt-5 border-t dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 pb-2">
-                                {readOnly ? (
-                                    <button type="button" onClick={onClose} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-300 dark:hover:bg-slate-600">
-                                        닫기
-                                    </button>
-                                ) : (
-                                    <>
-                                        {scheduleId && (
-                                            <>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(false)}
-                                                    className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"
-                                                    title="이 일정만 삭제"
-                                                >
-                                                    <Trash2 className="w-5" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDelete(true)}
-                                                    className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-100 dark:border-amber-900/50 flex items-center gap-2 text-xs font-black"
-                                                    title="이후 모든 일정 삭제"
-                                                >
-                                                    <CalendarClock className="w-5" /> 이후 삭제
-                                                </button>
-                                            </>
-                                        )}
-                                        <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-md">
-                                            {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        </form>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            <button
+                                onClick={() => { setShowTimeChangeModal(false); setPendingTimeChange(null); }}
+                                className="w-full p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-left group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-600 flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
+                                        <CalendarClock className="w-5 h-5 text-slate-500 group-hover:text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-slate-800 dark:text-white text-sm">이 수업만 변경</p>
+                                        <p className="text-xs text-slate-400 font-medium mt-0.5">오늘 이 수업만 시간이 바뀝니다</p>
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={handleApplyFutureTimeChange}
+                                disabled={loading}
+                                className="w-full p-4 rounded-xl border-2 border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 hover:border-indigo-400 transition-all text-left group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-800 flex items-center justify-center">
+                                        <Repeat className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-indigo-700 dark:text-indigo-300 text-sm">이후 수업도 전부 변경</p>
+                                        <p className="text-xs text-indigo-400 font-medium mt-0.5">앞으로 예정된 같은 수업 전체에 적용</p>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
                     </div>
-                )}
+                </div>
+            )}
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="p-5 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0">
+                        <h2 className="text-lg font-black text-slate-800 dark:text-white">{readOnly ? '일정 상세' : scheduleId ? '일정 수정' : '새 일정 등록'}</h2>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"><X className="w-5 h-5 text-slate-500 dark:text-slate-400" /></button>
+                    </div>
+                    {fetching ? (
+                        <div className="p-10 flex flex-col items-center justify-center min-h-[300px]">
+                            <Loader2 className="w-8 h-8 text-slate-400 animate-spin mb-2" />
+                            <p className="text-xs text-slate-400 font-bold">데이터 불러오는 중...</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-y-auto flex-1 custom-scrollbar">
+                            <form onSubmit={readOnly ? (e) => e.preventDefault() : handleSubmit} className="p-4 md:p-6 pb-4">
+                                <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                                    {/* 왼쪽: 일정 정보 */}
+                                    <fieldset disabled={readOnly} className={cn("flex-1 space-y-4 md:space-y-5 min-w-0", readOnly && 'opacity-70 pointer-events-none')}>
+                                        <SearchableSelect
+                                            label="아동 선택"
+                                            placeholder="아동을 선택하세요"
+                                            options={childrenList}
+                                            value={formData.child_id}
+                                            onChange={val => setFormData({ ...formData, child_id: val })}
+                                        />
+                                        <SearchableSelect
+                                            label="담당 선생님"
+                                            placeholder="선생님을 선택하세요"
+                                            options={therapistsList}
+                                            value={formData.therapist_id}
+                                            onChange={val => setFormData({ ...formData, therapist_id: val })}
+                                        />
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
+                                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
+                                                <option value="">프로그램을 선택하세요</option>
+                                                {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
+                                            <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-3 md:mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <TimeComboBox
+                                                    label="시작시간"
+                                                    value={formData.start_time}
+                                                    onChange={handleStartTimeChange}
+                                                />
+                                                <TimeComboBox
+                                                    label="종료시간"
+                                                    value={formData.end_time}
+                                                    onChange={(v: string) => setFormData(prev => ({ ...prev, end_time: v }))}
+                                                />
+                                            </div>
+
+                                            {!scheduleId && (
+                                                <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                    <div className="flex items-center justify-between mb-2 md:mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Repeat className={cn("w-4 h-4", isRecurring ? "text-indigo-600" : "text-slate-400")} />
+                                                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">매주 반복 등록</span>
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
+                                                            checked={isRecurring}
+                                                            onChange={e => setIsRecurring(e.target.checked)}
+                                                        />
+                                                    </div>
+                                                    {isRecurring && (
+                                                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 bg-indigo-50 dark:bg-indigo-900/20 p-2.5 rounded-lg">
+                                                            <Repeat className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                                                선택한 요일에 6개월간({RECURRING_WEEKS}주) 자동 반복 등록됩니다.
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {['scheduled', 'completed', 'cancelled', 'carried_over'].map(s => (
+                                                <button key={s} type="button" onClick={() => setFormData({ ...formData, status: s })} className={`py-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.status === s ? getStatusStyle(s).activeClass : 'border-transparent text-slate-400 hover:bg-slate-50'}`}>
+                                                    {getStatusStyle(s).icon}<span className="text-[10px] font-bold">{getStatusStyle(s).label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </fieldset>
+
+                                    {/* 오른쪽: 메모 (모바일에서는 하단) */}
+                                    <div className="w-full md:w-64 md:shrink-0 flex flex-col">
+                                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5">
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                            메모
+                                        </label>
+                                        <textarea
+                                            disabled={readOnly}
+                                            className={cn(
+                                                "flex-1 min-h-[120px] md:min-h-[320px] p-3.5 border dark:border-slate-700 rounded-xl text-sm font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none leading-relaxed",
+                                                readOnly && "opacity-70 cursor-not-allowed"
+                                            )}
+                                            placeholder="수업 관련 메모, 주의사항, 특이사항 등을 기록하세요..."
+                                            value={formData.notes}
+                                            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                        />
+                                        {formData.notes && (
+                                            <p className="text-[10px] text-slate-400 mt-1.5 text-right">{formData.notes.length}자</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 하단 버튼 */}
+                                <div className="flex gap-2 pt-4 md:pt-5 mt-4 md:mt-5 border-t dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 pb-2">
+                                    {readOnly ? (
+                                        <button type="button" onClick={onClose} className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-300 dark:hover:bg-slate-600">
+                                            닫기
+                                        </button>
+                                    ) : (
+                                        <>
+                                            {scheduleId && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(false)}
+                                                        className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/30 border border-rose-100 dark:border-rose-900/50"
+                                                        title="이 일정만 삭제"
+                                                    >
+                                                        <Trash2 className="w-5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(true)}
+                                                        className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-100 dark:border-amber-900/50 flex items-center gap-2 text-xs font-black"
+                                                        title="이후 모든 일정 삭제"
+                                                    >
+                                                        <CalendarClock className="w-5" /> 이후 삭제
+                                                    </button>
+                                                </>
+                                            )}
+                                            <button type="submit" disabled={loading} className="flex-1 bg-slate-900 dark:bg-indigo-600 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2 hover:bg-slate-800 dark:hover:bg-indigo-500 shadow-md">
+                                                {loading ? <Loader2 className="animate-spin w-5" /> : <Save className="w-5" />} {scheduleId ? '수정 저장' : '일정 등록'}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 }
