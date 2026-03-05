@@ -625,7 +625,8 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                 ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
             } as TableInsert<'payments'>);
             await supabase.from('payment_items').delete().eq('schedule_id', session.id);
-            setPaidMap(prev => { const n = { ...prev }; delete n[session.id]; return n; });
+            // ✨ 환불완료 표시: paidMap에 환불 마크 남기기
+            setPaidMap(prev => ({ ...prev, [session.id]: { amount: 0, method: '환불', memo: `환불완료 (${paidAmount.toLocaleString()}원)`, paymentId: '' } }));
             alert('환불이 완료되었습니다.');
             onSuccess();
         } catch (e: any) { alert('환불 오류: ' + e.message); } finally { setLoading(false); }
@@ -664,14 +665,18 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         carryOver: <ArrowRightCircle size={14} />,
         cancel: <Ban size={14} />,
         paid: <CheckCircle2 size={14} />,
+        refunded: <RotateCcw size={14} />,
         completed: <CheckCircle2 size={14} />,
         default: <Clock size={14} />,
     }), []);
 
     const getStyle = useCallback((s: BillingSession) => {
-        const isPaid = !!paidMap[s.id]?.amount;
+        const paidDetail = paidMap[s.id];
+        const isPaid = !!paidDetail?.amount;
+        const isRefunded = paidDetail && paidDetail.method === '환불';
         if (s.isCarriedOver) return { bg: isDark ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200', text: 'text-purple-600 dark:text-purple-400', icon: styleIcons.carryOver };
         if (s.isCanceled) return { bg: isDark ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-200', text: 'text-rose-500 dark:text-rose-400', icon: styleIcons.cancel };
+        if (isRefunded) return { bg: isDark ? 'bg-orange-900/20 border-orange-800' : 'bg-orange-50 border-orange-200', text: 'text-orange-600 dark:text-orange-400', icon: styleIcons.refunded };
         if (isPaid) return { bg: isDark ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600 dark:text-emerald-400', icon: styleIcons.paid };
         if (s.status === 'completed') return { bg: isDark ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200', text: 'text-blue-600 dark:text-blue-400', icon: styleIcons.completed };
         return { bg: isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200', text: 'text-slate-500 dark:text-slate-400', icon: styleIcons.default };
@@ -985,9 +990,9 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                         ) : (
                             <div className={cn("rounded-xl border overflow-hidden", isDark ? "border-slate-700" : "border-slate-200")}>
                                 {/* 테이블 헤더 */}
-                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.2fr_1fr_auto] gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider",
+                                <div className={cn("grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider",
                                     isDark ? "bg-slate-800/60 text-slate-500" : "bg-slate-50 text-slate-400")}>
-                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span>수납메모</span><span><span className="flex items-center gap-0.5"><StickyNote size={10} />메모</span></span><span className="text-right">관리</span>
+                                    <span></span><span>#</span><span>날짜/상태</span><span>결제수단</span><span className="text-right">금액</span><span><span className="flex items-center gap-0.5"><StickyNote size={10} />메모</span></span><span className="text-right">관리</span>
                                 </div>
 
                                 {/* 테이블 행 */}
@@ -1001,12 +1006,13 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
                                     return (
                                         <div key={s.id} className={cn(
-                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.2fr_1fr_auto] gap-2 px-3 py-2 items-center border-t [&>*]:min-w-0",
+                                            "grid grid-cols-[28px_32px_1fr_70px_90px_1.5fr_auto] gap-2 px-3 py-2 items-center border-t [&>*]:min-w-0",
                                             isDark ? "border-slate-800" : "border-slate-100",
                                             isChecked && (isDark ? "bg-blue-900/20" : "bg-blue-50/60"),
                                             s.isCarriedOver && (isDark ? "bg-purple-900/10" : "bg-purple-50/30"),
                                             s.isCanceled && (isDark ? "bg-rose-900/10" : "bg-rose-50/30"),
-                                            isPaid && (isDark ? "bg-emerald-900/10" : "bg-emerald-50/30"),
+                                            paidDetail?.method === '환불' && (isDark ? "bg-orange-900/10" : "bg-orange-50/30"),
+                                            isPaid && paidDetail?.method !== '환불' && (isDark ? "bg-emerald-900/10" : "bg-emerald-50/30"),
                                         )}>
                                             {/* 체크박스 */}
                                             {isPayable && !isPaid ? (
@@ -1023,7 +1029,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 <div className={cn("flex items-center gap-1 mt-0.5", ss.text)}>
                                                     {ss.icon}
                                                     <span className="text-[9px] font-bold">
-                                                        {s.isCarriedOver ? '이월' : s.isCanceled ? '취소' : isPaid ? '수납완료' : s.status === 'completed' ? '수업완료' : '예정'}
+                                                        {paidDetail?.method === '환불' ? '환불완료' : s.isCarriedOver ? '이월' : s.isCanceled ? '취소' : isPaid ? '수납완료' : s.status === 'completed' ? '수업완료' : '예정'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1069,37 +1075,21 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                 <span className={cn("text-[11px] text-right", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
                                             )}
 
-                                            {/* 수납메모 (수납 시 payments.memo에 저장) */}
-                                            {isPayable && !isPaid ? (
-                                                <input type="text" placeholder="수납메모" value={inp?.memo || ''}
-                                                    onChange={e => updateSessionInput(s.id, 'memo', e.target.value)}
-                                                    className={cn("w-full px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
-                                                        isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
-                                            ) : isPaid && editingId === s.id ? (
-                                                <input type="text" placeholder="수납메모" value={editPaidInputs[s.id]?.memo || ''}
-                                                    onChange={e => setEditPaidInputs(prev => ({ ...prev, [s.id]: { ...prev[s.id], memo: e.target.value } }))}
-                                                    className={cn("w-full px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
-                                                        isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
-                                            ) : isPaid ? (
-                                                <span title={paidDetail?.memo || ''} className={cn("text-[10px] break-all leading-tight", isDark ? "text-slate-400" : "text-slate-500")}>{paidDetail?.memo || '-'}</span>
-                                            ) : (
-                                                <span className={cn("text-[10px]", isDark ? "text-slate-600" : "text-slate-300")}>-</span>
-                                            )}
-
-                                            {/* ✨ [NEW] 메모 (모든 상태에서 사용 가능 — schedules.notes에 저장) */}
+                                            {/* ✨ 통합 메모 (schedules.notes에 저장 — 모든 상태에서 편집 가능) */}
                                             <div className="flex items-center gap-1 min-w-0">
                                                 <input type="text" placeholder="메모 입력..."
                                                     value={scheduleMemos[s.id] ?? ''}
                                                     onChange={e => setScheduleMemos(prev => ({ ...prev, [s.id]: e.target.value }))}
+                                                    onKeyDown={e => { if (e.key === 'Enter') saveScheduleMemo(s.id); }}
                                                     className={cn("flex-1 px-1.5 py-0.5 rounded text-[10px] outline-none border min-w-0",
                                                         isDark ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500" : "bg-white border-slate-200 text-slate-600 placeholder-slate-400")} />
                                                 <button
                                                     onClick={() => saveScheduleMemo(s.id)}
                                                     disabled={savingMemoId === s.id || (scheduleMemos[s.id] ?? '') === (s.notes ?? '')}
-                                                    title="메모 저장"
+                                                    title="메모 저장 (Enter키로도 저장)"
                                                     className={cn("p-0.5 rounded shrink-0 transition-all",
                                                         (scheduleMemos[s.id] ?? '') !== (s.notes ?? '')
-                                                            ? "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 dark:text-amber-400"
+                                                            ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:text-blue-400"
                                                             : "text-slate-300 dark:text-slate-600 cursor-not-allowed")}
                                                 >
                                                     {savingMemoId === s.id ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
@@ -1140,18 +1130,17 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                                         </button>
                                                     </>
                                                 ) : null}
-                                                {!isPaid && (
-                                                    <select value={s.status}
-                                                        onChange={e => handleStatusChange(s.id, e.target.value as ScheduleStatus)}
-                                                        disabled={loading}
-                                                        className={cn("text-[9px] font-bold px-1 py-0.5 rounded border-none outline-none cursor-pointer",
-                                                            isDark ? "bg-black/30 text-white" : "bg-white text-slate-500 shadow-sm")}>
-                                                        <option value="scheduled">예정</option>
-                                                        <option value="completed">완료</option>
-                                                        <option value="cancelled">취소</option>
-                                                        <option value="carried_over">이월</option>
-                                                    </select>
-                                                )}
+                                                {/* 상태 드롭다운 — 모든 상태에서 변경 가능 */}
+                                                <select value={s.status}
+                                                    onChange={e => handleStatusChange(s.id, e.target.value as ScheduleStatus)}
+                                                    disabled={loading}
+                                                    className={cn("text-[9px] font-bold px-1 py-0.5 rounded border-none outline-none cursor-pointer",
+                                                        isDark ? "bg-black/30 text-white" : "bg-white text-slate-500 shadow-sm")}>
+                                                    <option value="scheduled">예정</option>
+                                                    <option value="completed">완료</option>
+                                                    <option value="cancelled">취소</option>
+                                                    <option value="carried_over">이월</option>
+                                                </select>
                                             </div>
                                         </div>
                                     );
