@@ -159,6 +159,18 @@ export function Schedule() {
         if (!centerId || centerId.length < 32) return;
         setLoading(true);
         try {
+            // ✨ [Performance] 현재 월 ±1개월 범위만 조회 (전체 조회 → 범위 제한)
+            const calApi = calendarRef.current?.getApi();
+            const viewStart = calApi?.view?.activeStart;
+            const viewEnd = calApi?.view?.activeEnd;
+            // 뷰가 아직 없으면 현재 월 기준 ±45일
+            const rangeStart = viewStart
+                ? new Date(viewStart.getTime() - 7 * 86400000).toISOString()
+                : new Date(Date.now() - 45 * 86400000).toISOString();
+            const rangeEnd = viewEnd
+                ? new Date(viewEnd.getTime() + 7 * 86400000).toISOString()
+                : new Date(Date.now() + 45 * 86400000).toISOString();
+
             let query = supabase
                 .from('schedules')
                 .select(`
@@ -168,7 +180,9 @@ export function Schedule() {
                     programs (name),
                     therapists (name, color)
                 `)
-                .eq('center_id', centerId);
+                .eq('center_id', centerId)
+                .gte('start_time', rangeStart)
+                .lte('start_time', rangeEnd);
 
             // ✨ [권한 분리] 행정직원(admin, manager, staff)은 전체 조회 가능
             // 치료사(therapist)는 본인의 일정만 조회 가능
@@ -181,8 +195,7 @@ export function Schedule() {
 
             if (error) throw error;
 
-            // ✨ [Auto-Completion] AppLayout의 useAutoCompleteSchedules에서 중앙 처리됨
-            // 로컬 데이터에서도 과거 scheduled를 completed로 표시 (UI 정합성)
+            // ✨ [Auto-Completion] 로컬 데이터에서도 과거 scheduled를 completed로 표시
             const now = new Date();
             scheduleData?.forEach((s: ScheduleData) => {
                 if (s.status === 'scheduled' && new Date(s.end_time) < now) {
@@ -190,16 +203,23 @@ export function Schedule() {
                 }
             });
 
-            let attendedLogIds = new Set();
+            // ✨ [Performance] counseling_logs 조회를 스케줄과 병렬 불가 (ID 필요)
+            // 하지만 배치로 최대 300개씩만 조회
+            let attendedLogIds = new Set<string>();
             if (scheduleData && scheduleData.length > 0) {
-                // ✨ [Assessment Check] Fetch daily logs only if there are schedules
-                // daily_logs 대신 통합된 counseling_logs를 사용합니다.
-                const { data: logsData } = await supabase
-                    .from('counseling_logs')
-                    .select('schedule_id')
-                    .in('schedule_id', scheduleData.map(s => s.id));
-
-                attendedLogIds = new Set((logsData as { schedule_id: string }[] | null)?.map(l => l.schedule_id) || []);
+                const ids = scheduleData.map(s => s.id);
+                // 300개씩 배치 처리 (Supabase IN 절 제한 대응)
+                const BATCH = 300;
+                const logPromises = [];
+                for (let i = 0; i < ids.length; i += BATCH) {
+                    logPromises.push(
+                        supabase.from('counseling_logs').select('schedule_id').in('schedule_id', ids.slice(i, i + BATCH))
+                    );
+                }
+                const logResults = await Promise.all(logPromises);
+                logResults.forEach(r => {
+                    (r.data as { schedule_id: string }[] | null)?.forEach(l => attendedLogIds.add(l.schedule_id));
+                });
             }
             if (scheduleData) {
                 const formattedEvents = scheduleData.map((schedule: ScheduleData) => {
@@ -591,6 +611,7 @@ export function Schedule() {
                                     dateClick={handleDateClick}
                                     eventMouseEnter={handleEventMouseEnter}
                                     eventMouseLeave={handleEventMouseLeave}
+                                    datesSet={() => { if (centerId) fetchSchedules(); }}
                                     selectable={true}
                                     selectMirror={true}
                                     slotEventOverlap={false}

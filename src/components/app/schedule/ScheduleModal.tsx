@@ -274,11 +274,11 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
         setFetching(true);
         try {
-            const [childRes, progRes, therRes, profileRes] = await Promise.all([
-                supabase.from('children').select('*').eq('center_id', targetId).order('name'),
-                supabase.from('programs').select('*').eq('center_id', targetId).order('name'),
-                supabase.from('therapists').select('*').eq('center_id', targetId).order('name'),
-                supabase.from('user_profiles').select('*')
+            // ✨ [Performance] user_profiles 전체 쿼리 제거 → therapists 데이터만으로 필터링
+            const [childRes, progRes, therRes] = await Promise.all([
+                supabase.from('children').select('id, name, status, is_active, center_id').eq('center_id', targetId).order('name'),
+                supabase.from('programs').select('id, name, duration, price, is_active').eq('center_id', targetId).eq('is_active', true).order('name'),
+                supabase.from('therapists').select('id, name, email, color, system_status, system_role, profile_id').eq('center_id', targetId).order('name'),
             ]);
 
             // ✨ [FIX] 이용중(active) 아동만 일정 등록 가능 (종결/대기 제외)
@@ -289,7 +289,6 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             setProgramsList(progRes.data || []);
 
             // ✨ [Filter] 슈퍼 어드민 제외, display-only 프로필 제외, 퇴사자 제외
-            const profiles = profileRes.data || [];
             const rawTherapists = therRes.data || [];
 
             let filteredTherapists = rawTherapists.filter((t: any) => {
@@ -298,10 +297,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 if (t.email && t.email.startsWith('display+')) return false;
                 // ⚠️ 퇴사자 제외
                 if (t.system_status === 'retired' || t.system_status === 'rejected') return false;
-                if (t.profile_id) {
-                    const profile = profiles.find((p: { id: string; role?: string }) => p.id === t.profile_id);
-                    if (profile?.role === 'super_admin') return false;
-                }
+                // ⚠️ system_role이 super_admin이면 제외
+                if (t.system_role === 'super_admin') return false;
                 return true;
             });
 
