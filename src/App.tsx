@@ -92,9 +92,13 @@ function AppHomeRedirect() {
 
   if (loading || centerLoading) return null; // 로딩 중에는 아무것도 렌더링하지 않아 플래시 방지
 
-  // 👑 [Super Admin on SaaS Domain] → 통합 포탈 표시
-  // 커스텀 도메인에서는 해당 센터의 공개 홈페이지를 보여줘야 하므로 SaaS 도메인에서만 적용
+  // 👑 [Super Admin on SaaS Domain]
   if (isSuper && isSaaSDomain) {
+    const savedSlug = localStorage.getItem('zarada_center_slug');
+    if (savedSlug) {
+      return <Navigate to="/app/dashboard" replace />;
+    }
+    // slug 없으면 통합 포탈 표시 (센터 선택/마스터 콘솔 접근 가능)
     return <GlobalLanding />;
   }
 

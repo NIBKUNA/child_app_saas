@@ -307,7 +307,9 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 filteredTherapists = filteredTherapists.filter((t: { id: string }) => t.id === authTherapistId);
             }
 
-            setTherapistsList(filteredTherapists);
+            // 👑 [브랜딩] (주)자라다를 목록 맨 앞에 추가 (노출용)
+            const zaradaEntry = { id: '__zarada_brand__', name: '(주)자라다', color: '#000000' };
+            setTherapistsList([zaradaEntry, ...filteredTherapists]);
 
             if (scheduleId) {
                 // ✨ [성능 개선] 부모로부터 데이터가 넘어왔다면 DB 조회 스킵
@@ -367,7 +369,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 setFormData({
                     child_id: '',
                     program_id: '',
-                    therapist_id: (role === 'therapist' && authTherapistId) ? authTherapistId : (therRes.data?.[0]?.id || ''),
+                    therapist_id: (role === 'therapist' && authTherapistId) ? authTherapistId : '__zarada_brand__',
                     date: `${year}-${month}-${day}`,
                     start_time: timeStr === '00:00' ? '10:00' : timeStr,
                     end_time: calculateEndTime(timeStr === '00:00' ? '10:00' : timeStr, 40),

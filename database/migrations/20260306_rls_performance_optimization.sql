@@ -38,7 +38,7 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 -- 슈퍼어드민 체크
 CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN AS $$
-    SELECT auth.email() = 'anukbin@gmail.com'
+    SELECT auth.email() IN ('anukbin@gmail.com', 'zaradajoo@gmail.com')
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
 -- ============================================================

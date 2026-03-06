@@ -76,7 +76,14 @@ export function Login() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 if (isSuperAdmin(session.user.email)) {
-                    navigate('/master/centers', { replace: true });
+                    if (slug) {
+                        // 센터별 로그인 페이지에서 → 해당 센터 대시보드
+                        localStorage.setItem('zarada_center_slug', slug);
+                        navigate('/app/dashboard', { replace: true });
+                    } else {
+                        // 글로벌 로그인 페이지에서 → 마스터 콘솔
+                        navigate('/master/centers', { replace: true });
+                    }
                 } else {
                     // Try to restore center context if exists, otherwise go to parent home or app home
                     const savedSlug = localStorage.getItem('zarada_center_slug');
@@ -106,13 +113,13 @@ export function Login() {
             // ... (existing OAuth logic remains same)
             if (session?.user) {
                 if (hash.includes('type=invite') || hash.includes('type=recovery') || params.get('type') === 'invite' || params.get('type') === 'recovery') {
-                    navigate('/auth/update-password');
+                    navigate('/auth/update-password', { replace: true });
                     return;
                 }
                 if (isSuperAdmin(session.user.email)) {
                     navigate(!slug ? '/master/centers' : '/app/dashboard', { replace: true });
                 } else {
-                    navigate('/app/dashboard');
+                    navigate('/app/dashboard', { replace: true });
                 }
             }
         }
@@ -177,8 +184,7 @@ export function Login() {
                 // 3. ✨ [Sovereign SaaS] Center Routing Logic
                 // 유저의 소속 센터를 찾아 Context를 설정하고 해당 화면으로 이동
                 if (profile.role === 'super_admin') {
-                    // ✨ [Sovereign SaaS] Super Admin Context Management
-                    // If slug is present (Scenario 2), set it. If not (Scenario 1), clear it.
+                    // 👑 슈퍼 어드민: 센터별 로그인 → 해당 센터, 글로벌 로그인 → 마스터 콘솔
                     if (slug) {
                         localStorage.setItem('zarada_center_slug', slug);
                     } else {
@@ -198,36 +204,24 @@ export function Login() {
 
                 switch (profile.role) {
                     case 'super_admin':
-                        // ✨ [Sovereign SaaS] Super Admin Directive
-                        // 1. Global Page > Admin Login -> Master Console
-                        // 2. Center Page > Login -> Center Dashboard
-                        const isGlobalPath = !slug;
-
-                        if (isGlobalPath) {
-                            localStorage.removeItem('zarada_center_slug');
-                            navigate('/master/centers', { replace: true });
+                        if (slug) {
+                            navigate('/app/dashboard', { replace: true });
                         } else {
-                            // Contextual Login - Respect existing context (set by URL/Guard)
-                            const selectedSlug = localStorage.getItem('zarada_center_slug');
-                            if (selectedSlug) {
-                                navigate('/app/dashboard');
-                            } else {
-                                navigate('/master/centers', { replace: true });
-                            }
+                            navigate('/master/centers', { replace: true });
                         }
                         break;
                     case 'admin':
-                        navigate('/app/dashboard');
+                        navigate('/app/dashboard', { replace: true });
                         break;
                     case 'manager':
                     case 'therapist':
-                        navigate('/app/schedule'); // Land on Schedule directly
+                        navigate('/app/schedule', { replace: true });
                         break;
                     case 'parent':
-                        navigate('/parent/home');
+                        navigate('/parent/home', { replace: true });
                         break;
                     default:
-                        navigate(center?.slug ? `/centers/${center.slug}` : '/');
+                        navigate(center?.slug ? `/centers/${center.slug}` : '/', { replace: true });
                 }
             }
         } catch (err: any) {

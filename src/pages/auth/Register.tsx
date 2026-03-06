@@ -70,17 +70,17 @@ export function Register() {
                     // ✨ [재접속 사용자] 온보딩 스킵 → 바로 대시보드로
                     if (existingProfile.status === 'active') {
                         if (existingProfile.role === 'parent') {
-                            navigate('/parent/home');
+                            navigate('/parent/home', { replace: true });
                         } else if (existingProfile.role === 'admin' || existingProfile.role === 'super_admin') {
-                            navigate('/app/dashboard');
+                            navigate('/app/dashboard', { replace: true });
                         } else {
-                            navigate('/app/schedule');
+                            navigate('/app/schedule', { replace: true });
                         }
                         return;
                     } else if (existingProfile.status === 'rejected') {
                         alert('가입 신청이 거절되었습니다. 센터에 문의해 주세요.');
                         await supabase.auth.signOut();
-                        navigate('/login');
+                        navigate('/login', { replace: true });
                         return;
                     } else {
                         // Pending 상태 등의 처리 (필요시 추가)
@@ -152,7 +152,7 @@ export function Register() {
                 if (!authData.session) {
                     await supabase.auth.signInWithPassword({ email, password });
                 }
-                navigate('/parent/home');
+                navigate('/parent/home', { replace: true });
             }
         } catch (err: any) {
             console.error('Registration error:', err.message);

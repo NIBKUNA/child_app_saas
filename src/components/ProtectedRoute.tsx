@@ -44,6 +44,11 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     // 3. ✨ [마스터 키] super_admin 역할은 모든 권한 통과 (DB 역할 기반)
     const isMasterUser = role === 'super_admin' || checkSuperAdmin(user?.email);
 
+    // 👑 [Super Admin Guard] 슈퍼 어드민이 parent 페이지에 접근하면 마스터 콘솔로 리다이렉트
+    if (isMasterUser && location.pathname.startsWith('/parent')) {
+        return <Navigate to="/master/centers" replace />;
+    }
+
     if (!isMasterUser && role && !allowedRoles.includes(role)) {
         return <Navigate to="/" replace />;
     }
