@@ -999,18 +999,18 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                 )}
 
                 {/* ── 이월금 배너 (항상 표시) */}
-                <div className={cn("px-6 py-2.5 border-b flex items-center gap-3 shrink-0",
+                <div className={cn("px-6 py-3 border-b flex items-center gap-3 shrink-0",
                     childData.credit > 0
                         ? (isDark ? "bg-indigo-900/20 border-indigo-800" : "bg-indigo-50 border-indigo-100")
-                        : (isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-100")
+                        : (isDark ? "bg-purple-900/10 border-purple-900/30" : "bg-purple-50/50 border-purple-100")
                 )}>
-                    <ArrowRightCircle className={cn("shrink-0", childData.credit > 0 ? "text-indigo-500" : isDark ? "text-slate-600" : "text-slate-300")} size={16} />
+                    <ArrowRightCircle className={cn("shrink-0", childData.credit > 0 ? "text-indigo-500" : isDark ? "text-purple-700" : "text-purple-300")} size={16} />
                     <span className={cn("text-sm font-black",
                         childData.credit > 0
                             ? (isDark ? "text-indigo-300" : "text-indigo-700")
-                            : (isDark ? "text-slate-500" : "text-slate-400")
+                            : (isDark ? "text-purple-400/70" : "text-purple-400")
                     )}>
-                        이월금 잔액 {childData.credit > 0 ? `${childData.credit.toLocaleString()}원` : '0원'}
+                        이월금 잔액 {childData.credit > 0 ? `${childData.credit.toLocaleString()}원` : '없음'}
                     </span>
                     {childData.credit > 0 && unpaidPayable.length > 0 && (
                         <button onClick={() => { selectAllUnpaid(); setCreditUsed(Math.min(childData.credit, Math.max(0, groupRemaining))); }}
