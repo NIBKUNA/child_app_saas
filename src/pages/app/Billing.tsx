@@ -540,15 +540,62 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         const isCancel = newStatus === 'cancelled';
         const isCarryOver = newStatus === 'carried_over';
         if (isCancel && !confirm('수업을 취소하시겠습니까?')) return;
-        if (isCarryOver && !confirm('이월 처리하시겠습니까? 해당 금액이 크레딧에 적립됩니다.')) return;
+
+        const paidDetail = paidMap[sid];
+        const isPaidSession = paidDetail && paidDetail.amount > 0 && paidDetail.method !== '환불';
+
+        if (isCarryOver && isPaidSession) {
+            if (!confirm('⚠️ 이 수업은 이미 수납 완료되었습니다.\n이월 전환 시 기존 수납이 자동 환불됩니다.\n\n계속하시겠습니까?')) return;
+        } else if (isCarryOver) {
+            if (!confirm('이월 처리하시겠습니까? 해당 금액이 이월금에 적립됩니다.')) return;
+        }
+
         setLoading(true);
         try {
             await supabase.from('schedules').update({ status: newStatus } as never).eq('id', sid);
             const programPrice = session.programs?.price || 0;
             const prevCarried = session.status === 'carried_over';
+
             if (isCarryOver && !prevCarried) {
-                const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
-                await supabase.from('children').update({ credit: (c?.credit || 0) + programPrice }).eq('id', childData.id);
+                if (isPaidSession && center?.id) {
+                    // ✨ [이월 전환 자동환불] 수납 완료된 세션 → 환불 후 이월금 복원
+                    // 원래 결제의 현금/이월금 비율 확인
+                    const { data: origPay } = await supabase.from('payments')
+                        .select('amount, credit_used')
+                        .eq('id', paidDetail.paymentId)
+                        .single();
+                    const cashPaid = Number(origPay?.amount) || 0;
+                    const creditUsedInPay = Number(origPay?.credit_used) || 0;
+
+                    // 현금 환불 기록 생성 (감사 추적용)
+                    if (cashPaid > 0) {
+                        const { data: refPay } = await supabase.from('payments').insert({
+                            child_id: childData.id, center_id: center.id,
+                            amount: -cashPaid, credit_used: 0,
+                            method: '환불(이월)', memo: `이월 전환 자동환불: ${session.date}`,
+                            payment_month: modalMonth,
+                            ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
+                        } as any).select('id').single();
+                        if (refPay) {
+                            await supabase.from('payment_items').insert({
+                                schedule_id: sid, payment_id: refPay.id, amount: -cashPaid,
+                            } as any);
+                        }
+                    }
+
+                    // 이월금으로 결제된 부분 → 이월금으로 복원
+                    if (creditUsedInPay > 0) {
+                        const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
+                        await supabase.from('children').update({ credit: (c?.credit || 0) + creditUsedInPay }).eq('id', childData.id);
+                    }
+
+                    // paidMap 업데이트 (환불 상태)
+                    setPaidMap(prev => ({ ...prev, [sid]: { amount: 0, method: '환불', memo: '이월 전환 자동환불', paymentId: paidDetail.paymentId } }));
+                } else {
+                    // 미수납 세션 → 이월금 적립 (기존 로직)
+                    const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
+                    await supabase.from('children').update({ credit: (c?.credit || 0) + programPrice }).eq('id', childData.id);
+                }
             }
             if (prevCarried && !isCarryOver) {
                 const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
@@ -573,7 +620,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
             }));
             onSuccess();
         } catch { alert('상태 변경 오류'); } finally { setLoading(false); }
-    }, [localSessions, childData.id, onSuccess]);
+    }, [localSessions, childData.id, paidMap, center, modalMonth, activeGroup, onSuccess]);
 
     // 일괄 수납
     const handleBulkPay = async () => {

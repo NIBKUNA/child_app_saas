@@ -496,9 +496,52 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
                         if (programPrice > 0 && childId) {
                             if (formData.status === 'carried_over' && prevStatus !== 'carried_over') {
-                                const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
-                                const newCredit = (child?.credit || 0) + programPrice;
-                                await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                                // ✨ [이월 전환] 기수납 여부 확인 → 수납됐으면 환불, 미수납이면 이월금 적립
+                                const { data: existingItems } = await supabase.from('payment_items')
+                                    .select('payment_id, amount')
+                                    .eq('schedule_id', scheduleId)
+                                    .gt('amount', 0);
+
+                                const hasPaid = existingItems && existingItems.length > 0;
+
+                                if (hasPaid) {
+                                    // 기수납 세션 → 결제별로 환불 처리
+                                    const paymentIds = [...new Set(existingItems!.map(i => i.payment_id).filter((id): id is string => !!id))];
+                                    for (const pid of paymentIds) {
+                                        const { data: origPay } = await supabase.from('payments')
+                                            .select('amount, credit_used, center_id')
+                                            .eq('id', pid).single();
+                                        if (!origPay) continue;
+                                        const cashPaid = Number(origPay.amount) || 0;
+                                        const creditUsedInPay = Number(origPay.credit_used) || 0;
+
+                                        // 현금 환불 기록
+                                        if (cashPaid > 0) {
+                                            const { data: refPay } = await supabase.from('payments').insert({
+                                                child_id: childId, center_id: origPay.center_id || centerId,
+                                                amount: -cashPaid, credit_used: 0,
+                                                method: '환불(이월)', memo: '이월 전환 자동환불',
+                                                payment_month: formData.date.slice(0, 7),
+                                            } as any).select('id').single();
+                                            if (refPay) {
+                                                await supabase.from('payment_items').insert({
+                                                    schedule_id: scheduleId, payment_id: refPay.id, amount: -cashPaid,
+                                                } as any);
+                                            }
+                                        }
+
+                                        // 이월금 결제분 복원
+                                        if (creditUsedInPay > 0) {
+                                            const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
+                                            await supabase.from('children').update({ credit: (child?.credit || 0) + creditUsedInPay }).eq('id', childId);
+                                        }
+                                    }
+                                } else {
+                                    // 미수납 세션 → 이월금 적립 (기존 로직)
+                                    const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
+                                    const newCredit = (child?.credit || 0) + programPrice;
+                                    await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                                }
                             } else if (prevStatus === 'carried_over' && formData.status !== 'carried_over') {
                                 const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
                                 const newCredit = Math.max(0, (child?.credit || 0) - programPrice);
