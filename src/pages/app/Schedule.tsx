@@ -96,7 +96,7 @@ export function Schedule() {
     const [clickedDate, setClickedDate] = useState<Date | ScheduleExtendedProps | null>(null);
     const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo | null>(null);
     const calendarRef = useRef<FullCalendar | null>(null);
-    const lastFetchedRange = useRef<string>('');
+    const initialLoaded = useRef(false);
 
     // ✨ [Therapist Filter] 치료사 필터 상태 (다중 선택 지원)
     const [therapists, setTherapists] = useState<TherapistOption[]>([]);
@@ -158,7 +158,8 @@ export function Schedule() {
 
     const fetchSchedules = async () => {
         if (!centerId || centerId.length < 32) return;
-        setLoading(true);
+        // ✨ [Fix] 초기 로딩만 전체 로더 표시, 이후 리페치시엔 캘린더 unmount 방지
+        if (!initialLoaded.current) setLoading(true);
         try {
             // ✨ [Performance] 현재 월 ±1개월 범위만 조회 (전체 조회 → 범위 제한)
             const calApi = calendarRef.current?.getApi();
@@ -275,6 +276,7 @@ export function Schedule() {
             console.error('일정 로딩 실패:', error);
         } finally {
             setLoading(false);
+            initialLoaded.current = true;
         }
     };
 
@@ -612,15 +614,7 @@ export function Schedule() {
                                     dateClick={handleDateClick}
                                     eventMouseEnter={handleEventMouseEnter}
                                     eventMouseLeave={handleEventMouseLeave}
-                                    datesSet={(info) => {
-                                        const rangeKey = `${info.startStr}-${info.endStr}`;
-                                        if (centerId && lastFetchedRange.current && lastFetchedRange.current !== rangeKey) {
-                                            lastFetchedRange.current = rangeKey;
-                                            fetchSchedules();
-                                        } else if (!lastFetchedRange.current) {
-                                            lastFetchedRange.current = rangeKey;
-                                        }
-                                    }}
+                                    datesSet={() => { }}
                                     selectable={true}
                                     selectMirror={true}
                                     slotEventOverlap={false}
