@@ -150,6 +150,7 @@ export function ConsultationList() {
                 (supabase.from('counseling_logs'))
                     .select('schedule_id')
                     .eq('center_id', centerId)
+                    .gte('created_at', minDate) // ✨ [Scalability] 60일 범위 제한 (전체 조회 방지)
                     .not('schedule_id', 'is', null),
                 sessionQuery.order('start_time', { ascending: false })
             ]);
@@ -183,21 +184,32 @@ export function ConsultationList() {
 
             if (childIds.length > 0) {
                 // Step 2: 해당 아동들의 평가 조회
-                let assessQuery = supabase
-                    .from('development_assessments')
-                    .select('*')
-                    .in('child_id', childIds)
-                    .not('summary', 'eq', '부모님 자가진단 기록')
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-
-                if (!isAdmin && currentTherapistId) {
-                    assessQuery = assessQuery.eq('therapist_id', currentTherapistId);
+                // ✨ [Scalability] IN절 200개씩 배치 처리 (아동 300명+ 대응)
+                const ASSESS_BATCH = 200;
+                const assessPromises = [];
+                for (let i = 0; i < childIds.length; i += ASSESS_BATCH) {
+                    let q = supabase
+                        .from('development_assessments')
+                        .select('*')
+                        .in('child_id', childIds.slice(i, i + ASSESS_BATCH))
+                        .not('summary', 'eq', '부모님 자가진단 기록')
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+                    if (!isAdmin && currentTherapistId) {
+                        q = q.eq('therapist_id', currentTherapistId);
+                    }
+                    assessPromises.push(q);
                 }
-                const { data: assessments, error: assessError } = await assessQuery;
-                if (assessError) console.error('[ConsultationList] assessments error:', assessError);
+                const assessResults = await Promise.all(assessPromises);
+                const allAssessments = assessResults
+                    .flatMap(r => (r.data || []) as any[])
+                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .slice(0, 20);
+                if (assessResults.some(r => r.error)) {
+                    console.error('[ConsultationList] assessments error:', assessResults.find(r => r.error)?.error);
+                }
                 // 아동 + 치료사 정보 병합
-                const merged = (assessments || []).map((a: any) => ({
+                const merged = allAssessments.map((a: any) => ({
                     ...a,
                     children: childMap[a.child_id] || { id: a.child_id, name: '아동', center_id: centerId },
                     therapist_name: therapistMap[a.therapist_id] || null,
