@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -8,6 +8,7 @@ import { useCenter } from '@/contexts/CenterContext';
 import { centerPath } from '@/config/domain';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
+import { useState, useEffect, useCallback } from 'react';
 
 // Custom SVG Icons
 const Icons = {
@@ -51,6 +52,9 @@ export function AboutPage() {
     const seo = useLocalSEO();
     const isDark = theme === 'dark';
 
+    // 🖼️ Lightbox State
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
     // ✨ [Anti-Flicker] Prevent showing hardcoded defaults before branding/settings are ready
     if (loading) return null;
 
@@ -63,7 +67,6 @@ export function AboutPage() {
 
     const galleryRaw = branding?.settings?.about_gallery || getSetting('about_gallery' as any);
     const galleryImages = typeof galleryRaw === 'string' ? galleryRaw.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-
 
     const values = [
         { icon: Icons.award, title: "검증된 전문성", desc: "석/박사급 치료진의 체계적 접근", color: isDark ? "bg-slate-800" : "bg-white", brandColor: true },
@@ -132,12 +135,12 @@ export function AboutPage() {
                         </div>
                     </motion.div>
 
-                    {/* ✨ Premium Center Gallery Section */}
+                    {/* ✨ Premium Center Gallery with Lightbox */}
                     {galleryImages.length > 0 && (
                         <div className="mt-32 space-y-12">
                             <div className="text-center space-y-4">
                                 <h2 className={cn("text-3xl md:text-4xl font-black", isDark ? "text-white" : "text-slate-900")}>센터 둘러보기</h2>
-                                <p className={cn("text-base font-medium opacity-60", isDark ? "text-slate-400" : "text-slate-600")}>우리 아이들이 꿈을 키워나가는 따뜻한 공간입니다.</p>
+                                <p className={cn("text-base font-medium opacity-60", isDark ? "text-slate-400" : "text-slate-600")}>사진을 클릭하면 크게 볼 수 있습니다.</p>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -145,20 +148,30 @@ export function AboutPage() {
                                     <motion.div
                                         key={idx}
                                         className={cn(
-                                            "relative aspect-[4/3] rounded-[32px] overflow-hidden group border",
+                                            "relative aspect-[4/3] rounded-[32px] overflow-hidden group border cursor-pointer",
                                             isDark ? "border-white/5 shadow-2xl" : "border-slate-100 shadow-xl shadow-slate-200/50"
                                         )}
                                         initial={{ opacity: 0, y: 30 }}
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: idx * 0.1 }}
+                                        onClick={() => setLightboxIndex(idx)}
                                     >
                                         <img
                                             src={img}
-                                            alt={`Center Gallery ${idx + 1}`}
+                                            alt={`센터 사진 ${idx + 1}`}
                                             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
-                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        {/* 호버 시 확대 아이콘 */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <svg className="w-10 h-10 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <circle cx="11" cy="11" r="8" stroke="currentColor" />
+                                                    <path d="M21 21l-4.35-4.35" stroke="currentColor" />
+                                                    <path d="M11 8v6M8 11h6" stroke="currentColor" />
+                                                </svg>
+                                            </div>
+                                        </div>
                                     </motion.div>
                                 ))}
                             </div>
@@ -166,6 +179,137 @@ export function AboutPage() {
                     )}
                 </div>
             </div>
+
+            {/* 🖼️ Lightbox Modal */}
+            {lightboxIndex !== null && (
+                <GalleryLightbox
+                    images={galleryImages}
+                    currentIndex={lightboxIndex}
+                    onClose={() => setLightboxIndex(null)}
+                    onNavigate={setLightboxIndex}
+                />
+            )}
         </div>
+    );
+}
+
+// ============================================
+// 🖼️ Gallery Lightbox Component
+// ============================================
+function GalleryLightbox({
+    images,
+    currentIndex,
+    onClose,
+    onNavigate,
+}: {
+    images: string[];
+    currentIndex: number;
+    onClose: () => void;
+    onNavigate: (index: number) => void;
+}) {
+    const goPrev = useCallback(() => {
+        onNavigate(currentIndex > 0 ? currentIndex - 1 : images.length - 1);
+    }, [currentIndex, images.length, onNavigate]);
+
+    const goNext = useCallback(() => {
+        onNavigate(currentIndex < images.length - 1 ? currentIndex + 1 : 0);
+    }, [currentIndex, images.length, onNavigate]);
+
+    // 키보드 네비게이션 (좌우 화살표, ESC)
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'ArrowLeft') goPrev();
+            if (e.key === 'ArrowRight') goNext();
+        };
+        window.addEventListener('keydown', handleKey);
+        document.body.style.overflow = 'hidden';
+        return () => {
+            window.removeEventListener('keydown', handleKey);
+            document.body.style.overflow = '';
+        };
+    }, [onClose, goPrev, goNext]);
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                className="fixed inset-0 z-[9999] flex items-center justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+            >
+                {/* 배경 오버레이 */}
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
+
+                {/* 닫기 버튼 */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-6 right-6 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                >
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" />
+                    </svg>
+                </button>
+
+                {/* 카운터 */}
+                <div className="absolute top-7 left-6 z-10 text-white/60 text-sm font-black">
+                    {currentIndex + 1} / {images.length}
+                </div>
+
+                {/* 이전 버튼 */}
+                <button
+                    onClick={goPrev}
+                    className="absolute left-4 md:left-8 z-10 w-14 h-14 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                >
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 18l-6-6 6-6" stroke="currentColor" />
+                    </svg>
+                </button>
+
+                {/* 다음 버튼 */}
+                <button
+                    onClick={goNext}
+                    className="absolute right-4 md:right-8 z-10 w-14 h-14 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                >
+                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 18l6-6-6-6" stroke="currentColor" />
+                    </svg>
+                </button>
+
+                {/* 이미지 */}
+                <motion.div
+                    key={currentIndex}
+                    className="relative z-10 max-w-[90vw] max-h-[85vh] flex items-center justify-center"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
+                    <img
+                        src={images[currentIndex]}
+                        alt={`센터 사진 ${currentIndex + 1}`}
+                        className="max-w-full max-h-[85vh] object-contain rounded-3xl shadow-2xl"
+                        draggable={false}
+                    />
+                </motion.div>
+
+                {/* 하단 썸네일 스트립 (PC) */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 hidden md:flex gap-2 p-2 bg-black/40 backdrop-blur-md rounded-2xl">
+                    {images.map((img, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => onNavigate(idx)}
+                            className={cn(
+                                "w-16 h-12 rounded-xl overflow-hidden border-2 transition-all hover:scale-105",
+                                idx === currentIndex ? "border-white shadow-lg shadow-white/20 scale-105" : "border-transparent opacity-50 hover:opacity-80"
+                            )}
+                        >
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                        </button>
+                    ))}
+                </div>
+            </motion.div>
+        </AnimatePresence>
     );
 }
