@@ -96,6 +96,7 @@ export function Schedule() {
     const [clickedDate, setClickedDate] = useState<Date | ScheduleExtendedProps | null>(null);
     const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo | null>(null);
     const calendarRef = useRef<FullCalendar | null>(null);
+    const lastFetchedRange = useRef<string>('');
 
     // ✨ [Therapist Filter] 치료사 필터 상태 (다중 선택 지원)
     const [therapists, setTherapists] = useState<TherapistOption[]>([]);
@@ -611,7 +612,15 @@ export function Schedule() {
                                     dateClick={handleDateClick}
                                     eventMouseEnter={handleEventMouseEnter}
                                     eventMouseLeave={handleEventMouseLeave}
-                                    datesSet={() => { if (centerId) fetchSchedules(); }}
+                                    datesSet={(info) => {
+                                        const rangeKey = `${info.startStr}-${info.endStr}`;
+                                        if (centerId && lastFetchedRange.current && lastFetchedRange.current !== rangeKey) {
+                                            lastFetchedRange.current = rangeKey;
+                                            fetchSchedules();
+                                        } else if (!lastFetchedRange.current) {
+                                            lastFetchedRange.current = rangeKey;
+                                        }
+                                    }}
                                     selectable={true}
                                     selectMirror={true}
                                     slotEventOverlap={false}
