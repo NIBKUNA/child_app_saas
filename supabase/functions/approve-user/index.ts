@@ -68,12 +68,12 @@ serve(async (req: Request) => {
 
         console.log(`👤 Approving User ID: ${target_user_id}`);
 
-        // 5. [Approve]
+        // 5. [Approve] — 역할은 초대 시 이미 설정됨. status만 활성화.
         const { error: updateError } = await supabaseAdmin
             .from("user_profiles")
             .update({
-                role: 'therapist',
-                status: 'active'
+                status: 'active',
+                is_active: true
             })
             .eq("id", target_user_id);
 

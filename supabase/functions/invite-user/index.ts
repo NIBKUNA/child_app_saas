@@ -163,17 +163,43 @@ serve(async (req: Request) => {
 
         if (finalRole !== 'parent') {
             console.log(`${logTag} 🩺 Syncing to therapists table for role: ${finalRole}`);
-            const { error: thError } = await supabaseAdmin
+
+            // ✨ [Fix] select → insert/update 패턴 (email에 UNIQUE 제약 없으므로 upsert 불가)
+            const { data: existingTherapist } = await supabaseAdmin
                 .from("therapists")
-                .upsert({
-                    email,
-                    name,
-                    center_id: targetCenterId,
-                    system_role: finalRole || 'therapist',
-                    system_status: 'active',
-                    ...details
-                }, { onConflict: 'email' });
-            if (thError) console.warn(`${logTag} ⚠️ Staff table sync warning:`, thError.message);
+                .select("id")
+                .eq("email", email)
+                .eq("center_id", targetCenterId)
+                .maybeSingle();
+
+            if (existingTherapist) {
+                // 기존 레코드 업데이트
+                const { error: thError } = await supabaseAdmin
+                    .from("therapists")
+                    .update({
+                        name,
+                        system_role: finalRole || 'therapist',
+                        system_status: 'active',
+                        profile_id: finalUserId,
+                        ...details
+                    })
+                    .eq("id", existingTherapist.id);
+                if (thError) console.warn(`${logTag} ⚠️ Staff table update warning:`, thError.message);
+            } else {
+                // 새 레코드 생성
+                const { error: thError } = await supabaseAdmin
+                    .from("therapists")
+                    .insert({
+                        email,
+                        name,
+                        center_id: targetCenterId,
+                        system_role: finalRole || 'therapist',
+                        system_status: 'active',
+                        profile_id: finalUserId,
+                        ...details
+                    });
+                if (thError) console.warn(`${logTag} ⚠️ Staff table insert warning:`, thError.message);
+            }
         }
 
         console.log(`${logTag} ✅ SUCCESS: ${email} invited to center ${targetCenterId}`);
