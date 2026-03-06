@@ -277,7 +277,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             // ✨ [Performance] user_profiles 전체 쿼리 제거 → therapists 데이터만으로 필터링
             const [childRes, progRes, therRes] = await Promise.all([
                 supabase.from('children').select('id, name, status, is_active, center_id').eq('center_id', targetId).order('name'),
-                supabase.from('programs').select('id, name, duration, price, is_active').eq('center_id', targetId).order('name'),
+                supabase.from('programs').select('id, name, duration, price, is_active, category').eq('center_id', targetId).order('name'),
                 supabase.from('therapists').select('id, name, email, color, system_status, system_role, profile_id').eq('center_id', targetId).order('name'),
             ]);
 
