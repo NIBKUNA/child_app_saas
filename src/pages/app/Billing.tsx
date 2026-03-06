@@ -272,10 +272,14 @@ export function Billing() {
                                         <span key={pg.programId} className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500")}>{pg.programName}</span>
                                     ))}
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 text-xs pt-1">
+                                <div className="grid grid-cols-4 gap-2 text-xs pt-1">
                                     <div>
                                         <span className={cn("block text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>수업료</span>
                                         <span className={cn("font-black", isDark ? "text-slate-200" : "text-slate-700")}>{child.totalFee.toLocaleString()}원</span>
+                                    </div>
+                                    <div>
+                                        <span className={cn("block text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>이월금</span>
+                                        <span className={cn("font-bold", child.credit > 0 ? "text-purple-500" : isDark ? "text-slate-600" : "text-slate-300")}>{child.credit > 0 ? `${child.credit.toLocaleString()}원` : '-'}</span>
                                     </div>
                                     <div>
                                         <span className={cn("block text-[10px] font-bold", isDark ? "text-slate-500" : "text-slate-400")}>기수납</span>
@@ -598,8 +602,12 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                 }
             }
             if (prevCarried && !isCarryOver) {
-                const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
-                await supabase.from('children').update({ credit: Math.max(0, (c?.credit || 0) - programPrice) }).eq('id', childData.id);
+                // ✨ [안전장치] 자동환불된 세션(이월금 복원만 한 경우)은 이월금 차감하지 않음
+                const wasAutoRefunded = paidDetail && paidDetail.method === '환불' && (paidDetail.memo || '').includes('이월');
+                if (!wasAutoRefunded) {
+                    const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
+                    await supabase.from('children').update({ credit: Math.max(0, (c?.credit || 0) - programPrice) }).eq('id', childData.id);
+                }
             }
             const newPrice = (isCancel || isCarryOver) ? 0 : programPrice;
             const updatedSessions = localSessions.map(s =>
@@ -990,17 +998,27 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     </div>
                 )}
 
-                {/* ── 이월금 배너 */}
-                {childData.credit > 0 && (
-                    <div className={cn("px-6 py-2.5 border-b flex items-center gap-3 shrink-0", isDark ? "bg-indigo-900/20 border-indigo-800" : "bg-indigo-50 border-indigo-100")}>
-                        <ArrowRightCircle className="text-indigo-500 shrink-0" size={16} />
-                        <span className={cn("text-sm font-black", isDark ? "text-indigo-300" : "text-indigo-700")}>이월금 잔액 {childData.credit.toLocaleString()}원</span>
+                {/* ── 이월금 배너 (항상 표시) */}
+                <div className={cn("px-6 py-2.5 border-b flex items-center gap-3 shrink-0",
+                    childData.credit > 0
+                        ? (isDark ? "bg-indigo-900/20 border-indigo-800" : "bg-indigo-50 border-indigo-100")
+                        : (isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-100")
+                )}>
+                    <ArrowRightCircle className={cn("shrink-0", childData.credit > 0 ? "text-indigo-500" : isDark ? "text-slate-600" : "text-slate-300")} size={16} />
+                    <span className={cn("text-sm font-black",
+                        childData.credit > 0
+                            ? (isDark ? "text-indigo-300" : "text-indigo-700")
+                            : (isDark ? "text-slate-500" : "text-slate-400")
+                    )}>
+                        이월금 잔액 {childData.credit > 0 ? `${childData.credit.toLocaleString()}원` : '0원'}
+                    </span>
+                    {childData.credit > 0 && unpaidPayable.length > 0 && (
                         <button onClick={() => { selectAllUnpaid(); setCreditUsed(Math.min(childData.credit, Math.max(0, groupRemaining))); }}
                             className="ml-auto px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-black hover:bg-indigo-700 transition-all">
                             전체 이월금 사용
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* ── 프로그램 탭 */}
                 <div className={cn("px-6 pt-3 pb-0 flex gap-2 border-b shrink-0 overflow-x-auto", isDark ? "border-slate-700" : "border-gray-200")}>

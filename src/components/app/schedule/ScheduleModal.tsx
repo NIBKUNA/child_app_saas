@@ -543,9 +543,27 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                     await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
                                 }
                             } else if (prevStatus === 'carried_over' && formData.status !== 'carried_over') {
-                                const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
-                                const newCredit = Math.max(0, (child?.credit || 0) - programPrice);
-                                await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                                // ✨ [안전장치] 자동환불된 세션인지 확인 → 자동환불 세션은 이월금 차감 불필요
+                                const { data: refundCheck } = await supabase.from('payments')
+                                    .select('id')
+                                    .eq('child_id', childId)
+                                    .eq('method', '환불(이월)')
+                                    .limit(1);
+                                const hasAutoRefund = (refundCheck?.length || 0) > 0;
+
+                                // 기존 payment_items에 환불(음수) 기록이 있으면 자동환불된 세션
+                                const { data: refundItems } = await supabase.from('payment_items')
+                                    .select('amount')
+                                    .eq('schedule_id', scheduleId)
+                                    .lt('amount', 0)
+                                    .limit(1);
+                                const wasAutoRefunded = hasAutoRefund || (refundItems?.length || 0) > 0;
+
+                                if (!wasAutoRefunded) {
+                                    const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
+                                    const newCredit = Math.max(0, (child?.credit || 0) - programPrice);
+                                    await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                                }
                             }
                         }
                     }
