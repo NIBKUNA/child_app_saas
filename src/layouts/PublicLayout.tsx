@@ -37,7 +37,7 @@ export function PublicLayout() {
         <div className={`min-h-screen flex flex-col transition-colors ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
             <Header />
 
-            <main className="flex-1 pt-20">
+            <main className="flex-1" style={{ paddingTop: 'calc(5rem + env(safe-area-inset-top, 0px))' }}>
                 <Outlet />
             </main>
 

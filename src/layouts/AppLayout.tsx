@@ -298,7 +298,7 @@ export function AppLayout() {
             )}
 
             {/* ✨ [Mobile Header] Restored Hamburger Menu - Integrated into Flow */}
-            <div className="md:hidden flex items-center justify-between px-6 h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0">
+            <div className="md:hidden flex items-center justify-between px-6 h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => setIsSidebarOpen(true)}

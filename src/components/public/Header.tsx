@@ -125,14 +125,17 @@ export function Header() {
     const isActive = (path: string) => location.pathname === path;
 
     return (
-        <header className={cn(
-            "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500",
-            isTransparentHeader
-                ? "bg-transparent border-transparent"
-                : isDark
-                    ? "border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl shadow-sm"
-                    : "border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm"
-        )}>
+        <header
+            className={cn(
+                "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500",
+                isTransparentHeader
+                    ? "bg-transparent border-transparent"
+                    : isDark
+                        ? "border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl shadow-sm"
+                        : "border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm"
+            )}
+            style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+        >
             <div className="container mx-auto px-4 md:px-6">
                 <div className="relative flex h-20 items-center justify-between">
                     {/* Left: Logo */}
@@ -356,10 +359,11 @@ export function Header() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.3 }}
                             className={cn(
-                                "fixed top-[80px] left-0 right-0 bottom-0 z-[9999] md:hidden overflow-hidden",
+                                "fixed left-0 right-0 bottom-0 z-[9999] md:hidden overflow-hidden",
                                 isDark ? "bg-slate-950/95" : "bg-white/95",
                                 "backdrop-blur-xl"
                             )}
+                            style={{ top: 'calc(80px + env(safe-area-inset-top, 0px))' }}
                         >
                             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
                             <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />

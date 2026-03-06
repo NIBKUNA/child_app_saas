@@ -389,10 +389,10 @@
 }
 
 @media all and (display-mode: standalone) {
-  body {
-    padding-top: env(safe-area-inset-top, 0px);
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
   }
-  /* PWA standalone nav/header가 상단 notch 뒤로 안 들어가도록 */
+  /* PWA standalone: fixed header 가 상단 notch 뒤로 안 들어가도록 */
   .pwa-safe-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
