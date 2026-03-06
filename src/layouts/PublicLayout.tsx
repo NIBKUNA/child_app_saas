@@ -42,9 +42,18 @@ export function PublicLayout() {
 
     return (
         <div className={`h-screen flex flex-col transition-colors ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
-            <Header />
+            {/* ✨ [PWA Fix] scrollRef를 Header에 전달하여 스크롤 감지 정상화 */}
+            <Header scrollContainerRef={scrollRef} />
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(5rem + env(safe-area-inset-top, 0px))' }}>
+            <div
+                ref={scrollRef}
+                data-scroll-container
+                className="flex-1 overflow-y-auto"
+                style={{
+                    paddingTop: 'calc(5rem + env(safe-area-inset-top, 0px))',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                }}
+            >
                 {/* ✨ Pull-to-Refresh Indicator */}
                 <div
                     className="flex items-center justify-center overflow-hidden transition-all duration-200"

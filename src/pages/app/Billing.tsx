@@ -215,7 +215,7 @@ export function Billing() {
     };
 
     return (
-        <div className={cn("p-8 space-y-6 min-h-screen", isDark ? "bg-slate-950" : "bg-slate-50")}>
+        <div className={cn("p-4 md:p-8 space-y-6 min-h-screen", isDark ? "bg-slate-950" : "bg-slate-50")}>
             <Helmet><title>수납 관리 - 자라다</title></Helmet>
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">

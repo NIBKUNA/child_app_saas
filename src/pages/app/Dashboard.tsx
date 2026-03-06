@@ -863,7 +863,7 @@ export function Dashboard() {
     useEffect(() => { fetchData(); }, [selectedMonth, center]);
 
     return (
-        <div ref={dashboardRef} className="p-8 max-w-[1600px] mx-auto space-y-8 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+        <div ref={dashboardRef} className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
             <Helmet>
                 <title>인사이트 허브 - Zarada Admin</title>
             </Helmet>

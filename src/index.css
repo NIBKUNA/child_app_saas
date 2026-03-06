@@ -391,10 +391,17 @@
 @media all and (display-mode: standalone) {
   :root {
     --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
   }
   /* PWA standalone: fixed header 가 상단 notch 뒤로 안 들어가도록 */
   .pwa-safe-top {
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* ✨ [PWA Fix] iOS rubber banding(바운스) 효과 비활성화
+   * pull-to-refresh 커스텀 훅과 충돌 방지 */
+  html, body {
+    overscroll-behavior-y: none;
   }
 }
 

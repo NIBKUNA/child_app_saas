@@ -75,7 +75,12 @@ interface NavItem {
     external?: boolean;
 }
 
-export function Header() {
+interface HeaderProps {
+    /** 실제 스크롤이 발생하는 컨테이너 ref (PublicLayout에서 전달) */
+    scrollContainerRef?: React.RefObject<HTMLElement>;
+}
+
+export function Header({ scrollContainerRef }: HeaderProps = {}) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const location = useLocation();
@@ -87,11 +92,36 @@ export function Header() {
 
     useEffect(() => {
         const handleScroll = () => {
+            // ✨ [PWA Fix] scrollContainerRef가 있으면 그 컨테이너의 scrollTop을 사용
+            // PublicLayout은 h-screen + overflow-y-auto div를 사용하므로 window.scrollY는 항상 0
+            if (scrollContainerRef?.current) {
+                setScrolled(scrollContainerRef.current.scrollTop > 20);
+                return;
+            }
+
+            // Fallback: data-scroll-container 속성이 있는 요소 탐색
+            const scrollContainer = document.querySelector('[data-scroll-container]') as HTMLElement;
+            if (scrollContainer) {
+                setScrolled(scrollContainer.scrollTop > 20);
+                return;
+            }
+
+            // 최종 Fallback: window.scrollY (일반 브라우저)
             setScrolled(window.scrollY > 20);
         };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+
+        // scrollContainerRef 또는 data-scroll-container에 이벤트 등록
+        const scrollContainer = scrollContainerRef?.current
+            || document.querySelector('[data-scroll-container]') as HTMLElement;
+
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+            return () => scrollContainer.removeEventListener('scroll', handleScroll);
+        } else {
+            window.addEventListener('scroll', handleScroll, { passive: true });
+            return () => window.removeEventListener('scroll', handleScroll);
+        }
+    }, [scrollContainerRef]);
 
     // 🏡 Mode Detection: Is this the main platform home or a center home?
     const isMainHome = location.pathname === '/';

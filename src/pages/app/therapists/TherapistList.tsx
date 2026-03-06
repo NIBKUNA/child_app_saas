@@ -455,7 +455,7 @@ export function TherapistList() {
     const isSuper = isSuperAdmin(user?.email);
 
     return (
-        <div className="space-y-6 pb-20 p-8 bg-slate-50/50 dark:bg-slate-950 min-h-screen">
+        <div className="space-y-6 pb-20 p-4 md:p-8 bg-slate-50/50 dark:bg-slate-950 min-h-screen">
             <Helmet><title>직원 관리 - 자라다</title></Helmet>
 
             {loading && (
