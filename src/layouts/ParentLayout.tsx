@@ -8,18 +8,24 @@
  * 이 파일의 UI/UX 설계 및 데이터 연동 로직은 독자적인 기술과
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
+import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, BarChart2, MessageSquare, User } from 'lucide-react';
+import { Home, BarChart2, MessageSquare, User, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 export function ParentLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+
+    // ✨ [PWA] Pull-to-Refresh for iOS PWA
+    const { pullDistance, isRefreshing } = usePullToRefresh({ containerRef: scrollRef });
 
     const tabs = [
         { id: 'home', label: '홈', icon: Home, path: '/parent/home' },
@@ -29,18 +35,34 @@ export function ParentLayout() {
     ];
 
     return (
-        <div className={cn("min-h-screen transition-colors pb-24", isDark ? "bg-slate-950" : "bg-slate-50")}>
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={location.pathname}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+        <div className={cn("h-screen flex flex-col transition-colors", isDark ? "bg-slate-950" : "bg-slate-50")}>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto pb-24">
+                {/* ✨ Pull-to-Refresh Indicator */}
+                <div
+                    className="flex items-center justify-center overflow-hidden transition-all duration-200"
+                    style={{
+                        height: pullDistance > 0 ? `${pullDistance}px` : '0px',
+                        opacity: Math.min(pullDistance / 80, 1),
+                    }}
                 >
-                    <Outlet />
-                </motion.div>
-            </AnimatePresence>
+                    <div className={`flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-bold ${isRefreshing ? 'animate-pulse' : ''}`}>
+                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+                        <span>{isRefreshing ? '새로고침 중...' : pullDistance >= 80 ? '놓으면 새로고침' : '당겨서 새로고침'}</span>
+                    </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={location.pathname}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                    >
+                        <Outlet />
+                    </motion.div>
+                </AnimatePresence>
+            </div>
 
             <PWAInstallPrompt />
 

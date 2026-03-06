@@ -9,17 +9,24 @@
  * 예술적 영감을 바탕으로 구축되었습니다.
  */
 
+import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTrafficSource } from '@/hooks/useTrafficSource';
 import { Header } from '@/components/public/Header';
 import { Footer } from '@/components/public/Footer';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { RefreshCw } from 'lucide-react';
 
 export function PublicLayout() {
     const { theme } = useTheme();
     const { loading } = useCenterBranding();
     const isDark = theme === 'dark';
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+
+    // ✨ [PWA] Pull-to-Refresh for iOS PWA
+    const { pullDistance, isRefreshing } = usePullToRefresh({ containerRef: scrollRef });
 
     useTrafficSource();
 
@@ -34,14 +41,27 @@ export function PublicLayout() {
     );
 
     return (
-        <div className={`min-h-screen flex flex-col transition-colors ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
+        <div className={`h-screen flex flex-col transition-colors ${isDark ? 'bg-slate-950' : 'bg-white'}`}>
             <Header />
 
-            <main className="flex-1" style={{ paddingTop: 'calc(5rem + env(safe-area-inset-top, 0px))' }}>
-                <Outlet />
-            </main>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(5rem + env(safe-area-inset-top, 0px))' }}>
+                {/* ✨ Pull-to-Refresh Indicator */}
+                <div
+                    className="flex items-center justify-center overflow-hidden transition-all duration-200"
+                    style={{
+                        height: pullDistance > 0 ? `${pullDistance}px` : '0px',
+                        opacity: Math.min(pullDistance / 80, 1),
+                    }}
+                >
+                    <div className={`flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-bold ${isRefreshing ? 'animate-pulse' : ''}`}>
+                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+                        <span>{isRefreshing ? '새로고침 중...' : pullDistance >= 80 ? '놓으면 새로고침' : '당겨서 새로고침'}</span>
+                    </div>
+                </div>
 
-            <Footer />
+                <Outlet />
+                <Footer />
+            </div>
         </div>
     );
 }
