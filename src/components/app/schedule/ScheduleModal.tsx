@@ -673,6 +673,12 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 }
 
                 if (futureIds.length > 0) {
+                    // ✨ [이월금 정합성] 삭제 전 이월 상태 일정 확인
+                    const { data: carriedSchedules } = await supabase.from('schedules')
+                        .select('id, status, child_id, program_id')
+                        .in('id', futureIds)
+                        .eq('status', 'carried_over');
+
                     // 하위 참조 데이터 삭제
                     const { data: logs } = await supabase
                         .from('counseling_logs')
@@ -690,10 +696,29 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
                     const { error } = await supabase.from('schedules').delete().in('id', futureIds);
                     if (error) throw error;
+
+                    // ✨ 이월 상태였던 일정들의 이월금 차감
+                    if (carriedSchedules && carriedSchedules.length > 0) {
+                        const childId = carriedSchedules[0].child_id;
+                        const totalCreditToRemove = carriedSchedules.reduce((sum, s) => {
+                            const prog = programsList.find(p => p.id === s.program_id);
+                            return sum + (prog?.price || 0);
+                        }, 0);
+                        if (totalCreditToRemove > 0 && childId) {
+                            const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
+                            await supabase.from('children').update({ credit: Math.max(0, (child?.credit || 0) - totalCreditToRemove) }).eq('id', childId);
+                        }
+                    }
+
                     alert(`이후 ${futureIds.length}개의 일정이 삭제되었습니다.`);
                 }
             } else {
                 // 단일 삭제
+                // ✨ [이월금 정합성] 이월 상태 일정 삭제 시 이월금 차감
+                const { data: delSchedule } = await supabase.from('schedules')
+                    .select('status, child_id, program_id')
+                    .eq('id', scheduleId!).single();
+
                 const { data: logs } = await supabase
                     .from('counseling_logs')
                     .select('id')
@@ -710,6 +735,16 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
 
                 const { error } = await supabase.from('schedules').delete().eq('id', scheduleId!);
                 if (error) throw error;
+
+                // ✨ 이월 상태였던 일정 삭제 → 이월금 차감
+                if (delSchedule?.status === 'carried_over' && delSchedule.child_id && delSchedule.program_id) {
+                    const prog = programsList.find(p => p.id === delSchedule.program_id);
+                    const price = prog?.price || 0;
+                    if (price > 0) {
+                        const { data: child } = await supabase.from('children').select('credit').eq('id', delSchedule.child_id).single();
+                        await supabase.from('children').update({ credit: Math.max(0, (child?.credit || 0) - price) }).eq('id', delSchedule.child_id);
+                    }
+                }
             }
 
             onSuccess();
