@@ -124,6 +124,12 @@ export function Schedule() {
                 fetchSchedules(),
                 fetchTherapists(centerId)
             ]);
+        } else if (centerId === undefined || centerId === null) {
+            // centerId 아직 로드 안 됨 — CenterContext 대기 중
+            // useEffect가 centerId 변경 시 다시 실행됨
+        } else {
+            // centerId가 있지만 유효하지 않음
+            setLoading(false);
         }
     }, [centerId, authTherapistId, role]); // ✨ Added auth deps
 
