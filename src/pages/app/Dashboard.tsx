@@ -401,12 +401,17 @@ export function Dashboard() {
             const lastDayOfMonth = new Date(selYear, selMonth, 0).getDate();
 
             // ⚡ [PERF] Batch 1: 독립적 쿼리 4개 병렬 실행 (기존 순차 → 병렬)
+            // ✨ [Performance] schedules를 monthsToShow 6개월 범위로 제한 (전체 조회 → 범위 필터)
+            const scheduleRangeStart = monthsToShow[0] + '-01';
+            const scheduleRangeEnd = selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0') + 'T23:59:59';
             const [schedulesRes, childrenRes, siteVisitsRes, leadsRes] = await Promise.all([
-                // 1. Schedules (전체)
+                // 1. Schedules (6개월 범위)
                 supabase
                     .from('schedules')
                     .select(`id, start_time, status, child_id, service_type, children!inner(id, name, gender, birth_date, center_id), therapists (name, session_price_weekday), programs (name)`)
                     .eq('children.center_id', center.id)
+                    .gte('start_time', scheduleRangeStart)
+                    .lte('start_time', scheduleRangeEnd)
                     .order('start_time', { ascending: true }),
                 // 2. Children (센터)
                 supabase

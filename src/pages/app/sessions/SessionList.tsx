@@ -16,6 +16,7 @@ import { FileText, CheckCircle, Calendar, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/common/Skeleton';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
+import { useAuth } from '@/contexts/AuthContext'; // ✨ [Perf] 권한별 필터
 import { toLocalDateStr } from '@/utils/timezone';
 
 type Schedule = Database['public']['Tables']['schedules']['Row'] & {
@@ -29,28 +30,44 @@ export default function SessionList() {
     const [sessions, setSessions] = useState<Schedule[]>([]);
     const { center } = useCenter(); // ✨ Use Center Context
     const centerId = center?.id;
+    const { role, therapistId: authTherapistId } = useAuth(); // ✨ [Perf] 권한별 필터
 
     useEffect(() => {
         if (centerId) fetchSessions();
-    }, [centerId]);
+    }, [centerId, authTherapistId]);
 
     const fetchSessions = async () => {
         if (!centerId) return; // 🔒 [Security] center_id 없으면 조회 차단
         setLoading(true);
 
-        const { data, error } = await supabase
-            .from('schedules')
-            .select(`
-                *,
-                children ( name ),
-                therapists ( name )
-            `)
-            .eq('center_id', centerId) // 🔒 [Security] 센터 격리 필수 필터
-            .order('start_time', { ascending: false });
+        try {
+            // ✨ [Performance] 최근 3개월 범위만 조회 (전체 조회 → 범위 제한)
+            const rangeStart = new Date(Date.now() - 90 * 86400000).toISOString();
 
-        if (error) {
-            console.error('Error fetching sessions:', error);
-        } else {
+            let query = supabase
+                .from('schedules')
+                .select(`
+                    id, date, start_time, end_time, status, notes, service_type,
+                    child_id, therapist_id, program_id, center_id,
+                    children ( name ),
+                    therapists ( name )
+                `)
+                .eq('center_id', centerId) // 🔒 [Security] 센터 격리 필수 필터
+                .gte('start_time', rangeStart) // ✨ [Performance] 3개월 범위 제한
+                .order('start_time', { ascending: false });
+
+            // ✨ [권한 분리] 치료사는 본인 일정만 조회
+            if (role === 'therapist' && authTherapistId) {
+                query = query.eq('therapist_id', authTherapistId);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('Error fetching sessions:', error);
+                return;
+            }
+
             const sessionData = (data as Schedule[]) || [];
             // 로컬 데이터에서만 과거 scheduled를 completed로 표시 (UI 정합성)
             const now = new Date();
@@ -60,23 +77,36 @@ export default function SessionList() {
                 }
             });
 
-            // 일지 작성 여부 별도 조회
+            // ✨ [Performance] 일지 작성 여부 배치 조회 (300개씩 → IN절 제한 대응)
             const ids = sessionData.map(s => s.id);
             if (ids.length > 0) {
-                const { data: logs } = await supabase
-                    .from('counseling_logs')
-                    .select('schedule_id, created_at, session_date')
-                    .in('schedule_id', ids);
+                const BATCH = 300;
                 const logMap: Record<string, any> = {};
-                logs?.forEach((l: any) => { if (l.schedule_id) logMap[l.schedule_id] = l; });
+                const logPromises = [];
+                for (let i = 0; i < ids.length; i += BATCH) {
+                    logPromises.push(
+                        supabase.from('counseling_logs')
+                            .select('schedule_id, created_at, session_date')
+                            .in('schedule_id', ids.slice(i, i + BATCH))
+                    );
+                }
+                const logResults = await Promise.all(logPromises);
+                logResults.forEach(r => {
+                    (r.data as any[])?.forEach((l: any) => {
+                        if (l.schedule_id) logMap[l.schedule_id] = l;
+                    });
+                });
                 sessionData.forEach((s: any) => {
                     s.counseling_logs = logMap[s.id] ? [logMap[s.id]] : [];
                 });
             }
 
             setSessions(sessionData);
+        } catch (err) {
+            console.error('세션 목록 로딩 실패:', err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleWriteNote = (scheduleId: string) => {
