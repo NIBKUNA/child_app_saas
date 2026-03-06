@@ -77,7 +77,7 @@ serve(async (req: Request) => {
             .eq("id", user.id)
             .maybeSingle();
 
-        const SUPER_ADMINS = ['anukbin@gmail.com'];
+        const SUPER_ADMINS = ['anukbin@gmail.com', 'zaradajoo@gmail.com'];
         const isSuperEmail = SUPER_ADMINS.includes(user.email || '');
         const hasAdminRole = ['super_admin', 'super', 'admin'].includes(callerProfile?.role || '');
 

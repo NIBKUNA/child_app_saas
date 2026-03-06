@@ -927,13 +927,13 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                             value={formData.therapist_id}
                                             onChange={val => setFormData({ ...formData, therapist_id: val })}
                                         />
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 dark:text-slate-400">프로그램</label>
-                                            <select required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none" value={formData.program_id} onChange={e => handleProgramChange(e.target.value)}>
-                                                <option value="">프로그램을 선택하세요</option>
-                                                {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                            </select>
-                                        </div>
+                                        <SearchableSelect
+                                            label="치료 프로그램"
+                                            placeholder="프로그램을 선택하세요"
+                                            options={programsList.map(p => ({ id: p.id, name: `${p.name} (${p.duration}분)` }))}
+                                            value={formData.program_id}
+                                            onChange={val => handleProgramChange(val)}
+                                        />
                                         <div>
                                             <label className="text-xs font-bold text-slate-500 dark:text-slate-400">날짜</label>
                                             <input type="date" required className="w-full p-3 border dark:border-slate-700 rounded-xl font-bold mb-3 md:mb-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none dark:[color-scheme:dark]" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />

@@ -17,14 +17,14 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import koLocale from '@fullcalendar/core/locales/ko';
 import type { EventClickArg, EventInput } from '@fullcalendar/core';
-import { Plus, Loader2, Clock, User } from 'lucide-react';
+import { Plus, Loader2, Clock, User, Search, ChevronDown, X as XIcon } from 'lucide-react';
 import { ScheduleModal } from '@/components/app/schedule/ScheduleModal';
 import { MobileScheduleView } from '@/components/app/schedule/MobileScheduleView';
 import { useAuth } from '@/contexts/AuthContext'; // ✨ Import
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
-import { SUPER_ADMIN_EMAILS } from '@/config/superAdmin';
+import { SUPER_ADMIN_EMAILS, getSuperAdminName } from '@/config/superAdmin';
 
 // ✨ 스케줄 상태 타입
 type ScheduleStatus = 'scheduled' | 'completed' | 'cancelled' | 'carried_over';
@@ -103,6 +103,16 @@ export function Schedule() {
     const [selectedTherapistIds, setSelectedTherapistIds] = useState<Set<string>>(new Set(['all']));
     const [_currentDate] = useState(new Date());
 
+    // ✨ [케어플 스타일] 이용자 / 프로그램 사이드바 필터
+    const [childrenFilterList, setChildrenFilterList] = useState<{ id: string; name: string }[]>([]);
+    const [programsFilterList, setProgramsFilterList] = useState<{ id: string; name: string }[]>([]);
+    const [selectedChildId, setSelectedChildId] = useState<string>('');
+    const [selectedProgramId, setSelectedProgramId] = useState<string>('');
+    const [childSearchTerm, setChildSearchTerm] = useState('');
+    const [programSearchTerm, setProgramSearchTerm] = useState('');
+    const [isChildDropdownOpen, setIsChildDropdownOpen] = useState(false);
+    const [isProgramDropdownOpen, setIsProgramDropdownOpen] = useState(false);
+
     const { role, therapistId: authTherapistId } = useAuth(); // ✨ Role & Therapist ID
 
     // ✨ [권한] 일정 수정 가능 여부: admin, manager, super_admin만 수정 가능
@@ -122,7 +132,8 @@ export function Schedule() {
             // ✨ [Performance] 병렬 실행으로 로딩 시간 단축
             Promise.all([
                 fetchSchedules(),
-                fetchTherapists(centerId)
+                fetchTherapists(centerId),
+                fetchFilterLists(centerId)
             ]);
         } else if (centerId === undefined || centerId === null) {
             // centerId 아직 로드 안 됨 — CenterContext 대기 중
@@ -154,7 +165,31 @@ export function Schedule() {
         }
 
         const { data } = await query;
-        setTherapists(data || []);
+
+        // ✨ [브랜드 노출] (주)자라다 항목을 치료사 필터 최상단에 고정 표시
+        // 모든 센터에서 이 이름이 보이도록 하여 앱 운영 주체를 인식시킴
+        const zaradaEntry: TherapistOption = {
+            id: '__zarada_brand__',
+            name: getSuperAdminName('zaradajoo@gmail.com') || '(주)자라다',
+            color: '#000000', // 블랙 컬러
+        };
+
+        const therapistList = [zaradaEntry, ...(data || [])];
+        setTherapists(therapistList);
+    };
+
+    // ✨ [케어플 스타일] 사이드바 필터용 아동/프로그램 목록 로드
+    const fetchFilterLists = async (targetId: string) => {
+        if (!targetId || targetId.length < 32) return;
+        const [childRes, progRes] = await Promise.all([
+            supabase.from('children').select('id, name, status, is_active').eq('center_id', targetId).order('name'),
+            supabase.from('programs').select('id, name, is_active').eq('center_id', targetId).order('name'),
+        ]);
+        const activeChildren = (childRes.data || []).filter((c: any) =>
+            c.status === 'active' || (!c.status && c.is_active !== false)
+        );
+        setChildrenFilterList(activeChildren);
+        setProgramsFilterList((progRes.data || []).filter((p: any) => p.is_active !== false));
 
         // 치료사 권한이면 초기 선택값을 본인 ID로 고정
         if (role === 'therapist' && authTherapistId) {
@@ -479,9 +514,13 @@ export function Schedule() {
                 {isMobile ? (
                     /* 📱 모바일: 케어플 스타일 콤팩트 캘린더 */
                     <MobileScheduleView
-                        events={selectedTherapistIds.has('all')
-                            ? events as any
-                            : (events as any).filter((e: any) => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id))}
+                        events={(events as any).filter((e: any) => {
+                            if (!e.extendedProps) return true;
+                            if (!selectedTherapistIds.has('all') && !selectedTherapistIds.has(e.extendedProps.therapist_id)) return false;
+                            if (selectedChildId && e.extendedProps.child_id !== selectedChildId) return false;
+                            if (selectedProgramId && e.extendedProps.program_id !== selectedProgramId) return false;
+                            return true;
+                        })}
                         onEventClick={(eventId, extProps) => {
                             setSelectedScheduleId(eventId);
                             setClickedDate(extProps as any);
@@ -502,8 +541,8 @@ export function Schedule() {
                     <div className="flex-1 flex flex-col md:flex-row gap-2 min-h-0 overflow-hidden">
                         {/* 1. Sidebar - Responsive (Collapsible on Mobile, Fixed on Desktop) */}
                         <aside className={cn(
-                            "flex flex-col gap-4 p-4 rounded-2xl border transition-all relative shrink-0",
-                            "md:w-44 w-full",
+                            "flex flex-col gap-3 p-4 rounded-2xl border transition-all relative shrink-0",
+                            "md:w-56 w-full",
                             isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100 shadow-xl shadow-slate-200/50",
                             "max-h-[200px] md:max-h-none overflow-y-auto md:overflow-visible"
                         )}>
@@ -589,6 +628,129 @@ export function Schedule() {
                                     })}
                                 </div>
                             </div>
+
+                            {/* ✨ [케어플 스타일] 이용자 검색 필터 */}
+                            <div className="shrink-0">
+                                <div className="w-full h-px bg-slate-100 dark:bg-slate-800 mb-3" />
+                                <div className="relative">
+                                    <div
+                                        className={cn(
+                                            "w-full flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-bold cursor-pointer transition-all",
+                                            selectedChildId
+                                                ? "border-indigo-300 dark:border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                                                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"
+                                        )}
+                                        onClick={() => { setIsChildDropdownOpen(!isChildDropdownOpen); setIsProgramDropdownOpen(false); }}
+                                    >
+                                        <Search className="w-3 h-3 shrink-0" />
+                                        <span className="truncate flex-1">
+                                            {selectedChildId ? childrenFilterList.find(c => c.id === selectedChildId)?.name : '이용자를 선택하세요...'}
+                                        </span>
+                                        {selectedChildId ? (
+                                            <button onClick={(e) => { e.stopPropagation(); setSelectedChildId(''); }} className="shrink-0 hover:text-rose-500"><XIcon className="w-3 h-3" /></button>
+                                        ) : (
+                                            <ChevronDown className={cn("w-3 h-3 shrink-0 transition-transform", isChildDropdownOpen && "rotate-180")} />
+                                        )}
+                                    </div>
+                                    {isChildDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-[55]" onClick={() => setIsChildDropdownOpen(false)} />
+                                            <div className="absolute z-[60] bottom-full mb-1 left-0 right-0 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-1">
+                                                <div className="p-1.5 border-b dark:border-slate-700">
+                                                    <input
+                                                        autoFocus
+                                                        className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border-none rounded-lg focus:ring-0 font-bold"
+                                                        placeholder="이름 검색..."
+                                                        value={childSearchTerm}
+                                                        onChange={e => setChildSearchTerm(e.target.value)}
+                                                        onClick={e => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-40 overflow-y-auto">
+                                                    {childrenFilterList
+                                                        .filter(c => c.name.includes(childSearchTerm))
+                                                        .map(c => (
+                                                            <div
+                                                                key={c.id}
+                                                                className={cn(
+                                                                    "px-3 py-2 text-xs font-bold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700",
+                                                                    selectedChildId === c.id && "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600"
+                                                                )}
+                                                                onClick={() => { setSelectedChildId(c.id); setIsChildDropdownOpen(false); setChildSearchTerm(''); }}
+                                                            >
+                                                                {c.name}
+                                                            </div>
+                                                        ))}
+                                                    {childrenFilterList.filter(c => c.name.includes(childSearchTerm)).length === 0 && (
+                                                        <div className="px-3 py-2 text-xs text-slate-400 text-center">검색 결과 없음</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ✨ [케어플 스타일] 프로그램 검색 필터 */}
+                            <div className="shrink-0">
+                                <div className="relative">
+                                    <div
+                                        className={cn(
+                                            "w-full flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-bold cursor-pointer transition-all",
+                                            selectedProgramId
+                                                ? "border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
+                                                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"
+                                        )}
+                                        onClick={() => { setIsProgramDropdownOpen(!isProgramDropdownOpen); setIsChildDropdownOpen(false); }}
+                                    >
+                                        <Search className="w-3 h-3 shrink-0" />
+                                        <span className="truncate flex-1">
+                                            {selectedProgramId ? programsFilterList.find(p => p.id === selectedProgramId)?.name : '프로그램을 선택하세요...'}
+                                        </span>
+                                        {selectedProgramId ? (
+                                            <button onClick={(e) => { e.stopPropagation(); setSelectedProgramId(''); }} className="shrink-0 hover:text-rose-500"><XIcon className="w-3 h-3" /></button>
+                                        ) : (
+                                            <ChevronDown className={cn("w-3 h-3 shrink-0 transition-transform", isProgramDropdownOpen && "rotate-180")} />
+                                        )}
+                                    </div>
+                                    {isProgramDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-[55]" onClick={() => setIsProgramDropdownOpen(false)} />
+                                            <div className="absolute z-[60] bottom-full mb-1 left-0 right-0 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-1">
+                                                <div className="p-1.5 border-b dark:border-slate-700">
+                                                    <input
+                                                        autoFocus
+                                                        className="w-full px-2 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border-none rounded-lg focus:ring-0 font-bold"
+                                                        placeholder="프로그램 검색..."
+                                                        value={programSearchTerm}
+                                                        onChange={e => setProgramSearchTerm(e.target.value)}
+                                                        onClick={e => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-40 overflow-y-auto">
+                                                    {programsFilterList
+                                                        .filter(p => p.name.includes(programSearchTerm))
+                                                        .map(p => (
+                                                            <div
+                                                                key={p.id}
+                                                                className={cn(
+                                                                    "px-3 py-2 text-xs font-bold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700",
+                                                                    selectedProgramId === p.id && "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600"
+                                                                )}
+                                                                onClick={() => { setSelectedProgramId(p.id); setIsProgramDropdownOpen(false); setProgramSearchTerm(''); }}
+                                                            >
+                                                                {p.name}
+                                                            </div>
+                                                        ))}
+                                                    {programsFilterList.filter(p => p.name.includes(programSearchTerm)).length === 0 && (
+                                                        <div className="px-3 py-2 text-xs text-slate-400 text-center">검색 결과 없음</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </aside>
 
                         {/* 2. Main Calendar Content (Canvas Style) */}
@@ -609,9 +771,13 @@ export function Schedule() {
                                         right: 'dayGridMonth,timeGridWeek,timeGridDay'
                                     }}
                                     buttonText={{ today: '오늘', month: '월간', week: '주간', day: '일간' }}
-                                    events={selectedTherapistIds.has('all')
-                                        ? events
-                                        : events.filter(e => e.extendedProps && selectedTherapistIds.has(e.extendedProps.therapist_id as string))}
+                                    events={events.filter(e => {
+                                        if (!e.extendedProps) return true;
+                                        if (!selectedTherapistIds.has('all') && !selectedTherapistIds.has(e.extendedProps.therapist_id as string)) return false;
+                                        if (selectedChildId && e.extendedProps.child_id !== selectedChildId) return false;
+                                        if (selectedProgramId && e.extendedProps.program_id !== selectedProgramId) return false;
+                                        return true;
+                                    })}
                                     height="100%"
                                     dayMaxEvents={true}
                                     eventDisplay="block"

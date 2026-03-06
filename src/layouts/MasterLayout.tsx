@@ -5,7 +5,7 @@ import { useTheme } from '@/contexts/ThemeProvider';
 import { Building2, Globe, Moon, Sun, Shield, LayoutGrid, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
+import { isSuperAdmin as checkSuperAdmin, getSuperAdminName } from '@/config/superAdmin';
 import { navigateToMainDomain } from '@/config/domain';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -188,9 +188,9 @@ export function MasterLayout() {
                     </div>
                     <div className="flex items-center gap-2 md:gap-3">
                         <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-amber-500 flex items-center justify-center text-[10px] md:text-xs font-black text-white">
-                            S
+                            {(getSuperAdminName(user?.email) || 'S')[0]}
                         </div>
-                        <span className="font-bold text-xs md:text-sm hidden sm:inline">Super Admin</span>
+                        <span className="font-bold text-xs md:text-sm hidden sm:inline">{getSuperAdminName(user?.email) || 'Super Admin'}</span>
                     </div>
                 </header>
 

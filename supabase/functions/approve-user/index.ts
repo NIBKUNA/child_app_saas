@@ -53,7 +53,7 @@ serve(async (req: Request) => {
             .eq("id", user.id)
             .maybeSingle();
 
-        const SUPER_ADMINS = ['anukbin@gmail.com'];
+        const SUPER_ADMINS = ['anukbin@gmail.com', 'zaradajoo@gmail.com'];
         const isSuperAdmin = SUPER_ADMINS.includes(user.email || '');
         const isAdmin = callerProfile?.role === 'admin';
 

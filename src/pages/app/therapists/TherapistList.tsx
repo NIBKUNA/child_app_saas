@@ -18,10 +18,24 @@ import { cn } from '@/lib/utils';
 import { isSuperAdmin } from '@/config/superAdmin';
 import { Helmet } from 'react-helmet-async';
 
+// ✨ 케어플 스타일 확장 색상 팔레트 (56색 그리드)
 const COLORS = [
-    '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
-    '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899',
-    '#64748b', '#71717a'
+    // Row 1: Reds
+    '#ffcdd2', '#ef9a9a', '#e57373', '#ef4444', '#d32f2f', '#b71c1c', '#880e4f', '#ad1457',
+    // Row 2: Pinks & Purples
+    '#f8bbd0', '#f48fb1', '#ec4899', '#c2185b', '#ce93d8', '#ab47bc', '#8e24aa', '#6a1b9a',
+    // Row 3: Deep Purples & Indigos
+    '#b39ddb', '#9575cd', '#7e57c2', '#5e35b1', '#9fa8da', '#7986cb', '#5c6bc0', '#3949ab',
+    // Row 4: Blues
+    '#90caf9', '#64b5f6', '#42a5f5', '#1e88e5', '#1565c0', '#0d47a1', '#0277bd', '#01579b',
+    // Row 5: Teals & Greens
+    '#80deea', '#4dd0e1', '#00bcd4', '#00838f', '#80cbc4', '#26a69a', '#00897b', '#004d40',
+    // Row 6: Greens
+    '#a5d6a7', '#66bb6a', '#43a047', '#2e7d32', '#1b5e20', '#9ccc65', '#7cb342', '#558b2f',
+    // Row 7: Yellows & Oranges
+    '#fff59d', '#ffee58', '#fdd835', '#f9a825', '#ffcc80', '#ffa726', '#fb8c00', '#e65100',
+    // Row 8: Browns & Greys
+    '#bcaaa4', '#8d6e63', '#5d4037', '#3e2723', '#b0bec5', '#78909c', '#455a64', '#000000',
 ];
 
 // ✨ 고용 형태 타입
@@ -353,7 +367,7 @@ export function TherapistList() {
     };
 
     const handleHardReset = async (staff: Therapist) => {
-        if (staff.email === 'anukbin@gmail.com') {
+        if (staff.email === 'anukbin@gmail.com' || staff.email === 'zaradajoo@gmail.com') {
             alert('최고관리자 계정은 시스템 보호를 위해 영구 삭제할 수 없습니다.');
             return;
         }
@@ -704,21 +718,29 @@ export function TherapistList() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">프로필 색상</label>
-                                    <div className="flex flex-wrap gap-3 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl justify-center">
+                                    <label className="text-sm font-bold text-slate-600 dark:text-slate-400 ml-1">캘린더 색상</label>
+                                    <div className="grid grid-cols-8 gap-1.5 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl">
                                         {COLORS.map(c => (
                                             <button
                                                 key={c}
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, color: c })}
                                                 className={cn(
-                                                    "w-9 h-9 rounded-full transition-all hover:scale-110",
-                                                    formData.color === c && "scale-110 ring-4 ring-slate-200 shadow-xl"
+                                                    "w-8 h-8 rounded-lg transition-all hover:scale-110 hover:shadow-md border",
+                                                    formData.color === c
+                                                        ? "scale-110 ring-2 ring-offset-2 ring-indigo-500 shadow-lg"
+                                                        : "border-transparent hover:border-white/50"
                                                 )}
                                                 style={{ backgroundColor: c }}
                                             />
                                         ))}
                                     </div>
+                                    {formData.color && (
+                                        <div className="flex items-center gap-2 px-1">
+                                            <div className="w-5 h-5 rounded-md border border-slate-200 dark:border-slate-600" style={{ backgroundColor: formData.color }} />
+                                            <span className="text-[11px] font-mono text-slate-400">{formData.color}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
