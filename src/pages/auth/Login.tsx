@@ -85,12 +85,22 @@ export function Login() {
                         navigate('/master/centers', { replace: true });
                     }
                 } else {
-                    // Try to restore center context if exists, otherwise go to parent home or app home
-                    const savedSlug = localStorage.getItem('zarada_center_slug');
-                    if (savedSlug) {
+                    // 일반 유저: role 조회 후 올바른 페이지로 리다이렉트
+                    const { data: profile } = await supabase
+                        .from('user_profiles')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .maybeSingle();
+
+                    const userRole = profile?.role;
+                    if (userRole === 'parent') {
+                        navigate('/parent/home', { replace: true });
+                    } else if (userRole === 'therapist' || userRole === 'manager') {
+                        navigate('/app/schedule', { replace: true });
+                    } else if (userRole === 'admin') {
                         navigate('/app/dashboard', { replace: true });
                     } else {
-                        navigate('/', { replace: true }); // Back to portal to pick a center
+                        navigate('/', { replace: true });
                     }
                 }
             }

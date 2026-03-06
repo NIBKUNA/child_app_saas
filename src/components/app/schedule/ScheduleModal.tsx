@@ -402,11 +402,14 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
             }
             if (!centerId) throw new Error("센터 정보가 없습니다. 다시 시도해 주세요.");
 
+            // 👑 브랜딩용 가짜 ID는 DB 저장 시 null로 변환
+            const sanitizedTherapistId = formData.therapist_id === '__zarada_brand__' ? null : (formData.therapist_id || null);
+
             const basePayload = {
                 center_id: centerId,
                 child_id: formData.child_id || null,
                 program_id: formData.program_id || null,
-                therapist_id: formData.therapist_id || null,
+                therapist_id: sanitizedTherapistId,
                 status: formData.status as any,
                 service_type: formData.service_type,
                 notes: formData.notes || null
