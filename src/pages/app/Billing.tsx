@@ -222,7 +222,7 @@ export function Billing() {
                     <h1 className={cn("text-3xl font-black tracking-tight", isDark ? "text-white" : "text-slate-900")}>수납 관리</h1>
                     <ExcelExportButton data={stats.childList} fileName={`수납리스트_${selectedMonth}`}
                         headers={['name', 'totalFee', 'paid', 'credit']}
-                        headerLabels={{ name: '아동명', totalFee: '총 수업료', paid: '기수납액', credit: '잔여 크레딧' }} />
+                        headerLabels={{ name: '아동명', totalFee: '총 수업료', paid: '기수납액', credit: '이월금 잔액' }} />
                 </div>
                 <div className={cn("flex items-center gap-2 p-2 rounded-2xl border shadow-sm", isDark ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200")}>
                     <button onClick={() => changeMonth(-1)} className={cn("p-1.5 rounded-xl transition-colors", isDark ? "hover:bg-slate-800 text-slate-400" : "hover:bg-slate-100")}><ChevronLeft size={18} /></button>
@@ -300,7 +300,7 @@ export function Billing() {
                             <tr>
                                 <th className="px-6 py-4">아동 / 치료 프로그램</th>
                                 <th className="px-6 py-4 text-right">수업료</th>
-                                <th className="px-6 py-4 text-right">이월 크레딧</th>
+                                <th className="px-6 py-4 text-right">이월금</th>
                                 <th className="px-6 py-4 text-right">기수납액</th>
                                 <th className="px-6 py-4 text-right">미수금</th>
                                 <th className="px-6 py-4 text-center">상태</th>
@@ -746,6 +746,53 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         } catch (e: any) { alert('수납 오류: ' + e.message); } finally { setLoading(false); }
     };
 
+    // ✨ [NEW] 개별 세션 이월금 사용 수납
+    const handleCreditSinglePay = async (session: BillingSession) => {
+        if (!center?.id) return;
+        const price = session.price || activeGroup?.pricePerSession || 0;
+        if (price <= 0) { alert('금액을 확인하세요.'); return; }
+
+        // 최신 이월금 잔액 조회 (동시성 안전)
+        const { data: freshChild } = await supabase.from('children').select('credit').eq('id', childData.id).single();
+        const currentCredit = freshChild?.credit || 0;
+        if (currentCredit <= 0) { alert('사용 가능한 이월금이 없습니다.'); return; }
+
+        const useAmount = Math.min(currentCredit, price);
+        const cashAmount = price - useAmount;
+
+        if (!confirm(`${session.date} 수업료 ${price.toLocaleString()}원 중 이월금 ${useAmount.toLocaleString()}원을 사용합니다.${cashAmount > 0 ? `\n나머지 ${cashAmount.toLocaleString()}원은 별도 수납이 필요합니다.` : '\n전액 이월금으로 수납됩니다.'}`)) return;
+
+        setLoading(true);
+        try {
+            const { data: pay, error } = await supabase.from('payments').insert({
+                child_id: childData.id, center_id: center.id,
+                amount: cashAmount, credit_used: useAmount,
+                method: '이월금', memo: `이월금 사용 (${session.date})`,
+                payment_month: modalMonth,
+                ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
+            } as TableInsert<'payments'>).select().maybeSingle();
+            if (error) throw error;
+            if (pay) {
+                await supabase.from('payment_items').insert({
+                    payment_id: pay.id, schedule_id: session.id,
+                    amount: price,
+                    ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
+                } as TableInsert<'payment_items'>);
+            }
+            // 이월금 차감
+            await supabase.from('children').update({ credit: Math.max(0, currentCredit - useAmount) }).eq('id', childData.id);
+
+            setPaidMap(prev => ({
+                ...prev, [session.id]: {
+                    amount: price, method: '이월금',
+                    memo: `이월금 ${useAmount.toLocaleString()}원 사용`, paymentId: pay?.id || ''
+                }
+            }));
+            alert(`이월금 ${useAmount.toLocaleString()}원이 적용되었습니다.`);
+            onSuccess(); onClose();
+        } catch (e: any) { alert('이월금 사용 오류: ' + e.message); } finally { setLoading(false); }
+    };
+
     // ✨ [NEW] 스케줄 메모 개별 저장 (모든 상태에서 가능)
     const saveScheduleMemo = async (sid: string) => {
         const memo = scheduleMemos[sid] ?? '';
@@ -896,14 +943,14 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     </div>
                 )}
 
-                {/* ── 이월 크레딧 배너 */}
+                {/* ── 이월금 배너 */}
                 {childData.credit > 0 && (
                     <div className={cn("px-6 py-2.5 border-b flex items-center gap-3 shrink-0", isDark ? "bg-indigo-900/20 border-indigo-800" : "bg-indigo-50 border-indigo-100")}>
                         <ArrowRightCircle className="text-indigo-500 shrink-0" size={16} />
-                        <span className={cn("text-sm font-black", isDark ? "text-indigo-300" : "text-indigo-700")}>이월 크레딧 {childData.credit.toLocaleString()}원</span>
+                        <span className={cn("text-sm font-black", isDark ? "text-indigo-300" : "text-indigo-700")}>이월금 잔액 {childData.credit.toLocaleString()}원</span>
                         <button onClick={() => { selectAllUnpaid(); setCreditUsed(Math.min(childData.credit, Math.max(0, groupRemaining))); }}
                             className="ml-auto px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-black hover:bg-indigo-700 transition-all">
-                            미수금에 적용
+                            전체 이월금 사용
                         </button>
                     </div>
                 )}
@@ -1119,10 +1166,18 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                                             {/* 관리 */}
                                             <div className="flex items-center gap-1 justify-end shrink-0">
                                                 {isPayable && !isPaid && (
-                                                    <button onClick={() => handleSinglePay(s)} disabled={loading}
-                                                        className="px-2.5 py-1 rounded text-[11px] font-black bg-blue-600 text-white shrink-0">
-                                                        수납
-                                                    </button>
+                                                    <>
+                                                        <button onClick={() => handleSinglePay(s)} disabled={loading}
+                                                            className="px-2.5 py-1 rounded text-[11px] font-black bg-blue-600 text-white shrink-0">
+                                                            수납
+                                                        </button>
+                                                        {childData.credit > 0 && (
+                                                            <button onClick={() => handleCreditSinglePay(s)} disabled={loading}
+                                                                className="px-2.5 py-1 rounded text-[11px] font-black bg-purple-600 text-white shrink-0 whitespace-nowrap">
+                                                                이월금 사용
+                                                            </button>
+                                                        )}
+                                                    </>
                                                 )}
                                                 {isPaid && editingId === s.id ? (
                                                     <>
@@ -1175,7 +1230,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     {/* 크레딧 사용 표시 */}
                     {creditUsed > 0 && (
                         <div className={cn("flex items-center justify-between px-3 py-2 rounded-xl border", isDark ? "bg-indigo-900/30 border-indigo-800" : "bg-indigo-50 border-indigo-200")}>
-                            <span className="text-xs font-black text-indigo-500 flex items-center gap-1"><ArrowRightCircle size={12} />크레딧 적용</span>
+                            <span className="text-xs font-black text-indigo-500 flex items-center gap-1"><ArrowRightCircle size={12} />이월금 적용</span>
                             <div className="flex items-center gap-1.5">
                                 <span className="font-black text-indigo-500 text-sm">-{creditUsed.toLocaleString()}원</span>
                                 <button onClick={() => setCreditUsed(0)} className="text-slate-400 hover:text-rose-500 transition-colors"><X size={13} /></button>
