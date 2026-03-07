@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, BarChart3 } from 'lucide-react';
 
 import { ParentDevelopmentChart } from '@/components/app/parent/ParentDevelopmentChart';
 import { useCenter } from '@/contexts/CenterContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/types/database.types';
 
 type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
@@ -17,10 +18,10 @@ interface ChildBasic extends Pick<TableRow<'children'>, 'id' | 'name'> { }
 export function ParentStatsPage() {
     const navigate = useNavigate();
     const { center } = useCenter();
+    const { user, role } = useAuth();
     const [loading, setLoading] = useState(true);
     const [devData, setDevData] = useState<DevelopmentAssessment[] | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [role, setRole] = useState<string>('parent');
 
     const [selectedChildId, setSelectedChildId] = useState<string>('');
     const [selectedChildName, setSelectedChildName] = useState<string>('');
@@ -41,19 +42,9 @@ export function ParentStatsPage() {
     const initializePage = async () => {
         setLoading(true);
         try {
-            const { data: authData } = await supabase.auth.getUser();
-            const user = authData?.user;
             if (!user) return setError("로그인이 필요합니다.");
 
-            // ✨ user_profiles 테이블에서 역할 확인
-            const { data: profile } = await supabase
-                .from('user_profiles')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle();
-
-            const userRole = profile?.role || 'parent';
-            setRole(userRole);
+            const userRole = role || 'parent';
 
             if (userRole === 'admin' || userRole === 'super_admin' || userRole === 'manager') {
 
@@ -148,7 +139,6 @@ export function ParentStatsPage() {
         if (!selectedChildId || !center?.id) return;
         setSaving(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("로그인이 필요합니다.");
 
             const today = new Date().toISOString().split('T')[0];

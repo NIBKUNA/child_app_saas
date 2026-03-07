@@ -4,14 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { Building2, Globe, Moon, Sun, Shield, LayoutGrid, Menu, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+
 import { isSuperAdmin as checkSuperAdmin, getSuperAdminName } from '@/config/superAdmin';
 import { navigateToMainDomain } from '@/config/domain';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 export function MasterLayout() {
-    const { user, role, loading } = useAuth();
+    const { user, role, loading, signOut } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
@@ -100,10 +100,7 @@ export function MasterLayout() {
                 </button>
 
                 <button
-                    onClick={async () => {
-                        await supabase.auth.signOut();
-                        navigateToMainDomain('/login', navigate);
-                    }}
+                    onClick={() => signOut()}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
                 >
                     로그아웃
