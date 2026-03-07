@@ -161,16 +161,6 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             { 'Category': '📋 운영', 'Metric': '수업 취소 (Cancelled)', 'Value': sessionStats.cancelled, 'Unit': '건' },
             { 'Category': '📋 운영', 'Metric': '예약됨 (Scheduled)', 'Value': sessionStats.scheduled, 'Unit': '건' },
             { 'Category': '📋 운영', 'Metric': '출석률', 'Value': sessionStats.total > 0 ? `${Math.round(sessionStats.completed / sessionStats.total * 100)}%` : '-', 'Unit': '' },
-            { 'Category': '', 'Metric': '', 'Value': '', 'Unit': '' },
-            { 'Category': '🌐 마케팅', 'Metric': '총 유입 (Site Visits)', 'Value': siteVisits.length, 'Unit': '건' },
-            ...Array.from(channelCounts.entries())
-                .sort((a, b) => b[1] - a[1])
-                .map(([channel, count]) => ({
-                    'Category': '🌐 마케팅',
-                    'Metric': `채널: ${channel}`,
-                    'Value': count,
-                    'Unit': '건'
-                })),
         ];
 
         // Sheet 2: Marketing Intelligence — ✨ [FIX] 채널별 유입 상세 데이터 (site_visits)
