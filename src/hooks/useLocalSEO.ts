@@ -97,11 +97,11 @@ export function useLocalSEO() {
     const pageDesc = (type: PageType): string => {
         const r = region ? `${region} ` : '';
         const descs: Record<PageType, string> = {
-            home: `${r}${centerName} - 언어치료, 감각통합, 놀이치료, 미술치료 전문 아동발달센터. 아이의 잠재력을 키워주세요.`,
-            about: `${r}${centerName}의 치료 철학과 비전. 근거 기반의 전문 치료와 따뜻한 가족 중심 케어를 제공합니다.`,
-            programs: `${r}${centerName}에서 제공하는 언어치료, 감각통합, 놀이치료, 미술치료, 그룹치료 프로그램 안내.`,
-            therapists: `${r}${centerName}의 전문 치료사 소개. 자격증, 경력, 전문 분야를 확인하세요.`,
-            contact: `${r}${centerName} 오시는 길, 연락처, 운영시간 안내. 상담 예약 및 방문 안내.`,
+            home: `${r}${centerName} - 언어치료, 감각통합, 놀이치료, 미술치료 전문 아동발달센터. 말이 늦는 아이, 발달이 걱정되는 아이를 위한 맞춤 치료. 전문 치료사 상담.`,
+            about: `${r}${centerName}의 치료 철학과 비전. 근거 기반의 전문 치료와 따뜻한 가족 중심 케어로 아이의 건강한 발달을 돕습니다.`,
+            programs: `${r}${centerName} 언어치료, 감각통합, 놀이치료, 미술치료, 그룹치료 프로그램. 아이 발달 단계에 맞춘 개별 치료 프로그램 안내.`,
+            therapists: `${r}${centerName}의 전문 언어치료사, 놀이치료사, 감각통합 치료사 소개. 자격증, 경력, 전문 분야를 확인하세요.`,
+            contact: `${r}${centerName} 오시는 길, 연락처, 운영시간. 발달검사 및 상담 예약 가능. 전화 문의 환영합니다.`,
         };
         return descs[type];
     };
@@ -114,15 +114,25 @@ export function useLocalSEO() {
             centerName
         ].filter(k => k.trim());
 
+        // 🎯 부모님 실제 검색 패턴 키워드 (증상/고민 기반)
+        const parentKeywords = [
+            `${region} 언어치료 잘하는곳`, `${region} 아동발달센터 추천`,
+            `${region} 아이 말이 늦어요`, `${region} 발달지연`,
+            `${region} 아동심리상담`, `${region} 발달검사`,
+            '아이 언어발달 늦음', '아이 말 안해요',
+            '아이 감각 예민', '아이 사회성 부족',
+            '언어치료 몇살부터', '놀이치료 효과',
+        ].filter(k => k.trim());
+
         const typeKeywords: Record<PageType, string[]> = {
-            home: [`${region} 아동발달`, `${region} 치료센터`],
-            about: [`${region} 발달센터 소개`, '아동치료 전문기관'],
-            programs: [`${region} 언어치료 프로그램`, `${region} 감각통합 프로그램`, '사회성 치료'],
-            therapists: [`${region} 언어치료사`, `${region} 놀이치료사`, '아동 전문 치료사'],
-            contact: [`${region} 발달센터 위치`, `${region} 치료센터 예약`, '상담 문의'],
+            home: [`${region} 아동발달`, `${region} 치료센터`, `${region} 발달센터 추천`, `${region} 아동치료`],
+            about: [`${region} 발달센터 소개`, '아동치료 전문기관', `${region} 아동발달센터 후기`],
+            programs: [`${region} 언어치료 프로그램`, `${region} 감각통합 프로그램`, '사회성 치료', `${region} 놀이치료 프로그램`],
+            therapists: [`${region} 언어치료사`, `${region} 놀이치료사`, '아동 전문 치료사', `${region} 감각통합 치료사`],
+            contact: [`${region} 발달센터 위치`, `${region} 치료센터 예약`, '상담 문의', `${region} 아동발달센터 전화`],
         };
 
-        return [...baseKeywords, ...typeKeywords[type], ...(extraKeywords ? extraKeywords.split(',') : [])].join(', ');
+        return [...baseKeywords, ...parentKeywords, ...typeKeywords[type], ...(extraKeywords ? extraKeywords.split(',') : [])].join(', ');
     };
 
     // 📌 Canonical URL 생성 — 커스텀 도메인 자동 처리

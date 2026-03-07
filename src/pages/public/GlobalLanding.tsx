@@ -165,20 +165,20 @@ export const GlobalLanding = () => {
         <div className="min-h-screen bg-white flex flex-col font-sans overflow-x-hidden">
             {/* 🔍 SEO — 아동발달 관련 키워드 최적화 */}
             <Helmet>
-                <title>아동발달센터 찾기 | 자라다(Zarada) - 언어치료 · 감각통합 · 발달검사 전문 센터</title>
-                <meta name="description" content="우리 아이에게 딱 맞는 아동발달센터를 찾아보세요. 언어치료, 감각통합치료, 놀이치료, 발달검사, 인지학습 전문 센터를 지역별로 검색하고 비교하세요. 아동발달센터 컨설팅·마케팅·ERP 솔루션까지." />
-                <meta name="keywords" content="아동발달센터, 언어치료, 감각통합치료, 놀이치료, 발달검사, 언어검사, 아동발달, 발달센터, 언어치료센터, 아동심리, 인지치료, 발달장애, 아동발달센터 창업, 아동발달센터 개원, 치료실 운영, 센터 ERP, 자라다" />
+                <title>아동발달센터 | 언어치료 · 감각통합 · 놀이치료 전문 - 자라다(Zarada)</title>
+                <meta name="description" content="우리 아이 말이 늦나요? 발달이 걱정되시나요? 전국 언어치료, 감각통합, 놀이치료 전문 아동발달센터를 지역별로 검색하세요. 전문 치료사 상담 · 발달검사 안내." />
+                <meta name="keywords" content="아동발달센터, 언어치료, 감각통합치료, 놀이치료, 발달검사, 아이 말이 늦어요, 언어발달 늦음, 아이 발달지연, 언어치료 잘하는곳, 아동심리상담, 아이 감각 예민, 아이 사회성 부족, 언어치료 몇살부터, 아동발달센터 추천, 놀이치료 효과, 아동발달센터 창업, 센터 컨설팅, 센터 ERP, 자라다" />
                 <link rel="canonical" href={PLATFORM_URL} />
-                <meta property="og:title" content="아동발달센터 찾기 | 자라다(Zarada)" />
-                <meta property="og:description" content="우리 아이에게 딱 맞는 아동발달센터를 찾아보세요. 전국 언어치료·감각통합·놀이치료 전문 센터 검색." />
+                <meta property="og:title" content="아동발달센터 | 언어치료·감각통합·놀이치료 - 자라다" />
+                <meta property="og:description" content="우리 아이 말이 늦나요? 전국 언어치료·감각통합·놀이치료 전문 아동발달센터 검색." />
                 <meta property="og:url" content={PLATFORM_URL} />
                 <meta property="og:type" content="website" />
                 <meta property="og:locale" content="ko_KR" />
                 <meta property="og:site_name" content="자라다 Zarada" />
                 <meta property="og:image" content={`${PLATFORM_URL}/zaradalogo.png`} />
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="아동발달센터 찾기 | 자라다(Zarada)" />
-                <meta name="twitter:description" content="전국 아동발달센터 검색. 언어치료·감각통합·놀이치료·발달검사 전문센터." />
+                <meta name="twitter:title" content="아동발달센터 | 언어치료·감각통합 - 자라다" />
+                <meta name="twitter:description" content="우리 아이 말이 늦나요? 전국 아동발달센터 검색. 언어치료·감각통합·놀이치료 전문센터." />
                 <meta name="robots" content="index, follow" />
                 <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large" />
 
