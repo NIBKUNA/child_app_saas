@@ -741,24 +741,27 @@ function CenterInfoSection() {
                 if (settingsError) throw settingsError;
             }
 
-            // 🗺️ 지도 URL 저장 시 → 좌표 자동 추출해서 DB에 저장 (배포 환경에서만)
-            if (key === 'naver_map_url' && finalValue && !import.meta.env.DEV) {
+            // 🗺️ 주소 또는 지도 URL 저장 시 → 좌표 자동 추출 → DB 저장 (배포에서만)
+            if ((key === 'naver_map_url' || key === 'address') && finalValue && !import.meta.env.DEV) {
                 try {
                     const coordsRes = await fetch('/api/resolve-coords', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mapUrl: finalValue, address: info.address })
+                        body: JSON.stringify({
+                            mapUrl: key === 'naver_map_url' ? finalValue : (info as any).naver_map_url,
+                            address: key === 'address' ? finalValue : info.address
+                        })
                     });
                     if (coordsRes.ok) {
                         const coords = await coordsRes.json();
                         if (coords?.lat && coords?.lng) {
                             await supabase.from('admin_settings').upsert([
-                                { center_id: info.id, key: 'center_lat', value: String(coords.lat), updated_at: new Date().toISOString() },
-                                { center_id: info.id, key: 'center_lng', value: String(coords.lng), updated_at: new Date().toISOString() }
+                                { center_id: info.id, key: 'center_lat' as any, value: String(coords.lat), updated_at: new Date().toISOString() },
+                                { center_id: info.id, key: 'center_lng' as any, value: String(coords.lng), updated_at: new Date().toISOString() }
                             ], { onConflict: 'center_id, key' });
                         }
                     }
-                } catch { /* 좌표 추출 실패해도 URL은 저장됨 */ }
+                } catch { /* 좌표 추출 실패해도 저장은 완료됨 */ }
             }
 
             // ✨ [Refresh UI]

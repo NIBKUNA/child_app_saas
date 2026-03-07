@@ -1,8 +1,10 @@
 /**
  * 🗺️ CenterMap — Leaflet + OpenStreetMap 기반 센터 위치 지도
- * admin_settings의 center_map_url(네이버 지도 URL)에서 좌표를 추출하여
- * OpenStreetMap 지도에 마커를 표시합니다.
- * API 키 불필요 / 완전 무료
+ * 
+ * 좌표 취득 우선순위:
+ * 1. DB 저장 좌표 (center_lat, center_lng) — 관리자 저장 시 서버에서 추출
+ * 2. URL에서 직접 파싱 (lat/lng 파라미터 포함된 경우)
+ * → 외부 API 호출 없음 (CORS/rate limit 문제 원천 차단)
  */
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
@@ -21,71 +23,56 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-/** 네이버 지도 URL에서 lat/lng 추출 (동기) */
-function extractCoordsFromUrlSync(url: string): { lat: number; lng: number } | null {
+/** URL에서 lat/lng 직접 추출 (동기, 외부 호출 없음) */
+function extractCoordsFromUrl(url: string): { lat: number; lng: number } | null {
     if (!url) return null;
     try {
         const urlObj = new URL(url);
+
+        // ?lat=37.5&lng=127.0
         const lat = urlObj.searchParams.get('lat');
         const lng = urlObj.searchParams.get('lng');
-        if (lat && lng) return { lat: parseFloat(lat), lng: parseFloat(lng) };
+        if (lat && lng) {
+            const latN = parseFloat(lat), lngN = parseFloat(lng);
+            if (isKoreaCoord(latN, lngN)) return { lat: latN, lng: lngN };
+        }
 
-        const coordMatch = url.match(/[?&@](-?\d+\.?\d*),(-?\d+\.?\d*)/);
-        if (coordMatch) return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+        // @37.5,127.0 형식
+        const coordMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (coordMatch) {
+            const latN = parseFloat(coordMatch[1]), lngN = parseFloat(coordMatch[2]);
+            if (isKoreaCoord(latN, lngN)) return { lat: latN, lng: lngN };
+        }
 
+        // c=37.5,127.0,... 형식
         const cParam = urlObj.searchParams.get('c');
         if (cParam) {
             const parts = cParam.split(',');
             if (parts.length >= 2) {
-                const num1 = parseFloat(parts[0]);
-                const num2 = parseFloat(parts[1]);
-                if (num1 > 30 && num1 < 44 && num2 > 124 && num2 < 132) {
-                    return { lat: num1, lng: num2 };
-                }
+                const num1 = parseFloat(parts[0]), num2 = parseFloat(parts[1]);
+                if (isKoreaCoord(num1, num2)) return { lat: num1, lng: num2 };
             }
         }
     } catch {
+        // URL 파싱 실패 시 정규식 fallback
         const latMatch = url.match(/lat=(-?\d+\.?\d*)/);
         const lngMatch = url.match(/lng=(-?\d+\.?\d*)/);
-        if (latMatch && lngMatch) return { lat: parseFloat(latMatch[1]), lng: parseFloat(lngMatch[1]) };
-    }
-    return null;
-}
-
-
-/** Nominatim 직접 호출 (1회만) */
-async function geocodeDirect(address: string): Promise<{ lat: number; lng: number } | null> {
-    if (!address) return null;
-    try {
-        const simplified = address.replace(/\s*\d+호?\s*$/, '').trim();
-        const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&countrycodes=kr&limit=1`,
-            { headers: { 'Accept-Language': 'ko' } }
-        );
-        if (res.ok) {
-            const data = await res.json();
-            if (data?.[0]?.lat && data?.[0]?.lon) {
-                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-            }
+        if (latMatch && lngMatch) {
+            const latN = parseFloat(latMatch[1]), lngN = parseFloat(lngMatch[1]);
+            if (isKoreaCoord(latN, lngN)) return { lat: latN, lng: lngN };
         }
-    } catch { /* 무시 */ }
-    return null;
-}
-
-/** 네이버 지도 URL에서 좌표 추출 */
-async function extractCoordsFromUrl(url: string, address?: string): Promise<{ lat: number; lng: number } | null> {
-    // 1차: URL 파라미터에서 직접 추출 (가장 빠름)
-    const syncResult = extractCoordsFromUrlSync(url);
-    if (syncResult) return syncResult;
-
-    // 2차: 주소 → Nominatim 직접 1회
-    if (address) {
-        const result = await geocodeDirect(address);
-        if (result) return result;
     }
-
     return null;
 }
+
+/** 한국 좌표 범위 확인 */
+function isKoreaCoord(lat: number, lng: number): boolean {
+    return lat > 33 && lat < 43 && lng > 124 && lng < 132;
+}
+
+// ─────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────
 
 interface CenterMapProps {
     className?: string;
@@ -104,25 +91,34 @@ export function CenterMap({ className, compact = false }: CenterMapProps) {
     const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
     const mapUrl = getSetting('center_map_url') || '';
-    // centers 테이블 우선 → admin_settings fallback (지점 정보 수정 즉시 반영)
     const centerName = center?.name || getSetting('center_name') || '센터';
     const centerAddress = center?.address || getSetting('center_address') || '';
-    // DB에 저장된 좌표 (관리자 저장 시 자동 추출)
+
+    // DB 저장 좌표
     const savedLat = getSetting('center_lat');
     const savedLng = getSetting('center_lng');
 
+    // ── 좌표 결정 (외부 API 호출 없음) ──
     useEffect(() => {
-        // 1순위: DB에 저장된 좌표 → API 호출 없이 즉시 표시
+        // 1순위: DB에 저장된 좌표
         if (savedLat && savedLng) {
-            setCoords({ lat: parseFloat(savedLat), lng: parseFloat(savedLng) });
+            const lat = parseFloat(savedLat), lng = parseFloat(savedLng);
+            if (isKoreaCoord(lat, lng)) {
+                setCoords({ lat, lng });
+                return;
+            }
+        }
+        // 2순위: URL에서 직접 파싱
+        const urlCoords = extractCoordsFromUrl(mapUrl);
+        if (urlCoords) {
+            setCoords(urlCoords);
             return;
         }
-        // 2순위: URL/주소에서 추출 (fallback)
-        if (mapUrl || centerAddress) {
-            extractCoordsFromUrl(mapUrl, centerAddress).then(result => setCoords(result));
-        }
-    }, [mapUrl, centerAddress, savedLat, savedLng]);
+        // 좌표 없음 → 지도 표시 안 함
+        setCoords(null);
+    }, [mapUrl, savedLat, savedLng]);
 
+    // ── Leaflet 지도 초기화 ──
     useEffect(() => {
         if (!coords || !mapContainerRef.current) return;
         if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
@@ -154,6 +150,7 @@ export function CenterMap({ className, compact = false }: CenterMapProps) {
         return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
     }, [coords, isDark, centerName, centerAddress, compact]);
 
+    // 좌표 없으면 렌더링 안 함
     if (!coords) return null;
 
     // ─── compact 모드: 카드 안에 임베드 ───
