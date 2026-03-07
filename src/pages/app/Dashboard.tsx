@@ -415,10 +415,11 @@ export function Dashboard() {
     // ✨ [Phase 2] 마케팅 지능 신규 데이터
     const [heatmapData, setHeatmapData] = useState<{ day: number; hour: number; count: number }[]>([]);
     const [landingPageData, setLandingPageData] = useState<{ name: string; value: number; pct: number }[]>([]);
-    const [deviceData, setDeviceData] = useState<{ name: string; value: number }[]>([]);
+
     const [dailyTrendData, setDailyTrendData] = useState<{ name: string; value: number }[]>([]);
     const [peakTimeLabel, setPeakTimeLabel] = useState('');
     const [mobileRatio, setMobileRatio] = useState(0);
+    const [prevMonthInflow, setPrevMonthInflow] = useState<number | null>(null);
 
     // ✨ [신규] 일지 미작성 & 출석률 통계
     const [missingNotes, setMissingNotes] = useState<{ therapist: string; count: number; total: number }[]>([]);
@@ -490,6 +491,32 @@ export function Dashboard() {
                     .gte('created_at', monthsToShow[0] + '-01')
                     .lte('created_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0'))
             ]);
+
+            // ✨ 전월 site_visits 카운트 (Direct 제외 성장률 계산용)
+            const prevDate = new Date(selYear, selMonth - 2, 1);
+            const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+            const prevLastDay = new Date(prevDate.getFullYear(), prevDate.getMonth() + 1, 0).getDate();
+            const prevVisitsRes = await supabase
+                .from('site_visits')
+                .select('source_category, referrer_url', { count: 'exact' })
+                .eq('center_id', center.id)
+                .gte('visited_at', prevMonthStr + '-01')
+                .lte('visited_at', prevMonthStr + '-' + String(prevLastDay).padStart(2, '0'));
+            
+            // 전월 Direct 제외 카운트
+            const prevVisits = prevVisitsRes.data || [];
+            let prevCount = 0;
+            prevVisits.forEach((v: any) => {
+                if (v.source_category === 'Direct') return;
+                if (v.referrer_url) {
+                    try {
+                        const h = new URL(v.referrer_url).hostname.replace('www.', '');
+                        if (h.includes('localhost') || h.includes('vercel') || h.includes('127.0.0.1') || h.includes('brainlitix.net')) return;
+                    } catch {}
+                }
+                prevCount++;
+            });
+            setPrevMonthInflow(prevCount);
 
             const allSchedules = schedulesRes.data;
             const existingChildren = childrenRes.data;
@@ -812,11 +839,6 @@ export function Dashboard() {
 
             // ✨ [Phase 2] 디바이스 분석
             const devTotal = deviceMobile + devicePC + deviceTablet;
-            setDeviceData([
-                { name: '모바일', value: deviceMobile },
-                { name: 'PC', value: devicePC },
-                { name: '태블릿', value: deviceTablet }
-            ]);
             setMobileRatio(devTotal > 0 ? Math.round((deviceMobile / devTotal) * 100) : 0);
 
             // ✨ [Phase 2] 일별 유입 트렌드 (빈 날짜 0으로 채움)
@@ -1676,9 +1698,35 @@ export function Dashboard() {
                                 </div>
                             </div>
                         </div>
-                        <div className="hidden lg:block relative z-10 bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/10 min-w-[280px]">
-                            <span className="block text-xs font-black mb-1 opacity-60 uppercase tracking-widest">DOMINANT SOURCE</span>
-                            <span className="block text-3xl font-black text-yellow-300">{bestChannel.name}</span>
+                        {/* ✨ 전월 대비 성장률 카드 */}
+                        <div className="hidden lg:flex relative z-10 flex-col items-center justify-center bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/10 min-w-[200px]">
+                            {prevMonthInflow !== null ? (() => {
+                                const growth = prevMonthInflow > 0
+                                    ? Math.round(((totalInflow - prevMonthInflow) / prevMonthInflow) * 100)
+                                    : totalInflow > 0 ? 100 : 0;
+                                const isUp = growth > 0;
+                                const isDown = growth < 0;
+                                return (
+                                    <>
+                                        <span className="text-[10px] font-black opacity-50 uppercase tracking-widest mb-3">전월 대비</span>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <svg className={`w-7 h-7 ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-white/40'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                {isUp ? <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></> 
+                                                : isDown ? <><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></>
+                                                : <line x1="3" y1="12" x2="21" y2="12" />}
+                                            </svg>
+                                            <span className={`text-3xl font-black ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-white/40'}`}>
+                                                {isUp ? '+' : ''}{growth}%
+                                            </span>
+                                        </div>
+                                        <span className="text-[11px] font-bold text-white/40">
+                                            {prevMonthInflow}건 → {totalInflow}건
+                                        </span>
+                                    </>
+                                );
+                            })() : (
+                                <span className="text-xs font-bold text-white/30">전월 데이터 없음</span>
+                            )}
                         </div>
                     </div>
 
@@ -1779,10 +1827,10 @@ export function Dashboard() {
                         )}
                     </div>
 
-                    {/* ✨ [Phase 2] 일별 트렌드 + 인기 페이지 + 디바이스 (3열) */}
+                    {/* ✨ [Phase 2] 일별 트렌드 + 인기 페이지 (2열) */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                         {/* 일별 유입 트렌드 */}
-                        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                        <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
                             <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
                                 <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400">
                                     {SvgIcons.trendingUp("w-4 h-4 md:w-5 md:h-5")}
@@ -1819,7 +1867,7 @@ export function Dashboard() {
                         </div>
 
                         {/* 인기 랜딩 페이지 TOP 5 */}
-                        <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
                             <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
                                 <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
                                     {SvgIcons.bookOpen("w-4 h-4 md:w-5 md:h-5")}
@@ -1833,7 +1881,6 @@ export function Dashboard() {
                                     {landingPageData.map((item, idx) => {
                                         const colors = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899'];
                                         const color = colors[idx % colors.length];
-                                        // 경로 간소화
                                         const shortPath = item.name.replace(/^\/centers\/[^/]+/, '').replace(/^\//, '') || '홈';
                                         const displayPath = shortPath === '' ? '홈' :
                                             shortPath.replace('programs', '프로그램').replace('therapists', '치료사').replace('about', '소개').replace('contact', '문의').replace('blog', '블로그');
@@ -1862,68 +1909,6 @@ export function Dashboard() {
                                 </div>
                             )}
                         </div>
-
-                        {/* 디바이스 분석 */}
-                        <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                            <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
-                                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
-                                    {SvgIcons.activity("w-4 h-4 md:w-5 md:h-5")}
-                                </div>
-                                디바이스 분석
-                            </h3>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 md:mb-5">방문자 접속 환경</p>
-
-                            {deviceData.reduce((a, d) => a + d.value, 0) > 0 ? (
-                                <div className="space-y-4">
-                                    {/* 도넛 차트 (PC) / 바 리스트 (모바일) */}
-                                    {isMobile ? (
-                                        <div className="space-y-3">
-                                            {deviceData.filter(d => d.value > 0).map((item, idx) => {
-                                                const total = deviceData.reduce((a, d) => a + d.value, 0);
-                                                const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
-                                                const emojis = ['📱', '💻', '📋'];
-                                                const colors = ['#ec4899', '#3b82f6', '#f59e0b'];
-                                                return (
-                                                    <div key={item.name} className="flex items-center gap-3">
-                                                        <span className="text-lg">{emojis[idx]}</span>
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between mb-1">
-                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
-                                                                <span className="text-sm font-black text-slate-900 dark:text-white">{pct}%</span>
-                                                            </div>
-                                                            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: colors[idx] }} />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className="h-[240px]">
-                                            <SafeChart>
-                                                <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                                    <PieChart>
-                                                        <Pie data={deviceData.filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none" paddingAngle={2}
-                                                            label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                                                        >
-                                                            <Cell fill="#ec4899" />
-                                                            <Cell fill="#3b82f6" />
-                                                            <Cell fill="#f59e0b" />
-                                                        </Pie>
-                                                        <RechartsTooltip {...tooltipProps} />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
-                                            </SafeChart>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                                    <p className="font-bold text-sm">데이터 없음</p>
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     {/* ═══════ 🎯 섹션 2: 광고 캠페인 전용 ═══════ */}
@@ -1936,7 +1921,7 @@ export function Dashboard() {
                         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                    <div>
                         {/* 캠페인 성과 */}
                         <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
                             <h3 className="font-bold text-base md:text-xl text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
@@ -1980,38 +1965,11 @@ export function Dashboard() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="h-[200px] flex flex-col items-center justify-center space-y-3">
-                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 flex items-center justify-center">
-                                        <svg className="w-7 h-7 text-amber-300 dark:text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
-                                    </div>
+                                <div className="h-[120px] flex flex-col items-center justify-center space-y-2">
                                     <p className="text-xs font-bold text-slate-400 dark:text-slate-500">아직 광고 클릭 데이터가 없습니다</p>
-                                    <p className="text-[10px] text-slate-300 dark:text-slate-600 text-center leading-relaxed">Google·Naver·Facebook 광고 클릭이<br/>자동으로 감지됩니다</p>
+                                    <p className="text-[10px] text-slate-300 dark:text-slate-600 text-center leading-relaxed">Google·Naver·Facebook 광고 클릭이 자동으로 감지됩니다</p>
                                 </div>
                             )}
-                        </div>
-
-                        {/* 광고 유입 안내 */}
-                        <div className={`p-6 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border text-left ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100'}`}>
-                            <h3 className="font-bold text-base md:text-lg text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                <span className="text-xl">💡</span> 광고 클릭 감지 작동 방식
-                            </h3>
-                            <div className="space-y-3 text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
-                                <div className="flex items-start gap-2">
-                                    <span className="text-amber-500 mt-0.5 shrink-0">●</span>
-                                    <p><strong className="text-slate-800 dark:text-slate-200">Google Ads</strong> — URL에 <code className="bg-white/80 dark:bg-slate-800 px-1 rounded text-[10px]">gclid</code> 파라미터가 포함되면 자동 감지</p>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="text-green-500 mt-0.5 shrink-0">●</span>
-                                    <p><strong className="text-slate-800 dark:text-slate-200">Naver Ads</strong> — URL에 <code className="bg-white/80 dark:bg-slate-800 px-1 rounded text-[10px]">n_media</code> 파라미터가 포함되면 자동 감지</p>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="text-blue-500 mt-0.5 shrink-0">●</span>
-                                    <p><strong className="text-slate-800 dark:text-slate-200">Facebook/Instagram Ads</strong> — URL에 <code className="bg-white/80 dark:bg-slate-800 px-1 rounded text-[10px]">fbclid</code> 파라미터가 포함되면 자동 감지</p>
-                                </div>
-                            </div>
-                            <div className={`mt-4 p-3 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white/80 border-amber-200'}`}>
-                                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">⚠️ 위 "전체 유입 분석"의 수치에는 자연 검색, SNS, 블로그 등 <strong>모든 방문</strong>이 포함됩니다. 이 섹션은 <strong>유료 광고 클릭만</strong> 별도로 집계합니다.</p>
-                            </div>
                         </div>
                     </div>
                 </div>
