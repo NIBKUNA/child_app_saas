@@ -21,12 +21,15 @@ import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin'; // kept for profile check
 import { useAutoCompleteSchedules } from '@/hooks/useAutoCompleteSchedules';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useCenterBranding } from '@/hooks/useCenterBranding';
+import { isMainDomain } from '@/config/domain';
 
 
 
 export function AppLayout() {
     const { profile, loading, role, user } = useAuth();
     const { center } = useCenter();
+    const { branding } = useCenterBranding();
     const { theme } = useTheme();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
     const [showUpdateBanner, setShowUpdateBanner] = React.useState(false);
@@ -298,7 +301,7 @@ export function AppLayout() {
             )}
 
             {/* ✨ [Mobile Header] Restored Hamburger Menu - Integrated into Flow */}
-            <div className="md:hidden flex items-center justify-between px-6 h-16 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+            <div className="md:hidden flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => setIsSidebarOpen(true)}
@@ -310,8 +313,14 @@ export function AppLayout() {
                             <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
                     </button>
-                    <Link to="/" className="text-xl font-black tracking-tighter text-slate-900 dark:text-white active:opacity-70 transition-opacity">
-                        <span className="text-indigo-600 dark:text-indigo-400">Z</span>arada
+                    <Link to="/" className="flex items-center active:opacity-70 transition-opacity">
+                        {branding.logo_url ? (
+                            <img src={branding.logo_url} alt={branding.name || ''} className="h-7 w-auto object-contain" />
+                        ) : (
+                            <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">
+                                {isMainDomain() ? (<><span className="text-indigo-600 dark:text-indigo-400">Z</span>arada</>) : (branding.name || 'Zarada')}
+                            </span>
+                        )}
                     </Link>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">

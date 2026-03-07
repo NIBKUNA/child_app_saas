@@ -902,14 +902,14 @@ export function Dashboard() {
                     <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight hero-text">지능형 센터 인사이트 허브</h1>
                     <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-bold mt-1 md:mt-2">AI 기반 운영 & 마케팅 통합 분석 시스템</p>
                 </div>
-                <div className="flex gap-2 items-center bg-white dark:bg-slate-900 p-1.5 md:p-2 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar w-full md:w-auto">
+                <div className="flex flex-wrap gap-2 items-center bg-white dark:bg-slate-900 p-1.5 md:p-2 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 w-full md:w-auto">
                     <input
                         type="month"
                         value={selectedMonth}
                         onChange={(e) => setSelectedMonth(e.target.value)}
                         className="px-3 md:px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl border-none bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold cursor-pointer focus:ring-2 focus:ring-indigo-500 outline-none text-sm shrink-0"
                     />
-                    <div className="w-px h-6 md:h-8 bg-slate-200 dark:bg-slate-700 mx-0.5 md:mx-1 shrink-0" />
+                    <div className="hidden md:block w-px h-6 md:h-8 bg-slate-200 dark:bg-slate-700 mx-0.5 md:mx-1 shrink-0" />
                     <button
                         onClick={() => setSlide(0)}
                         className={cn("px-4 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-black transition-all gpu-accelerate text-sm shrink-0", slide === 0 ? "text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800")}

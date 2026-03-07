@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeProvider';
-import { Building2, Globe, Moon, Sun, Shield, LayoutGrid, Menu, X } from 'lucide-react';
+import { Building2, Globe, Moon, Sun, Shield, LayoutGrid, Menu, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { isSuperAdmin as checkSuperAdmin, getSuperAdminName } from '@/config/superAdmin';
 import { navigateToMainDomain } from '@/config/domain';
 import { AnimatePresence, motion } from 'framer-motion';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 
 export function MasterLayout() {
     const { user, role, loading } = useAuth();
@@ -15,6 +16,8 @@ export function MasterLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const mainRef = React.useRef<HTMLElement>(null);
+    const { pullDistance, isRefreshing } = usePullToRefresh({ containerRef: mainRef });
 
     // ✨ Super Admin Security Check
     const isSuper = role === 'super_admin' || checkSuperAdmin(user?.email);
@@ -171,7 +174,7 @@ export function MasterLayout() {
             </AnimatePresence>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto min-w-0">
+            <main ref={mainRef} className="flex-1 overflow-y-auto min-w-0">
                 <header className="h-14 md:h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-10">
                     <div className="flex items-center gap-3">
                         {/* Mobile Hamburger */}
@@ -194,7 +197,21 @@ export function MasterLayout() {
                     </div>
                 </header>
 
-                <div className="p-4 md:p-8">
+                {/* ✨ Pull-to-Refresh Indicator (Mobile PWA) */}
+                <div
+                    className="flex items-center justify-center overflow-hidden transition-all duration-200 md:hidden"
+                    style={{
+                        height: pullDistance > 0 ? `${pullDistance}px` : '0px',
+                        opacity: Math.min(pullDistance / 80, 1),
+                    }}
+                >
+                    <div className={`flex items-center gap-2 text-slate-400 dark:text-slate-500 text-xs font-bold ${isRefreshing ? 'animate-pulse' : ''}`}>
+                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} style={{ transform: `rotate(${pullDistance * 3}deg)` }} />
+                        <span>{isRefreshing ? '새로고침 중...' : pullDistance >= 80 ? '놓으면 새로고침' : '당겨서 새로고침'}</span>
+                    </div>
+                </div>
+
+                <div className="p-4 md:p-8 pb-[env(safe-area-inset-bottom,16px)]">
                     <Outlet />
                 </div>
             </main>

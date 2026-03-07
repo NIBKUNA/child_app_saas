@@ -391,8 +391,9 @@ export function ConsultationList() {
                     <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
                     최근 평가 내역
                 </h2>
-                <div className="bg-white dark:bg-slate-800 rounded-[48px] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
-                    <table className="w-full text-left">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl md:rounded-[48px] border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[640px]">
                         <thead className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
                                 <th className="p-8 text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Date</th>
@@ -446,6 +447,7 @@ export function ConsultationList() {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </section>
 

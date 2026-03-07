@@ -465,7 +465,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: { is
             )}>
                 <div className="flex flex-col h-full">
                     {/* Header */}
-                    <div className={cn("border-b border-slate-200 dark:border-slate-800", isCollapsed ? "p-3" : "p-6 mb-2")}>
+                    <div className={cn("border-b border-slate-200 dark:border-slate-800", isCollapsed ? "p-3" : "p-6 mb-2")} style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isCollapsed ? '0.75rem' : '1.5rem'})` }}>
                         <div className="flex items-center justify-between">
                             <div className={cn("flex flex-col items-start gap-1", isCollapsed && "items-center w-full")}>
                                 <Link to="/app/dashboard" className="flex items-center group">
