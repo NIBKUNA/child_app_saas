@@ -6,6 +6,7 @@ import { useCenter } from '@/contexts/CenterContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin as checkSuperAdmin } from '@/config/superAdmin';
 import { cn } from '@/lib/utils';
+import { isMainDomain, PLATFORM_URL } from '@/config/domain';
 import type { Database } from '@/types/database.types';
 
 type Center = Database['public']['Tables']['centers']['Row'];
@@ -158,6 +159,19 @@ export function CenterDetailPage() {
         if (!centerData) return;
         // ✨ [Fix] 전체 centerData 전달 (불완전 객체 방지 — custom_domain 등 누락 문제)
         setCenter(centerData);
+
+        // ✨ [Fix] 커스텀 도메인에서 다른 센터로 전환 시 도메인 불일치 방지
+        if (!isMainDomain()) {
+            // 대상 센터에 커스텀 도메인이 있으면 그 도메인으로 이동
+            const targetDomain = (centerData as any).custom_domain;
+            if (targetDomain) {
+                window.location.href = `https://${targetDomain}/app/dashboard`;
+            } else {
+                // 커스텀 도메인이 없으면 메인 플랫폼으로 이동
+                window.location.href = `${PLATFORM_URL}/app/dashboard`;
+            }
+            return;
+        }
         navigate('/app/dashboard');
     };
 

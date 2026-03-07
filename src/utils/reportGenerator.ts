@@ -47,12 +47,18 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         // 1. Fetch Data (Parallel Requests for Performance)
         // ------------------------------------------------------------------
 
+        // ✨ [FIX] 월 범위 계산 (start_time 기준)
+        const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+        const lastDay = new Date(selYear, selMonth, 0).getDate();
+        const monthStart = `${selectedMonth}-01`;
+        const monthEnd = `${selectedMonth}-${String(lastDay).padStart(2, '0')}T23:59:59`;
+
         const [
             { data: children },
             { data: profilesData },
             { data: assessments },
             { data: payments },
-            { data: leads },
+            { data: consultations },
             { data: staff },
             { data: schedules }
         ] = await Promise.all([
@@ -65,14 +71,17 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             supabase.from('user_profiles').select('id, phone').eq('center_id', centerId),
             // 3. Assessments (Latest)
             supabase.from('development_assessments').select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
-            // 4. Payments (Selected Month) — ✨ [FIX] payment_month 기준 통일
+            // 4. Payments (Selected Month) — payment_month 기준 통일
             supabase.from('payments').select('*').eq('center_id', centerId).eq('payment_month', selectedMonth),
-            // 5. Leads (Marketing)
-            supabase.from('leads').select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
+            // 5. Consultations (Marketing) — ✨ [FIX] leads → consultations (Dashboard와 통일)
+            supabase.from('consultations').select('*').eq('center_id', centerId).order('created_at', { ascending: false }),
             // 6. Staff (User Profiles with roles)
             supabase.from('user_profiles').select('*').eq('center_id', centerId).in('role', ['admin', 'therapist', 'super_admin']),
-            // 7. Schedules (Selected Month for KPI)
-            supabase.from('schedules').select('status, date').eq('center_id', centerId).like('date', `${selectedMonth}%`)
+            // 7. Schedules — ✨ [FIX] date → start_time 기준 (date는 nullable이라 0건 반환됨)
+            supabase.from('schedules').select('id, status, start_time, child_id')
+                .eq('center_id', centerId)
+                .gte('start_time', monthStart)
+                .lte('start_time', monthEnd)
         ]);
 
         // ------------------------------------------------------------------
@@ -128,29 +137,19 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             { 'Category': 'Operations', 'Metric': '예약됨 (Scheduled)', 'Value': sessionStats.scheduled, 'Unit': '건' },
         ];
 
-        // Sheet 2: Marketing Intelligence (Leads)
-        const marketingData = (leads || []).map((lead: { status: string | null; converted_at: string | null; created_at: string | null; parent_name: string | null; child_name: string | null; phone: string | null; concern: string | null; source: string | null; assigned_to: string | null; admin_notes: string | null }) => {
-            let conversionDays = '-';
-            if (lead.status === 'converted' && lead.converted_at && lead.created_at) {
-                const start = new Date(lead.created_at);
-                const end = new Date(lead.converted_at);
-                const diffTime = Math.abs(end.getTime() - start.getTime());
-                conversionDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + '일';
-            }
-
-            return {
-                '접수일': formatDate(lead.created_at),
-                '보호자명': lead.parent_name || '-',
-                '아동명': lead.child_name || '-',
-                '연락처': lead.phone || '-',
-                '관심 영역': lead.concern || '-',
-                '유입 경로': lead.source || '-',
-                '상태': lead.status || '-',
-                '전환 소요': conversionDays,
-                '담당자': lead.assigned_to || '-',
-                '비고': lead.admin_notes || '-'
-            };
-        });
+        // Sheet 2: Marketing Intelligence — ✨ [FIX] leads → consultations (Dashboard와 통일)
+        const marketingData = (consultations || []).map((c: any) => ({
+            '접수일': formatDate(c.created_at),
+            '보호자명': c.guardian_name || '-',
+            '아동명': c.child_name || '-',
+            '연락처': c.guardian_phone || '-',
+            '관심 영역': (c.consultation_area || []).join(', ') || c.concern || '-',
+            '유입 경로': c.marketing_source || c.inflow_source || '-',
+            '상태': c.status || '-',
+            '보호자 관계': c.guardian_relationship || '-',
+            '진단명': c.diagnosis || '-',
+            '비고': c.notes || '-'
+        }));
 
         // Sheet 3: Staff Information
         const staffData = (staff || []).map((s: { name: string | null; role: string; email: string; status: string | null; created_at: string | null }) => ({
@@ -161,8 +160,8 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             '입사일': formatDate(s.created_at)
         }));
 
-        // Sheet 4: Payment Details — ✨ [FIX] credit_used 컬럼 추가
-        const paymentDetailData = (payments || []).map((p: { paid_at: string | null; child_id: string | null; amount: number | null; credit_used?: number | null; method: string | null; status?: string | null; description?: string | null }) => {
+        // Sheet 4: Payment Details — ✨ [FIX] 실제 스키마에 맞게 수정 (status/description 제거 → memo 사용)
+        const paymentDetailData = (payments || []).map((p: any) => {
             const childName = (children || []).find((c: { id: string; name: string }) => c.id === p.child_id)?.name || 'Unknown';
             return {
                 '결제일시': p.paid_at ? new Date(p.paid_at).toLocaleString() : '-',
@@ -171,8 +170,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
                 '크레딧사용': Number(p.credit_used) || 0,
                 '합계': (Number(p.amount) || 0) + (Number(p.credit_used) || 0),
                 '결제수단': p.method || '-',
-                '상태': p.status || '-',
-                '항목': p.description || '수업료'
+                '메모': p.memo || '-'
             };
         });
 
