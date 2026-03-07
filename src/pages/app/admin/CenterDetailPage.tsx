@@ -165,19 +165,19 @@ export function CenterDetailPage() {
     if (!centerData) return <div className="p-8 text-center text-slate-500 py-40">센터를 찾을 수 없습니다.</div>;
 
     return (
-        <div className="space-y-8 max-w-5xl mx-auto p-6 pb-20">
+        <div className="space-y-6 md:space-y-8 max-w-5xl mx-auto p-4 md:p-6 pb-20">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+                <div className="flex items-start md:items-center gap-3 md:gap-4">
                     <button
                         onClick={() => navigate('/master/centers')}
-                        className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors border border-transparent hover:border-slate-200"
+                        className="p-2 md:p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors border border-transparent hover:border-slate-200 shrink-0"
                     >
-                        <ArrowLeft className="w-6 h-6 text-slate-600" />
+                        <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-slate-600" />
                     </button>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{centerData.name}</h1>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h1 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{centerData.name}</h1>
                             <span className={cn(
                                 "text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider",
                                 centerData.is_active ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"
@@ -185,11 +185,11 @@ export function CenterDetailPage() {
                                 {centerData.is_active ? 'ACTIVE' : 'INACTIVE'}
                             </span>
                         </div>
-                        <p className="text-slate-500 font-bold text-sm">센터 ID: {centerData.id}</p>
+                        <p className="text-slate-500 font-bold text-xs md:text-sm">센터 ID: <span className="hidden md:inline">{centerData.id}</span><span className="md:hidden">{centerData.id.slice(0, 12)}...</span></p>
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2">
                     <button
                         onClick={async () => {
                             if (!confirm('🚨 경고: 이 지점의 모든 데이터(직원, 아동, 상담 로그, 결제, 파일)를 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
@@ -208,47 +208,50 @@ export function CenterDetailPage() {
                                 alert('삭제 실패: ' + e.message);
                             }
                         }}
-                        className="flex items-center gap-2 px-6 py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl font-black hover:bg-rose-100 transition-all active:scale-95"
+                        className="flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2.5 md:py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl md:rounded-2xl font-black hover:bg-rose-100 transition-all active:scale-95 text-xs md:text-sm"
                     >
-                        <Trash2 className="w-5 h-5" />
-                        지점 영구 폐쇄
+                        <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="hidden md:inline">지점 영구 폐쇄</span>
+                        <span className="md:hidden">폐쇄</span>
                     </button>
                     <button
                         onClick={() => setIsEditModalOpen(true)}
-                        className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all active:scale-95"
+                        className="flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2.5 md:py-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl md:rounded-2xl font-black shadow-sm hover:bg-slate-50 transition-all active:scale-95 text-xs md:text-sm"
                     >
-                        <Pencil className="w-5 h-5" />
-                        지점 정보 수정
+                        <Pencil className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="hidden md:inline">지점 정보 수정</span>
+                        <span className="md:hidden">수정</span>
                     </button>
                     <button
                         onClick={handleJumpToCenter}
-                        className="flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 hover:-translate-y-1 transition-all active:scale-95"
+                        className="flex items-center gap-1.5 md:gap-3 px-4 md:px-8 py-2.5 md:py-4 bg-indigo-600 text-white rounded-xl md:rounded-2xl font-black shadow-xl shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95 text-xs md:text-sm"
                     >
-                        <ExternalLink className="w-5 h-5" />
-                        지점 포털 접속하기
+                        <ExternalLink className="w-4 h-4 md:w-5 md:h-5" />
+                        <span className="hidden md:inline">지점 포털 접속하기</span>
+                        <span className="md:hidden">접속</span>
                     </button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 {[
                     { label: '등록된 직원(어드민 포함)', value: `${stats.teachers}명`, icon: Users, color: 'indigo' },
                     { label: '등록된 아동', value: `${stats.children}명`, icon: Baby, color: 'amber' },
                     { label: '고유 슬러그', value: centerData.slug || 'slug-none', icon: Building2, color: 'emerald' }
                 ].map((item, idx) => (
-                    <div key={idx} className="bg-white dark:bg-slate-900 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-6 hover:shadow-lg transition-shadow">
+                    <div key={idx} className="bg-white dark:bg-slate-900 p-5 md:p-8 rounded-2xl md:rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 md:gap-6 hover:shadow-lg transition-shadow">
                         <div className={cn(
-                            "p-4 rounded-2xl",
+                            "p-3 md:p-4 rounded-xl md:rounded-2xl",
                             item.color === 'indigo' && "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400",
                             item.color === 'amber' && "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
                             item.color === 'emerald' && "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400",
                         )}>
-                            <item.icon className="w-8 h-8" />
+                            <item.icon className="w-6 h-6 md:w-8 md:h-8" />
                         </div>
                         <div>
-                            <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{item.label}</p>
-                            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter truncate max-w-[150px]">{item.value}</p>
+                            <p className="text-[10px] md:text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{item.label}</p>
+                            <p className="text-xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter truncate max-w-[150px]">{item.value}</p>
                         </div>
                     </div>
                 ))}

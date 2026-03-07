@@ -157,13 +157,13 @@ export function ChildList() {
         <>
             <Helmet><title>아동 관리 - 자라다 Admin</title></Helmet>
 
-            <div className="space-y-6 p-2">
-                <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+            <div className="space-y-4 md:space-y-6 p-2">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">아동 관리</h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium">센터 이용 아동 및 보호자 계정 연결을 관리합니다.</p>
+                        <h1 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">아동 관리</h1>
+                        <p className="hidden md:block text-slate-500 dark:text-slate-400 font-medium">센터 이용 아동 및 보호자 계정 연결을 관리합니다.</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full md:w-auto">
                         {/* ✨ [Export] Excel Download Button */}
                         <ExcelExportButton
                             data={filteredChildren.map(c => ({ ...c, gender: c.gender === 'male' ? '남' : c.gender === 'female' ? '여' : '-' }))}
@@ -183,16 +183,16 @@ export function ChildList() {
                         {(role === 'admin' || role === 'manager' || role === 'super_admin') && (
                             <button
                                 onClick={() => setIsExcelImportOpen(true)}
-                                className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30"
+                                className="flex items-center gap-1.5 md:gap-2 bg-emerald-600 text-white px-3 md:px-5 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 whitespace-nowrap"
                             >
-                                <FileSpreadsheet className="w-5 h-5" /> 엑셀 업로드
+                                <FileSpreadsheet className="w-4 h-4 md:w-5 md:h-5" /> <span className="hidden md:inline">엑셀</span> 업로드
                             </button>
                         )}
                         <button
                             onClick={handleRegister}
-                            className="flex items-center gap-2 bg-slate-900 dark:bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-lg shadow-slate-200 dark:shadow-indigo-900/30"
+                            className="flex items-center gap-1.5 md:gap-2 bg-slate-900 dark:bg-indigo-600 text-white px-3 md:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm hover:bg-slate-800 dark:hover:bg-indigo-700 transition-all shadow-lg shadow-slate-200 dark:shadow-indigo-900/30 whitespace-nowrap"
                         >
-                            <UserPlus className="w-5 h-5" /> 신규 아동 등록
+                            <UserPlus className="w-4 h-4 md:w-5 md:h-5" /> <span className="hidden md:inline">신규 아동</span> 등록
                         </button>
                     </div>
                 </div>

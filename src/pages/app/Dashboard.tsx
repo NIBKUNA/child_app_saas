@@ -236,7 +236,7 @@ const KpiCard = ({ title, value, icon, trend, trendUp, color, bg, border }: { ti
 
 
 
-// ✨ [FIX] SafeChart: Recharts 경고 근본 해결
+// ✨ [FIX] SafeChart: Recharts 경고 근본 해결 + 탭 전환 대응
 // 컨테이너 DOM 크기가 확보된 후에만 차트를 렌더링합니다.
 const SafeChart = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -247,7 +247,7 @@ const SafeChart = ({ children, className = '' }: { children: React.ReactNode; cl
         if (!el) return;
 
         // 이미 크기가 있으면 즉시 렌더
-        if (el.clientWidth > 0 && el.clientHeight > 0) {
+        if (el.clientWidth > 0) {
             setReady(true);
             return;
         }
@@ -255,7 +255,7 @@ const SafeChart = ({ children, className = '' }: { children: React.ReactNode; cl
         // ResizeObserver로 크기 확보 후 렌더
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                if (entry.contentRect.width > 0) {
                     setReady(true);
                     observer.disconnect();
                     break;
@@ -264,11 +264,11 @@ const SafeChart = ({ children, className = '' }: { children: React.ReactNode; cl
         });
         observer.observe(el);
 
-        // 안전 타임아웃 (500ms 후 강제 렌더)
+        // 안전 타임아웃 (200ms 후 강제 렌더 — 탭 전환 시 빠른 표시)
         const timeout = setTimeout(() => {
             setReady(true);
             observer.disconnect();
-        }, 500);
+        }, 200);
 
         return () => {
             observer.disconnect();
@@ -283,7 +283,11 @@ const SafeChart = ({ children, className = '' }: { children: React.ReactNode; cl
     );
 };
 
-const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", mobileInnerHeight, brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; mobileInnerHeight?: string; brandColor?: string }) => (
+const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", mobileInnerHeight, brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; mobileInnerHeight?: string; brandColor?: string }) => {
+    // ✨ [FIX] Tailwind JIT는 동적 클래스(md:${var})를 감지 못함
+    // mobileInnerHeight가 있을 때: JS로 모바일/PC 분기하여 올바른 Tailwind 클래스 적용
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+    return (
     <div className={`bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
         <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-3 md:mb-6 flex items-center gap-2 md:gap-3 relative z-10 text-left">
             <div
@@ -294,11 +298,14 @@ const ChartContainer = ({ title, icon, children, className = "", innerHeight = "
             </div>
             {title}
         </h3>
-        <div className={`w-full relative ${mobileInnerHeight ? `${mobileInnerHeight} md:${innerHeight}` : innerHeight}`}>
+        <div
+            className={`w-full relative ${mobileInnerHeight ? (isDesktop ? innerHeight : mobileInnerHeight) : innerHeight}`}
+        >
             <SafeChart>{children}</SafeChart>
         </div>
     </div>
-);
+    );
+};
 
 const ChannelGridCard = ({ channel, totalInflow }: { channel: any; totalInflow: number }) => {
     const percent = totalInflow > 0 ? ((channel.value / totalInflow) * 100).toFixed(1) : '0.0';
@@ -907,28 +914,29 @@ export function Dashboard() {
             </Helmet>
 
             {isSuperAdmin && (
-                <div className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 p-1 rounded-3xl mb-8 animate-in fade-in slide-in-from-top-4 border border-amber-200 dark:border-amber-800/50">
-                    <div className="bg-white/60 dark:bg-slate-900/80 backdrop-blur-sm rounded-[28px] p-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                        <div className="flex items-center gap-6">
-                            <div className="bg-amber-500 text-white p-4 rounded-2xl shadow-lg shadow-amber-200 dark:shadow-none animate-bounce-slow">
-                                <Crown className="w-8 h-8" />
+                <div className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 p-0.5 md:p-1 rounded-2xl md:rounded-3xl mb-4 md:mb-8 animate-in fade-in slide-in-from-top-4 border border-amber-200 dark:border-amber-800/50">
+                    <div className="bg-white/60 dark:bg-slate-900/80 backdrop-blur-sm rounded-[20px] md:rounded-[28px] p-3 md:p-6 flex flex-col md:flex-row justify-between items-center gap-3 md:gap-6">
+                        <div className="flex items-center gap-3 md:gap-6">
+                            <div className="bg-amber-500 text-white p-2.5 md:p-4 rounded-xl md:rounded-2xl shadow-lg shadow-amber-200 dark:shadow-none animate-bounce-slow">
+                                <Crown className="w-5 h-5 md:w-8 md:h-8" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-amber-900 dark:text-yellow-300 flex items-center gap-2">
-                                    관리자 전용 데이터 관리
-                                    <span className="text-[10px] font-bold bg-amber-600 text-white px-2 py-0.5 rounded-full">SUPER ADMIN</span>
+                                <h2 className="text-sm md:text-xl font-black text-amber-900 dark:text-yellow-300 flex items-center gap-2">
+                                    <span className="hidden md:inline">관리자 전용 데이터 관리</span>
+                                    <span className="md:hidden">데이터 관리</span>
+                                    <span className="text-[8px] md:text-[10px] font-bold bg-amber-600 text-white px-1.5 md:px-2 py-0.5 rounded-full">SUPER ADMIN</span>
                                 </h2>
-                                <p className="text-sm font-medium text-amber-700 dark:text-yellow-400/80">아동, 수납, 수업 데이터를 Excel(CSV)로 추출할 수 있습니다</p>
+                                <p className="hidden md:block text-sm font-medium text-amber-700 dark:text-yellow-400/80">아동, 수납, 수업 데이터를 Excel(CSV)로 추출할 수 있습니다</p>
                             </div>
                         </div>
-                        <div className="flex gap-3 flex-wrap">
+                        <div className="flex gap-2 md:gap-3 flex-wrap w-full md:w-auto">
                             <button
                                 onClick={exportIntegratedReport}
                                 disabled={exporting}
-                                className="flex items-center gap-2 px-6 py-4 bg-emerald-600 dark:bg-emerald-500 text-white font-black text-sm rounded-2xl hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-all disabled:opacity-50 gpu-accelerate shadow-xl shadow-emerald-200 dark:shadow-emerald-900/30 transform hover:-translate-y-1 active:translate-y-0"
+                                className="flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-4 bg-emerald-600 dark:bg-emerald-500 text-white font-black text-xs md:text-sm rounded-xl md:rounded-2xl hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-all disabled:opacity-50 gpu-accelerate shadow-xl shadow-emerald-200 dark:shadow-emerald-900/30 transform hover:-translate-y-1 active:translate-y-0 w-full md:w-auto"
                             >
-                                <FileSpreadsheet className="w-6 h-6" />
-                                <span className="text-base">센터 통합 보고서 (Excel)</span>
+                                <FileSpreadsheet className="w-4 h-4 md:w-6 md:h-6" />
+                                <span className="text-xs md:text-base">센터 통합 보고서 (Excel)</span>
                             </button>
                         </div>
                     </div>
@@ -1285,38 +1293,44 @@ export function Dashboard() {
                                 </div>
 
                                 {channelConversionData.length > 0 ? (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                                         {/* Chart 1: Conversion Rate (Main) */}
-                                        <div className="h-[400px]">
-                                            <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4">채널별 상담 예약 추이 및 전환율</h4>
+                                        <div className="h-[280px] md:h-[400px]">
+                                            <h4 className="text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 md:mb-4">채널별 상담 예약 추이 및 전환율</h4>
                                             <SafeChart>
                                                 <ResponsiveContainer width="100%" height="90%" debounce={100}>
-                                                    <ComposedChart data={channelConversionData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                                    <ComposedChart data={channelConversionData} margin={isMobile ? { top: 10, right: 10, left: -10, bottom: 40 } : { top: 20, right: 30, left: 20, bottom: 60 }}>
                                                         <CartesianGrid stroke="#f1f5f9" vertical={false} />
                                                         <XAxis
                                                             dataKey="name"
                                                             axisLine={false}
                                                             tickLine={false}
-                                                            tick={{ fontSize: 11, fontWeight: 'bold' }}
+                                                            tick={{ fontSize: isMobile ? 9 : 11, fontWeight: 'bold' }}
                                                             angle={-45}
                                                             textAnchor="end"
-                                                            height={80}
+                                                            height={isMobile ? 50 : 80}
                                                         />
-                                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} />
-                                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+                                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 60} />
+                                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fontSize: isMobile ? 10 : 12 }} width={isMobile ? 35 : 60} />
                                                         <RechartsTooltip {...tooltipProps} />
-                                                        <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />
-                                                        <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={35} radius={[6, 6, 0, 0]} />
-                                                        <Bar yAxisId="left" dataKey="converted" name="예약 확정" fill="#10b981" barSize={35} radius={[6, 6, 0, 0]} />
-                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="예약 전환율(%)" stroke="#f59e0b" strokeWidth={4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 6 }} />
+                                                        {!isMobile && <Legend verticalAlign="top" align="right" wrapperStyle={{ top: 0 }} />}
+                                                        <Bar yAxisId="left" dataKey="total" name="상담 문의" fill="#6366f1" barSize={isMobile ? 16 : 35} radius={[6, 6, 0, 0]} />
+                                                        <Bar yAxisId="left" dataKey="converted" name="예약 확정" fill="#10b981" barSize={isMobile ? 16 : 35} radius={[6, 6, 0, 0]} />
+                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="예약 전환율(%)" stroke="#f59e0b" strokeWidth={isMobile ? 2 : 4} dot={{ fill: '#f59e0b', strokeWidth: 2, r: isMobile ? 4 : 6 }} />
                                                     </ComposedChart>
                                                 </ResponsiveContainer>
                                             </SafeChart>
                                         </div>
 
                                         {/* Right Column: Volume Chart + Stats */}
-                                        <div className="space-y-8">
+                                        <div className="space-y-4 md:space-y-8">
                                             {/* Chart 2: Inquiry Volume (New) */}
+                                            {isMobile ? (
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중</h4>
+                                                    <MobileBarList data={channelConversionData.map(d => ({ name: d.name, value: d.total }))} colors={channelConversionData.map(d => d.color)} />
+                                                </div>
+                                            ) : (
                                             <div className="h-[250px]">
                                                 <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">채널별 유입 비중 분석 (Inflow)</h4>
                                                 <SafeChart>
@@ -1346,21 +1360,22 @@ export function Dashboard() {
                                                     </ResponsiveContainer>
                                                 </SafeChart>
                                             </div>
+                                            )}
 
                                             {/* Stats Cards (Scrollable if too many) */}
-                                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                            <div className="space-y-2 md:space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                                 {channelConversionData.map((channel, idx) => (
-                                                    <div key={channel.name} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                                    <div key={channel.name} className="flex items-center gap-2 md:gap-4 p-2.5 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl md:rounded-2xl border border-slate-100 dark:border-slate-700">
                                                         <div
-                                                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md shrink-0"
+                                                            className="w-7 h-7 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center text-white text-[10px] md:text-sm font-black shadow-md shrink-0"
                                                             style={{ backgroundColor: channel.color }}
                                                         >
                                                             {idx + 1}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate">{channel.name}</h4>
+                                                            <h4 className="font-bold text-slate-900 dark:text-white text-xs md:text-sm truncate">{channel.name}</h4>
                                                             <div className="flex items-center gap-2 mt-0.5">
-                                                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                                <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">
                                                                     문의 <span className="font-bold text-slate-700 dark:text-slate-300">{channel.total}건</span>
                                                                 </span>
                                                                 <span className="text-[10px] text-slate-300">|</span>
@@ -1388,30 +1403,29 @@ export function Dashboard() {
                                 )}
                             </div>
 
-                            {/* ✨ [신규] 시간대별 문의 분석 */}
-                            <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-8">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                            <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-4 md:mt-8">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 md:mb-6 gap-2 md:gap-4">
                                     <div>
-                                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
-                                            <svg className="w-6 h-6 text-amber-500" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+                                            <svg className="w-4 h-4 md:w-6 md:h-6 text-amber-500" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="12" cy="12" r="10" stroke="currentColor" />
                                                 <path d="M12 6v6l4 2" stroke="currentColor" />
                                             </svg>
                                             시간대별 문의 분석
                                         </h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">부모님들이 언제 가장 많이 문의하는지 파악하세요</p>
+                                        <p className="hidden md:block text-sm text-slate-500 dark:text-slate-400">부모님들이 언제 가장 많이 문의하는지 파악하세요</p>
                                     </div>
-                                    <div className="flex gap-4 flex-wrap">
+                                    <div className="flex gap-2 md:gap-4 flex-wrap">
                                         {avgInquiryTime && (
-                                            <div className="bg-amber-50 dark:bg-amber-900/30 rounded-2xl px-5 py-3 border border-amber-100 dark:border-amber-800/50">
-                                                <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">평균 문의 시간</p>
-                                                <p className="text-2xl font-black text-amber-700 dark:text-amber-300">{avgInquiryTime}</p>
+                                            <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl md:rounded-2xl px-3 md:px-5 py-2 md:py-3 border border-amber-100 dark:border-amber-800/50">
+                                                <p className="text-[9px] md:text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">평균 문의 시간</p>
+                                                <p className="text-lg md:text-2xl font-black text-amber-700 dark:text-amber-300">{avgInquiryTime}</p>
                                             </div>
                                         )}
                                         {inquiryHourData.some(d => d.count > 0) && (
-                                            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl px-5 py-3 border border-indigo-100 dark:border-indigo-800/50">
-                                                <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-0.5">최다 문의 시간</p>
-                                                <p className="text-2xl font-black text-indigo-700 dark:text-indigo-300">
+                                            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl md:rounded-2xl px-3 md:px-5 py-2 md:py-3 border border-indigo-100 dark:border-indigo-800/50">
+                                                <p className="text-[9px] md:text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-0.5">최다 문의 시간</p>
+                                                <p className="text-lg md:text-2xl font-black text-indigo-700 dark:text-indigo-300">
                                                     {(() => {
                                                         const peak = inquiryHourData.reduce((max, d) => d.count > max.count ? d : max, inquiryHourData[0]);
                                                         return `${peak.hour} (${peak.count}건)`;
@@ -1422,19 +1436,19 @@ export function Dashboard() {
                                     </div>
                                 </div>
                                 {inquiryHourData.some(d => d.count > 0) ? (
-                                    <div className="h-[280px]">
+                                    <div className="h-[200px] md:h-[280px]">
                                         <SafeChart>
                                             <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                                <BarChart data={inquiryHourData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                                                <BarChart data={inquiryHourData} margin={isMobile ? { top: 5, right: 5, left: -15, bottom: 5 } : { top: 10, right: 10, left: -10, bottom: 5 }}>
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
                                                     <XAxis
                                                         dataKey="hour"
                                                         axisLine={false}
                                                         tickLine={false}
-                                                        tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }}
-                                                        interval={1}
+                                                        tick={{ fill: '#94a3b8', fontSize: isMobile ? 9 : 11, fontWeight: 'bold' }}
+                                                        interval={isMobile ? 2 : 1}
                                                     />
-                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} allowDecimals={false} />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} allowDecimals={false} width={isMobile ? 25 : 60} />
                                                     <RechartsTooltip
                                                         {...tooltipProps}
                                                         formatter={(value: any, _name: any, props: any) => {
@@ -1445,7 +1459,7 @@ export function Dashboard() {
                                                         dataKey="count"
                                                         name="문의 수"
                                                         radius={[6, 6, 0, 0]}
-                                                        barSize={16}
+                                                        barSize={isMobile ? 10 : 16}
                                                     >
                                                         {inquiryHourData.map((entry, index) => {
                                                             const maxCount = Math.max(...inquiryHourData.map(d => d.count));
@@ -1504,37 +1518,37 @@ export function Dashboard() {
             )}
 
             {slide === 1 && (
-                <div ref={marketingRef} className="space-y-8 animate-in fade-in slide-in-from-right-4">
-                    <div className="bg-slate-900 rounded-[40px] p-10 text-white shadow-2xl flex justify-between items-center relative overflow-hidden text-left">
+                <div ref={marketingRef} className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-right-4">
+                    <div className="bg-slate-900 rounded-2xl md:rounded-[40px] p-4 md:p-10 text-white shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden text-left gap-4">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-20 -mt-20" />
-                        <div className="relative z-10 space-y-4">
+                        <div className="relative z-10 space-y-3 md:space-y-4">
                             <div>
-                                <h3 className="text-xl md:text-3xl font-black mb-2 flex items-center gap-3 flex-wrap">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
-                                <p className="text-indigo-200 font-bold text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
+                                <h3 className="text-lg md:text-3xl font-black mb-1 md:mb-2 flex items-center gap-2 md:gap-3 flex-wrap">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
+                                <p className="text-indigo-200 font-bold text-sm md:text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
                             </div>
-                            <div className="flex gap-10 pt-6 border-t border-white/10">
+                            <div className="flex gap-6 md:gap-10 pt-3 md:pt-6 border-t border-white/10">
                                 <div className="group relative">
-                                    <span className="flex items-center gap-1.5 text-[10px] font-black opacity-50 uppercase tracking-widest mb-1.5 cursor-help">
+                                    <span className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest mb-1 md:mb-1.5 cursor-help">
                                         Lead Velocity
                                         <div className={cn("w-3 h-3 rounded-full border border-current flex items-center justify-center text-[8px] opacity-70")}>i</div>
                                     </span>
-                                    <span className="text-3xl font-black text-emerald-400 leading-none">{avgLeadTime}일</span>
+                                    <span className="text-xl md:text-3xl font-black text-emerald-400 leading-none">{avgLeadTime}일</span>
                                     {/* ✨ Tooltip Position Fixed: bottom-full to avoid clipping */}
                                     <div className="absolute bottom-full left-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none transform translate-y-2 group-hover:translate-y-0">
                                         <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 rotate-45"></div>
                                         <p className="text-[11px] text-emerald-400 font-black mb-1.5 flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                            리드 처리 속되 (민첩성)
+                                            리드 처리 속도 (민첩성)
                                         </p>
                                         <p className="text-[10px] text-slate-300 leading-relaxed font-bold">문의 접수부터 첫 방문까지의 평균 시간입니다. 고객의 관심이 높을 때 얼마나 빠르게 응대했는지를 나타내며, 본사의 운영 관리 효율을 상징합니다.</p>
                                     </div>
                                 </div>
                                 <div className="group relative">
-                                    <span className="flex items-center gap-1.5 text-[10px] font-black opacity-50 uppercase tracking-widest mb-1.5 cursor-help">
+                                    <span className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest mb-1 md:mb-1.5 cursor-help">
                                         Active Campaigns
                                         <div className={cn("w-3 h-3 rounded-full border border-current flex items-center justify-center text-[8px] opacity-70")}>i</div>
                                     </span>
-                                    <span className="text-3xl font-black text-amber-400 leading-none">{campaignData.length}개</span>
+                                    <span className="text-xl md:text-3xl font-black text-amber-400 leading-none">{campaignData.length}개</span>
                                     {/* ✨ Tooltip Position Fixed: bottom-full to avoid clipping */}
                                     <div className="absolute bottom-full left-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none transform translate-y-2 group-hover:translate-y-0">
                                         <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 rotate-45"></div>
@@ -1553,15 +1567,15 @@ export function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                         {/* ✨ [HQ] Deep Dive: Channel Breakdown (SUPER ADMIN ONLY) */}
                         {isSuperAdmin && (
-                            <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                                <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3">
-                                    {SvgIcons.share("w-6 h-6 text-indigo-600 dark:text-indigo-400")}
-                                    채널별 유입 상세 데이터 (Intelligence)
+                            <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                                <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-3 md:mb-6 flex items-center gap-2 md:gap-3">
+                                    {SvgIcons.share("w-4 h-4 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400")}
+                                    채널별 유입 상세 데이터
                                 </h3>
-                                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
                                     {marketingData.map((item, idx) => (
                                         <ChannelGridCard key={idx} channel={item} totalInflow={totalInflow} />
                                     ))}

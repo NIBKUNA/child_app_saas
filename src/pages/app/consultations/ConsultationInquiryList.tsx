@@ -158,10 +158,10 @@ export default function ConsultationInquiryList() {
 
     return (
         <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-slate-800 p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-slate-100 dark:border-slate-700 gap-4">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white dark:bg-slate-800 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-sm border border-slate-100 dark:border-slate-700 gap-3 md:gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">상담 문의 센터</h1>
-                    <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-bold mt-2">비회원 문의부터 상담 기록까지 한 화면에서 관리하세요.</p>
+                    <h1 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">상담 문의 센터</h1>
+                    <p className="text-xs md:text-base text-slate-500 dark:text-slate-400 font-bold mt-1 md:mt-2">비회원 문의부터 상담 기록까지 한 화면에서 관리하세요.</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
                     {/* ✨ [Export] Excel Download Button */}
@@ -182,8 +182,8 @@ export default function ConsultationInquiryList() {
                             created_at: '접수일시'
                         }}
                     />
-                    <button onClick={fetchData} className="flex-1 md:flex-none justify-center p-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl transition-all shadow-lg shadow-indigo-100 group">
-                        <RefreshCcw className="w-5 h-5 text-white group-hover:rotate-180 transition-all duration-500" />
+                    <button onClick={fetchData} className="p-3 md:p-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl md:rounded-2xl transition-all shadow-lg shadow-indigo-100 group shrink-0">
+                        <RefreshCcw className="w-4 h-4 md:w-5 md:h-5 text-white group-hover:rotate-180 transition-all duration-500" />
                     </button>
                 </div>
             </header>
