@@ -248,7 +248,6 @@ export default function ConsultationInquiryList() {
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        console.log('[Delete] 🗑️ 삭제 버튼 클릭됨 - ID:', inq.id);
                                         deleteInquiry(inq.id);
                                     }}
                                     className="p-3 text-slate-300 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all relative z-10 cursor-pointer"

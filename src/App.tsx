@@ -166,20 +166,10 @@ function App() {
   // ✨ [UTM Tracking] URL 파라미터 캡처 및 세션 저장
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const utmTags = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
-    let hasUtm = false;
-
-    utmTags.forEach(tag => {
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].forEach(tag => {
       const value = params.get(tag);
-      if (value) {
-        localStorage.setItem(tag, value);
-        hasUtm = true;
-      }
+      if (value) localStorage.setItem(tag, value);
     });
-
-    if (hasUtm) {
-      // UTM parameters captured and stored for marketing analytics
-    }
   }, []);
 
   const handleSplashComplete = () => {

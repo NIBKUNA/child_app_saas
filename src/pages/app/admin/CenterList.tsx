@@ -84,10 +84,8 @@ export function CenterList() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ slug: finalSlug }),
-                }).then(res => res.json()).then(result => {
-                    console.log('🔍 검색엔진 색인 요청 완료:', result);
                 }).catch(() => {
-                    console.warn('🔍 검색엔진 색인 요청 실패 (센터 생성에는 영향 없음)');
+                    // 색인 요청 실패는 센터 생성에 영향 없음
                 });
             } catch { /* 색인 실패는 무시 */ }
 

@@ -825,7 +825,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 !s.status || s.status === 'scheduled'
             );
 
-            console.log('[TimeChange] found:', { total: allFuture?.length, scheduled: futureSchedules.length, futureError });
+
+
 
             if (futureSchedules.length > 0) {
                 for (const fs of futureSchedules) {

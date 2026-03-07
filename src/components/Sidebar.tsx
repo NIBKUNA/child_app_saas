@@ -440,6 +440,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: { is
         if (currentGroup && !openGroups.includes(currentGroup)) {
             setOpenGroups(prev => [...prev, currentGroup]);
         }
+        // openGroups를 의존 배열에 넣으면 setOpenGroups → 리렌더 → useEffect 재실행 → 무한 루프
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [location.pathname, findGroupForPath]);
 

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, react-refresh/only-export-components */
+/* eslint-disable react-refresh/only-export-components */
 /**
  * 🎨 Project: Zarada ERP - The Sovereign Canvas
  * 🛠️ Modified by: Gemini AI (for An Uk-bin)
@@ -74,10 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initialHash = useRef(window.location.hash);
     const initialParams = useRef(new URLSearchParams(window.location.search));
 
-    useEffect(() => {
-        // ✨ [DEBUG] 초기 로드 시 Invite Flag 확인
-        // Invite link detection handled silently
-    }, []);
 
     useEffect(() => {
         return () => { isMounted.current = false; };
@@ -233,7 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const crossRole = (therapistRecord as { system_role: string } | null)?.system_role as UserRole;
                     if (crossRole && crossRole !== 'parent') {
                         dbRole = crossRole;
-                        console.log('[Auth] Role recovered from therapists table:', crossRole);
+                        if (import.meta.env.DEV) console.log('[Auth] Role recovered from therapists table:', crossRole);
                     } else {
                         dbRole = 'parent'; // 진짜 아무 데도 없으면 최종 폴백
                     }
@@ -298,7 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                     if (typedFallback && typedFallback.system_status !== 'retired') {
                         const fallbackRole = (typedFallback.system_role as UserRole) || 'therapist';
-                        console.log('[Auth] Role recovered from therapists:', fallbackRole);
+                        if (import.meta.env.DEV) console.log('[Auth] Role recovered from therapists:', fallbackRole);
                         setRole(fallbackRole);
                         setCenterId(typedFallback.center_id);
                         if (fallbackRole === 'therapist') setTherapistId(typedFallback.id);
@@ -329,7 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         if (typedFallback2 && typedFallback2.system_status !== 'retired') {
                             const fb2Role = (typedFallback2.system_role as UserRole) || 'therapist';
-                            console.log('[Auth] No profile found but recovered from therapists:', fb2Role);
+                            if (import.meta.env.DEV) console.log('[Auth] No profile found but recovered from therapists:', fb2Role);
                             setRole(fb2Role);
                             setCenterId(typedFallback2.center_id);
                             if (fb2Role === 'therapist') setTherapistId(typedFallback2.id);
