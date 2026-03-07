@@ -196,6 +196,7 @@ export function ConsultationList() {
                         .select('*')
                         .in('child_id', childIds.slice(i, i + ASSESS_BATCH))
                         .not('summary', 'eq', '부모님 자가진단 기록')
+                        .gte('created_at', minDate) // ✨ [Scalability] 60일 범위로 제한
                         .order('created_at', { ascending: false })
                         .limit(100);
                     if (!isAdmin && currentTherapistId) {

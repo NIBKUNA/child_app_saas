@@ -611,8 +611,8 @@ export function TherapistList() {
             </div>
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-lg p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+                <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-4 pt-[5vh] overflow-y-auto animate-in fade-in duration-200" onClick={() => setIsModalOpen(false)}>
+                    <div className="bg-white dark:bg-slate-900 rounded-[40px] w-full max-w-lg p-10 shadow-2xl overscroll-contain my-auto" onClick={e => e.stopPropagation()} style={{ marginTop: '0', marginBottom: 'auto' }}>
                         <div className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-black text-slate-900 dark:text-white">
                                 {editingId
