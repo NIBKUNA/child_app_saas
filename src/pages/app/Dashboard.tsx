@@ -74,6 +74,7 @@ interface SiteVisit {
     utm_campaign: string | null;
     utm_source: string | null;
     utm_medium: string | null;
+    user_agent: string | null;
 }
 
 interface DashboardLead {
@@ -411,6 +412,14 @@ export function Dashboard() {
     const [inquiryHourData, setInquiryHourData] = useState<{ hour: string; count: number; label: string }[]>([]); // ✨ 시간대별 문의
     const [avgInquiryTime, setAvgInquiryTime] = useState(''); // ✨ 평균 문의 시간
 
+    // ✨ [Phase 2] 마케팅 지능 신규 데이터
+    const [heatmapData, setHeatmapData] = useState<{ day: number; hour: number; count: number }[]>([]);
+    const [landingPageData, setLandingPageData] = useState<{ name: string; value: number; pct: number }[]>([]);
+    const [deviceData, setDeviceData] = useState<{ name: string; value: number }[]>([]);
+    const [dailyTrendData, setDailyTrendData] = useState<{ name: string; value: number }[]>([]);
+    const [peakTimeLabel, setPeakTimeLabel] = useState('');
+    const [mobileRatio, setMobileRatio] = useState(0);
+
     // ✨ [신규] 일지 미작성 & 출석률 통계
     const [missingNotes, setMissingNotes] = useState<{ therapist: string; count: number; total: number }[]>([]);
     const [missingNoteTotal, setMissingNoteTotal] = useState(0);
@@ -466,10 +475,10 @@ export function Dashboard() {
                     .from('children')
                     .select('id, name, gender, birth_date, created_at, status')
                     .eq('center_id', center.id),
-                // 3. Site Visits (월별) — ✨ [FIX] utm_campaign/source/medium 포함
+                // 3. Site Visits (월별) — ✨ [FIX] utm_campaign/source/medium + user_agent 포함
                 supabase
                     .from('site_visits')
-                    .select('source_category, visited_at, referrer_url, page_url, utm_campaign, utm_source, utm_medium')
+                    .select('source_category, visited_at, referrer_url, page_url, utm_campaign, utm_source, utm_medium, user_agent')
                     .eq('center_id', center.id)
                     .gte('visited_at', selectedMonth + '-01')
                     .lte('visited_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0')),
@@ -649,6 +658,12 @@ export function Dashboard() {
             const siteVisitCampaignMap: Record<string, number> = {};
             const blogTrafficMap: Record<string, Record<string, number>> = {};
 
+            // ✨ [Phase 2] 히트맵 / 인기 페이지 / 디바이스 / 일별 트렌드 집계 구조
+            const heatmapBuckets: Record<string, number> = {}; // "day_hour" → count
+            const pageCountMap: Record<string, number> = {};
+            let deviceMobile = 0, devicePC = 0, deviceTablet = 0;
+            const dailyCountMap: Record<string, number> = {};
+
             siteVisits?.forEach((v: SiteVisit) => {
                 let cat = v.source_category || 'Others';
 
@@ -673,6 +688,41 @@ export function Dashboard() {
                 // ✨ [NEW] utm_campaign이 있으면 캠페인 집계
                 if (v.utm_campaign && v.utm_campaign !== '-') {
                     siteVisitCampaignMap[v.utm_campaign] = (siteVisitCampaignMap[v.utm_campaign] || 0) + 1;
+                }
+
+                // ✨ [Phase 2] 히트맵: 요일 × 시간 집계 (Direct 제외 — totalInflow와 일치)
+                if (v.visited_at && cat !== 'Direct') {
+                    const visitDate = new Date(v.visited_at);
+                    const dayOfWeek = visitDate.getDay();
+                    const hourOfDay = visitDate.getHours();
+                    const hKey = `${dayOfWeek}_${hourOfDay}`;
+                    heatmapBuckets[hKey] = (heatmapBuckets[hKey] || 0) + 1;
+
+                    const dayStr = v.visited_at.slice(0, 10);
+                    dailyCountMap[dayStr] = (dailyCountMap[dayStr] || 0) + 1;
+                }
+
+                // ✨ [Phase 2] 인기 랜딩 페이지 집계 (Direct 제외)
+                if (v.page_url && cat !== 'Direct') {
+                    try {
+                        const urlObj = new URL(v.page_url);
+                        const path = urlObj.pathname.replace(/\/$/, '') || '/';
+                        pageCountMap[path] = (pageCountMap[path] || 0) + 1;
+                    } catch {
+                        // invalid url
+                    }
+                }
+
+                // ✨ [Phase 2] 디바이스 분류 (Direct 제외)
+                if (v.user_agent && cat !== 'Direct') {
+                    const ua = v.user_agent.toLowerCase();
+                    if (/ipad|tablet|kindle|playbook/.test(ua)) {
+                        deviceTablet++;
+                    } else if (/mobile|android|iphone|ipod|opera mini|iemobile|wpdesktop/.test(ua)) {
+                        deviceMobile++;
+                    } else {
+                        devicePC++;
+                    }
                 }
 
                 const isBlog = v.page_url?.includes('/blog/') ?? false;
@@ -733,6 +783,47 @@ export function Dashboard() {
             setTotalInflow(totalDisplayedVisits);
 
             if (marketingArr.length > 0) setBestChannel(marketingArr[0]);
+
+            // ✨ [Phase 2] 히트맵 데이터 → 배열 변환
+            const heatmapArr: { day: number; hour: number; count: number }[] = [];
+            for (let d = 0; d < 7; d++) {
+                for (let h = 0; h < 24; h++) {
+                    heatmapArr.push({ day: d, hour: h, count: heatmapBuckets[`${d}_${h}`] || 0 });
+                }
+            }
+            setHeatmapData(heatmapArr);
+
+            // 피크 시간 라벨
+            const peakEntry = heatmapArr.reduce((best, cur) => cur.count > best.count ? cur : best, { day: 0, hour: 0, count: 0 });
+            if (peakEntry.count > 0) {
+                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                setPeakTimeLabel(`${dayNames[peakEntry.day]}요일 ${peakEntry.hour}시`);
+            } else {
+                setPeakTimeLabel('');
+            }
+
+            // ✨ [Phase 2] 인기 랜딩 페이지 TOP 5
+            const totalPages = Object.values(pageCountMap).reduce((a, b) => a + b, 0);
+            const landingArr = Object.entries(pageCountMap)
+                .map(([name, value]) => ({ name, value, pct: totalPages > 0 ? Math.round((value / totalPages) * 100) : 0 }))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 5);
+            setLandingPageData(landingArr);
+
+            // ✨ [Phase 2] 디바이스 분석
+            const devTotal = deviceMobile + devicePC + deviceTablet;
+            setDeviceData([
+                { name: '모바일', value: deviceMobile },
+                { name: 'PC', value: devicePC },
+                { name: '태블릿', value: deviceTablet }
+            ]);
+            setMobileRatio(devTotal > 0 ? Math.round((deviceMobile / devTotal) * 100) : 0);
+
+            // ✨ [Phase 2] 일별 유입 트렌드
+            const dailyArr = Object.entries(dailyCountMap)
+                .map(([name, value]) => ({ name: name.slice(5), value })) // MM-DD 형식
+                .sort((a, b) => a.name.localeCompare(b.name));
+            setDailyTrendData(dailyArr);
 
             // ✨ [LEADS CONVERSION ANALYSIS]
             const monthlyLeadsMap: Record<string, { consults: number; converted: number }> = {};
@@ -1557,38 +1648,28 @@ export function Dashboard() {
                                 <h3 className="text-lg md:text-3xl font-black mb-1 md:mb-2 flex items-center gap-2 md:gap-3 flex-wrap">월간 채널 유입: {totalInflow.toLocaleString()} 건</h3>
                                 <p className="text-indigo-200 font-bold text-sm md:text-lg underline underline-offset-8 decoration-yellow-400">최고 전환 채널: {bestChannel.name}</p>
                             </div>
-                            <div className="flex gap-6 md:gap-10 pt-3 md:pt-6 border-t border-white/10">
-                                <div className="group relative">
-                                    <span className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest mb-1 md:mb-1.5 cursor-help">
-                                        Lead Velocity
-                                        <div className={cn("w-3 h-3 rounded-full border border-current flex items-center justify-center text-[8px] opacity-70")}>i</div>
-                                    </span>
-                                    <span className="text-xl md:text-3xl font-black text-emerald-400 leading-none">{avgLeadTime}일</span>
-                                    {/* ✨ Tooltip Position Fixed: bottom-full to avoid clipping */}
-                                    <div className="absolute bottom-full left-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none transform translate-y-2 group-hover:translate-y-0">
-                                        <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 rotate-45"></div>
-                                        <p className="text-[11px] text-emerald-400 font-black mb-1.5 flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                            리드 처리 속도 (민첩성)
-                                        </p>
-                                        <p className="text-[10px] text-slate-300 leading-relaxed font-bold">문의 접수부터 첫 방문까지의 평균 시간입니다. 고객의 관심이 높을 때 얼마나 빠르게 응대했는지를 나타내며, 본사의 운영 관리 효율을 상징합니다.</p>
-                                    </div>
+                            <div className="flex flex-wrap gap-4 md:gap-8 pt-3 md:pt-6 border-t border-white/10">
+                                <div>
+                                    <span className="text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest block mb-1">Lead Velocity</span>
+                                    <span className="text-xl md:text-2xl font-black text-emerald-400">{avgLeadTime}일</span>
                                 </div>
-                                <div className="group relative">
-                                    <span className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest mb-1 md:mb-1.5 cursor-help">
-                                        Active Campaigns
-                                        <div className={cn("w-3 h-3 rounded-full border border-current flex items-center justify-center text-[8px] opacity-70")}>i</div>
+                                <div>
+                                    <span className="text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest block mb-1">Active Campaigns</span>
+                                    <span className="text-xl md:text-2xl font-black text-amber-400">{campaignData.length}개</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest block mb-1">Peak Time</span>
+                                    <span className="text-xl md:text-2xl font-black text-violet-400">{peakTimeLabel || '-'}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest block mb-1">Device</span>
+                                    <span className="flex items-center gap-0.5 text-lg md:text-2xl font-black leading-none">
+                                        <svg className="w-4 h-4 text-pink-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" /><line x1="12" y1="18" x2="12" y2="18.01" /></svg>
+                                        <span className="text-pink-400">{mobileRatio}%</span>
+                                        <span className="text-white/30 mx-1">/</span>
+                                        <svg className="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+                                        <span className="text-blue-400">{100 - mobileRatio}%</span>
                                     </span>
-                                    <span className="text-xl md:text-3xl font-black text-amber-400 leading-none">{campaignData.length}개</span>
-                                    {/* ✨ Tooltip Position Fixed: bottom-full to avoid clipping */}
-                                    <div className="absolute bottom-full left-0 mb-3 w-64 p-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none transform translate-y-2 group-hover:translate-y-0">
-                                        <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-slate-800 border-r border-b border-slate-700 rotate-45"></div>
-                                        <p className="text-[11px] text-amber-400 font-black mb-1.5 flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                            마케팅 캠페인 믹스
-                                        </p>
-                                        <p className="text-[10px] text-slate-300 leading-relaxed font-bold">현재 작동 중인 광고 프로모션의 개수입니다. 네이버 파워링크, 블로그 이벤트 등 활성화된 캠페인별 유입을 자동 추적합니다.</p>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1598,38 +1679,276 @@ export function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-                        {/* ✨ [HQ] Deep Dive: Channel Breakdown (SUPER ADMIN ONLY) */}
-                        {isSuperAdmin && (
-                            <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                                <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-3 md:mb-6 flex items-center gap-2 md:gap-3">
-                                    {SvgIcons.share("w-4 h-4 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400")}
-                                    채널별 유입 상세 데이터
-                                </h3>
-                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
-                                    {marketingData.map((item, idx) => (
-                                        <ChannelGridCard key={idx} channel={item} totalInflow={totalInflow} />
-                                    ))}
+                    {/* ═══════ 📊 섹션 1: 전체 유입 분석 ═══════ */}
+                    <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800">
+                            <span className="text-base">📊</span>
+                            <span className="text-sm font-black text-indigo-700 dark:text-indigo-300">전체 유입 분석</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">자연 검색 + 광고 + SNS 등 모든 방문 기록 기반</span>
+                        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                    </div>
+
+                    {isSuperAdmin && (
+                        <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-3 md:mb-6 flex items-center gap-2 md:gap-3">
+                                {SvgIcons.share("w-4 h-4 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400")}
+                                채널별 유입 상세 데이터
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                                {marketingData.map((item, idx) => (
+                                    <ChannelGridCard key={idx} channel={item} totalInflow={totalInflow} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ✨ [Phase 2] 시간대별 유입 히트맵 */}
+                    <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                        <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
+                            <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
+                                {SvgIcons.calendar("w-4 h-4 md:w-5 md:h-5")}
+                            </div>
+                            시간대별 유입 히트맵
+                            {peakTimeLabel && <span className="text-xs font-bold text-violet-500 bg-violet-50 dark:bg-violet-900/40 px-2 py-0.5 rounded-lg ml-auto">🔥 피크: {peakTimeLabel}</span>}
+                        </h3>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 md:mb-6">요일 × 시간대별 방문 집중도 — 광고 입찰 시간대 최적화에 활용하세요</p>
+
+                        {heatmapData.some(d => d.count > 0) ? (
+                            <div className="overflow-x-auto">
+                                <div className="min-w-[500px]">
+                                    {/* 시간 헤더 */}
+                                    <div className="flex items-center gap-0.5 mb-1">
+                                        <div className="w-10 shrink-0" />
+                                        {Array.from({ length: 24 }, (_, h) => (
+                                            <div key={h} className="flex-1 text-center text-[8px] md:text-[9px] font-bold text-slate-400">
+                                                {h % 3 === 0 ? `${h}시` : ''}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* 요일별 행 (월~일 순서) */}
+                                    {[1, 2, 3, 4, 5, 6, 0].map(dayIdx => {
+                                        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                                        const maxCount = Math.max(...heatmapData.map(d => d.count), 1);
+                                        return (
+                                            <div key={dayIdx} className="flex items-center gap-0.5 mb-0.5">
+                                                <div className="w-10 shrink-0 text-[10px] md:text-xs font-black text-slate-500 dark:text-slate-400">
+                                                    {dayNames[dayIdx]}
+                                                </div>
+                                                {Array.from({ length: 24 }, (_, h) => {
+                                                    const entry = heatmapData.find(d => d.day === dayIdx && d.hour === h);
+                                                    const count = entry?.count || 0;
+                                                    const intensity = count / maxCount;
+                                                    const bgColor = count === 0
+                                                        ? (isDark ? '#1e293b' : '#f1f5f9')
+                                                        : `hsl(260, ${50 + intensity * 40}%, ${isDark ? 25 + intensity * 30 : 80 - intensity * 45}%)`;
+                                                    return (
+                                                        <div
+                                                            key={h}
+                                                            className="flex-1 aspect-square rounded-[3px] md:rounded transition-colors cursor-default group/cell relative"
+                                                            style={{ backgroundColor: bgColor, minHeight: '12px' }}
+                                                            title={`${dayNames[dayIdx]} ${h}시: ${count}건`}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })}
+                                    {/* 범례 */}
+                                    <div className="flex items-center justify-end gap-1.5 mt-3">
+                                        <span className="text-[9px] font-bold text-slate-400">적음</span>
+                                        {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
+                                            <div key={i} className="w-3 h-3 rounded-[2px]" style={{
+                                                backgroundColor: intensity === 0
+                                                    ? (isDark ? '#1e293b' : '#f1f5f9')
+                                                    : `hsl(260, ${50 + intensity * 40}%, ${isDark ? 25 + intensity * 30 : 80 - intensity * 45}%)`
+                                            }} />
+                                        ))}
+                                        <span className="text-[9px] font-bold text-slate-400">많음</span>
+                                    </div>
                                 </div>
                             </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                <p className="font-bold">유입 데이터가 없습니다</p>
+                                <p className="text-xs mt-1">방문이 쌓이면 자동으로 히트맵이 표시됩니다</p>
+                            </div>
                         )}
+                    </div>
 
-                        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                    {/* ✨ [Phase 2] 일별 트렌드 + 인기 페이지 + 디바이스 (3열) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+                        {/* 일별 유입 트렌드 */}
+                        <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
+                                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400">
+                                    {SvgIcons.trendingUp("w-4 h-4 md:w-5 md:h-5")}
+                                </div>
+                                일별 유입 트렌드
+                            </h3>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 md:mb-6">광고 집행 전후 효과를 일별로 비교하세요</p>
+
+                            {dailyTrendData.length > 0 ? (
+                                <div className="h-[220px] md:h-[280px]">
+                                    <SafeChart>
+                                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                            <AreaChart data={dailyTrendData} margin={isMobile ? { top: 10, right: 5, left: -15, bottom: 0 } : { top: 10, right: 20, left: 0, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorDailyTrend" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#1e293b' : '#f1f5f9'} />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 9 : 11 }} interval={isMobile ? 4 : 2} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} width={isMobile ? 25 : 40} />
+                                                <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`${val}건`, '유입']} />
+                                                <Area type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={isMobile ? 2 : 3} fillOpacity={1} fill="url(#colorDailyTrend)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </SafeChart>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <p className="font-bold">유입 데이터가 없습니다</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 인기 랜딩 페이지 TOP 5 */}
+                        <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
+                                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                                    {SvgIcons.bookOpen("w-4 h-4 md:w-5 md:h-5")}
+                                </div>
+                                인기 랜딩 페이지
+                            </h3>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 md:mb-5">어떤 페이지로 유입이 집중되는지 확인</p>
+
+                            {landingPageData.length > 0 ? (
+                                <div className="space-y-2.5">
+                                    {landingPageData.map((item, idx) => {
+                                        const colors = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ec4899'];
+                                        const color = colors[idx % colors.length];
+                                        // 경로 간소화
+                                        const shortPath = item.name.replace(/^\/centers\/[^/]+/, '').replace(/^\//, '') || '홈';
+                                        const displayPath = shortPath === '' ? '홈' :
+                                            shortPath.replace('programs', '프로그램').replace('therapists', '치료사').replace('about', '소개').replace('contact', '문의').replace('blog', '블로그');
+                                        return (
+                                            <div key={item.name} className="group">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="text-xs font-black w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: color + '20', color }}>{idx + 1}</span>
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate" title={item.name}>{displayPath}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white">{item.value}</span>
+                                                        <span className="text-[10px] font-bold text-slate-400">{item.pct}%</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${item.pct}%`, backgroundColor: color }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <p className="font-bold text-sm">데이터 없음</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 디바이스 분석 */}
+                        <div className="lg:col-span-3 bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
+                                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
+                                    {SvgIcons.activity("w-4 h-4 md:w-5 md:h-5")}
+                                </div>
+                                디바이스 분석
+                            </h3>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 md:mb-5">방문자 접속 환경</p>
+
+                            {deviceData.reduce((a, d) => a + d.value, 0) > 0 ? (
+                                <div className="space-y-4">
+                                    {/* 도넛 차트 (PC) / 바 리스트 (모바일) */}
+                                    {isMobile ? (
+                                        <div className="space-y-3">
+                                            {deviceData.filter(d => d.value > 0).map((item, idx) => {
+                                                const total = deviceData.reduce((a, d) => a + d.value, 0);
+                                                const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                                                const emojis = ['📱', '💻', '📋'];
+                                                const colors = ['#ec4899', '#3b82f6', '#f59e0b'];
+                                                return (
+                                                    <div key={item.name} className="flex items-center gap-3">
+                                                        <span className="text-lg">{emojis[idx]}</span>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between mb-1">
+                                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.name}</span>
+                                                                <span className="text-sm font-black text-slate-900 dark:text-white">{pct}%</span>
+                                                            </div>
+                                                            <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: colors[idx] }} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="h-[240px]">
+                                            <SafeChart>
+                                                <ResponsiveContainer width="100%" height="100%" debounce={100}>
+                                                    <PieChart>
+                                                        <Pie data={deviceData.filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none" paddingAngle={2}
+                                                            label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                                        >
+                                                            <Cell fill="#ec4899" />
+                                                            <Cell fill="#3b82f6" />
+                                                            <Cell fill="#f59e0b" />
+                                                        </Pie>
+                                                        <RechartsTooltip {...tooltipProps} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </SafeChart>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <p className="font-bold text-sm">데이터 없음</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ═══════ 🎯 섹션 2: 광고 캠페인 전용 ═══════ */}
+                    <div className="flex items-center gap-3 mt-4">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800">
+                            <span className="text-base">🎯</span>
+                            <span className="text-sm font-black text-amber-700 dark:text-amber-300">광고 캠페인 전용</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">gclid · n_media · fbclid 자동 감지 클릭만 집계</span>
+                        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                        {/* 캠페인 성과 */}
+                        <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
                             <h3 className="font-bold text-base md:text-xl text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
                                 {SvgIcons.trendingUp("w-5 h-5 md:w-6 md:h-6 text-amber-500")}
-                                캠페인 성과
+                                캠페인별 클릭 수
                             </h3>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-5">광고 플랫폼별 유입 클릭 추적</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-5">광고 플랫폼 자동 태그(gclid/n_media/fbclid) 기반 — 실제 광고 클릭만 집계</p>
 
                             {campaignData.length > 0 ? (
                                 <div className="space-y-3">
-                                    {/* 캠페인 카드 리스트 */}
                                     {campaignData.map((item, idx) => {
                                         const total = campaignData.reduce((s, c) => s + c.value, 0);
                                         const pct = total > 0 ? Math.round(item.value / total * 100) : 0;
                                         const colors = ['#FBBC04', '#2DB400', '#1877F2', '#E1306C', '#FF0000', '#6366f1'];
                                         const color = colors[idx % colors.length];
-                                        // 캠페인 이름 한글화
                                         const displayName = item.name
                                             .replace('google_ads_auto', 'Google 광고')
                                             .replace('naver_ads_auto', 'Naver 광고')
@@ -1639,7 +1958,7 @@ export function Dashboard() {
                                                 <div className="flex items-center justify-between mb-1.5">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]">{displayName}</span>
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[200px]">{displayName}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-black text-slate-900 dark:text-white">{item.value}건</span>
@@ -1647,16 +1966,11 @@ export function Dashboard() {
                                                     </div>
                                                 </div>
                                                 <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full rounded-full transition-all duration-700"
-                                                        style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }}
-                                                    />
+                                                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
                                                 </div>
                                             </div>
                                         );
                                     })}
-
-                                    {/* 하단 요약 */}
                                     <div className="pt-3 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                                         <span className="text-[11px] font-bold text-slate-400">총 광고 클릭</span>
                                         <span className="text-lg font-black text-amber-500">{campaignData.reduce((s, c) => s + c.value, 0)}건</span>
@@ -1665,16 +1979,36 @@ export function Dashboard() {
                             ) : (
                                 <div className="h-[200px] flex flex-col items-center justify-center space-y-3">
                                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 flex items-center justify-center">
-                                        <svg className="w-7 h-7 text-amber-300 dark:text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                            <path d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                        </svg>
+                                        <svg className="w-7 h-7 text-amber-300 dark:text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
                                     </div>
                                     <p className="text-xs font-bold text-slate-400 dark:text-slate-500">아직 광고 클릭 데이터가 없습니다</p>
-                                    <p className="text-[10px] text-slate-300 dark:text-slate-600 text-center leading-relaxed">
-                                        Google·Naver·Facebook 광고 클릭이<br/>자동으로 감지됩니다
-                                    </p>
+                                    <p className="text-[10px] text-slate-300 dark:text-slate-600 text-center leading-relaxed">Google·Naver·Facebook 광고 클릭이<br/>자동으로 감지됩니다</p>
                                 </div>
                             )}
+                        </div>
+
+                        {/* 광고 유입 안내 */}
+                        <div className={`p-6 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border text-left ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-100'}`}>
+                            <h3 className="font-bold text-base md:text-lg text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                <span className="text-xl">💡</span> 광고 클릭 감지 작동 방식
+                            </h3>
+                            <div className="space-y-3 text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-amber-500 mt-0.5 shrink-0">●</span>
+                                    <p><strong className="text-slate-800 dark:text-slate-200">Google Ads</strong> — URL에 <code className="bg-white/80 dark:bg-slate-800 px-1 rounded text-[10px]">gclid</code> 파라미터가 포함되면 자동 감지</p>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="text-green-500 mt-0.5 shrink-0">●</span>
+                                    <p><strong className="text-slate-800 dark:text-slate-200">Naver Ads</strong> — URL에 <code className="bg-white/80 dark:bg-slate-800 px-1 rounded text-[10px]">n_media</code> 파라미터가 포함되면 자동 감지</p>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="text-blue-500 mt-0.5 shrink-0">●</span>
+                                    <p><strong className="text-slate-800 dark:text-slate-200">Facebook/Instagram Ads</strong> — URL에 <code className="bg-white/80 dark:bg-slate-800 px-1 rounded text-[10px]">fbclid</code> 파라미터가 포함되면 자동 감지</p>
+                                </div>
+                            </div>
+                            <div className={`mt-4 p-3 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white/80 border-amber-200'}`}>
+                                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">⚠️ 위 "전체 유입 분석"의 수치에는 자연 검색, SNS, 블로그 등 <strong>모든 방문</strong>이 포함됩니다. 이 섹션은 <strong>유료 광고 클릭만</strong> 별도로 집계합니다.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
