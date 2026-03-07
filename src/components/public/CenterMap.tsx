@@ -155,7 +155,7 @@ export function CenterMap({ className }: CenterMapProps) {
     if (!coords) return null;
 
     return (
-        <motion.section className={cn("mt-24", className)} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 80 }}>
+        <motion.section className={cn("mt-24 mx-auto max-w-7xl px-6", className)} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 80 }}>
             <div className="text-center mb-10">
                 <span className={cn("inline-block px-4 py-1.5 rounded-full text-xs font-black tracking-wider uppercase mb-4", isDark ? "bg-violet-900 text-violet-300" : "bg-violet-50 text-violet-600")}>Location</span>
                 <h2 className={cn("text-3xl md:text-4xl font-black tracking-[-0.05em]", isDark ? "text-white" : "text-slate-900")} style={{ wordBreak: 'keep-all' }}>오시는 길</h2>
