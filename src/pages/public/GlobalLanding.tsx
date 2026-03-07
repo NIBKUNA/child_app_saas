@@ -14,6 +14,7 @@ interface Center {
     slug: string | null;
     address: string | null;
     logo_url: string | null;
+    banner_url: string | null;
     phone: string | null;
     weekday_hours: string | null;
     saturday_hours: string | null;
@@ -75,23 +76,29 @@ export const GlobalLanding = () => {
                     .order('name');
                 if (error) throw error;
                 if (data && data.length > 0) {
-                    // admin_settings에서 각 센터의 center_logo 가져오기
+                    // admin_settings에서 center_logo + main_banner_url 한 번에 가져오기
                     const centerIds = data.map(c => c.id);
-                    const { data: logoSettings } = await supabase
+                    const { data: settings } = await supabase
                         .from('admin_settings')
-                        .select('center_id, value')
-                        .eq('key', 'center_logo')
+                        .select('center_id, key, value')
+                        .in('key', ['center_logo', 'main_banner_url'])
                         .in('center_id', centerIds);
 
                     const logoMap = new Map<string, string>();
-                    logoSettings?.forEach(s => {
-                        if (s.value) logoMap.set(s.center_id, s.value);
+                    const bannerMap = new Map<string, string>();
+                    settings?.forEach(s => {
+                        if (!s.value) return;
+                        if (s.key === 'center_logo') logoMap.set(s.center_id, s.value);
+                        if (s.key === 'main_banner_url') {
+                            // main_banner_url은 쉼표 구분 다중 이미지일 수 있음 → 첫 번째만 사용
+                            bannerMap.set(s.center_id, s.value.split(',')[0].trim());
+                        }
                     });
 
-                    // logo_url이 없으면 admin_settings의 center_logo로 대체
                     const enriched = data.map(c => ({
                         ...c,
                         logo_url: c.logo_url || logoMap.get(c.id) || null,
+                        banner_url: bannerMap.get(c.id) || null,
                     }));
                     setCenters(enriched);
                 }
@@ -418,58 +425,61 @@ export const GlobalLanding = () => {
                                         key={center.id}
                                         variants={cardVariants}
                                         onClick={() => handleSelect(center)}
-                                        className="group text-left bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative"
+                                        className="group text-left bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl hover:border-slate-300 transition-all duration-300 hover:-translate-y-1 relative"
                                     >
-                                        {/* 좌측 액센트 바 */}
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl" style={{ backgroundColor: palette.accent }} />
+                                        {/* 상단 이미지 썸네일 */}
+                                        <div className="relative h-36 overflow-hidden">
+                                            {center.banner_url ? (
+                                                <img
+                                                    src={center.banner_url}
+                                                    alt={center.name}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${palette.accent}22, ${palette.accent}11)` }}>
+                                                    <span className="text-4xl font-black" style={{ color: palette.accent + '40' }}>{center.name.charAt(0)}</span>
+                                                </div>
+                                            )}
+                                            {/* 지역 배지 — 사진 위에 오버레이 */}
+                                            <span className={cn("absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm backdrop-blur-sm", palette.badgeBg, palette.badgeText)}>
+                                                {region}
+                                            </span>
+                                            {/* 로고 — 사진 오른쪽 하단 */}
+                                            {center.logo_url && (
+                                                <div className="absolute bottom-3 right-3 w-10 h-10 rounded-xl bg-white shadow-md overflow-hidden border border-white/50">
+                                                    <img src={center.logo_url} alt="" className="w-full h-full object-contain p-1" />
+                                                </div>
+                                            )}
+                                        </div>
 
-                                        {/* 센터 헤더 */}
-                                        <div className="px-5 pt-5 pb-3 flex items-start gap-3.5 pl-6">
-                                            <div className={cn(
-                                                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden",
-                                                center.logo_url ? 'bg-slate-50 border border-slate-100' : palette.iconBg
-                                            )}>
-                                                {center.logo_url ? (
-                                                    <img src={center.logo_url} alt={center.name} className="w-full h-full object-contain p-1.5" />
-                                                ) : (
-                                                    <span className={cn("font-black text-lg", palette.iconText)}>{center.name.charAt(0)}</span>
+                                        {/* 센터 정보 */}
+                                        <div className="p-5 space-y-2.5">
+                                            <h3 className="text-[15px] font-black text-slate-800 leading-snug truncate group-hover:text-violet-700 transition-colors">
+                                                {center.name}
+                                            </h3>
+                                            <div className="space-y-1">
+                                                <div className="flex items-start gap-2">
+                                                    <MapPin size={13} className="text-slate-400 mt-0.5 shrink-0" />
+                                                    <span className="text-xs text-slate-500 font-medium leading-snug line-clamp-1">{center.address || '주소 정보 없음'}</span>
+                                                </div>
+                                                {center.phone && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone size={13} className="text-slate-400 shrink-0" />
+                                                        <span className="text-xs text-slate-500 font-medium">{center.phone}</span>
+                                                    </div>
+                                                )}
+                                                {center.weekday_hours && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={13} className="text-slate-400 shrink-0" />
+                                                        <span className="text-xs text-slate-500 font-medium">
+                                                            평일 {center.weekday_hours}
+                                                            {center.saturday_hours && ` · 토 ${center.saturday_hours}`}
+                                                        </span>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="text-[15px] font-black text-slate-800 leading-snug truncate group-hover:text-violet-700 transition-colors">
-                                                    {center.name}
-                                                </h3>
-                                                <span className={cn("inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5", palette.badgeBg, palette.badgeText)}>
-                                                    {region}
-                                                </span>
-                                            </div>
-                                        </div>
 
-                                        {/* 정보 */}
-                                        <div className="px-5 pl-6 pb-3 space-y-1">
-                                            <div className="flex items-start gap-2">
-                                                <MapPin size={13} className="text-slate-400 mt-0.5 shrink-0" />
-                                                <span className="text-xs text-slate-500 font-medium leading-snug line-clamp-1">{center.address || '주소 정보 없음'}</span>
-                                            </div>
-                                            {center.phone && (
-                                                <div className="flex items-center gap-2">
-                                                    <Phone size={13} className="text-slate-400 shrink-0" />
-                                                    <span className="text-xs text-slate-500 font-medium">{center.phone}</span>
-                                                </div>
-                                            )}
-                                            {center.weekday_hours && (
-                                                <div className="flex items-center gap-2">
-                                                    <Clock size={13} className="text-slate-400 shrink-0" />
-                                                    <span className="text-xs text-slate-500 font-medium">
-                                                        평일 {center.weekday_hours}
-                                                        {center.saturday_hours && ` · 토 ${center.saturday_hours}`}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 하단 버튼 */}
-                                        <div className="mx-5 ml-6 mb-4 mt-1">
+                                            {/* 하단 버튼 */}
                                             <div className="flex items-center justify-between text-xs font-bold py-2 px-3.5 rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100 transition-colors">
                                                 <span>자세히 보기</span>
                                                 <ChevronRight size={15} className="translate-x-0 group-hover:translate-x-1 transition-transform" />
