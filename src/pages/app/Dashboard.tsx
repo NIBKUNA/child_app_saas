@@ -283,18 +283,18 @@ const SafeChart = ({ children, className = '' }: { children: React.ReactNode; cl
     );
 };
 
-const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; brandColor?: string }) => (
-    <div className={`bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
-        <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-6 flex items-center gap-3 relative z-10 text-left">
+const ChartContainer = ({ title, icon, children, className = "", innerHeight = "h-[320px]", mobileInnerHeight, brandColor = '#4f46e5' }: { title: string; icon: any; children: React.ReactNode; className?: string; innerHeight?: string; mobileInnerHeight?: string; brandColor?: string }) => (
+    <div className={`bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col ${className} group hover:shadow-2xl transition-all duration-500 text-left`}>
+        <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-3 md:mb-6 flex items-center gap-2 md:gap-3 relative z-10 text-left">
             <div
-                className="p-2 rounded-xl transition-colors"
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl transition-colors"
                 style={{ backgroundColor: brandColor + '10', color: brandColor }}
             >
-                {icon && icon("w-5 h-5")}
+                {icon && icon("w-4 h-4 md:w-5 md:h-5")}
             </div>
             {title}
         </h3>
-        <div className={`w-full relative ${innerHeight}`}>
+        <div className={`w-full relative ${mobileInnerHeight ? `${mobileInnerHeight} md:${innerHeight}` : innerHeight}`}>
             <SafeChart>{children}</SafeChart>
         </div>
     </div>
@@ -326,15 +326,53 @@ const ChannelGridCard = ({ channel, totalInflow }: { channel: any; totalInflow: 
     );
 };
 
+// ✨ [Mobile] Responsive hook
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
+    return isMobile;
+};
+
+// ✨ [Mobile] Horizontal bar list (replaces PieChart on mobile)
+const MobileBarList = ({ data, colors, valueFormatter }: { data: { name: string; value: number }[]; colors: string[]; valueFormatter?: (v: number) => string }) => {
+    const total = data.reduce((a, d) => a + d.value, 0);
+    if (total === 0) return <p className="text-xs text-slate-400 font-bold text-center py-4">데이터 없음</p>;
+    return (
+        <div className="space-y-2.5">
+            {data.map((item, i) => {
+                const pct = Math.round((item.value / total) * 100);
+                return (
+                    <div key={item.name} className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 w-14 truncate">{item.name}</span>
+                        <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: colors[i % colors.length] }} />
+                        </div>
+                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 w-8 text-right">{pct}%</span>
+                        {valueFormatter && <span className="text-[10px] text-slate-400 w-12 text-right hidden">{valueFormatter(item.value)}</span>}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
 export function Dashboard() {
     const { isSuperAdmin, theme } = useTheme();
     const isDark = theme === 'dark';
+    const isMobile = useIsMobile();
     const tooltipProps = getTooltipProps(isDark);
     const operationsRef = useRef<HTMLDivElement>(null);
     const marketingRef = useRef<HTMLDivElement>(null);
     const dashboardRef = useRef<HTMLDivElement>(null);
     const [slide, setSlide] = useState(0);
     const [opsPage, setOpsPage] = useState(0);
+    const [showAllTherapists, setShowAllTherapists] = useState(false);
+    const [showAllNotes, setShowAllNotes] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [kpi, setKpi] = useState({ revenue: 0, active: 0, sessions: 0, new: 0 });
     const { center } = useCenter();
@@ -863,7 +901,7 @@ export function Dashboard() {
     useEffect(() => { fetchData(); }, [selectedMonth, center]);
 
     return (
-        <div ref={dashboardRef} className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+        <div ref={dashboardRef} className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-4 md:space-y-8 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500 pb-20 md:pb-8">
             <Helmet>
                 <title>인사이트 허브 - Zarada Admin</title>
             </Helmet>
@@ -897,10 +935,10 @@ export function Dashboard() {
                 </div>
             )}
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2 md:gap-4">
                 <div className="text-left">
-                    <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight hero-text">지능형 센터 인사이트 허브</h1>
-                    <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-bold mt-1 md:mt-2">AI 기반 운영 & 마케팅 통합 분석 시스템</p>
+                    <h1 className="text-lg md:text-4xl font-black text-slate-900 dark:text-white tracking-tight hero-text"><span className="md:hidden">인사이트 허브</span><span className="hidden md:inline">지능형 센터 인사이트 허브</span></h1>
+                    <p className="hidden md:block text-sm md:text-base text-slate-500 dark:text-slate-400 font-bold mt-1 md:mt-2">AI 기반 운영 & 마케팅 통합 분석 시스템</p>
                 </div>
                 <div className="flex flex-wrap gap-2 items-center bg-white dark:bg-slate-900 p-1.5 md:p-2 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 w-full md:w-auto">
                     <input
@@ -937,9 +975,9 @@ export function Dashboard() {
             </div>
 
             {slide === 0 && (
-                <div ref={operationsRef} className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                    {/* ✨ 운영 지표 서브탭 */}
-                    <div className="flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 w-full md:w-fit overflow-x-auto no-scrollbar">
+                <div ref={operationsRef} className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                    {/* ✨ 운영 지표 서브탭 (PC: 인라인) */}
+                    <div className="hidden md:flex gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 w-full md:w-fit overflow-x-auto no-scrollbar">
                         {['매출·수업', '아동·프로그램', '운영 현황'].map((label, i) => (
                             <button
                                 key={i}
@@ -959,48 +997,48 @@ export function Dashboard() {
 
                     {/* ───── 서브탭 1: 매출·수업 ───── */}
                     {opsPage === 0 && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-2">
                             {/* Row 1: 매출 추이 (2col) + 치료사 순위 리스트 (1col) */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[320px]" brandColor={BRAND_COLOR}>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+                                <ChartContainer title="월별 누적 매출 추이" icon={SvgIcons.trendingUp} className="lg:col-span-2" innerHeight="h-[320px]" mobileInnerHeight="h-[180px]" brandColor={BRAND_COLOR}>
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                        <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 0 }}>
+                                        <AreaChart data={revenueData} margin={isMobile ? { top: 10, right: 10, left: -10, bottom: 0 } : { top: 20, right: 30, left: 20, bottom: 0 }}>
                                             <defs><linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={BRAND_COLOR} stopOpacity={0.3} /><stop offset="95%" stopColor={BRAND_COLOR} stopOpacity={0} /></linearGradient></defs>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={v => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v} />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} dy={10} interval={isMobile ? 1 : 0} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} tickFormatter={v => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v} width={isMobile ? 35 : 60} />
                                             <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`₩${val?.toLocaleString?.() ?? 0}`, '매출']} />
-                                            <Area type="monotone" dataKey="value" stroke={BRAND_COLOR} strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" />
+                                            <Area type="monotone" dataKey="value" stroke={BRAND_COLOR} strokeWidth={isMobile ? 2.5 : 4} fillOpacity={1} fill="url(#colorRevenue)" />
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
 
                                 {/* 치료사별 매출 – 리더보드 스타일 */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col text-left group hover:shadow-2xl transition-all duration-500">
-                                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-3">
-                                        <div className="p-2 rounded-xl" style={{ backgroundColor: BRAND_COLOR + '10', color: BRAND_COLOR }}>
-                                            {SvgIcons.stethoscope("w-5 h-5")}
+                                <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-2xl md:rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 flex flex-col text-left group hover:shadow-2xl transition-all duration-500">
+                                    <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 mb-3 md:mb-4 flex items-center gap-2 md:gap-3">
+                                        <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl" style={{ backgroundColor: BRAND_COLOR + '10', color: BRAND_COLOR }}>
+                                            {SvgIcons.stethoscope("w-4 h-4 md:w-5 md:h-5")}
                                         </div>
                                         치료사별 매출
                                     </h3>
                                     <div className="flex-1 overflow-y-auto space-y-2 max-h-[280px] pr-1 custom-scrollbar">
-                                        {therapistData.length > 0 ? therapistData.map((t, i) => {
+                                        {therapistData.length > 0 ? (isMobile && !showAllTherapists ? therapistData.slice(0, 3) : therapistData).map((t, i) => {
                                             const maxVal = Math.max(...therapistData.map(d => d.value), 1);
                                             const pct = (t.value / maxVal) * 100;
                                             return (
-                                                <div key={t.name} className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
+                                                <div key={t.name} className="flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
                                                     <div
-                                                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black shrink-0 shadow-sm"
+                                                        className="w-6 h-6 md:w-7 md:h-7 rounded-lg flex items-center justify-center text-white text-[10px] md:text-xs font-black shrink-0 shadow-sm"
                                                         style={{ backgroundColor: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#cd7f32' : BRAND_COLOR + '80' }}
                                                     >
                                                         {i + 1}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{t.name}</span>
-                                                            <span className="text-xs font-black text-slate-600 dark:text-slate-300 shrink-0 ml-2">₩{t.value.toLocaleString()}</span>
+                                                            <span className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{t.name}</span>
+                                                            <span className="text-[10px] md:text-xs font-black text-slate-600 dark:text-slate-300 shrink-0 ml-2">₩{t.value.toLocaleString()}</span>
                                                         </div>
-                                                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                        <div className="h-1 md:h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                                             <div
                                                                 className="h-full rounded-full transition-all duration-700"
                                                                 style={{ width: `${pct}%`, backgroundColor: BRAND_COLOR }}
@@ -1014,13 +1052,21 @@ export function Dashboard() {
                                                 <p className="text-sm font-bold">매출 데이터 없음</p>
                                             </div>
                                         )}
+                                        {isMobile && therapistData.length > 3 && !showAllTherapists && (
+                                            <button onClick={() => setShowAllTherapists(true)} className="w-full py-2 text-xs font-bold text-indigo-500 hover:text-indigo-600 transition-colors">
+                                                +{therapistData.length - 3}명 더보기
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Row 2: 수업 상태 (1col) + 전환율 (2col) */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[300px]" brandColor={BRAND_COLOR}>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+                                <ChartContainer title="수업 상태 점유율" icon={SvgIcons.pieChart} innerHeight="h-[300px]" mobileInnerHeight="h-auto" brandColor={BRAND_COLOR}>
+                                    {isMobile ? (
+                                        <MobileBarList data={statusData} colors={statusData.map(d => d.color)} />
+                                    ) : (
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                         <PieChart margin={{ top: 10, right: 0, bottom: 20, left: 0 }}>
                                             <Pie data={statusData} cx="50%" cy="55%" innerRadius={60} outerRadius={85} dataKey="value" stroke="none">
@@ -1029,6 +1075,7 @@ export function Dashboard() {
                                             <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="top" align="center" wrapperStyle={{ top: 0 }} />
                                         </PieChart>
                                     </ResponsiveContainer>
+                                    )}
                                 </ChartContainer>
 
                                 <ChartContainer title="상담 후 등록 전환율" icon={SvgIcons.activity} className="lg:col-span-2" innerHeight="h-[300px]" brandColor={BRAND_COLOR}>
@@ -1050,9 +1097,12 @@ export function Dashboard() {
 
                     {/* ───── 서브탭 2: 아동·프로그램 ───── */}
                     {opsPage === 1 && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]">
+                        <div className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+                                <ChartContainer title="프로그램별 점유율 (횟수)" icon={SvgIcons.clipboardCheck} innerHeight="h-[300px]" mobileInnerHeight="h-auto">
+                                    {isMobile ? (
+                                        <MobileBarList data={programData} colors={COLORS} />
+                                    ) : (
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                         <PieChart margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
                                             <Pie data={programData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} dataKey="value" stroke="none" label={({ percent }: any) => `${((percent || 0) * 100).toFixed(0)}%`}>
@@ -1061,8 +1111,12 @@ export function Dashboard() {
                                             <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ bottom: 0 }} iconSize={8} />
                                         </PieChart>
                                     </ResponsiveContainer>
+                                    )}
                                 </ChartContainer>
-                                <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]">
+                                <ChartContainer title="아동 연령별" icon={SvgIcons.users} innerHeight="h-[300px]" mobileInnerHeight="h-auto">
+                                    {isMobile ? (
+                                        <MobileBarList data={ageData} colors={AGE_COLORS} />
+                                    ) : (
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                         <PieChart margin={{ top: 5, right: 0, bottom: 5, left: 0 }}>
                                             <Pie data={ageData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} dataKey="value" stroke="none">
@@ -1071,8 +1125,23 @@ export function Dashboard() {
                                             <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ bottom: 0 }} iconSize={8} />
                                         </PieChart>
                                     </ResponsiveContainer>
+                                    )}
                                 </ChartContainer>
-                                <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]">
+                                <ChartContainer title="성별 비율" icon={SvgIcons.users} innerHeight="h-[300px]" mobileInnerHeight="h-auto">
+                                    {isMobile ? (
+                                        <div className="flex items-center justify-center gap-6 py-2">
+                                            {genderData.map((g, i) => {
+                                                const total = genderData.reduce((a, d) => a + d.value, 0);
+                                                const pct = total > 0 ? Math.round((g.value / total) * 100) : 0;
+                                                return (
+                                                    <div key={g.name} className="text-center">
+                                                        <div className="text-3xl font-black" style={{ color: i === 0 ? '#3b82f6' : '#ec4899' }}>{pct}%</div>
+                                                        <div className="text-xs font-bold text-slate-500 mt-1">{g.name} {g.value}명</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
                                     <ResponsiveContainer width="100%" height="100%" debounce={100}>
                                         <PieChart margin={{ top: 5, right: 30, bottom: 5, left: 30 }}>
                                             <Pie data={genderData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} dataKey="value" stroke="none" label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}>
@@ -1081,18 +1150,19 @@ export function Dashboard() {
                                             <RechartsTooltip {...tooltipProps} /><Legend verticalAlign="bottom" align="center" wrapperStyle={{ bottom: 0 }} />
                                         </PieChart>
                                     </ResponsiveContainer>
+                                    )}
                                 </ChartContainer>
                             </div>
 
-                            <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]" brandColor="#ec4899">
+                            <ChartContainer title="상위 기여 아동" icon={SvgIcons.crown} innerHeight="h-[300px]" mobileInnerHeight="h-[180px]" brandColor="#ec4899">
                                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                    <BarChart data={topChildren} margin={{ top: 30, right: 30, left: 10, bottom: 0 }}>
+                                    <BarChart data={topChildren} margin={isMobile ? { top: 10, right: 10, left: -10, bottom: 0 } : { top: 30, right: 30, left: 10, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fontSize: 12 }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={(v: number) => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v.toLocaleString()} />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fontSize: isMobile ? 10 : 12 }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 10 : 11 }} tickFormatter={(v: number) => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : v.toLocaleString()} width={isMobile ? 35 : 60} />
                                         <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`₩${val?.toLocaleString?.() ?? 0}`, '기여 매출']} />
-                                        <Bar dataKey="value" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={36}>
-                                            <LabelList dataKey="value" position="top" style={{ fontWeight: 'bold', fill: '#64748b', fontSize: 12 }} formatter={(v: any) => `₩${Number(v)?.toLocaleString?.()}`} />
+                                        <Bar dataKey="value" fill="#ec4899" radius={[6, 6, 0, 0]} barSize={isMobile ? 20 : 36}>
+                                            {!isMobile && <LabelList dataKey="value" position="top" style={{ fontWeight: 'bold', fill: '#64748b', fontSize: 12 }} formatter={(v: any) => `₩${Number(v)?.toLocaleString?.()}`} />}
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -1101,14 +1171,14 @@ export function Dashboard() {
 
                     {/* ───── 서브탭 3: 운영 현황 ───── */}
                     {opsPage === 2 && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="space-y-4 md:space-y-8 animate-in fade-in slide-in-from-bottom-2">
                             {/* ✨ [신규] 일지 미작성 알림 + 출석률 통계 */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                                 {/* 일지 미작성 알림 */}
-                                <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                                            {SvgIcons.clipboardCheck("w-5 h-5 text-rose-500")}
+                                <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                                    <div className="flex items-center justify-between mb-3 md:mb-6">
+                                        <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 md:gap-3">
+                                            {SvgIcons.clipboardCheck("w-4 h-4 md:w-5 md:h-5 text-rose-500")}
                                             일지 미작성 현황
                                         </h3>
                                         {missingNoteTotal > 0 ? (
@@ -1122,9 +1192,9 @@ export function Dashboard() {
                                         )}
                                     </div>
                                     {missingNotes.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {missingNotes.map((item) => (
-                                                <div key={item.therapist} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                        <div className="space-y-2 md:space-y-3">
+                                            {(isMobile && !showAllNotes ? missingNotes.slice(0, 3) : missingNotes).map((item) => (
+                                                <div key={item.therapist} className="flex items-center gap-2 md:gap-4 p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                                     <div className="flex-1">
                                                         <p className="font-black text-slate-900 dark:text-white text-sm">{item.therapist}</p>
                                                         <p className="text-[11px] text-slate-400 font-bold mt-0.5">
@@ -1149,6 +1219,11 @@ export function Dashboard() {
                                                     </div>
                                                 </div>
                                             ))}
+                                            {isMobile && missingNotes.length > 3 && !showAllNotes && (
+                                                <button onClick={() => setShowAllNotes(true)} className="w-full py-2 text-xs font-bold text-indigo-500">
+                                                    +{missingNotes.length - 3}명 더보기
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
@@ -1158,33 +1233,33 @@ export function Dashboard() {
                                 </div>
 
                                 {/* 출석률 통계 */}
-                                <div className="bg-white dark:bg-slate-900 p-8 rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                                            {SvgIcons.calendar("w-5 h-5 text-blue-500")}
+                                <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[36px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                                    <div className="flex items-center justify-between mb-3 md:mb-6">
+                                        <h3 className="font-bold text-sm md:text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 md:gap-3">
+                                            {SvgIcons.calendar("w-4 h-4 md:w-5 md:h-5 text-blue-500")}
                                             주차별 출석률
                                         </h3>
-                                        <div className="flex items-center gap-3">
-                                            <span className={`text-3xl font-black ${overallAttendance >= 90 ? 'text-emerald-500' : overallAttendance >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                        <div className="flex items-center gap-2 md:gap-3">
+                                            <span className={`text-xl md:text-3xl font-black ${overallAttendance >= 90 ? 'text-emerald-500' : overallAttendance >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
                                                 {overallAttendance}%
                                             </span>
                                             <span className="text-xs text-slate-400 font-bold">월간 출석률</span>
                                         </div>
                                     </div>
                                     {attendanceData.length > 0 ? (
-                                        <div className="h-[280px]">
+                                        <div className="h-[200px] md:h-[280px]">
                                             <SafeChart>
                                                 <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                                    <ComposedChart data={attendanceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                    <ComposedChart data={attendanceData} margin={isMobile ? { top: 5, right: 10, left: -15, bottom: 0 } : { top: 10, right: 30, left: 0, bottom: 0 }}>
                                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#334155' : '#f1f5f9'} />
-                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 'bold' }} />
-                                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12, fontWeight: 'bold' }} />
+                                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} width={isMobile ? 30 : 60} />
+                                                        <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} unit="%" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: isMobile ? 10 : 12 }} width={isMobile ? 35 : 60} />
                                                         <RechartsTooltip {...tooltipProps} />
-                                                        <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />
-                                                        <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={28} radius={[6, 6, 0, 0]} />
-                                                        <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={28} radius={[6, 6, 0, 0]} />
-                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }} connectNulls={false} />
+                                                        {!isMobile && <Legend verticalAlign="top" align="right" wrapperStyle={{ top: -5 }} />}
+                                                        <Bar yAxisId="left" dataKey="completed" name="출석" fill="#10b981" barSize={isMobile ? 16 : 28} radius={[6, 6, 0, 0]} />
+                                                        <Bar yAxisId="left" dataKey="cancelled" name="취소" fill="#ef4444" barSize={isMobile ? 16 : 28} radius={[6, 6, 0, 0]} />
+                                                        <Line yAxisId="right" type="monotone" dataKey="rate" name="출석률(%)" stroke="#3b82f6" strokeWidth={isMobile ? 2 : 3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: isMobile ? 3 : 5 }} connectNulls={false} />
                                                     </ComposedChart>
                                                 </ResponsiveContainer>
                                             </SafeChart>
@@ -1197,15 +1272,15 @@ export function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* ✨ [#3] Channel Conversion Rate Analysis - MOVED FROM MARKETING TO OPERATIONS */}
-                            <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-8">
-                                <div className="flex justify-between items-start mb-6">
+                            {/* ✨ [#3] Channel Conversion Rate Analysis */}
+                            <div className="bg-white dark:bg-slate-900 p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left mt-4 md:mt-8">
+                                <div className="flex flex-col md:flex-row justify-between items-start mb-3 md:mb-6">
                                     <div>
-                                        <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
-                                            {SvgIcons.trendingUp("w-6 h-6 text-emerald-600 dark:text-emerald-400")}
+                                        <h3 className="font-bold text-sm md:text-xl text-slate-900 dark:text-slate-100 mb-1 md:mb-2 flex items-center gap-2 md:gap-3">
+                                            {SvgIcons.trendingUp("w-4 h-4 md:w-6 md:h-6 text-emerald-600 dark:text-emerald-400")}
                                             채널별 유입 및 성과 분석
                                         </h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">마케팅 채널별 유입 규모와 실제 상담 예약 전환 성과</p>
+                                        <p className="hidden md:block text-sm text-slate-500 dark:text-slate-400">마케팅 채널별 유입 규모와 실제 상담 예약 전환 성과</p>
                                     </div>
                                 </div>
 
@@ -1536,6 +1611,29 @@ export function Dashboard() {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ✨ [Mobile] 하단 고정 서브탭 네비게이션 */}
+            {slide === 0 && (
+                <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-t border-slate-200 dark:border-slate-700 px-4 py-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 4px)' }}>
+                    <div className="flex gap-2 justify-center">
+                        {['매출·수업', '아동', '운영'].map((label, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setOpsPage(i)}
+                                className={cn(
+                                    'flex-1 py-2.5 rounded-xl text-xs font-black transition-all',
+                                    opsPage === i
+                                        ? 'text-white shadow-md'
+                                        : 'text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800'
+                                )}
+                                style={opsPage === i ? { backgroundColor: BRAND_COLOR } : undefined}
+                            >
+                                {label}
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
