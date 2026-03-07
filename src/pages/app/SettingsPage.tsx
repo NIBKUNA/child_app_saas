@@ -741,8 +741,8 @@ function CenterInfoSection() {
                 if (settingsError) throw settingsError;
             }
 
-            // 🗺️ 지도 URL 저장 시 → 좌표 자동 추출해서 DB에 저장
-            if (key === 'naver_map_url' && finalValue) {
+            // 🗺️ 지도 URL 저장 시 → 좌표 자동 추출해서 DB에 저장 (배포 환경에서만)
+            if (key === 'naver_map_url' && finalValue && !import.meta.env.DEV) {
                 try {
                     const coordsRes = await fetch('/api/resolve-coords', {
                         method: 'POST',
