@@ -15,13 +15,20 @@ export function useAutoCompleteSchedules(centerId: string | undefined) {
         const autoComplete = async () => {
             try {
                 const now = new Date().toISOString();
+                // ✨ [Scalability] 최근 60일 이내만 대상 — 전체 테이블 스캔 방지
+                // 60일 이전의 scheduled는 현실적으로 존재하지 않으며,
+                // Settlement.tsx에서 로컬 보정이 이미 작동 중
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+                const rangeStart = sixtyDaysAgo.toISOString();
 
-                // 과거 시간이 지난 'scheduled' 상태의 수업을 모두 'completed'로 변경
+                // 과거 시간이 지난 'scheduled' 상태의 수업을 'completed'로 변경 (최근 60일)
                 const { data: pastScheduled, error: fetchError } = await supabase
                     .from('schedules')
                     .select('id')
                     .eq('center_id', centerId)
                     .eq('status', 'scheduled')
+                    .gte('end_time', rangeStart)
                     .lt('end_time', now);
 
                 if (fetchError) {

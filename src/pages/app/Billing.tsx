@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adjustCredit } from '@/utils/adjustCredit';
 import { Helmet } from 'react-helmet-async';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeProvider';
@@ -101,7 +102,7 @@ export function Billing() {
         } finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchData(); }, [selectedMonth, center]);
+    useEffect(() => { fetchData(); }, [selectedMonth, center?.id]);
 
     // ──────────────────────────────
     // 아동별 + 프로그램별 그루핑
@@ -567,7 +568,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     const { data: origPay } = await supabase.from('payments')
                         .select('amount, credit_used')
                         .eq('id', paidDetail.paymentId)
-                        .single();
+                        .maybeSingle();
                     const cashPaid = Number(origPay?.amount) || 0;
                     const creditUsedInPay = Number(origPay?.credit_used) || 0;
 
@@ -587,26 +588,24 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                         }
                     }
 
-                    // 이월금으로 결제된 부분 → 이월금으로 복원
+                    // 이월금으로 결제된 부분 → 이월금으로 복원 (RPC 원자적 처리)
                     if (creditUsedInPay > 0) {
-                        const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
-                        await supabase.from('children').update({ credit: (c?.credit || 0) + creditUsedInPay }).eq('id', childData.id);
+                        await adjustCredit(childData.id, creditUsedInPay);
                     }
 
                     // paidMap 업데이트 (환불 상태)
                     setPaidMap(prev => ({ ...prev, [sid]: { amount: 0, method: '환불', memo: '이월 전환 자동환불', paymentId: paidDetail.paymentId } }));
                 } else {
-                    // 미수납 세션 → 이월금 적립 (기존 로직)
-                    const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
-                    await supabase.from('children').update({ credit: (c?.credit || 0) + programPrice }).eq('id', childData.id);
+                    // 미수납 세션 → 이월금 적립 (RPC 원자적 처리)
+                    await adjustCredit(childData.id, programPrice);
                 }
             }
             if (prevCarried && !isCarryOver) {
                 // ✨ [안전장치] 자동환불된 세션(이월금 복원만 한 경우)은 이월금 차감하지 않음
                 const wasAutoRefunded = paidDetail && paidDetail.method === '환불' && (paidDetail.memo || '').includes('이월');
                 if (!wasAutoRefunded) {
-                    const { data: c } = await supabase.from('children').select('credit').eq('id', childData.id).single();
-                    await supabase.from('children').update({ credit: Math.max(0, (c?.credit || 0) - programPrice) }).eq('id', childData.id);
+                    // 이월 상태 해제 → 이월금 차감 (RPC 원자적 처리, 음수 방지 내장)
+                    await adjustCredit(childData.id, -programPrice);
                 }
             }
             const newPrice = (isCancel || isCarryOver) ? 0 : programPrice;
@@ -663,8 +662,8 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                 if (items.length > 0) await supabase.from('payment_items').insert(items);
             }
             if (creditAmt > 0) {
-                const { data: freshChild } = await supabase.from('children').select('credit').eq('id', childData.id).single();
-                await supabase.from('children').update({ credit: Math.max(0, (freshChild?.credit || 0) - creditAmt) }).eq('id', childData.id);
+                // 일괄 수납 시 이월금 차감 (RPC 원자적 처리)
+                await adjustCredit(childData.id, -creditAmt);
             }
             alert(`${sessions.length}건 수납이 완료되었습니다.`);
             onSuccess(); onClose();
@@ -807,8 +806,8 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
         const price = session.price || activeGroup?.pricePerSession || 0;
         if (price <= 0) { alert('금액을 확인하세요.'); return; }
 
-        // 최신 이월금 잔액 조회 (동시성 안전)
-        const { data: freshChild } = await supabase.from('children').select('credit').eq('id', childData.id).single();
+        // 최신 이월금 잔액 조회 (UI 표시용)
+        const { data: freshChild } = await supabase.from('children').select('credit').eq('id', childData.id).maybeSingle();
         const currentCredit = freshChild?.credit || 0;
         if (currentCredit <= 0) { alert('사용 가능한 이월금이 없습니다.'); return; }
 
@@ -834,8 +833,8 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
                     ...(activeGroup && activeGroup.programId !== 'unknown' ? { program_id: activeGroup.programId } : {}),
                 } as TableInsert<'payment_items'>);
             }
-            // 이월금 차감
-            await supabase.from('children').update({ credit: Math.max(0, currentCredit - useAmount) }).eq('id', childData.id);
+            // 이월금 차감 (RPC 원자적 처리)
+            await adjustCredit(childData.id, -useAmount);
 
             setPaidMap(prev => ({
                 ...prev, [session.id]: {
@@ -895,7 +894,7 @@ function PaymentModal({ childData, month, onClose, onSuccess, isDark }: PaymentM
 
                 // 2. 기존 payment 금액 차감
                 const { data: oldPay } = await supabase.from('payments')
-                    .select('amount').eq('id', detail.paymentId).single();
+                    .select('amount').eq('id', detail.paymentId).maybeSingle();
                 if (oldPay) {
                     const remainingAmt = (oldPay.amount || 0) - detail.amount;
                     if (remainingAmt <= 0) {

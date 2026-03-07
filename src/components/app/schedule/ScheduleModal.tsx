@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adjustCredit } from '@/utils/adjustCredit';
 import { useCenter } from '@/contexts/CenterContext'; // ✨ Import
 import {
     X, Loader2, Save, Trash2,
@@ -331,7 +332,7 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     });
                     setOriginalTime({ start_time: sTime || '10:00', end_time: eTime || '10:40' });
                 } else {
-                    const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).single();
+                    const { data } = await supabase.from('schedules').select('*').eq('id', scheduleId).maybeSingle();
                     if (data) {
                         const sTime = toLocalTimeStr(data.start_time);
                         const eTime = toLocalTimeStr(data.end_time);
@@ -535,17 +536,14 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                             }
                                         }
 
-                                        // 이월금 결제분 복원
+                                        // 이월금 결제분 복원 (RPC 원자적 처리)
                                         if (creditUsedInPay > 0) {
-                                            const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
-                                            await supabase.from('children').update({ credit: (child?.credit || 0) + creditUsedInPay }).eq('id', childId);
+                                            await adjustCredit(childId, creditUsedInPay);
                                         }
                                     }
                                 } else {
-                                    // 미수납 세션 → 이월금 적립 (기존 로직)
-                                    const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
-                                    const newCredit = (child?.credit || 0) + programPrice;
-                                    await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                                    // 미수납 세션 → 이월금 적립 (RPC 원자적 처리)
+                                    await adjustCredit(childId, programPrice);
                                 }
                             } else if (prevStatus === 'carried_over' && formData.status !== 'carried_over') {
                                 // ✨ [안전장치] 자동환불된 세션인지 확인 → 자동환불 세션은 이월금 차감 불필요
@@ -565,9 +563,8 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                                 const wasAutoRefunded = hasAutoRefund || (refundItems?.length || 0) > 0;
 
                                 if (!wasAutoRefunded) {
-                                    const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
-                                    const newCredit = Math.max(0, (child?.credit || 0) - programPrice);
-                                    await supabase.from('children').update({ credit: newCredit }).eq('id', childId);
+                                    // 이월 상태 해제 → 이월금 차감 (RPC 원자적 처리)
+                                    await adjustCredit(childId, -programPrice);
                                 }
                             }
                         }
@@ -702,16 +699,20 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                     const { error } = await supabase.from('schedules').delete().in('id', futureIds);
                     if (error) throw error;
 
-                    // ✨ 이월 상태였던 일정들의 이월금 차감
+                    // ✨ 이월 상태였던 일정들의 이월금 차감 (DB에서 프로그램 가격 직접 조회)
                     if (carriedSchedules && carriedSchedules.length > 0) {
                         const childId = carriedSchedules[0].child_id;
+                        const carriedProgramIds = [...new Set(carriedSchedules.map(s => s.program_id).filter((id): id is string => !!id))];
+                        const { data: carriedPrograms } = carriedProgramIds.length > 0
+                            ? await supabase.from('programs').select('id, price').in('id', carriedProgramIds)
+                            : { data: [] };
+                        const progPriceMap = new Map((carriedPrograms || []).map((p: any) => [p.id, p.price]));
                         const totalCreditToRemove = carriedSchedules.reduce((sum, s) => {
-                            const prog = programsList.find(p => p.id === s.program_id);
-                            return sum + (prog?.price || 0);
+                            return sum + (progPriceMap.get(s.program_id) || 0);
                         }, 0);
                         if (totalCreditToRemove > 0 && childId) {
-                            const { data: child } = await supabase.from('children').select('credit').eq('id', childId).single();
-                            await supabase.from('children').update({ credit: Math.max(0, (child?.credit || 0) - totalCreditToRemove) }).eq('id', childId);
+                            // 반복 일정 삭제 시 이월금 차감 (RPC 원자적 처리)
+                            await adjustCredit(childId, -totalCreditToRemove);
                         }
                     }
 
@@ -719,10 +720,10 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 }
             } else {
                 // 단일 삭제
-                // ✨ [이월금 정합성] 이월 상태 일정 삭제 시 이월금 차감
+                // ✨ [이월금 정합성] 이월 상태 일정 삭제 시 이월금 차감 (DB에서 프로그램 가격 직접 조회)
                 const { data: delSchedule } = await supabase.from('schedules')
                     .select('status, child_id, program_id')
-                    .eq('id', scheduleId!).single();
+                    .eq('id', scheduleId!).maybeSingle();
 
                 const { data: logs } = await supabase
                     .from('counseling_logs')
@@ -741,13 +742,12 @@ export function ScheduleModal({ isOpen, onClose, scheduleId, initialDate, onSucc
                 const { error } = await supabase.from('schedules').delete().eq('id', scheduleId!);
                 if (error) throw error;
 
-                // ✨ 이월 상태였던 일정 삭제 → 이월금 차감
+                // ✨ 이월 상태였던 일정 삭제 → 이월금 차감 (DB에서 프로그램 가격 직접 조회 + RPC 원자적 처리)
                 if (delSchedule?.status === 'carried_over' && delSchedule.child_id && delSchedule.program_id) {
-                    const prog = programsList.find(p => p.id === delSchedule.program_id);
-                    const price = prog?.price || 0;
+                    const { data: delProg } = await supabase.from('programs').select('price').eq('id', delSchedule.program_id).maybeSingle();
+                    const price = delProg?.price || 0;
                     if (price > 0) {
-                        const { data: child } = await supabase.from('children').select('credit').eq('id', delSchedule.child_id).single();
-                        await supabase.from('children').update({ credit: Math.max(0, (child?.credit || 0) - price) }).eq('id', delSchedule.child_id);
+                        await adjustCredit(delSchedule.child_id, -price);
                     }
                 }
             }

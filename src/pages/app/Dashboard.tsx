@@ -503,27 +503,44 @@ export function Dashboard() {
                 s.status === 'completed' && s.start_time?.startsWith(selectedMonth)
             ).map(s => s.id) || [];
 
-            // ⚡ [PERF] Batch 2: 의존적 쿼리 2개 병렬 실행 (Batch 1 결과 필요)
-            const [paymentsRes, notesRes] = await Promise.all([
-                // Payments — validChildIds 필요
-                validChildIds.size > 0
-                    ? supabase
-                        .from('payments')
-                        .select('amount, credit_used, child_id, paid_at, payment_month')
-                        .in('child_id', [...validChildIds])
-                    : Promise.resolve({ data: null }),
-                // Counseling Logs — completedScheduleIds 필요
-                completedScheduleIds.length > 0
-                    ? supabase
-                        .from('counseling_logs')
-                        .select('schedule_id')
-                        .in('schedule_id', completedScheduleIds)
-                    : Promise.resolve({ data: null })
-            ]);
+            // ⚡ [PERF] Batch 2: 의존적 쿼리 — IN절 200개씩 배치 분할 (URL 길이 초과 방지)
+            const BATCH_SIZE = 200;
 
-            const allPayments = paymentsRes.data;
+            // Payments — validChildIds 배치 처리
+            let allPayments: any[] | null = null;
+            if (validChildIds.size > 0) {
+                const childIdArr = [...validChildIds];
+                const paymentPromises = [];
+                for (let i = 0; i < childIdArr.length; i += BATCH_SIZE) {
+                    paymentPromises.push(
+                        supabase
+                            .from('payments')
+                            .select('amount, credit_used, child_id, paid_at, payment_month')
+                            .in('child_id', childIdArr.slice(i, i + BATCH_SIZE))
+                            .gte('payment_month', monthsToShow[0])
+                            .lte('payment_month', selectedMonth)
+                    );
+                }
+                const paymentResults = await Promise.all(paymentPromises);
+                allPayments = paymentResults.flatMap(r => r.data || []);
+            }
+
+            // Counseling Logs — completedScheduleIds 배치 처리
             const notesSet = new Set<string>();
-            (notesRes.data as { schedule_id: string }[] || []).forEach(n => notesSet.add(n.schedule_id));
+            if (completedScheduleIds.length > 0) {
+                const notesPromises = [];
+                for (let i = 0; i < completedScheduleIds.length; i += BATCH_SIZE) {
+                    notesPromises.push(
+                        supabase
+                            .from('counseling_logs')
+                            .select('schedule_id')
+                            .in('schedule_id', completedScheduleIds.slice(i, i + BATCH_SIZE))
+                    );
+                }
+                const notesResults = await Promise.all(notesPromises);
+                notesResults.flatMap(r => (r.data || []) as { schedule_id: string }[])
+                    .forEach(n => notesSet.add(n.schedule_id));
+            }
 
             // Calculation Maps
             const monthlyRevMap: Record<string, number> = {};
@@ -905,7 +922,7 @@ export function Dashboard() {
         }
     };
 
-    useEffect(() => { fetchData(); }, [selectedMonth, center]);
+    useEffect(() => { fetchData(); }, [selectedMonth, center?.id]);
 
     return (
         <div ref={dashboardRef} className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-4 md:space-y-8 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500 pb-20 md:pb-8">

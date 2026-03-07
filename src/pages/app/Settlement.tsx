@@ -233,8 +233,9 @@ export function Settlement() {
             const staffData = (staffDataRaw || []) as TherapistData[];
 
             // 2. Get Sessions for Month (Table: schedules)
-            const startDate = `${selectedMonth}-01`;
-            const endDate = new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + 1)).toISOString().slice(0, 10);
+            // ✨ [Fix] KST 타임존 명시 — TIMESTAMPTZ 필드의 UTC 해석으로 인한 월 경계 오차 방지
+            const startDate = `${selectedMonth}-01T00:00:00+09:00`;
+            const endDate = new Date(new Date(`${selectedMonth}-01`).setMonth(new Date(`${selectedMonth}-01`).getMonth() + 1)).toISOString().slice(0, 10) + 'T00:00:00+09:00';
 
             const { data: sessionDataRaw } = await supabase
                 .from('schedules')
