@@ -9,6 +9,7 @@ import { centerPath } from '@/config/domain';
 import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
 import { useState, useEffect, useCallback } from 'react';
+import { CenterMap } from '@/components/public/CenterMap';
 
 // Custom SVG Icons
 const Icons = {
@@ -178,6 +179,9 @@ export function AboutPage() {
                         </div>
                     )}
                 </div>
+
+                    {/* 🗺️ 오시는 길 — Leaflet + OpenStreetMap */}
+                    <CenterMap className="mt-16" />
             </div>
 
             {/* 🖼️ Lightbox Modal */}

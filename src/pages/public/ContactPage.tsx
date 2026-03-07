@@ -6,6 +6,7 @@ import { useCenterBranding } from '@/hooks/useCenterBranding';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 import { useLocalSEO } from '@/hooks/useLocalSEO';
+import { CenterMap } from '@/components/public/CenterMap';
 
 // Custom SVG Icons
 // ... (Icons remain same)
@@ -175,6 +176,9 @@ export function ContactPage() {
                         </motion.div>
 
                     </div>
+
+                    {/* 🗺️ 오시는 길 — Leaflet + OpenStreetMap */}
+                    <CenterMap />
                 </section>
             </div>
         </div>

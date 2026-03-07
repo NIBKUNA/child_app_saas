@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 clearTimeout(safetyTimeout); // 정상 응답 시 타이머 해제
 
                 if (error) {
-                    console.error("❌ Session Init Error:", error.message);
+                    console.warn("⚠️ Session expired or invalid:", error.message);
                     // ✨ [Auto-Fix] 토큰이 만료되었거나 유효하지 않으면 강제 로그아웃 처리
                     if (error.message.includes("Refresh Token") || error.message.includes("Not Found")) {
                         await supabase.auth.signOut(); // Clean Supabase state

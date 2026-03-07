@@ -769,7 +769,8 @@ function CenterInfoSection() {
                     <SaveableInput label="대표 연락처" initialValue={info.phone || ''} onSave={(v) => handleInfoSave('phone', v)} saving={saving} placeholder="02-123-4567" />
                     <SaveableInput label="도로명 주소" initialValue={info.address || ''} onSave={(v) => handleInfoSave('address', v)} saving={saving} placeholder="주소를 입력하세요." />
                     <SaveableInput label="공식 이메일" initialValue={info.email || ''} onSave={(v) => handleInfoSave('email', v)} saving={saving} placeholder="admin@center.com" />
-                    <SaveableInput label="지도 공유 URL" initialValue={(info as unknown as Record<string, string>).naver_map_url || ''} onSave={(v) => handleInfoSave('naver_map_url', v)} saving={saving} placeholder="https://naver.me/..." />
+                    <SaveableInput label="지도 공유 URL" initialValue={(info as unknown as Record<string, string>).naver_map_url || ''} onSave={(v) => handleInfoSave('naver_map_url', v)} saving={saving} placeholder="https://map.naver.com/...?lng=127.09&lat=37.59..." />
+                    <p className="text-xs text-slate-400 -mt-2 ml-1">💡 네이버 지도에서 장소 검색 후 주소창의 URL을 복사하세요. URL에 <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">lat=</code>, <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">lng=</code> 값이 포함되어야 합니다.</p>
                 </div>
             </SectionCard>
 
