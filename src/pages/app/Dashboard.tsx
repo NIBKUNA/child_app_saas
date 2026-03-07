@@ -641,7 +641,7 @@ export function Dashboard() {
             // ✨ [TRAFFIC ANALYSIS] Process site_visits
             const trafficMap: Record<string, number> = {
                 'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0, 'Google Ads': 0, 'Google Maps': 0,
-                'Instagram': 0, 'Youtube': 0, 'Facebook': 0, 'KakaoTalk': 0,
+                'Instagram': 0, 'Youtube': 0, 'Facebook': 0, 'Facebook Ads': 0, 'KakaoTalk': 0,
                 'Naver Ads': 0, 'Referral': 0, 'Signage': 0, 'Flyer': 0, 'Hospital': 0, 'Partnership': 0,
                 'Direct': 0, 'Others': 0
             };
@@ -705,6 +705,7 @@ export function Dashboard() {
                 'Youtube': '#FF0000',
                 'Instagram': '#E1306C',
                 'Facebook': '#1877F2',
+                'Facebook Ads': '#1877F2',
                 'KakaoTalk': '#FEE500',
                 'Referral': '#ec4899',
                 'Signage': '#8b5cf6',

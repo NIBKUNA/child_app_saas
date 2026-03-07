@@ -23,11 +23,13 @@ function categorizeSource(
     referrer: string,
     utmSource?: string | null,
     gclid?: string | null,
-    nMedia?: string | null
+    nMedia?: string | null,
+    fbclid?: string | null
 ): string {
     // 1. 광고 플랫폼 자동 태그 (우선순위 최고)
     if (gclid) return 'Google Ads';
     if (nMedia) return 'Naver Ads';
+    if (fbclid) return 'Facebook Ads';
 
     // 2. UTM 파라미터 (마케팅 링크에 직접 태깅)
     if (utmSource) {
@@ -104,6 +106,7 @@ export function useTrafficSource() {
         const campaign = searchParams.get('utm_campaign');
         const gclid = searchParams.get('gclid');     // Google Ads auto-tag
         const nMedia = searchParams.get('n_media');   // Naver Ads auto-tag
+        const fbclid = searchParams.get('fbclid');   // Facebook/Instagram Ads auto-tag
         const referrer = document.referrer;
 
         // ── 광고 자동 감지 → UTM 자동 세팅 ──
@@ -119,6 +122,10 @@ export function useTrafficSource() {
             effectiveSource = 'naver';
             effectiveMedium = 'cpc';
             effectiveCampaign = 'naver_ads_auto';
+        } else if (fbclid && !source) {
+            effectiveSource = 'facebook';
+            effectiveMedium = 'cpc';
+            effectiveCampaign = 'facebook_ads_auto';
         }
 
         // ── sessionStorage에 마케팅 소스 저장 (폼 제출 시 참조) ──
@@ -150,14 +157,14 @@ export function useTrafficSource() {
         }
 
         // ── 중복 방지 + DB 기록 ──
-        const category = categorizeSource(referrer, effectiveSource, gclid, nMedia);
+        const category = categorizeSource(referrer, effectiveSource, gclid, nMedia, fbclid);
         const todayStr = new Date().toISOString().split('T')[0];
         const isBlogPage = location.pathname.includes('/blog/');
 
         // 광고 클릭은 gclid/n_media가 매번 다르므로 별도 키로 처리 (중복 차단 X)
-        const isAdClick = !!(gclid || nMedia);
+        const isAdClick = !!(gclid || nMedia || fbclid);
         const dedupeKey = isAdClick
-            ? `zv_${todayStr}_${category}_${gclid || nMedia}`
+            ? `zv_${todayStr}_${category}_${gclid || nMedia || fbclid}`
             : isBlogPage
                 ? `zv_${todayStr}_${category}_${location.pathname}`
                 : `zv_${todayStr}_${category}`;
