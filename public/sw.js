@@ -5,7 +5,7 @@
  * - SW update management with client notification
  */
 
-const CACHE_VERSION = 'zarada-v2';
+const CACHE_VERSION = 'zarada-__BUILD_HASH__';
 const OFFLINE_URL = '/offline.html';
 
 // App Shell: 오프라인에서도 앱이 열리도록 캐시할 핵심 파일들

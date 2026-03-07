@@ -27,6 +27,17 @@ export function ParentLayout() {
     // ✨ [PWA] Pull-to-Refresh for iOS PWA
     const { pullDistance, isRefreshing } = usePullToRefresh({ containerRef: scrollRef });
 
+    // ✨ [PWA] Notification 권한 요청 (부모 사용자도 푸시 알림 수신 가능)
+    React.useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            // 3초 후 요청 (페이지 로드 직후 즉시 요청하면 거부율 높음)
+            const timer = setTimeout(() => {
+                Notification.requestPermission();
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
     const tabs = [
         { id: 'home', label: '홈', icon: Home, path: '/parent/home' },
         { id: 'stats', label: '발달통계', icon: BarChart2, path: '/parent/stats' },

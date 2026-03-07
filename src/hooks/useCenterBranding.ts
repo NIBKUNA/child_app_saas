@@ -123,5 +123,19 @@ export function useCenterBranding() {
         }
     } : branding;
 
+    // ✨ [PWA] 커스텀 도메인에서 홈 화면 추가 시 센터 이름이 표시되도록
+    // apple-mobile-web-app-title 메타 태그를 동적으로 업데이트
+    useEffect(() => {
+        if (!finalBranding.name || finalBranding.name === 'Zarada') return;
+        const meta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        if (meta) {
+            meta.setAttribute('content', finalBranding.name);
+        }
+        // document.title도 센터 이름으로 업데이트 (Android PWA 설치 시 참조)
+        if (!document.title.includes(finalBranding.name)) {
+            document.title = `${finalBranding.name} | 자라다`;
+        }
+    }, [finalBranding.name]);
+
     return { branding: finalBranding, loading: adminLoading || centerLoading };
 }

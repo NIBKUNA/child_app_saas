@@ -1,4 +1,5 @@
 {
+    "id": "/",
     "name": "Zarada - 스마트한 센터 관리",
     "short_name": "Zarada",
     "description": "우리 아이 성장 관리, 자라다와 함께하세요.",
@@ -43,7 +44,15 @@
             "src": "/zaradalogo.png",
             "sizes": "1200x630",
             "type": "image/png",
-            "form_factor": "wide"
+            "form_factor": "wide",
+            "label": "자라다 메인 화면"
+        },
+        {
+            "src": "/pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "자라다 모바일 앱"
         }
     ],
     "prefer_related_applications": false,
