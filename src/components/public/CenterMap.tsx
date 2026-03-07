@@ -90,23 +90,50 @@ async function fetchCoordsFromServer(params: { placeId?: string; address?: strin
     return null;
 }
 
-/** 네이버 지도 URL에서 좌표 추출 → 실패 시 서버 API로 조회 */
+/** Nominatim 직접 호출 (로컬 dev 전용, 1회만) */
+async function geocodeDirect(address: string): Promise<{ lat: number; lng: number } | null> {
+    if (!address) return null;
+    try {
+        const simplified = address.replace(/\s*\d+호?\s*$/, '').trim();
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&countrycodes=kr&limit=1`,
+            { headers: { 'Accept-Language': 'ko' } }
+        );
+        if (res.ok) {
+            const data = await res.json();
+            if (data?.[0]?.lat && data?.[0]?.lon) {
+                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            }
+        }
+    } catch { /* 무시 */ }
+    return null;
+}
+
+/** 네이버 지도 URL에서 좌표 추출 → 실패 시 서버 API 또는 Nominatim 직접 */
 async function extractCoordsFromUrl(url: string, address?: string): Promise<{ lat: number; lng: number } | null> {
     // 1차: URL 파라미터에서 직접 추출 (가장 빠름)
     const syncResult = extractCoordsFromUrlSync(url);
     if (syncResult) return syncResult;
 
-    // 2차: Place ID로 서버 API 조회
-    const placeId = extractPlaceId(url);
-    if (placeId) {
-        const apiResult = await fetchCoordsFromServer({ placeId });
-        if (apiResult) return apiResult;
-    }
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    // 3차: 주소로 서버 API 조회
-    if (address) {
-        const addrResult = await fetchCoordsFromServer({ address });
-        if (addrResult) return addrResult;
+    if (!isDev) {
+        // 배포: 서버 API 사용 (CORS 없음, Place ID 지원)
+        const placeId = extractPlaceId(url);
+        if (placeId) {
+            const apiResult = await fetchCoordsFromServer({ placeId });
+            if (apiResult) return apiResult;
+        }
+        if (address) {
+            const addrResult = await fetchCoordsFromServer({ address });
+            if (addrResult) return addrResult;
+        }
+    } else {
+        // 로컬: Nominatim 직접 1회 호출
+        if (address) {
+            const result = await geocodeDirect(address);
+            if (result) return result;
+        }
     }
 
     return null;
