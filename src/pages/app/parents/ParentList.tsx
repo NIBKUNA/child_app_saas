@@ -56,7 +56,7 @@ export function ParentList() {
             // 1. Fetch all parents in this center (SaaS Logic)
             const { data: profiles, error } = await supabase
                 .from('user_profiles')
-                .select('*')
+                .select('id, name, email, status, center_id, created_at, updated_at')
                 .eq('center_id', center.id)
                 .eq('role', 'parent')
                 .order('name', { ascending: true });

@@ -207,19 +207,39 @@ export function ParentHomePage() {
 
 
 
-    // ✨ 관찰 일기 저장 핸들러
+    // ✨ 관찰 일기 저장 핸들러 (같은 날 동일 아동은 업데이트)
     const handleSaveObservation = async () => {
         if (!observationText.trim() || !childInfo?.id || !user?.id) return;
         setSavingObs(true);
         try {
-            const payload = {
-                parent_id: user.id,
-                child_id: childInfo.id,
-                content: observationText.trim(),
-                observation_date: new Date().toISOString().split('T')[0]
-            };
-            const { error } = await supabase.from('parent_observations').insert(payload as never);
-            if (error) throw error;
+            const today = new Date().toISOString().split('T')[0];
+
+            // ✨ [Scalability] 같은 날 기록이 있으면 업데이트, 없으면 새로 생성
+            const { data: existing } = await supabase
+                .from('parent_observations')
+                .select('id')
+                .eq('parent_id', user.id)
+                .eq('child_id', childInfo.id)
+                .eq('observation_date', today)
+                .maybeSingle();
+
+            if (existing) {
+                const { error } = await supabase
+                    .from('parent_observations')
+                    .update({ content: observationText.trim() } as never)
+                    .eq('id', existing.id);
+                if (error) throw error;
+            } else {
+                const payload = {
+                    parent_id: user.id,
+                    child_id: childInfo.id,
+                    content: observationText.trim(),
+                    observation_date: today
+                };
+                const { error } = await supabase.from('parent_observations').insert(payload as never);
+                if (error) throw error;
+            }
+
             alert('관찰 일기가 저장되었습니다! 🌟');
             setObservationText('');
         } catch (e: any) {

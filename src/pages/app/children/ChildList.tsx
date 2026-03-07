@@ -90,7 +90,7 @@ export function ChildList() {
         try {
             let query = supabase
                 .from('children')
-                .select(`*, parents:parent_id(id, name)`)
+                .select(`id, name, birth_date, gender, status, credit, center_id, parent_id, invitation_code, created_at, parents:parent_id(id, name)`)
                 .eq('center_id', centerId);
 
             // ✨ [권한 분리] 치료사는 본인이 담당하는 아동만 조회 가능

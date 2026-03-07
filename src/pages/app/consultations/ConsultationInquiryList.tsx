@@ -64,11 +64,17 @@ export default function ConsultationInquiryList() {
     const fetchData = async () => {
         setLoading(true);
         try {
+            // ✨ [Scalability] 최근 6개월 이내 문의만 조회 — 장기 데이터 누적 대비
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const rangeStart = sixMonthsAgo.toISOString();
+
             const { data, error } = await supabase
                 .from('consultations')
                 .select('*')
                 .is('schedule_id', null)
-                .eq('center_id', centerId!) // 🔒 [SECURITY] useEffect guard at L37 ensures centerId is set
+                .eq('center_id', centerId!) // 🔒 [SECURITY] useEffect guard ensures centerId is set
+                .gte('created_at', rangeStart)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
