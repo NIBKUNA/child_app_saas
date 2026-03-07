@@ -51,48 +51,48 @@ function extractCoordsFromUrlSync(url: string): { lat: number; lng: number } | n
     return null;
 }
 
-/** Place ID에서 좌표 조회 (네이버 Place API) */
-async function fetchCoordsFromPlaceId(placeId: string): Promise<{ lat: number; lng: number } | null> {
-    try {
-        const res = await fetch(`https://place.map.naver.com/place/${placeId}/location`);
-        if (!res.ok) {
-            // location endpoint 실패 시 alternative endpoint 시도
-            const res2 = await fetch(`https://map.naver.com/p/api/search/allSearch?query=${placeId}&type=place`);
-            if (res2.ok) {
-                const data = await res2.json();
-                const place = data?.result?.place?.list?.[0];
-                if (place?.x && place?.y) {
-                    return { lat: parseFloat(place.y), lng: parseFloat(place.x) };
-                }
+/** 주소로 좌표 조회 (Nominatim — OpenStreetMap 무료 geocoding) */
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    if (!address) return null;
+
+    // 주소를 점진적으로 단순화하며 재시도
+    const variations = [
+        address,
+        address.replace(/\s*\d+호\s*$/, ''),           // "201호" 제거
+        address.replace(/\s*\d+\s*\d*호?\s*$/, ''),     // "51 201호" 제거  
+        address.replace(/\s+\d+[-\d]*\s*$/, ''),        // 번지 제거
+        address.split(' ').slice(0, 3).join(' '),        // 시 구 동/길 만
+        address.split(' ').slice(0, 2).join(' '),        // 시 구 만
+    ].filter((v, i, a) => v && a.indexOf(v) === i);     // 중복 제거
+
+    for (const query of variations) {
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=kr&limit=1`,
+                { headers: { 'Accept-Language': 'ko' } }
+            );
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (data?.[0]?.lat && data?.[0]?.lon) {
+                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
             }
-            return null;
+        } catch {
+            continue;
         }
-        const data = await res.json();
-        if (data?.lat && data?.lng) return { lat: data.lat, lng: data.lng };
-        if (data?.y && data?.x) return { lat: parseFloat(data.y), lng: parseFloat(data.x) };
-    } catch {
-        // CORS 등으로 실패할 수 있음 — 무시
     }
     return null;
 }
 
-/** URL에서 Place ID 추출 */
-function extractPlaceId(url: string): string | null {
-    const match = url.match(/place\/(\d{5,})/);
-    return match ? match[1] : null;
-}
-
-/** 네이버 지도 URL에서 좌표 추출 (비동기 - Place API 포함) */
-async function extractCoordsFromUrl(url: string): Promise<{ lat: number; lng: number } | null> {
+/** 네이버 지도 URL에서 좌표 추출 → 실패 시 주소 geocoding */
+async function extractCoordsFromUrl(url: string, address?: string): Promise<{ lat: number; lng: number } | null> {
     // 1차: URL 파라미터에서 직접 추출
     const syncResult = extractCoordsFromUrlSync(url);
     if (syncResult) return syncResult;
 
-    // 2차: Place ID로 좌표 조회
-    const placeId = extractPlaceId(url);
-    if (placeId) {
-        const apiResult = await fetchCoordsFromPlaceId(placeId);
-        if (apiResult) return apiResult;
+    // 2차: 주소로 geocoding (Nominatim)
+    if (address) {
+        const geocoded = await geocodeAddress(address);
+        if (geocoded) return geocoded;
     }
 
     return null;
@@ -116,10 +116,10 @@ export function CenterMap({ className }: CenterMapProps) {
     const centerAddress = getSetting('center_address') || '';
 
     useEffect(() => {
-        if (mapUrl) {
-            extractCoordsFromUrl(mapUrl).then(result => setCoords(result));
+        if (mapUrl || centerAddress) {
+            extractCoordsFromUrl(mapUrl, centerAddress).then(result => setCoords(result));
         }
-    }, [mapUrl]);
+    }, [mapUrl, centerAddress]);
 
     useEffect(() => {
         if (!coords || !mapContainerRef.current) return;
@@ -152,7 +152,7 @@ export function CenterMap({ className }: CenterMapProps) {
         return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
     }, [coords, isDark, centerName, centerAddress]);
 
-    if (!mapUrl || !coords) return null;
+    if (!coords) return null;
 
     return (
         <motion.section className={cn("mt-24", className)} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 80 }}>
@@ -162,7 +162,7 @@ export function CenterMap({ className }: CenterMapProps) {
                 {centerAddress && <p className={cn("font-medium mt-3 text-base", isDark ? "text-slate-400" : "text-slate-500")}>{centerAddress}</p>}
             </div>
             <div className={cn("relative rounded-[40px] overflow-hidden shadow-2xl border", isDark ? "bg-slate-800 border-slate-700 shadow-slate-900/50" : "bg-white border-slate-100 shadow-slate-200/50")}>
-                <div ref={mapContainerRef} className="w-full h-[350px] md:h-[420px] z-0" />
+                <div ref={mapContainerRef} className="w-full h-[280px] md:h-[340px] z-0" />
                 <div className={cn("px-8 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t", isDark ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100")}>
                     <div className="space-y-1">
                         <h3 className={cn("font-black text-base", isDark ? "text-white" : "text-slate-900")}>{centerName}</h3>
@@ -173,10 +173,12 @@ export function CenterMap({ className }: CenterMapProps) {
                             </p>
                         )}
                     </div>
-                    <a href={mapUrl} target="_blank" rel="noopener noreferrer" className={cn("inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all shrink-0", isDark ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30" : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25")}>
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15,3 21,3 21,9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-                        네이버 지도에서 보기
-                    </a>
+                    {(mapUrl || centerAddress) && (
+                        <a href={mapUrl || `https://map.naver.com/search/${encodeURIComponent(centerAddress)}`} target="_blank" rel="noopener noreferrer" className={cn("inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all shrink-0", isDark ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30" : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25")}>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15,3 21,3 21,9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                            네이버 지도에서 보기
+                        </a>
+                    )}
                 </div>
             </div>
         </motion.section>
