@@ -1,13 +1,11 @@
 User-agent: *
 Allow: /
-Allow: /centers
-Allow: /centers/
+Allow: /centers/*
 Disallow: /app/
+Disallow: /auth/
 Disallow: /login
 Disallow: /register
 Disallow: /master/
 
-# 센터별 공개 페이지는 적극 크롤링 허용
-Allow: /centers/*
-
+Sitemap: https://zarada.co.kr/sitemap.xml
 Sitemap: https://app.myparents.co.kr/sitemap.xml
