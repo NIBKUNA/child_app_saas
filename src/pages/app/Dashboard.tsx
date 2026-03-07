@@ -1689,10 +1689,21 @@ export function Dashboard() {
                                 <div>
                                     <span className="text-[9px] md:text-[10px] font-black opacity-50 uppercase tracking-widest block mb-1">Device</span>
                                     <span className="flex items-center gap-0.5 text-lg md:text-2xl font-black leading-none">
-                                        <svg className="w-4 h-4 text-pink-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" /><line x1="12" y1="18" x2="12" y2="18.01" /></svg>
+                                        <svg className="w-5 h-5 text-pink-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="5" y="1" width="14" height="22" rx="3" />
+                                            <line x1="9" y1="3.5" x2="15" y2="3.5" />
+                                            <rect x="7" y="5.5" width="10" height="13" rx="0.5" />
+                                            <circle cx="12" cy="21" r="0.5" fill="currentColor" />
+                                        </svg>
                                         <span className="text-pink-400">{mobileRatio}%</span>
-                                        <span className="text-white/30 mx-1">/</span>
-                                        <svg className="w-4 h-4 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>
+                                        <span className="text-white/30 mx-1.5">/</span>
+                                        <svg className="w-5 h-5 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="2" y="2" width="20" height="13" rx="2" />
+                                            <rect x="4" y="4" width="16" height="9" rx="0.5" />
+                                            <line x1="12" y1="15" x2="12" y2="19" />
+                                            <line x1="7" y1="19" x2="17" y2="19" />
+                                            <line x1="6" y1="21.5" x2="18" y2="21.5" />
+                                        </svg>
                                         <span className="text-blue-400">{100 - mobileRatio}%</span>
                                     </span>
                                 </div>
