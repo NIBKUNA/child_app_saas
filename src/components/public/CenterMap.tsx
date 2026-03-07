@@ -52,45 +52,8 @@ function extractCoordsFromUrlSync(url: string): { lat: number; lng: number } | n
     return null;
 }
 
-/** URL에서 Place ID 추출 */
-function extractPlaceId(url: string): string | null {
-    const match = url.match(/place\/(\d{5,})/);
-    return match ? match[1] : null;
-}
 
-/** 서버 API를 통한 좌표 조회 (CORS/rate limit 없음) */
-async function fetchCoordsFromServer(params: { placeId?: string; address?: string }): Promise<{ lat: number; lng: number } | null> {
-    try {
-        const query = new URLSearchParams();
-        if (params.placeId) query.set('placeId', params.placeId);
-        if (params.address) query.set('address', params.address);
-        
-        const res = await fetch(`/api/geocode?${query.toString()}`);
-        if (!res.ok) throw new Error('API failed');
-        const data = await res.json();
-        if (data?.lat && data?.lng) return { lat: data.lat, lng: data.lng };
-    } catch {
-        // 서버 API 없으면 Nominatim 직접 (로컬 dev 환경)
-        if (params.address) {
-            try {
-                const simplified = params.address.replace(/\s*\d+호?\s*$/, '').trim();
-                const res = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&countrycodes=kr&limit=1`,
-                    { headers: { 'Accept-Language': 'ko' } }
-                );
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data?.[0]?.lat && data?.[0]?.lon) {
-                        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-                    }
-                }
-            } catch { /* 무시 */ }
-        }
-    }
-    return null;
-}
-
-/** Nominatim 직접 호출 (로컬 dev 전용, 1회만) */
+/** Nominatim 직접 호출 (1회만) */
 async function geocodeDirect(address: string): Promise<{ lat: number; lng: number } | null> {
     if (!address) return null;
     try {
@@ -109,31 +72,16 @@ async function geocodeDirect(address: string): Promise<{ lat: number; lng: numbe
     return null;
 }
 
-/** 네이버 지도 URL에서 좌표 추출 → 실패 시 서버 API 또는 Nominatim 직접 */
+/** 네이버 지도 URL에서 좌표 추출 */
 async function extractCoordsFromUrl(url: string, address?: string): Promise<{ lat: number; lng: number } | null> {
     // 1차: URL 파라미터에서 직접 추출 (가장 빠름)
     const syncResult = extractCoordsFromUrlSync(url);
     if (syncResult) return syncResult;
 
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-    if (!isDev) {
-        // 배포: 서버 API 사용 (CORS 없음, Place ID 지원)
-        const placeId = extractPlaceId(url);
-        if (placeId) {
-            const apiResult = await fetchCoordsFromServer({ placeId });
-            if (apiResult) return apiResult;
-        }
-        if (address) {
-            const addrResult = await fetchCoordsFromServer({ address });
-            if (addrResult) return addrResult;
-        }
-    } else {
-        // 로컬: Nominatim 직접 1회 호출
-        if (address) {
-            const result = await geocodeDirect(address);
-            if (result) return result;
-        }
+    // 2차: 주소 → Nominatim 직접 1회
+    if (address) {
+        const result = await geocodeDirect(address);
+        if (result) return result;
     }
 
     return null;

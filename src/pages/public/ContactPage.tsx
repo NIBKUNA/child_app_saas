@@ -92,14 +92,14 @@ export function ContactPage() {
                             {/* Contact Info Card */}
                             <motion.div
                                 className={cn(
-                                    "p-10 rounded-[50px] border shadow-2xl",
+                                    "rounded-[50px] border shadow-2xl overflow-hidden",
                                     isDark ? "bg-[#141620] border-white/5" : "bg-white border-slate-100"
                                 )}
                                 initial={{ opacity: 0, x: -30 }}
                                 whileInView={{ opacity: 1, x: 0 }}
                                 viewport={{ once: true }}
                             >
-                                <div className="space-y-10">
+                                <div className="p-10 space-y-10">
                                     <h3 className={cn("text-2xl font-black mb-10 flex items-center gap-4", isDark ? "text-white" : "text-slate-900")}>
                                         <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500">
                                             {Icons.mapPin("w-6 h-6")}
@@ -143,10 +143,10 @@ export function ContactPage() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* 🗺️ 지도 — 센터 정보 카드 하단 밀착 */}
-                                    <CenterMap compact className="mt-6 -mx-10 -mb-10 rounded-none !rounded-b-[50px] overflow-hidden" />
                                 </div>
+
+                                {/* 🗺️ 지도 — 카드 하단 밀착 (p-10 바깥, overflow-hidden으로 라운드 적용) */}
+                                <CenterMap compact />
                             </motion.div>
                         </div>
 
