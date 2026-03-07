@@ -91,6 +91,8 @@ export function MasterLayout() {
                 <button
                     onClick={() => {
                         setIsMobileMenuOpen(false);
+                        // ✨ 센터 컨텍스트 해제 → 글로벌 랜딩이 정상 표시되도록
+                        localStorage.removeItem('zarada_center_slug');
                         navigateToMainDomain('/', navigate);
                     }}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all text-xs font-bold"
