@@ -1614,45 +1614,65 @@ export function Dashboard() {
                             </div>
                         )}
 
-                        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-8 rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
-                            <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-3">
-                                {SvgIcons.trendingUp("w-6 h-6 text-amber-500")}
-                                캠페인 성과 믹스
+                        <div className="lg:col-span-4 bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg border border-slate-100 dark:border-slate-800 text-left">
+                            <h3 className="font-bold text-base md:text-xl text-slate-900 dark:text-slate-100 mb-1 flex items-center gap-2 md:gap-3">
+                                {SvgIcons.trendingUp("w-5 h-5 md:w-6 md:h-6 text-amber-500")}
+                                캠페인 성과
                             </h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">진행 중인 광고 캠페인별 문의 기여도</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-5">광고 플랫폼별 유입 클릭 추적</p>
 
                             {campaignData.length > 0 ? (
-                                <div className="space-y-4">
-                                    <div className="h-[200px]">
-                                        <SafeChart>
-                                            <ResponsiveContainer width="100%" height="100%" debounce={100}>
-                                                <BarChart data={campaignData} layout="vertical" margin={{ left: 0, right: 30 }}>
-                                                    <XAxis type="number" hide />
-                                                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                                                    <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} barSize={12}>
-                                                        <LabelList dataKey="value" position="right" style={{ fontSize: '10px', fontWeight: 'bold' }} />
-                                                    </Bar>
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </SafeChart>
-                                    </div>
-                                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                                            <p className="text-[11px] font-bold text-slate-500 leading-relaxed">
-                                                💡 <span className="text-indigo-600 dark:text-indigo-400">캠페인 지능:</span> 수집된 UTM 파라미터를 기반으로 특정 홍보 이벤트의 문의 기여도를 추적합니다. '기타' 채널에서도 캠페인 태그가 있다면 이곳에 합산됩니다.
-                                            </p>
-                                        </div>
+                                <div className="space-y-3">
+                                    {/* 캠페인 카드 리스트 */}
+                                    {campaignData.map((item, idx) => {
+                                        const total = campaignData.reduce((s, c) => s + c.value, 0);
+                                        const pct = total > 0 ? Math.round(item.value / total * 100) : 0;
+                                        const colors = ['#FBBC04', '#2DB400', '#1877F2', '#E1306C', '#FF0000', '#6366f1'];
+                                        const color = colors[idx % colors.length];
+                                        // 캠페인 이름 한글화
+                                        const displayName = item.name
+                                            .replace('google_ads_auto', 'Google 광고')
+                                            .replace('naver_ads_auto', 'Naver 광고')
+                                            .replace('facebook_ads_auto', 'Facebook 광고');
+                                        return (
+                                            <div key={item.name} className="group">
+                                                <div className="flex items-center justify-between mb-1.5">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]">{displayName}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white">{item.value}건</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">{pct}%</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full transition-all duration-700"
+                                                        style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* 하단 요약 */}
+                                    <div className="pt-3 mt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                        <span className="text-[11px] font-bold text-slate-400">총 광고 클릭</span>
+                                        <span className="text-lg font-black text-amber-500">{campaignData.reduce((s, c) => s + c.value, 0)}건</span>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="h-[200px] flex flex-col items-center justify-center text-slate-400 space-y-2">
-                                    <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                                        <svg className="w-6 h-6 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            <path d="M9 12l2 2 4-4" />
+                                <div className="h-[200px] flex flex-col items-center justify-center space-y-3">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 flex items-center justify-center">
+                                        <svg className="w-7 h-7 text-amber-300 dark:text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                            <path d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                                         </svg>
                                     </div>
-                                    <p className="text-xs font-bold italic">활성 캠페인 데이터 없음</p>
+                                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500">아직 광고 클릭 데이터가 없습니다</p>
+                                    <p className="text-[10px] text-slate-300 dark:text-slate-600 text-center leading-relaxed">
+                                        Google·Naver·Facebook 광고 클릭이<br/>자동으로 감지됩니다
+                                    </p>
                                 </div>
                             )}
                         </div>
