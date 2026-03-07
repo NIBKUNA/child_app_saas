@@ -1,8 +1,6 @@
 /**
- * 🎨 Project: Zarada ERP - The Sovereign Canvas
- * 🛠️ Created by: 안욱빈 (An Uk-bin)
- * 📅 Date: 2026-01-11
- * 🖋️ Description: Unified Comprehensive Report Generator
+ * 🎨 Zarada ERP - 통합 리포트 생성기
+ * 월별 운영/마케팅/수납/아동 데이터를 Excel로 내보내기
  * -----------------------------------------------------------
  */
 import { supabase } from '@/lib/supabase';
@@ -53,9 +51,9 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         const monthStart = `${selectedMonth}-01`;
         const monthEnd = `${selectedMonth}-${String(lastDay).padStart(2, '0')}T23:59:59`;
 
-        // ------------------------------------------------------------------
-        // 1. Fetch Data (Parallel Requests for Performance)
-        // ------------------------------------------------------------------
+        // ─────────────────────────────────────────
+        // 1. 데이터 조회 (병렬)
+        // ─────────────────────────────────────────
         const [
             childrenResult,
             profilesResult,
@@ -65,24 +63,24 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             schedulesResult,
             siteVisitsResult
         ] = await Promise.all([
-            // 1. Children — ✨ [FIX] user_profiles 조인 제거 (ambiguous FK 문제)
+            // 1) 아동 목록 (보호자 별도 조회로 FK 충돌 방지)
             supabase.from('children').select(
                 'id, name, gender, birth_date, is_active, status, created_at, parent_id'
             ).eq('center_id', centerId),
-            // 2. Profiles (Phone + Name for Guardian lookup)
+            // 2) 보호자 프로필 (이름/연락처 조회용)
             supabase.from('user_profiles').select('id, name, email, phone').eq('center_id', centerId),
-            // 3. Assessments (Latest)
+            // 3) 발달평가 (최신순)
             supabase.from('development_assessments').select('*').eq('center_id', centerId).order('evaluation_date', { ascending: false }),
-            // 4. Payments (Selected Month) — payment_month 기준 통일
+            // 4) 수납 (선택 월)
             supabase.from('payments').select('*').eq('center_id', centerId).eq('payment_month', selectedMonth),
-            // 5. Staff (User Profiles with roles)
+            // 5) 직원
             supabase.from('user_profiles').select('*').eq('center_id', centerId).in('role', ['admin', 'therapist', 'super_admin']),
-            // 7. Schedules
+            // 6) 일정 (선택 월)
             supabase.from('schedules').select('id, status, start_time, child_id')
                 .eq('center_id', centerId)
                 .gte('start_time', monthStart)
                 .lte('start_time', monthEnd),
-            // 8. ✨ [NEW] Site Visits (마케팅 유입 데이터)
+            // 7) 사이트 유입 (마케팅 데이터)
             supabase.from('site_visits').select('source_category, visited_at, utm_source, utm_medium, utm_campaign')
                 .eq('center_id', centerId)
                 .gte('visited_at', monthStart)
@@ -97,9 +95,9 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
         const schedules = schedulesResult.data || [];
         const siteVisits = siteVisitsResult.data || [];
 
-        // ------------------------------------------------------------------
-        // 2. Process Data Maps & Aggregations
-        // ------------------------------------------------------------------
+        // ─────────────────────────────────────────
+        // 2. 데이터 가공
+        // ─────────────────────────────────────────
 
         // Map: Phone + Name by user ID (for guardian lookup)
         const profileMap = new Map<string, { name: string; email: string; phone: string }>();
@@ -144,12 +142,12 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             channelCounts.set(cat, (channelCounts.get(cat) || 0) + 1);
         });
 
-        // ------------------------------------------------------------------
-        // 3. Build Sheet Data
-        // ------------------------------------------------------------------
+        // ─────────────────────────────────────────
+        // 3. 시트 데이터 구성
+        // ─────────────────────────────────────────
         const monthLabel = formatMonthKR(selectedMonth);
 
-        // Sheet 1: Dashboard KPI — ✨ [FIX] 월 표시 추가, 마케팅 유입 포함
+        // Sheet 1: 월간 요약
         const dashboardData = [
             { 'Category': '📅 기간', 'Metric': '보고서 기간', 'Value': monthLabel, 'Unit': '' },
             { 'Category': '', 'Metric': '', 'Value': '', 'Unit': '' },
@@ -163,7 +161,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             { 'Category': '📋 운영', 'Metric': '출석률', 'Value': sessionStats.total > 0 ? `${Math.round(sessionStats.completed / sessionStats.total * 100)}%` : '-', 'Unit': '' },
         ];
 
-        // Sheet 2: Marketing Intelligence — ✨ [FIX] 채널별 유입 상세 데이터 (site_visits)
+        // Sheet 2: 채널별 유입 (site_visits 기반)
         const marketingData: Record<string, string | number>[] = [];
 
         // 2-1. 채널 요약 (상단)
@@ -232,7 +230,7 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             })
             : [{ '결제월': selectedMonth, '결제일시': '(수납 내역 없음)', '아동명': '-', '결제금액': 0, '크레딧사용': 0, '합계': 0, '결제수단': '-', '메모': '-' }];
 
-        // Sheet 5: Integrated Master — ✨ [FIX] 제목 행 + 보호자 정보 별도 조회
+        // Sheet 5: 아동 전체 현황 (보호자 + 결제 + 발달평가 통합)
         const payColName = `${monthLabel} 결제액`;
         const masterData = children.length > 0
             ? children.map((child: { id: string; name: string; birth_date: string; gender: string | null; status?: string | null; is_active?: boolean | null; parent_id: string | null; created_at: string | null }) => {
@@ -263,9 +261,9 @@ export const generateIntegratedReport = async (selectedMonth: string, centerId: 
             })
             : [{ '아동명': '(등록된 아동 없음)', '생년월일': '-', '성별': '-', '상태': '-', '등록일': '-', '보호자명': '-', '보호자 연락처': '-', [payColName]: 0, '언어(점)': 0, '사회(점)': 0, '인지(점)': 0, '운동(점)': 0, '자조(점)': 0, '종합 소견': '-', '평가 상세': '-', '최근 평가일': '-' }];
 
-        // ------------------------------------------------------------------
-        // 4. Generate Excel Workbook
-        // ------------------------------------------------------------------
+        // ─────────────────────────────────────────
+        // 4. Excel 생성
+        // ─────────────────────────────────────────
         const wb = XLSX.utils.book_new();
 
         // Helper to add sheet with auto-width

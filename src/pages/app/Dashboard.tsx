@@ -71,6 +71,9 @@ interface SiteVisit {
     visited_at: string | null;
     referrer_url: string | null;
     page_url: string | null;
+    utm_campaign: string | null;
+    utm_source: string | null;
+    utm_medium: string | null;
 }
 
 interface DashboardLead {
@@ -463,10 +466,10 @@ export function Dashboard() {
                     .from('children')
                     .select('id, name, gender, birth_date, created_at, status')
                     .eq('center_id', center.id),
-                // 3. Site Visits (월별)
+                // 3. Site Visits (월별) — ✨ [FIX] utm_campaign/source/medium 포함
                 supabase
                     .from('site_visits')
-                    .select('source_category, visited_at, referrer_url, page_url')
+                    .select('source_category, visited_at, referrer_url, page_url, utm_campaign, utm_source, utm_medium')
                     .eq('center_id', center.id)
                     .gte('visited_at', selectedMonth + '-01')
                     .lte('visited_at', selectedMonth + '-' + String(lastDayOfMonth).padStart(2, '0')),
@@ -637,11 +640,13 @@ export function Dashboard() {
 
             // ✨ [TRAFFIC ANALYSIS] Process site_visits
             const trafficMap: Record<string, number> = {
-                'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0, 'Google Maps': 0,
+                'Naver Blog': 0, 'Naver Place': 0, 'Google Search': 0, 'Google Ads': 0, 'Google Maps': 0,
                 'Instagram': 0, 'Youtube': 0, 'Facebook': 0, 'KakaoTalk': 0,
-                'Referral': 0, 'Signage': 0, 'Flyer': 0, 'Hospital': 0, 'Partnership': 0,
+                'Naver Ads': 0, 'Referral': 0, 'Signage': 0, 'Flyer': 0, 'Hospital': 0, 'Partnership': 0,
                 'Direct': 0, 'Others': 0
             };
+            // ✨ [NEW] 캠페인 데이터를 site_visits에서 직접 집계
+            const siteVisitCampaignMap: Record<string, number> = {};
             const blogTrafficMap: Record<string, Record<string, number>> = {};
 
             siteVisits?.forEach((v: SiteVisit) => {
@@ -664,6 +669,11 @@ export function Dashboard() {
 
                 if (trafficMap[cat] === undefined) trafficMap[cat] = 0;
                 trafficMap[cat] += 1;
+
+                // ✨ [NEW] utm_campaign이 있으면 캠페인 집계
+                if (v.utm_campaign && v.utm_campaign !== '-') {
+                    siteVisitCampaignMap[v.utm_campaign] = (siteVisitCampaignMap[v.utm_campaign] || 0) + 1;
+                }
 
                 const isBlog = v.page_url?.includes('/blog/') ?? false;
                 const hasInfo = cat !== 'Direct' || v.referrer_url;
@@ -688,7 +698,9 @@ export function Dashboard() {
             const channelColors: Record<string, string> = {
                 'Naver Blog': '#03C75A',
                 'Naver Place': '#00d2d2',
+                'Naver Ads': '#2DB400',
                 'Google Search': '#4285F4',
+                'Google Ads': '#FBBC04',
                 'Google Maps': '#34A853',
                 'Youtube': '#FF0000',
                 'Instagram': '#E1306C',
@@ -726,7 +738,8 @@ export function Dashboard() {
             monthsToShow.forEach(m => monthlyLeadsMap[m] = { consults: 0, converted: 0 });
 
             const channelLeadsMap: Record<string, { total: number; converted: number }> = {};
-            const campaignMap: Record<string, number> = {};
+            // ✨ [FIX] campaignMap을 site_visits 기반으로 초기화 (기존 leads 기반에 추가)
+            const campaignMap: Record<string, number> = { ...siteVisitCampaignMap };
             let leadTimeTotal = 0;
             let leadTimeCount = 0;
 
