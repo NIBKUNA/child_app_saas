@@ -9,6 +9,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion } from 'framer-motion';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
+import { useCenter } from '@/contexts/CenterContext';
 import { useTheme } from '@/contexts/ThemeProvider';
 import { cn } from '@/lib/utils';
 
@@ -51,48 +52,61 @@ function extractCoordsFromUrlSync(url: string): { lat: number; lng: number } | n
     return null;
 }
 
-/** 주소로 좌표 조회 (Nominatim — OpenStreetMap 무료 geocoding) */
-async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-    if (!address) return null;
+/** URL에서 Place ID 추출 */
+function extractPlaceId(url: string): string | null {
+    const match = url.match(/place\/(\d{5,})/);
+    return match ? match[1] : null;
+}
 
-    // 주소를 점진적으로 단순화하며 재시도
-    const variations = [
-        address,
-        address.replace(/\s*\d+호\s*$/, ''),           // "201호" 제거
-        address.replace(/\s*\d+\s*\d*호?\s*$/, ''),     // "51 201호" 제거  
-        address.replace(/\s+\d+[-\d]*\s*$/, ''),        // 번지 제거
-        address.split(' ').slice(0, 3).join(' '),        // 시 구 동/길 만
-        address.split(' ').slice(0, 2).join(' '),        // 시 구 만
-    ].filter((v, i, a) => v && a.indexOf(v) === i);     // 중복 제거
-
-    for (const query of variations) {
-        try {
-            const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=kr&limit=1`,
-                { headers: { 'Accept-Language': 'ko' } }
-            );
-            if (!res.ok) continue;
-            const data = await res.json();
-            if (data?.[0]?.lat && data?.[0]?.lon) {
-                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-            }
-        } catch {
-            continue;
+/** 서버 API를 통한 좌표 조회 (CORS/rate limit 없음) */
+async function fetchCoordsFromServer(params: { placeId?: string; address?: string }): Promise<{ lat: number; lng: number } | null> {
+    try {
+        const query = new URLSearchParams();
+        if (params.placeId) query.set('placeId', params.placeId);
+        if (params.address) query.set('address', params.address);
+        
+        const res = await fetch(`/api/geocode?${query.toString()}`);
+        if (!res.ok) throw new Error('API failed');
+        const data = await res.json();
+        if (data?.lat && data?.lng) return { lat: data.lat, lng: data.lng };
+    } catch {
+        // 서버 API 없으면 Nominatim 직접 (로컬 dev 환경)
+        if (params.address) {
+            try {
+                const simplified = params.address.replace(/\s*\d+호?\s*$/, '').trim();
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(simplified)}&countrycodes=kr&limit=1`,
+                    { headers: { 'Accept-Language': 'ko' } }
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data?.[0]?.lat && data?.[0]?.lon) {
+                        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    }
+                }
+            } catch { /* 무시 */ }
         }
     }
     return null;
 }
 
-/** 네이버 지도 URL에서 좌표 추출 → 실패 시 주소 geocoding */
+/** 네이버 지도 URL에서 좌표 추출 → 실패 시 서버 API로 조회 */
 async function extractCoordsFromUrl(url: string, address?: string): Promise<{ lat: number; lng: number } | null> {
-    // 1차: URL 파라미터에서 직접 추출
+    // 1차: URL 파라미터에서 직접 추출 (가장 빠름)
     const syncResult = extractCoordsFromUrlSync(url);
     if (syncResult) return syncResult;
 
-    // 2차: 주소로 geocoding (Nominatim)
+    // 2차: Place ID로 서버 API 조회
+    const placeId = extractPlaceId(url);
+    if (placeId) {
+        const apiResult = await fetchCoordsFromServer({ placeId });
+        if (apiResult) return apiResult;
+    }
+
+    // 3차: 주소로 서버 API 조회
     if (address) {
-        const geocoded = await geocodeAddress(address);
-        if (geocoded) return geocoded;
+        const addrResult = await fetchCoordsFromServer({ address });
+        if (addrResult) return addrResult;
     }
 
     return null;
@@ -100,10 +114,13 @@ async function extractCoordsFromUrl(url: string, address?: string): Promise<{ la
 
 interface CenterMapProps {
     className?: string;
+    /** compact: 카드 안에 임베드할 때 — 헤더/하단바 없이 지도만 표시 */
+    compact?: boolean;
 }
 
-export function CenterMap({ className }: CenterMapProps) {
+export function CenterMap({ className, compact = false }: CenterMapProps) {
     const { getSetting } = useAdminSettings();
+    const { center } = useCenter();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -112,14 +129,24 @@ export function CenterMap({ className }: CenterMapProps) {
     const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
     const mapUrl = getSetting('center_map_url') || '';
-    const centerName = getSetting('center_name') || '센터';
-    const centerAddress = getSetting('center_address') || '';
+    // centers 테이블 우선 → admin_settings fallback (지점 정보 수정 즉시 반영)
+    const centerName = center?.name || getSetting('center_name') || '센터';
+    const centerAddress = center?.address || getSetting('center_address') || '';
+    // DB에 저장된 좌표 (관리자 저장 시 자동 추출)
+    const savedLat = getSetting('center_lat');
+    const savedLng = getSetting('center_lng');
 
     useEffect(() => {
+        // 1순위: DB에 저장된 좌표 → API 호출 없이 즉시 표시
+        if (savedLat && savedLng) {
+            setCoords({ lat: parseFloat(savedLat), lng: parseFloat(savedLng) });
+            return;
+        }
+        // 2순위: URL/주소에서 추출 (fallback)
         if (mapUrl || centerAddress) {
             extractCoordsFromUrl(mapUrl, centerAddress).then(result => setCoords(result));
         }
-    }, [mapUrl, centerAddress]);
+    }, [mapUrl, centerAddress, savedLat, savedLng]);
 
     useEffect(() => {
         if (!coords || !mapContainerRef.current) return;
@@ -145,15 +172,35 @@ export function CenterMap({ className }: CenterMapProps) {
         const marker = L.marker([coords.lat, coords.lng], { icon: customIcon }).addTo(map);
         marker.bindPopup(`<div style="font-family:'Pretendard',sans-serif;padding:4px 0;"><strong style="font-size:14px;font-weight:900;">${centerName}</strong>${centerAddress ? `<br/><span style="font-size:12px;color:#64748b;">${centerAddress}</span>` : ''}</div>`);
 
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        if (!compact) L.control.zoom({ position: 'bottomright' }).addTo(map);
         mapInstanceRef.current = map;
         setTimeout(() => map.invalidateSize(), 200);
 
         return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
-    }, [coords, isDark, centerName, centerAddress]);
+    }, [coords, isDark, centerName, centerAddress, compact]);
 
     if (!coords) return null;
 
+    // ─── compact 모드: 카드 안에 임베드 ───
+    if (compact) {
+        return (
+            <div className={cn("relative overflow-hidden", className)}>
+                <div ref={mapContainerRef} className="w-full h-[200px] z-0" />
+                {(mapUrl || centerAddress) && (
+                    <a
+                        href={mapUrl || `https://map.naver.com/search/${encodeURIComponent(centerAddress)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-xs bg-white/90 backdrop-blur-sm text-slate-700 shadow-lg hover:bg-white transition-all"
+                    >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15,3 21,3 21,9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+                        네이버 지도
+                    </a>
+                )}
+            </div>
+        );
+    }
+
+    // ─── 기본 모드: 독립 섹션 (AboutPage 등) ───
     return (
         <motion.section className={cn("mt-24 mx-auto max-w-7xl px-6", className)} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ type: "spring", stiffness: 80 }}>
             <div className="text-center mb-10">

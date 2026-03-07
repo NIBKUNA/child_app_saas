@@ -38,6 +38,8 @@ export type AdminSettingKey =
     | 'center_address'
     | 'center_email'
     | 'center_map_url'
+    | 'center_lat'
+    | 'center_lng'
     | 'ai_posting_day'
     | 'ai_posting_time'
     | 'ai_next_topic'

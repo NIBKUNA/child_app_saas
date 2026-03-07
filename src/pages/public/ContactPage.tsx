@@ -143,6 +143,9 @@ export function ContactPage() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* 🗺️ 지도 — 센터 정보 카드 하단 밀착 */}
+                                    <CenterMap compact className="mt-6 -mx-10 -mb-10 rounded-none !rounded-b-[50px] overflow-hidden" />
                                 </div>
                             </motion.div>
                         </div>
@@ -176,9 +179,6 @@ export function ContactPage() {
                         </motion.div>
 
                     </div>
-
-                    {/* 🗺️ 오시는 길 — Leaflet + OpenStreetMap */}
-                    <CenterMap />
                 </section>
             </div>
         </div>

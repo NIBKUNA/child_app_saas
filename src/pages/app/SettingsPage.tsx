@@ -741,6 +741,26 @@ function CenterInfoSection() {
                 if (settingsError) throw settingsError;
             }
 
+            // 🗺️ 지도 URL 저장 시 → 좌표 자동 추출해서 DB에 저장
+            if (key === 'naver_map_url' && finalValue) {
+                try {
+                    const coordsRes = await fetch('/api/resolve-coords', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mapUrl: finalValue, address: info.address })
+                    });
+                    if (coordsRes.ok) {
+                        const coords = await coordsRes.json();
+                        if (coords?.lat && coords?.lng) {
+                            await supabase.from('admin_settings').upsert([
+                                { center_id: info.id, key: 'center_lat', value: String(coords.lat), updated_at: new Date().toISOString() },
+                                { center_id: info.id, key: 'center_lng', value: String(coords.lng), updated_at: new Date().toISOString() }
+                            ], { onConflict: 'center_id, key' });
+                        }
+                    }
+                } catch { /* 좌표 추출 실패해도 URL은 저장됨 */ }
+            }
+
             // ✨ [Refresh UI]
             await fetchCenter();
             window.dispatchEvent(new Event('settings-updated'));
