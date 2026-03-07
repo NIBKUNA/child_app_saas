@@ -819,10 +819,13 @@ export function Dashboard() {
             ]);
             setMobileRatio(devTotal > 0 ? Math.round((deviceMobile / devTotal) * 100) : 0);
 
-            // ✨ [Phase 2] 일별 유입 트렌드
-            const dailyArr = Object.entries(dailyCountMap)
-                .map(([name, value]) => ({ name: name.slice(5), value })) // MM-DD 형식
-                .sort((a, b) => a.name.localeCompare(b.name));
+            // ✨ [Phase 2] 일별 유입 트렌드 (빈 날짜 0으로 채움)
+            const daysInMonth = lastDayOfMonth;
+            const dailyArr: { name: string; value: number }[] = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayKey = `${selectedMonth}-${String(d).padStart(2, '0')}`;
+                dailyArr.push({ name: `${d}일`, value: dailyCountMap[dayKey] || 0 });
+            }
             setDailyTrendData(dailyArr);
 
             // ✨ [LEADS CONVERSION ANALYSIS]
@@ -1800,8 +1803,8 @@ export function Dashboard() {
                                                     </linearGradient>
                                                 </defs>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#1e293b' : '#f1f5f9'} />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 9 : 11 }} interval={isMobile ? 4 : 2} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} width={isMobile ? 25 : 40} />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: isMobile ? 9 : 11, fontWeight: 'bold' }} interval={isMobile ? 6 : 2} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} width={isMobile ? 30 : 45} tickFormatter={(v: number) => `${v}건`} />
                                                 <RechartsTooltip {...tooltipProps} formatter={(val: any) => [`${val}건`, '유입']} />
                                                 <Area type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={isMobile ? 2 : 3} fillOpacity={1} fill="url(#colorDailyTrend)" />
                                             </AreaChart>
