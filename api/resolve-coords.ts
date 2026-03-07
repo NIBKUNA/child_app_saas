@@ -9,6 +9,11 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+/** 한국 좌표 범위 확인 */
+function isKoreaCoord(lat: number, lng: number): boolean {
+    return lat > 33 && lat < 43 && lng > 124 && lng < 132;
+}
+
 /** URL에서 좌표 직접 추출 */
 function extractCoordsFromUrl(url: string): { lat: number; lng: number } | null {
     if (!url) return null;
@@ -16,26 +21,32 @@ function extractCoordsFromUrl(url: string): { lat: number; lng: number } | null 
         const urlObj = new URL(url);
         const lat = urlObj.searchParams.get('lat');
         const lng = urlObj.searchParams.get('lng');
-        if (lat && lng) return { lat: parseFloat(lat), lng: parseFloat(lng) };
+        if (lat && lng) {
+            const latN = parseFloat(lat), lngN = parseFloat(lng);
+            if (isKoreaCoord(latN, lngN)) return { lat: latN, lng: lngN };
+        }
 
-        const coordMatch = url.match(/[?&@](-?\d+\.?\d*),(-?\d+\.?\d*)/);
-        if (coordMatch) return { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+        const coordMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (coordMatch) {
+            const latN = parseFloat(coordMatch[1]), lngN = parseFloat(coordMatch[2]);
+            if (isKoreaCoord(latN, lngN)) return { lat: latN, lng: lngN };
+        }
 
         const cParam = urlObj.searchParams.get('c');
         if (cParam) {
             const parts = cParam.split(',');
             if (parts.length >= 2) {
-                const num1 = parseFloat(parts[0]);
-                const num2 = parseFloat(parts[1]);
-                if (num1 > 30 && num1 < 44 && num2 > 124 && num2 < 132) {
-                    return { lat: num1, lng: num2 };
-                }
+                const num1 = parseFloat(parts[0]), num2 = parseFloat(parts[1]);
+                if (isKoreaCoord(num1, num2)) return { lat: num1, lng: num2 };
             }
         }
     } catch {
         const latMatch = url.match(/lat=(-?\d+\.?\d*)/);
         const lngMatch = url.match(/lng=(-?\d+\.?\d*)/);
-        if (latMatch && lngMatch) return { lat: parseFloat(latMatch[1]), lng: parseFloat(lngMatch[1]) };
+        if (latMatch && lngMatch) {
+            const latN = parseFloat(latMatch[1]), lngN = parseFloat(lngMatch[1]);
+            if (isKoreaCoord(latN, lngN)) return { lat: latN, lng: lngN };
+        }
     }
     return null;
 }

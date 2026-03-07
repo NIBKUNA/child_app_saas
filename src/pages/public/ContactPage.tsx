@@ -1,4 +1,3 @@
-
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { ConsultationSurveyForm } from '@/components/public/ConsultationSurveyForm';
@@ -76,7 +75,7 @@ export function ContactPage() {
                     >
                         <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-black tracking-wider uppercase mb-6">Get In Touch</span>
                         <h1 className="text-4xl md:text-5xl font-black tracking-[-0.05em] mb-6">문의 및 오시는 길</h1>
-                        <p className="text-lg text-white/80 font-medium max-w-xl mx-auto leading-relaxed whitespace-pre-line leading-relaxed">
+                        <p className="text-lg text-white/80 font-medium max-w-xl mx-auto whitespace-pre-line leading-relaxed">
                             아이의 밝은 내일을 위한 첫 걸음,<br />
                             자라다가 가장 따뜻한 목소리로 답하겠습니다.
                         </p>
